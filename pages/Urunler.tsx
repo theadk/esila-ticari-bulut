@@ -39,7 +39,7 @@ export const Urunler: React.FC = () => {
     }
   };
   
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = (products || []).filter(p => 
     p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (p.barcode && p.barcode.includes(searchTerm)) ||

@@ -42,14 +42,14 @@ export const Depo: React.FC = () => {
     }
   };
 
-  const warehouseStats = warehouses.map(wh => {
-    const whProducts = products.filter(p => p.warehouse === wh.name);
+  const warehouseStats = (warehouses || []).map(wh => {
+    const whProducts = (products || []).filter(p => p.warehouse === wh.name);
     const uniqueItems = whProducts.length;
     const totalStock = whProducts.reduce((sum, p) => sum + p.stock, 0);
     return { name: wh.name, uniqueItems, totalStock };
   });
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = (products || []).filter(p => 
     p.warehouse === activeWarehouse &&
     (p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
      p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||

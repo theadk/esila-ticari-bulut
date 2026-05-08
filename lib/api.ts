@@ -3,7 +3,9 @@ import { Product, Warehouse } from '../types';
 export const api = {
   async getProducts(): Promise<Product[]> {
     const response = await fetch('/api/products');
-    return await response.json();
+    if (!response.ok) throw new Error('Network response was not ok');
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   },
   async addProduct(product: Product): Promise<Product> {
     const response = await fetch('/api/products', {
@@ -11,6 +13,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(product),
     });
+    if (!response.ok) throw new Error('Network response was not ok');
     return await response.json();
   },
   async updateProduct(id: string, product: Product): Promise<Product> {
@@ -19,14 +22,18 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(product),
     });
+    if (!response.ok) throw new Error('Network response was not ok');
     return await response.json();
   },
   async deleteProduct(id: string): Promise<void> {
-    await fetch(`/api/products/${id}`, { method: 'DELETE' });
+    const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Network response was not ok');
   },
   async getWarehouses(): Promise<Warehouse[]> {
     const response = await fetch('/api/warehouses');
-    return await response.json();
+    if (!response.ok) throw new Error('Network response was not ok');
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   },
   async addWarehouse(warehouse: Warehouse): Promise<Warehouse> {
     const response = await fetch('/api/warehouses', {
@@ -34,6 +41,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(warehouse),
     });
+    if (!response.ok) throw new Error('Network response was not ok');
     return await response.json();
   }
 };

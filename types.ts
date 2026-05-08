@@ -29,11 +29,20 @@ export interface Warehouse {
 
 export interface Customer {
   id: string;
-  name: string;
+  customerType: 'Bireysel' | 'Kurumsal';
+  name: string; // Ad Soyad for Bireysel
+  companyTitle?: string; // Ünvan for Kurumsal
   email: string;
   phone: string;
+  city?: string;
+  district?: string;
   address: string;
+  taxOffice?: string;
+  taxNumber?: string;
+  iban?: string;
+  type: 'Alıcı' | 'Satıcı';
   balance: number;
+  status: 'Aktif' | 'Pasif';
 }
 
 export interface OrderItem {
