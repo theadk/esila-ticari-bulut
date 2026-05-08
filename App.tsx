@@ -9,6 +9,14 @@ import { Ayarlar } from './pages/Ayarlar';
 import { Login } from './pages/Login';
 import { Bell, Search, User } from 'lucide-react';
 
+const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
+  <div className="flex flex-col items-center justify-center h-full text-gray-400">
+     <h2 className="text-2xl font-bold text-gray-800 mb-2">{title}</h2>
+     <p className="text-xl">Bu modül henüz aktif değil.</p>
+     <p className="text-sm">Geliştirme aşamasında...</p>
+  </div>
+);
+
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activePage, setActivePage] = useState('dashboard');
@@ -25,12 +33,12 @@ const App: React.FC = () => {
       case 'depo': return <Depo />;
       case 'siparisler': return <Siparisler />;
       case 'ayarlar': return <Ayarlar />;
-      default: return (
-        <div className="flex flex-col items-center justify-center h-full text-gray-400">
-           <p className="text-xl">Bu modül ({activePage}) henüz aktif değil.</p>
-           <p className="text-sm">Geliştirme aşamasında...</p>
-        </div>
-      );
+      case 'kasa': return <ComingSoon title="Kasa" />;
+      case 'kargo': return <ComingSoon title="Kargo" />;
+      case 'personel': return <ComingSoon title="Personel" />;
+      case 'efatura': return <ComingSoon title="E-Fatura" />;
+      case 'teklif': return <ComingSoon title="Teklifler" />;
+      default: return <ComingSoon title={activePage} />;
     }
   };
 

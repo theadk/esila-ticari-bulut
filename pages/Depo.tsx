@@ -1,27 +1,58 @@
-import React, { useState } from 'react';
-import { Warehouse, Package, Search, Box, ArrowRight } from 'lucide-react';
-import { MOCK_PRODUCTS } from '../mockData';
-
-const WAREHOUSES = ['Ana Depo', 'Şube Depo', 'Soğuk Hava Deposu', 'İade Deposu'];
+import React, { useState, useEffect } from 'react';
+import { Warehouse as WarehouseIcon, Package, Search, Box, ArrowRight, Plus, X } from 'lucide-react';
+import { Product, Warehouse } from '../types';
+import { api } from '../lib/api';
 
 export const Depo: React.FC = () => {
-  const [activeWarehouse, setActiveWarehouse] = useState<string>('Ana Depo');
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [activeWarehouse, setActiveWarehouse] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newWh, setNewWh] = useState<Warehouse>({ id: '', name: '', address: '', capacity: 0 });
 
-  // Sadece ürünlerin güncel datasını simüle etmek için state (gerçekte global state/context veya API'den gelecektir)
-  const products = MOCK_PRODUCTS;
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const warehouseStats = WAREHOUSES.map(wh => {
-    const whProducts = products.filter(p => p.warehouse === wh);
+  const loadData = async () => {
+    try {
+      const [whs, prds] = await Promise.all([api.getWarehouses(), api.getProducts()]);
+      setWarehouses(whs);
+      setProducts(prds);
+      if (whs.length > 0 && !activeWarehouse) {
+        setActiveWarehouse(whs[0].name);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleAddWarehouse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const whToSave = { ...newWh, id: String(Date.now()) };
+      await api.addWarehouse(whToSave);
+      await loadData();
+      setIsModalOpen(false);
+      setNewWh({ id: '', name: '', address: '', capacity: 0 });
+    } catch (e) {
+      console.error('Failed to add warehouse', e);
+    }
+  };
+
+  const warehouseStats = warehouses.map(wh => {
+    const whProducts = products.filter(p => p.warehouse === wh.name);
     const uniqueItems = whProducts.length;
     const totalStock = whProducts.reduce((sum, p) => sum + p.stock, 0);
-    return { name: wh, uniqueItems, totalStock };
+    return { name: wh.name, uniqueItems, totalStock };
   });
 
   const filteredProducts = products.filter(p => 
     p.warehouse === activeWarehouse &&
-    (p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
      (p.barcode && p.barcode.includes(searchTerm)))
   );
 
@@ -29,6 +60,13 @@ export const Depo: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">Depo Yönetimi</h2>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+        >
+          <Plus size={18} />
+          <span>Yeni Depo Ekle</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -44,7 +82,7 @@ export const Depo: React.FC = () => {
           >
             <div className="flex justify-between items-start mb-4">
               <div className={`p-2 rounded-lg ${activeWarehouse === stat.name ? 'bg-emerald-500/50 text-white' : 'bg-emerald-100 text-emerald-600'}`}>
-                <Warehouse size={24} />
+                <WarehouseIcon size={24} />
               </div>
               {activeWarehouse === stat.name && <ArrowRight size={20} className="opacity-80" />}
             </div>
@@ -127,6 +165,66 @@ export const Depo: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-lg text-gray-800">Yeni Depo Ekle</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAddWarehouse} className="p-6 space-y-4">
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Depo Adı</label>
+                  <input 
+                    required
+                    type="text" 
+                    value={newWh.name}
+                    onChange={(e) => setNewWh({...newWh, name: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Adres</label>
+                  <input 
+                    type="text" 
+                    value={newWh.address}
+                    onChange={(e) => setNewWh({...newWh, address: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kapasite</label>
+                  <input 
+                    type="number" 
+                    value={newWh.capacity || ''}
+                    onChange={(e) => setNewWh({...newWh, capacity: parseInt(e.target.value) || 0})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+               </div>
+
+               <div className="pt-4 flex justify-end gap-3">
+                 <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                 >
+                  İptal
+                 </button>
+                 <button 
+                  type="submit" 
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+                 >
+                  Kaydet
+                 </button>
+               </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

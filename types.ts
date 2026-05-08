@@ -15,6 +15,16 @@ export interface Product {
   image?: string;
   warehouse?: string;
   barcode?: string;
+  description?: string;
+  brand?: string;
+  taxRate?: number;
+}
+
+export interface Warehouse {
+  id: string;
+  name: string;
+  address?: string;
+  capacity?: number;
 }
 
 export interface Customer {

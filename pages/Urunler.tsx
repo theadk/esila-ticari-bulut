@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save } from 'lucide-react';
-import { Product } from '../types';
-
-import { MOCK_PRODUCTS } from '../mockData';
+import { Product, Warehouse } from '../types';
+import { api } from '../lib/api';
 
 const INITIAL_FORM: Product = {
   id: '',
@@ -11,20 +10,38 @@ const INITIAL_FORM: Product = {
   price: 0,
   stock: 0,
   category: '',
-  warehouse: 'Ana Depo',
-  barcode: ''
+  warehouse: '',
+  barcode: '',
+  description: '',
+  brand: '',
+  taxRate: 20
 };
 
 export const Urunler: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Product>(INITIAL_FORM);
   const [isEditing, setIsEditing] = useState(false);
   
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [prds, whs] = await Promise.all([api.getProducts(), api.getWarehouses()]);
+      setProducts(prds);
+      setWarehouses(whs);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    }
+  };
+  
   const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (p.barcode && p.barcode.includes(searchTerm)) ||
     (p.warehouse && p.warehouse.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -41,20 +58,30 @@ export const Urunler: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Bu ürünü silmek istediğinizden emin misiniz?')) {
-      setProducts(products.filter(p => p.id !== id));
+      try {
+        await api.deleteProduct(id);
+        await loadData();
+      } catch (error) {
+         console.error('Failed to delete product:', error);
+      }
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isEditing) {
-      setProducts(products.map(p => p.id === formData.id ? formData : p));
-    } else {
-      setProducts([...products, formData]);
+    try {
+      if (isEditing) {
+        await api.updateProduct(formData.id, formData);
+      } else {
+        await api.addProduct(formData);
+      }
+      await loadData();
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Failed to save product:', error);
     }
-    setIsModalOpen(false);
   };
 
   return (
@@ -230,23 +257,27 @@ export const Urunler: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Depo</label>
-                  <select 
-                    required
-                    value={formData.warehouse || ''}
-                    onChange={(e) => setFormData({...formData, warehouse: e.target.value})}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Marka</label>
+                  <input 
+                    type="text" 
+                    value={formData.brand || ''}
+                    onChange={(e) => setFormData({...formData, brand: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  >
-                    <option value="">Depo Seçin</option>
-                    <option value="Ana Depo">Ana Depo</option>
-                    <option value="Şube Depo">Şube Depo</option>
-                    <option value="Soğuk Hava Deposu">Soğuk Hava Deposu</option>
-                    <option value="İade Deposu">İade Deposu</option>
-                  </select>
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kısa Açıklama</label>
+                <textarea 
+                  rows={2}
+                  value={formData.description || ''}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fiyat (₺)</label>
                   <input 
@@ -258,6 +289,18 @@ export const Urunler: React.FC = () => {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">KDV Oranı (%)</label>
+                  <select 
+                    value={formData.taxRate || 20}
+                    onChange={(e) => setFormData({...formData, taxRate: Number(e.target.value)})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value={1}>%1</option>
+                    <option value={10}>%10</option>
+                    <option value={20}>%20</option>
+                  </select>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Stok Adedi</label>
                   <input 
                     required
@@ -267,6 +310,21 @@ export const Urunler: React.FC = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Depo</label>
+                <select 
+                  required
+                  value={formData.warehouse || ''}
+                  onChange={(e) => setFormData({...formData, warehouse: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <option value="">Depo Seçin</option>
+                  {warehouses.map(wh => (
+                    <option key={wh.id} value={wh.name}>{wh.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="pt-4 flex justify-end gap-3">
