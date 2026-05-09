@@ -20,8 +20,8 @@ export function getPool() {
 }
 
 export async function initDb() {
-  if (!process.env.DATABASE_URL) {
-    console.log('No DATABASE_URL configured, skipping DB init.');
+  if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith('postgres')) {
+    console.log('No valid DATABASE_URL configured, skipping DB init.');
     return;
   }
 
@@ -33,6 +33,14 @@ export async function initDb() {
         name VARCHAR(255),
         address TEXT,
         capacity INTEGER
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255),
+        sub_categories TEXT
       );
     `);
 

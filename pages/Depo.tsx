@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Warehouse as WarehouseIcon, Package, Search, Box, ArrowRight, Plus, X } from 'lucide-react';
+import { Warehouse as WarehouseIcon, Package, Search, Box, ArrowRight, Plus, X, Edit2, Trash2 } from 'lucide-react';
 import { Product, Warehouse } from '../types';
 import { api } from '../lib/api';
 
@@ -10,6 +10,7 @@ export const Depo: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [newWh, setNewWh] = useState<Warehouse>({ id: '', name: '', address: '', capacity: 0 });
 
   useEffect(() => {
@@ -29,16 +30,52 @@ export const Depo: React.FC = () => {
     }
   };
 
-  const handleAddWarehouse = async (e: React.FormEvent) => {
+  const handleAddOrEditWarehouse = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const whToSave = { ...newWh, id: String(Date.now()) };
-      await api.addWarehouse(whToSave);
+      if (isEditing) {
+        await api.updateWarehouse(newWh.id, newWh);
+        if (newWh.name !== activeWarehouse) {
+          setActiveWarehouse(newWh.name);
+        }
+      } else {
+        const whToSave = { ...newWh, id: String(Date.now()) };
+        await api.addWarehouse(whToSave);
+      }
       await loadData();
       setIsModalOpen(false);
       setNewWh({ id: '', name: '', address: '', capacity: 0 });
+      setIsEditing(false);
     } catch (e) {
-      console.error('Failed to add warehouse', e);
+      console.error('Failed to save warehouse', e);
+    }
+  };
+
+  const openEditModal = (whStatName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const whToEdit = warehouses.find(w => w.name === whStatName);
+    if (whToEdit) {
+      setNewWh(whToEdit);
+      setIsEditing(true);
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleDeleteWarehouse = async (whStatName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`${whStatName} deposunu silmek istediğinize emin misiniz?`)) return;
+    try {
+      const whToDelete = warehouses.find(w => w.name === whStatName);
+      if (whToDelete) {
+        await api.deleteWarehouse(whToDelete.id);
+        const whs = await api.getWarehouses();
+        setWarehouses(whs);
+        if (activeWarehouse === whStatName) {
+          setActiveWarehouse(whs.length > 0 ? whs[0].name : '');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete warehouse', error);
     }
   };
 
@@ -61,7 +98,11 @@ export const Depo: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">Depo Yönetimi</h2>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setNewWh({ id: '', name: '', address: '', capacity: 0 });
+            setIsEditing(false);
+            setIsModalOpen(true);
+          }}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
         >
           <Plus size={18} />
@@ -74,7 +115,7 @@ export const Depo: React.FC = () => {
           <div 
             key={stat.name}
             onClick={() => setActiveWarehouse(stat.name)}
-            className={`cursor-pointer rounded-xl p-5 border transition-all duration-200 ${
+            className={`cursor-pointer rounded-xl p-5 border transition-all duration-200 relative group ${
               activeWarehouse === stat.name 
                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-md transform -translate-y-1' 
                 : 'bg-white border-gray-200 hover:border-emerald-300 hover:shadow-sm text-gray-700'
@@ -84,7 +125,23 @@ export const Depo: React.FC = () => {
               <div className={`p-2 rounded-lg ${activeWarehouse === stat.name ? 'bg-emerald-500/50 text-white' : 'bg-emerald-100 text-emerald-600'}`}>
                 <WarehouseIcon size={24} />
               </div>
-              {activeWarehouse === stat.name && <ArrowRight size={20} className="opacity-80" />}
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={(e) => openEditModal(stat.name, e)}
+                  className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity ${activeWarehouse === stat.name ? 'hover:bg-emerald-500 text-emerald-100 hover:text-white' : 'hover:bg-gray-100 text-gray-400 hover:text-blue-600'}`}
+                  title="Düzenle"
+                >
+                  <Edit2 size={16} />
+                </button>
+                <button 
+                  onClick={(e) => handleDeleteWarehouse(stat.name, e)}
+                  className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity ${activeWarehouse === stat.name ? 'hover:bg-emerald-500 text-emerald-100 hover:text-white' : 'hover:bg-gray-100 text-gray-400 hover:text-red-600'}`}
+                  title="Sil"
+                >
+                  <Trash2 size={16} />
+                </button>
+                {activeWarehouse === stat.name && <ArrowRight size={20} className="hidden sm:block opacity-80" />}
+              </div>
             </div>
             <h3 className="font-semibold text-lg mb-1">{stat.name}</h3>
             <div className={`text-sm flex gap-4 ${activeWarehouse === stat.name ? 'text-emerald-100' : 'text-gray-500'}`}>
@@ -170,13 +227,13 @@ export const Depo: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex flex-col items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-              <h3 className="font-bold text-lg text-gray-800">Yeni Depo Ekle</h3>
+              <h3 className="font-bold text-lg text-gray-800">{isEditing ? 'Depo Düzenle' : 'Yeni Depo Ekle'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
                 <X size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleAddWarehouse} className="p-6 space-y-4">
+            <form onSubmit={handleAddOrEditWarehouse} className="p-6 space-y-4">
                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Depo Adı</label>
                   <input 
@@ -218,7 +275,7 @@ export const Depo: React.FC = () => {
                   type="submit" 
                   className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
                  >
-                  Kaydet
+                  {isEditing ? 'Güncelle' : 'Kaydet'}
                  </button>
                </div>
             </form>

@@ -7,6 +7,11 @@ import cors from 'cors';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+let fallbackCategories = [
+  { id: '1', name: 'Elektronik', subCategories: ['Telefon', 'Bilgisayar', 'Aksesuar'] },
+  { id: '2', name: 'Giyim', subCategories: ['Erkek', 'Kadın', 'Çocuk'] }
+];
+
 let fallbackWarehouses = [
   { id: '1', name: 'Ana Depo', address: 'Merkez', capacity: 1000 },
   { id: '2', name: 'Şube Depo', address: 'Kadıköy', capacity: 500 },
@@ -31,7 +36,7 @@ async function startServer() {
   app.use(cors());
 
   app.get('/api/products', async (req, res) => {
-    if (!process.env.DATABASE_URL) return res.json(fallbackProducts);
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) return res.json(fallbackProducts);
     try {
       const pool = getPool();
       const { rows } = await pool.query('SELECT * FROM products');
@@ -42,7 +47,7 @@ async function startServer() {
   });
 
   app.delete('/api/products/:id', async (req, res) => {
-    if (!process.env.DATABASE_URL) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
       fallbackProducts = fallbackProducts.filter(p => String(p.id) !== String(req.params.id));
       return res.json({ success: true });
     }
@@ -56,8 +61,71 @@ async function startServer() {
     }
   });
 
+  app.get('/api/categories', async (req, res) => {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) return res.json(fallbackCategories);
+    try {
+      const pool = getPool();
+      const { rows } = await pool.query('SELECT * FROM categories');
+      res.json(rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        subCategories: typeof r.sub_categories === 'string' ? JSON.parse(r.sub_categories) : (r.sub_categories || [])
+      })));
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.post('/api/categories', async (req, res) => {
+    const newCat = { ...req.body, id: req.body.id || String(Date.now()) };
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      fallbackCategories.push(newCat);
+      return res.json(newCat);
+    }
+    const { id, name, subCategories } = newCat;
+    try {
+      const pool = getPool();
+      await pool.query('INSERT INTO categories (id, name, sub_categories) VALUES ($1, $2, $3)', [id, name, JSON.stringify(subCategories)]);
+      res.json(newCat);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.put('/api/categories/:id', async (req, res) => {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      const idx = fallbackCategories.findIndex(c => String(c.id) === String(req.params.id));
+      if (idx !== -1) fallbackCategories[idx] = { ...fallbackCategories[idx], ...req.body, id: req.params.id };
+      return res.json({ id: req.params.id, ...req.body });
+    }
+    const { id } = req.params;
+    const { name, subCategories } = req.body;
+    try {
+      const pool = getPool();
+      await pool.query('UPDATE categories SET name = $1, sub_categories = $2 WHERE id = $3', [name, JSON.stringify(subCategories), id]);
+      res.json({ id, ...req.body });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.delete('/api/categories/:id', async (req, res) => {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      fallbackCategories = fallbackCategories.filter(c => String(c.id) !== String(req.params.id));
+      return res.json({ success: true });
+    }
+    const { id } = req.params;
+    try {
+      const pool = getPool();
+      await pool.query('DELETE FROM categories WHERE id = $1', [id]);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   app.get('/api/warehouses', async (req, res) => {
-    if (!process.env.DATABASE_URL) return res.json(fallbackWarehouses);
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) return res.json(fallbackWarehouses);
     try {
       const pool = getPool();
       const { rows } = await pool.query('SELECT * FROM warehouses');
@@ -68,7 +136,7 @@ async function startServer() {
   });
 
   app.post('/api/warehouses', async (req, res) => {
-    if (!process.env.DATABASE_URL) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
       fallbackWarehouses.push(req.body);
       return res.json(req.body);
     }
@@ -85,8 +153,44 @@ async function startServer() {
     }
   });
 
+  app.put('/api/warehouses/:id', async (req, res) => {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      const idx = fallbackWarehouses.findIndex(w => String(w.id) === String(req.params.id));
+      if (idx !== -1) fallbackWarehouses[idx] = { ...fallbackWarehouses[idx], ...req.body, id: req.params.id };
+      return res.json({ id: req.params.id, ...req.body });
+    }
+    const { name, address, capacity } = req.body;
+    try {
+      const pool = getPool();
+      await pool.query(
+        'UPDATE warehouses SET name = $1, address = $2, capacity = $3 WHERE id = $4',
+        [name, address, capacity, req.params.id]
+      );
+      res.json({ id: req.params.id, ...req.body });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.delete('/api/warehouses/:id', async (req, res) => {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      const initLen = fallbackWarehouses.length;
+      const filtered = fallbackWarehouses.filter(w => String(w.id) !== String(req.params.id));
+      fallbackWarehouses.length = 0;
+      fallbackWarehouses.push(...filtered);
+      return res.json({ success: true });
+    }
+    try {
+      const pool = getPool();
+      await pool.query('DELETE FROM warehouses WHERE id = $1', [req.params.id]);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   app.put('/api/products/:id', async (req, res) => {
-    if (!process.env.DATABASE_URL) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
       const idx = fallbackProducts.findIndex(p => String(p.id) === String(req.params.id));
       if (idx !== -1) fallbackProducts[idx] = { ...fallbackProducts[idx], ...req.body, id: req.params.id };
       return res.json({ id: req.params.id, ...req.body });
@@ -106,7 +210,7 @@ async function startServer() {
   });
 
   app.post('/api/products', async (req, res) => {
-    if (!process.env.DATABASE_URL) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
       fallbackProducts.push({ ...req.body, id: req.body.id || String(Date.now()) });
       return res.json(req.body);
     }

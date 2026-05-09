@@ -12,12 +12,14 @@ export interface Product {
   price: number;
   stock: number;
   category: string;
+  subCategory?: string;
   image?: string;
   warehouse?: string;
   barcode?: string;
   description?: string;
   brand?: string;
   taxRate?: number;
+  variants?: string[];
 }
 
 export interface Warehouse {
@@ -27,11 +29,26 @@ export interface Warehouse {
   capacity?: number;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  subCategories: string[];
+}
+
+export interface CustomerTransaction {
+  id: string;
+  customerId: string;
+  date: string;
+  type: 'Satış' | 'Alış' | 'Tahsilat' | 'Ödeme';
+  amount: number;
+  description: string;
+}
+
 export interface Customer {
   id: string;
-  customerType: 'Bireysel' | 'Kurumsal';
-  name: string; // Ad Soyad for Bireysel
-  companyTitle?: string; // Ünvan for Kurumsal
+  customerType: 'Şahıs' | 'Tüzel';
+  name: string; // Ad Soyad / Yetkili
+  companyName: string; // Firma Adı / Ünvan
   email: string;
   phone: string;
   city?: string;

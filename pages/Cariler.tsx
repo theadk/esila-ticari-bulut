@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User } from 'lucide-react';
-import { Customer } from '../types';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send } from 'lucide-react';
+import { Customer, CustomerTransaction } from '../types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const MOCK_CUSTOMERS: Customer[] = [
-  { id: '1', customerType: 'Bireysel', name: 'Ahmet Yılmaz', type: 'Alıcı', email: 'ahmet@mail.com', phone: '0555 123 45 67', address: 'İstanbul, Kadıköy', balance: 1500, status: 'Aktif' },
-  { id: '2', customerType: 'Kurumsal', name: '', companyTitle: 'Demir Ticaret A.Ş.', type: 'Satıcı', email: 'ayse@mail.com', phone: '0532 987 65 43', address: 'Ankara, Çankaya', balance: -500, status: 'Aktif' },
-  { id: '3', customerType: 'Bireysel', name: 'Mehmet Kaya', type: 'Alıcı', email: 'mehmet@mail.com', phone: '0544 333 22 11', address: 'İzmir, Karşıyaka', balance: 0, status: 'Aktif' },
+  { id: '1', customerType: 'Şahıs', name: 'Ahmet Yılmaz', companyName: 'Yılmaz Ticaret', type: 'Alıcı', email: 'ahmet@mail.com', phone: '0555 123 45 67', address: 'İstanbul, Kadıköy', balance: 1500, status: 'Aktif' },
+  { id: '2', customerType: 'Tüzel', name: 'Ayşe Demir', companyName: 'Demir Ticaret A.Ş.', type: 'Satıcı', email: 'ayse@mail.com', phone: '0532 987 65 43', address: 'Ankara, Çankaya', balance: -500, status: 'Aktif' },
+  { id: '3', customerType: 'Şahıs', name: 'Mehmet Kaya', companyName: '', type: 'Alıcı', email: 'mehmet@mail.com', phone: '0544 333 22 11', address: 'İzmir, Karşıyaka', balance: 0, status: 'Aktif' },
+];
+
+const MOCK_TRANSACTIONS: CustomerTransaction[] = [
+  { id: 't1', customerId: '1', date: '2026-05-01', type: 'Satış', amount: 3500, description: 'Toptan Malzeme' },
+  { id: 't2', customerId: '1', date: '2026-05-05', type: 'Tahsilat', amount: -2000, description: 'Nakit Tahsilat' },
+  { id: 't3', customerId: '2', date: '2026-04-20', type: 'Alış', amount: -500, description: 'Hammadde Alımı' },
 ];
 
 const INITIAL_FORM: Customer = {
   id: '',
-  customerType: 'Bireysel',
+  customerType: 'Şahıs',
   name: '',
-  companyTitle: '',
+  companyName: '',
   email: '',
   phone: '',
   city: '',
@@ -40,6 +48,114 @@ export const Cariler: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<{ id: number; name: string }[]>([]);
+
+  // Transaction History States
+  const [transactions, setTransactions] = useState<CustomerTransaction[]>(MOCK_TRANSACTIONS);
+  const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  
+  // Payment Modal States
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentForm, setPaymentForm] = useState<{ amount: number, description: string, type: 'Tahsilat' | 'Ödeme' }>({ amount: 0, description: '', type: 'Tahsilat' });
+
+  const handleOpenHistory = (customer: Customer) => {
+    setSelectedCustomerForHistory(customer);
+    setIsHistoryModalOpen(true);
+  };
+
+  const handleOpenPayment = (customer: Customer, type: 'Tahsilat' | 'Ödeme') => {
+    setSelectedCustomerForHistory(customer);
+    setPaymentForm({ amount: 0, description: '', type });
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleSavePayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomerForHistory) return;
+    
+    const newTransaction: CustomerTransaction = {
+      id: Math.random().toString(36).substr(2, 9),
+      customerId: selectedCustomerForHistory.id,
+      date: new Date().toISOString().split('T')[0],
+      type: paymentForm.type,
+      amount: paymentForm.type === 'Tahsilat' ? -Math.abs(paymentForm.amount) : Math.abs(paymentForm.amount),
+      description: paymentForm.description
+    };
+
+    const newTransactions = [...transactions, newTransaction];
+    setTransactions(newTransactions);
+
+    const updatedCustomers = customers.map(c => {
+      if (c.id === selectedCustomerForHistory.id) {
+        return { ...c, balance: c.balance + newTransaction.amount };
+      }
+      return c;
+    });
+    setCustomers(updatedCustomers);
+    
+    // Update the selected customer reference inside the modal if it's open
+    if (isHistoryModalOpen) {
+      setSelectedCustomerForHistory(updatedCustomers.find(c => c.id === selectedCustomerForHistory.id) || null);
+    }
+    
+    setIsPaymentModalOpen(false);
+  };
+
+  const downloadHistoryPDF = async (customer: Customer) => {
+    const doc = new jsPDF();
+
+    try {
+      const response = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf');
+      const buffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binary);
+      
+      doc.addFileToVFS('Roboto-Regular.ttf', base64);
+      doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+      doc.setFont('Roboto');
+    } catch (error) {
+      console.warn('Failed to load Turkish font, falling back to default', error);
+      doc.setFont('helvetica');
+    }
+
+    const customerTransactions = transactions.filter(t => t.customerId === customer.id);
+    
+    doc.setFontSize(16);
+    doc.text(`Cari Hesap Ekstresi: ${customer.companyName || customer.name}`, 14, 20);
+    
+    doc.setFontSize(10);
+    doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`, 14, 28);
+    doc.text(`Güncel Bakiye: ${customer.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}`, 14, 34);
+
+    const tableColumn = ["Tarih", "İşlem Tipi", "Açıklama", "Tutar"];
+    const tableRows = customerTransactions.map(t => [
+      t.date,
+      t.type,
+      t.description,
+      t.amount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })
+    ]);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [tableColumn],
+      body: tableRows,
+      theme: 'grid',
+      styles: { font: 'Roboto', fontSize: 9 }, // Use Roboto here for table content!
+      headStyles: { fillColor: [16, 185, 129] } // emerald-500
+    });
+
+    doc.save(`${customer.name.replace(/\s+/g, '_')}_Ekstre.pdf`);
+  };
+
+  const sendHistoryEmail = (customer: Customer) => {
+    const subject = encodeURIComponent(`Cari Hesap Ekstresi - ${customer.companyName || customer.name}`);
+    const body = encodeURIComponent(`Merhaba ${customer.name},\n\nGüncel bakiyeniz: ${customer.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}\n\nİyi çalışmalar.`);
+    window.location.href = `mailto:${customer.email}?subject=${subject}&body=${body}`;
+  };
 
   useEffect(() => {
     fetch('https://turkiyeapi.dev/api/v1/provinces')
@@ -70,7 +186,7 @@ export const Cariler: React.FC = () => {
   const filteredCustomers = customers.filter(c => {
     const searchStr = searchTerm.toLowerCase();
     const matchName = c.name?.toLowerCase().includes(searchStr);
-    const matchTitle = c.companyTitle?.toLowerCase().includes(searchStr);
+    const matchTitle = c.companyName?.toLowerCase().includes(searchStr);
     const matchEmail = c.email?.toLowerCase().includes(searchStr);
     return matchName || matchTitle || matchEmail;
   });
@@ -154,18 +270,21 @@ export const Cariler: React.FC = () => {
                   <tr key={customer.id} className="hover:bg-emerald-50/30 transition-colors">
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
-                        customer.customerType === 'Kurumsal' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                        customer.customerType === 'Tüzel' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
                       }`}>
-                        {customer.customerType === 'Kurumsal' ? <Building size={12} /> : <User size={12} />}
+                        {customer.customerType === 'Tüzel' ? <Building size={12} /> : <User size={12} />}
                         {customer.customerType}
                       </span>
                       <div className="text-xs text-gray-500 mt-1">{customer.type}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-semibold text-gray-800">
-                        {customer.customerType === 'Kurumsal' ? customer.companyTitle : customer.name}
+                        {customer.companyName || customer.name}
                       </div>
-                      <div className="text-sm text-gray-500">#{customer.id}</div>
+                      <div className="text-sm text-gray-500">
+                        {customer.companyName ? customer.name : ''}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-0.5">#{customer.id}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
@@ -189,14 +308,38 @@ export const Cariler: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <button 
+                          title="Cari Hesap Ekstresi (Geçmiş)"
+                          onClick={() => handleOpenHistory(customer)}
+                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-blue-600 transition-colors"
+                        >
+                          <History size={18} />
+                        </button>
+                        <button 
+                          title="Ödeme Yap"
+                          onClick={() => handleOpenPayment(customer, 'Ödeme')}
+                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
+                        >
+                          <CreditCard size={18} />
+                        </button>
+                        <button 
+                          title="Tahsilat Al"
+                          onClick={() => handleOpenPayment(customer, 'Tahsilat')}
+                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors"
+                        >
+                          <CreditCard size={18} />
+                        </button>
+                        <div className="w-px h-6 bg-gray-200 mx-1"></div>
+                        <button 
+                          title="Düzenle"
                           onClick={() => handleEdit(customer)}
                           className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors"
                         >
                           <Edit2 size={18} />
                         </button>
                         <button 
+                          title="Sil"
                           onClick={() => handleDelete(customer.id)}
                           className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-600 transition-colors"
                         >
@@ -213,22 +356,22 @@ export const Cariler: React.FC = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl my-8">
-            <div className="p-6 border-b bg-gray-50 flex justify-between items-center rounded-t-xl sticky top-0 z-10">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b bg-gray-50 flex justify-between items-center rounded-t-xl shrink-0">
               <div>
                 <h3 className="font-bold text-xl text-gray-800">{isEditing ? 'Cari Düzenle' : 'Yeni Cari Ekle'}</h3>
                 <p className="text-sm text-gray-500 mt-1">Müşteri veya tedarikçi bilgilerini eksiksiz doldurun.</p>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg hover:text-red-500 transition-colors">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg hover:text-red-500 transition-colors">
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-6 space-y-6">
+            <form onSubmit={handleSave} className="flex flex-col overflow-hidden">
+              <div className="p-6 space-y-6 overflow-y-auto">
               
-              {/* Tip Secimleri */}
-              <div className="flex gap-6 pb-4 border-b">
+                   <div className="flex gap-6 pb-4 border-b">
                 <div className="flex-1">
                    <label className="block text-sm font-semibold text-gray-700 mb-2">Cari Türü</label>
                    <div className="flex gap-4">
@@ -236,23 +379,23 @@ export const Cariler: React.FC = () => {
                         <input 
                           type="radio" 
                           name="customerType" 
-                          value="Bireysel" 
-                          checked={formData.customerType === 'Bireysel'}
-                          onChange={(e) => setFormData({...formData, customerType: e.target.value as 'Bireysel'|'Kurumsal', companyTitle: '', taxNumber: ''})}
+                          value="Şahıs" 
+                          checked={formData.customerType === 'Şahıs'}
+                          onChange={(e) => setFormData({...formData, customerType: e.target.value as 'Şahıs'|'Tüzel', taxNumber: ''})}
                           className="text-emerald-600 focus:ring-emerald-500 w-4 h-4"
                         />
-                        <span>Bireysel</span>
+                        <span>Şahıs</span>
                      </label>
                      <label className="flex items-center gap-2 cursor-pointer">
                         <input 
                           type="radio" 
                           name="customerType" 
-                          value="Kurumsal" 
-                          checked={formData.customerType === 'Kurumsal'}
-                          onChange={(e) => setFormData({...formData, customerType: e.target.value as 'Bireysel'|'Kurumsal', name: '', taxNumber: ''})}
+                          value="Tüzel" 
+                          checked={formData.customerType === 'Tüzel'}
+                          onChange={(e) => setFormData({...formData, customerType: e.target.value as 'Şahıs'|'Tüzel', taxNumber: ''})}
                           className="text-emerald-600 focus:ring-emerald-500 w-4 h-4"
                         />
-                        <span>Kurumsal</span>
+                        <span>Tüzel</span>
                      </label>
                    </div>
                 </div>
@@ -291,35 +434,33 @@ export const Cariler: React.FC = () => {
                   <h4 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">Temel Bilgiler</h4>
                 </div>
 
-                {formData.customerType === 'Bireysel' ? (
-                  <>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Ad Soyad</label>
-                      <input 
-                        required
-                        type="text" 
-                        value={formData.name || ''}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                        placeholder="Örn: Ahmet Yılmaz"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Firma Ünvanı</label>
-                      <input 
-                        required
-                        type="text" 
-                        value={formData.companyTitle || ''}
-                        onChange={(e) => setFormData({...formData, companyTitle: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                        placeholder="Örn: Demir Ticaret Ltd. Şti."
-                      />
-                    </div>
-                  </>
-                )}
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {formData.customerType === 'Şahıs' ? 'Ad Soyad' : 'Yetkili Adı Soyadı'}
+                  </label>
+                  <input 
+                    required={formData.customerType === 'Şahıs'}
+                    type="text" 
+                    value={formData.name || ''}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Örn: Ahmet Yılmaz"
+                  />
+                </div>
+
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {formData.customerType === 'Şahıs' ? 'Firma Adı (İsteğe Bağlı)' : 'Firma Ünvanı'}
+                  </label>
+                  <input 
+                    required={formData.customerType === 'Tüzel'}
+                    type="text" 
+                    value={formData.companyName || ''}
+                    onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Örn: Yılmaz Ticaret"
+                  />
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
@@ -361,18 +502,18 @@ export const Cariler: React.FC = () => {
                  </div>
                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {formData.customerType === 'Bireysel' ? 'TC Kimlik Numarası' : 'Vergi Numarası'}
+                      {formData.customerType === 'Şahıs' ? 'TC Kimlik Numarası' : 'Vergi Numarası'}
                     </label>
                     <input 
                       type="text" 
-                      maxLength={formData.customerType === 'Bireysel' ? 11 : 10}
+                      maxLength={formData.customerType === 'Şahıs' ? 11 : 10}
                       value={formData.taxNumber || ''}
                       onChange={(e) => {
                          const val = e.target.value.replace(/\D/g, ''); // Sadece sayılar
                          setFormData({...formData, taxNumber: val})
                       }}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder={formData.customerType === 'Bireysel' ? '11 Haneli TC Kimlik No' : '10 Haneli Vergi No'}
+                      placeholder={formData.customerType === 'Şahıs' ? '11 Haneli TC Kimlik No' : '10 Haneli Vergi No'}
                     />
                  </div>
 
@@ -457,8 +598,8 @@ export const Cariler: React.FC = () => {
                     />
                  </div>
               </div>
-
-              <div className="pt-6 flex justify-end gap-3 border-t">
+              </div>
+              <div className="p-6 bg-gray-50 border-t flex justify-end gap-3 rounded-b-xl shrink-0">
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)} 
@@ -472,6 +613,157 @@ export const Cariler: React.FC = () => {
                 >
                   <Save size={18} />
                   Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* History / Ekstre Modal */}
+      {isHistoryModalOpen && selectedCustomerForHistory && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b bg-gray-50 flex justify-between items-center rounded-t-xl shrink-0">
+              <div>
+                <h3 className="font-bold text-xl text-gray-800">Geçmiş İşlemler</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => downloadHistoryPDF(selectedCustomerForHistory)} 
+                  className="bg-emerald-600 text-white px-3 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                >
+                  <Download size={18} />
+                  <span>PDF Yap</span>
+                </button>
+                <button 
+                  onClick={() => sendHistoryEmail(selectedCustomerForHistory)} 
+                  className="bg-emerald-50 text-emerald-700 px-3 py-2 rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-2"
+                >
+                  <Send size={18} />
+                  <span>Gönder</span>
+                </button>
+                <button onClick={() => setIsHistoryModalOpen(false)} className="h-10 w-10 flex items-center justify-center text-gray-500 hover:bg-gray-200 rounded-lg hover:text-red-500 transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-100 mb-4">
+                <span className="text-gray-600 font-medium">Güncel Bakiye:</span>
+                <span className={`text-xl font-bold ${selectedCustomerForHistory.balance > 0 ? 'text-emerald-600' : selectedCustomerForHistory.balance < 0 ? 'text-red-600' : 'text-gray-800'}`}>
+                  {selectedCustomerForHistory.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                </span>
+              </div>
+              
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 text-gray-600 font-medium">
+                  <tr>
+                    <th className="px-6 py-4 rounded-tl-lg">Tarih</th>
+                    <th className="px-6 py-4">Açıklama</th>
+                    <th className="px-6 py-4">İşlem Türü</th>
+                    <th className="px-6 py-4 text-right rounded-tr-lg">Tutar</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {transactions.filter(t => t.customerId === selectedCustomerForHistory.id).length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                        Herhangi bir işlem bulunamadı.
+                      </td>
+                    </tr>
+                  ) : (
+                    transactions.filter(t => t.customerId === selectedCustomerForHistory.id).map(t => (
+                      <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 text-sm text-gray-600">{new Date(t.date).toLocaleDateString('tr-TR')}</td>
+                        <td className="px-6 py-4 text-sm text-gray-800">{t.description}</td>
+                        <td className="px-6 py-4 text-sm">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium bg-gray-100 ${t.type === 'Tahsilat' || t.type === 'Satış' ? 'text-emerald-700 bg-emerald-100' : 'text-red-700 bg-red-100'}`}>
+                            {t.type}
+                          </span>
+                        </td>
+                        <td className={`px-6 py-4 text-right font-medium ${t.amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment / Tahsilat Modal */}
+      {isPaymentModalOpen && selectedCustomerForHistory && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+             <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-gray-800">
+                {paymentForm.type === 'Tahsilat' ? 'Tahsilat Al' : 'Ödeme Yap'}
+              </h3>
+              <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSavePayment} className="p-6 space-y-4">
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cari: <span className="font-bold text-gray-900">{selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}</span></label>
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">İşlem Türü</label>
+                 <select 
+                   value={paymentForm.type}
+                   onChange={e => setPaymentForm({...paymentForm, type: e.target.value as 'Tahsilat'|'Ödeme'})}
+                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                 >
+                    <option value="Tahsilat">Tahsilat (Alınan)</option>
+                    <option value="Ödeme">Ödeme (Verilen)</option>
+                 </select>
+               </div>
+               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tutar (₺)</label>
+                <input 
+                  required
+                  type="number" 
+                  min="0.01" step="0.01"
+                  value={paymentForm.amount || ''}
+                  onChange={(e) => setPaymentForm({...paymentForm, amount: Number(e.target.value)})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+                <textarea 
+                  rows={2}
+                  required
+                  value={paymentForm.description}
+                  onChange={(e) => setPaymentForm({...paymentForm, description: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  placeholder="Nakit tahsilat, EFT/Havale vb."
+                />
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsPaymentModalOpen(false)} 
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  İptal
+                </button>
+                <button 
+                  type="submit" 
+                  className={`px-6 py-2 text-white rounded-lg transition-colors flex items-center gap-2 ${paymentForm.type === 'Tahsilat' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}
+                >
+                  <Save size={18} />
+                  {paymentForm.type === 'Tahsilat' ? 'Tahsilat Al' : 'Ödeme Yap'}
                 </button>
               </div>
             </form>
