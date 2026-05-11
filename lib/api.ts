@@ -1,4 +1,4 @@
-import { Product, Warehouse, Category } from '../types';
+import { Product, Warehouse, Category, Brand } from '../types';
 
 export const api = {
   async getCategories(): Promise<Category[]> {
@@ -27,6 +27,34 @@ export const api = {
   },
   async deleteCategory(id: string): Promise<void> {
     const response = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Network response was not ok');
+  },
+  async getBrands(): Promise<Brand[]> {
+    const response = await fetch('/api/brands');
+    if (!response.ok) throw new Error('Network response was not ok');
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  },
+  async addBrand(brand: Brand): Promise<Brand> {
+    const response = await fetch('/api/brands', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(brand),
+    });
+    if (!response.ok) throw new Error('Network response was not ok');
+    return await response.json();
+  },
+  async updateBrand(id: string, brand: Brand): Promise<Brand> {
+    const response = await fetch(`/api/brands/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(brand),
+    });
+    if (!response.ok) throw new Error('Network response was not ok');
+    return await response.json();
+  },
+  async deleteBrand(id: string): Promise<void> {
+    const response = await fetch(`/api/brands/${id}`, { method: 'DELETE' });
     if (!response.ok) throw new Error('Network response was not ok');
   },
   async getProducts(): Promise<Product[]> {

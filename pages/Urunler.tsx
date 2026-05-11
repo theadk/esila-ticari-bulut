@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save } from 'lucide-react';
-import { Product, Warehouse, Category } from '../types';
+import { Product, Warehouse, Category, Brand } from '../types';
 import { api } from '../lib/api';
 
 const INITIAL_FORM: Product = {
@@ -20,19 +20,30 @@ const INITIAL_FORM: Product = {
 };
 
 export const Urunler: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'urunler' | 'kategoriler'>('urunler');
+  const [activeTab, setActiveTab] = useState<'urunler' | 'kategoriler' | 'markalar'>('urunler');
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Product>(INITIAL_FORM);
   const [isEditing, setIsEditing] = useState(false);
+
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   
   // Kategori Formu State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [categoryFormData, setCategoryFormData] = useState<Category>({ id: '', name: '', subCategories: [] });
   const [isCategoryEditing, setIsCategoryEditing] = useState(false);
+
+  // Marka Formu State
+  const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
+  const [brandFormData, setBrandFormData] = useState<Brand>({ id: '', name: '' });
+  const [isBrandEditing, setIsBrandEditing] = useState(false);
+
+  const [deleteData, setDeleteData] = useState<{ id: string, type: 'product' | 'category' | 'brand', name: string } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -44,10 +55,11 @@ export const Urunler: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [prds, whs, cats] = await Promise.all([api.getProducts(), api.getWarehouses(), api.getCategories()]);
+      const [prds, whs, cats, brs] = await Promise.all([api.getProducts(), api.getWarehouses(), api.getCategories(), api.getBrands()]);
       setProducts(prds);
       setWarehouses(whs);
       setCategories(cats);
+      setBrands(brs);
     } catch (error) {
       console.error('Failed to load data:', error);
     }
@@ -72,15 +84,8 @@ export const Urunler: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Bu ürünü silmek istediğinizden emin misiniz?')) {
-      try {
-        await api.deleteProduct(id);
-        await loadData();
-      } catch (error) {
-         console.error('Failed to delete product:', error);
-      }
-    }
+  const handleDelete = (product: Product) => {
+    setDeleteData({ id: product.id, type: 'product', name: product.name });
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -110,15 +115,8 @@ export const Urunler: React.FC = () => {
     setIsCategoryModalOpen(true);
   };
 
-  const handleDeleteCategory = async (id: string) => {
-    if (window.confirm('Bu kategoriyi silmek istediğinizden emin misiniz?')) {
-      try {
-        await api.deleteCategory(id);
-        await loadData();
-      } catch (error) {
-         console.error('Failed to delete category:', error);
-      }
-    }
+  const handleDeleteCategory = (category: Category) => {
+    setDeleteData({ id: category.id, type: 'category', name: category.name });
   };
 
   const handleSaveCategory = async (e: React.FormEvent) => {
@@ -133,6 +131,54 @@ export const Urunler: React.FC = () => {
       setIsCategoryModalOpen(false);
     } catch (error) {
       console.error('Failed to save category:', error);
+    }
+  };
+
+  const handleAddNewBrand = () => {
+    setBrandFormData({ id: Math.random().toString(36).substr(2, 9), name: '' });
+    setIsBrandEditing(false);
+    setIsBrandModalOpen(true);
+  };
+
+  const handleEditBrand = (brand: Brand) => {
+    setBrandFormData({ ...brand });
+    setIsBrandEditing(true);
+    setIsBrandModalOpen(true);
+  };
+
+  const handleDeleteBrand = (brand: Brand) => {
+    setDeleteData({ id: brand.id, type: 'brand', name: brand.name });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteData) return;
+    try {
+      if (deleteData.type === 'product') {
+        await api.deleteProduct(deleteData.id);
+      } else if (deleteData.type === 'category') {
+        await api.deleteCategory(deleteData.id);
+      } else if (deleteData.type === 'brand') {
+        await api.deleteBrand(deleteData.id);
+      }
+      await loadData();
+      setDeleteData(null);
+    } catch (error) {
+      console.error('Failed to delete:', error);
+    }
+  };
+
+  const handleSaveBrand = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (isBrandEditing) {
+        await api.updateBrand(brandFormData.id, brandFormData);
+      } else {
+        await api.addBrand(brandFormData);
+      }
+      await loadData();
+      setIsBrandModalOpen(false);
+    } catch (error) {
+      console.error('Failed to save brand:', error);
     }
   };
 
@@ -176,6 +222,16 @@ export const Urunler: React.FC = () => {
             >
               Kategoriler
             </button>
+            <button
+              onClick={() => setActiveTab('markalar')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                activeTab === 'markalar' 
+                  ? 'bg-white text-emerald-600 shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Markalar
+            </button>
           </div>
         </div>
         <div className="flex gap-2">
@@ -193,13 +249,21 @@ export const Urunler: React.FC = () => {
                 <span>Yeni Ürün</span>
               </button>
             </>
-          ) : (
+          ) : activeTab === 'kategoriler' ? (
             <button 
               onClick={handleAddNewCategory}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
             >
               <Plus size={18} />
               <span>Yeni Kategori</span>
+            </button>
+          ) : (
+            <button 
+              onClick={handleAddNewBrand}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <Plus size={18} />
+              <span>Yeni Marka</span>
             </button>
           )}
         </div>
@@ -241,7 +305,11 @@ export const Urunler: React.FC = () => {
                 </tr>
             ) : (
               filteredProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-emerald-50/30 transition-colors">
+                <tr 
+                  key={product.id} 
+                  className="hover:bg-emerald-50/30 transition-colors cursor-pointer"
+                  onClick={() => { setSelectedProduct(product); setIsDetailsOpen(true); }}
+                >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
@@ -288,13 +356,13 @@ export const Urunler: React.FC = () => {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                         <button 
-                          onClick={() => handleEdit(product)}
+                          onClick={(e) => { e.stopPropagation(); handleEdit(product); }}
                           className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors"
                         >
                           <Edit2 size={18} />
                         </button>
                         <button 
-                          onClick={() => handleDelete(product.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(product); }}
                           className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-600 transition-colors"
                         >
                           <Trash2 size={18} />
@@ -307,6 +375,98 @@ export const Urunler: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Ürün Detay Modal */}
+      {isDetailsOpen && selectedProduct && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setIsDetailsOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-gray-800">Ürün Detayları</h3>
+              <button onClick={() => setIsDetailsOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
+                   <Package size={32} />
+                </div>
+                <div>
+                   <h2 className="text-xl font-bold text-gray-800">{selectedProduct.name}</h2>
+                   <p className="text-gray-500">{selectedProduct.code}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+                 <div>
+                    <span className="block text-gray-500 mb-1">Barkod</span>
+                    <span className="font-medium text-gray-800">{selectedProduct.barcode || '-'}</span>
+                 </div>
+                 <div>
+                    <span className="block text-gray-500 mb-1">Marka</span>
+                    <span className="font-medium text-gray-800">{selectedProduct.brand || '-'}</span>
+                 </div>
+                 <div>
+                    <span className="block text-gray-500 mb-1">Kategori</span>
+                    <span className="font-medium text-gray-800">{selectedProduct.category}</span>
+                 </div>
+                 {selectedProduct.subCategory && (
+                   <div>
+                      <span className="block text-gray-500 mb-1">Alt Kategori</span>
+                      <span className="font-medium text-gray-800">{selectedProduct.subCategory}</span>
+                   </div>
+                 )}
+                 <div>
+                    <span className="block text-gray-500 mb-1">Depo</span>
+                    <span className="font-medium text-gray-800">{selectedProduct.warehouse || '-'}</span>
+                 </div>
+                 <div>
+                    <span className="block text-gray-500 mb-1">Stok Miktarı</span>
+                    <span className="font-medium text-gray-800">{selectedProduct.stock}</span>
+                 </div>
+                 <div>
+                    <span className="block text-gray-500 mb-1">Birimi</span>
+                    <span className="font-medium text-gray-800">{selectedProduct.unit || 'Adet'}</span>
+                 </div>
+                 <div>
+                    <span className="block text-gray-500 mb-1">Satış Fiyatı</span>
+                    <span className="font-bold text-emerald-600 text-lg">{Number(selectedProduct.price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                 </div>
+                 {selectedProduct.taxRate && (
+                   <div>
+                      <span className="block text-gray-500 mb-1">KDV Oranı</span>
+                      <span className="font-medium text-gray-800">%{selectedProduct.taxRate}</span>
+                   </div>
+                 )}
+              </div>
+              
+              {selectedProduct.description && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                    <span className="block text-gray-500 mb-1 text-sm">Açıklama</span>
+                    <p className="text-gray-800 text-sm whitespace-pre-wrap">{selectedProduct.description}</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
+               <button 
+                 onClick={(e) => { setIsDetailsOpen(false); handleEdit(selectedProduct); }}
+                 className="px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors font-medium flex items-center gap-2"
+               >
+                 <Edit2 size={18} />
+                 Düzenle
+               </button>
+               <button 
+                 onClick={() => setIsDetailsOpen(false)}
+                 className="px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium"
+               >
+                 Kapat
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Ürün Modal */}
       {isModalOpen && (
@@ -397,12 +557,16 @@ export const Urunler: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Marka</label>
-                  <input 
-                    type="text" 
+                  <select 
                     value={formData.brand || ''}
                     onChange={(e) => setFormData({...formData, brand: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  />
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                  >
+                    <option value="">Marka Seçin</option>
+                    {brands.map(b => (
+                      <option key={b.id} value={b.name}>{b.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -505,7 +669,7 @@ export const Urunler: React.FC = () => {
         </div>
       )}
       </>
-      ) : (
+      ) : activeTab === 'kategoriler' ? (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-600 font-medium">
@@ -550,7 +714,7 @@ export const Urunler: React.FC = () => {
                           <Edit2 size={18} />
                         </button>
                         <button 
-                          onClick={() => handleDeleteCategory(category.id)}
+                          onClick={() => handleDeleteCategory(category)}
                           className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-600 transition-colors"
                         >
                           <Trash2 size={18} />
@@ -618,7 +782,128 @@ export const Urunler: React.FC = () => {
           </div>
         )}
       </div>
+      ) : (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-gray-50 text-gray-600 font-medium">
+            <tr>
+              <th className="px-6 py-4">Marka Adı</th>
+              <th className="px-6 py-4 text-right">İşlemler</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {brands.length === 0 ? (
+                <tr>
+                  <td colSpan={2} className="px-6 py-8 text-center text-gray-500">
+                    Marka bulunamadı.
+                  </td>
+                </tr>
+            ) : (
+              brands.map((brand) => (
+                <tr key={brand.id} className="hover:bg-emerald-50/30 transition-colors">
+                  <td className="px-6 py-4 font-medium text-gray-800">
+                    {brand.name}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => handleEditBrand(brand)}
+                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteBrand(brand)}
+                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+
+        {/* Marka Modal */}
+        {isBrandModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+                <h3 className="font-bold text-lg text-gray-800">{isBrandEditing ? 'Marka Düzenle' : 'Yeni Marka Ekle'}</h3>
+                <button onClick={() => setIsBrandModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <form onSubmit={handleSaveBrand} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Marka Adı</label>
+                  <input 
+                    required
+                    type="text" 
+                    value={brandFormData.name}
+                    onChange={(e) => setBrandFormData({...brandFormData, name: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Örn: Sony"
+                  />
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => setIsBrandModalOpen(false)} 
+                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    İptal
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    Kaydet
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
       )}
+      {/* Delete Confirmation Modal */}
+      {deleteData && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in text-left">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-4">
+                <Trash2 size={24} />
+              </div>
+              <h3 className="font-bold text-xl text-gray-800 mb-2">Silme İşlemini Onayla</h3>
+              <p className="text-gray-600">
+                <span className="font-semibold text-gray-800">{deleteData.name}</span> adlı {deleteData.type === 'product' ? 'ürünü' : deleteData.type === 'category' ? 'kategoriyi' : 'markayı'} silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+              </p>
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
+              <button 
+                onClick={() => setDeleteData(null)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium"
+              >
+                İptal
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+              >
+                <Trash2 size={18} />
+                Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

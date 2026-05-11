@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send } from 'lucide-react';
-import { Customer, CustomerTransaction } from '../types';
+import { Customer, CustomerTransaction, CashTransaction } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-const MOCK_CUSTOMERS: Customer[] = [
-  { id: '1', customerType: 'Şahıs', name: 'Ahmet Yılmaz', companyName: 'Yılmaz Ticaret', type: 'Alıcı', email: 'ahmet@mail.com', phone: '0555 123 45 67', address: 'İstanbul, Kadıköy', balance: 1500, status: 'Aktif' },
-  { id: '2', customerType: 'Tüzel', name: 'Ayşe Demir', companyName: 'Demir Ticaret A.Ş.', type: 'Satıcı', email: 'ayse@mail.com', phone: '0532 987 65 43', address: 'Ankara, Çankaya', balance: -500, status: 'Aktif' },
-  { id: '3', customerType: 'Şahıs', name: 'Mehmet Kaya', companyName: '', type: 'Alıcı', email: 'mehmet@mail.com', phone: '0544 333 22 11', address: 'İzmir, Karşıyaka', balance: 0, status: 'Aktif' },
-];
-
-const MOCK_TRANSACTIONS: CustomerTransaction[] = [
-  { id: 't1', customerId: '1', date: '2026-05-01', type: 'Satış', amount: 3500, description: 'Toptan Malzeme' },
-  { id: 't2', customerId: '1', date: '2026-05-05', type: 'Tahsilat', amount: -2000, description: 'Nakit Tahsilat' },
-  { id: 't3', customerId: '2', date: '2026-04-20', type: 'Alış', amount: -500, description: 'Hammadde Alımı' },
-];
+import { useAppStore } from '../lib/store';
 
 const INITIAL_FORM: Customer = {
   id: '',
@@ -41,8 +30,15 @@ interface Province {
 }
 
 export const Cariler: React.FC = () => {
+  const store = useAppStore();
+  const customers = store.customers;
+  const setCustomers = store.setCustomers;
+  const transactions = store.transactions;
+  const setTransactions = store.setTransactions;
+  const cashTransactions = store.cashTransactions;
+  const setCashTransactions = store.setCashTransactions;
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [customers, setCustomers] = useState<Customer[]>(MOCK_CUSTOMERS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Customer>(INITIAL_FORM);
   const [isEditing, setIsEditing] = useState(false);
@@ -50,7 +46,6 @@ export const Cariler: React.FC = () => {
   const [districts, setDistricts] = useState<{ id: number; name: string }[]>([]);
 
   // Transaction History States
-  const [transactions, setTransactions] = useState<CustomerTransaction[]>(MOCK_TRANSACTIONS);
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   
@@ -84,6 +79,17 @@ export const Cariler: React.FC = () => {
 
     const newTransactions = [...transactions, newTransaction];
     setTransactions(newTransactions);
+
+    const newCashTx: CashTransaction = {
+      id: Math.random().toString(36).substr(2, 9),
+      date: newTransaction.date,
+      type: paymentForm.type === 'Tahsilat' ? 'Gelir' : 'Gider',
+      category: paymentForm.type === 'Tahsilat' ? 'Cari Tahsilat' : 'Cari Ödeme',
+      amount: Math.abs(paymentForm.amount),
+      description: paymentForm.description + ' (' + (selectedCustomerForHistory.companyName || selectedCustomerForHistory.name) + ')',
+      customerId: selectedCustomerForHistory.id
+    };
+    setCashTransactions([...cashTransactions, newCashTx]);
 
     const updatedCustomers = customers.map(c => {
       if (c.id === selectedCustomerForHistory.id) {

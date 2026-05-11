@@ -19,6 +19,12 @@ let fallbackWarehouses = [
   { id: '4', name: 'İade Deposu', address: 'Merkez', capacity: 300 }
 ];
 
+let fallbackBrands = [
+  { id: '1', name: 'Sony' },
+  { id: '2', name: 'Apple' },
+  { id: '3', name: 'Samsung' }
+];
+
 let fallbackProducts = [
   { id: '1', code: 'PRD-001', name: 'Kablosuz Kulaklık', price: 1250.00, stock: 45, category: 'Elektronik', warehouse: 'Ana Depo', barcode: '8691234567890', description: 'Gürültü önleyici kulaklık', brand: 'Sony', taxRate: 20 },
   { id: '2', code: 'PRD-002', name: 'Akıllı Saat', price: 3400.00, stock: 12, category: 'Elektronik', warehouse: 'Şube Depo', barcode: '8691234567891', description: 'Nabız ölçerli akıllı saat', brand: 'Apple', taxRate: 20 },
@@ -118,6 +124,63 @@ async function startServer() {
     try {
       const pool = getPool();
       await pool.query('DELETE FROM categories WHERE id = $1', [id]);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.get('/api/brands', async (req, res) => {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) return res.json(fallbackBrands);
+    try {
+      const pool = getPool();
+      const { rows } = await pool.query('SELECT * FROM brands');
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.post('/api/brands', async (req, res) => {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      fallbackBrands.push(req.body);
+      return res.json(req.body);
+    }
+    const { id, name } = req.body;
+    try {
+      const pool = getPool();
+      await pool.query('INSERT INTO brands (id, name) VALUES ($1, $2)', [id, name]);
+      res.json(req.body);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.put('/api/brands/:id', async (req, res) => {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      const idx = fallbackBrands.findIndex(b => String(b.id) === String(req.params.id));
+      if (idx !== -1) fallbackBrands[idx] = { ...fallbackBrands[idx], ...req.body, id: req.params.id };
+      return res.json({ id: req.params.id, ...req.body });
+    }
+    const { id } = req.params;
+    const { name } = req.body;
+    try {
+      const pool = getPool();
+      await pool.query('UPDATE brands SET name = $1 WHERE id = $2', [name, id]);
+      res.json({ id, ...req.body });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.delete('/api/brands/:id', async (req, res) => {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      fallbackBrands = fallbackBrands.filter(b => String(b.id) !== String(req.params.id));
+      return res.json({ success: true });
+    }
+    try {
+      const pool = getPool();
+      await pool.query('DELETE FROM brands WHERE id = $1', [req.params.id]);
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: String(err) });

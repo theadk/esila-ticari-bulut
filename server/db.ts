@@ -60,6 +60,13 @@ export async function initDb() {
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS brands (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255)
+      );
+    `);
+
     // seeding warehouses
     const whRes = await client.query('SELECT count(*) FROM warehouses');
     if (parseInt(whRes.rows[0].count) === 0) {
@@ -81,6 +88,16 @@ export async function initDb() {
         ('2', 'PRD-002', 'Akıllı Saat', 3400.00, 12, 'Elektronik', 'Şube Depo', '8691234567891', 'Nabız ölçerli akıllı saat', 'Apple', 20),
         ('3', 'PRD-003', 'Laptop Çantası', 450.00, 120, 'Aksesuar', 'Ana Depo', '8691234567892', 'Su geçirmez çanta', 'Targus', 20),
         ('4', 'PRD-004', 'USB-C Kablo', 150.00, 0, 'Aksesuar', 'Ana Depo', '8691234567893', 'Hızlı şarj destekli', 'Anker', 20)
+      `);
+    }
+
+    const brandRes = await client.query('SELECT count(*) FROM brands');
+    if (parseInt(brandRes.rows[0].count) === 0) {
+      await client.query(`
+        INSERT INTO brands (id, name) VALUES 
+        ('1', 'Sony'),
+        ('2', 'Apple'),
+        ('3', 'Samsung')
       `);
     }
     

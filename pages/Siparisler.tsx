@@ -1,43 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User } from 'lucide-react';
-import { Order, OrderStatus, Customer, Product, OrderItem } from '../types';
-
-// Mock Data for Dropdowns (In a real app, these would come from the API/Context)
-const SELECTABLE_CUSTOMERS: Customer[] = [
-  { id: '1', name: 'Ahmet Yılmaz', email: 'ahmet@mail.com', phone: '0555 123 45 67', address: 'İstanbul, Kadıköy', balance: 1500 },
-  { id: '2', name: 'Ayşe Demir', email: 'ayse@mail.com', phone: '0532 987 65 43', address: 'Ankara, Çankaya', balance: -500 },
-  { id: '3', name: 'Mehmet Kaya', email: 'mehmet@mail.com', phone: '0544 333 22 11', address: 'İzmir, Karşıyaka', balance: 0 },
-  { id: '4', name: 'Esila Teknoloji', email: 'info@esila.com', phone: '0850 888 99 00', address: 'Bursa, Nilüfer', balance: 12000 },
-];
-
-const SELECTABLE_PRODUCTS: Product[] = [
-  { id: '1', code: 'PRD-001', name: 'Kablosuz Kulaklık', price: 1250.00, stock: 45, category: 'Elektronik' },
-  { id: '2', code: 'PRD-002', name: 'Akıllı Saat', price: 3400.00, stock: 12, category: 'Elektronik' },
-  { id: '3', code: 'PRD-003', name: 'Laptop Çantası', price: 450.00, stock: 120, category: 'Aksesuar' },
-  { id: '4', code: 'PRD-004', name: 'USB-C Kablo', price: 150.00, stock: 200, category: 'Aksesuar' },
-  { id: '5', code: 'PRD-005', name: 'Mekanik Klavye', price: 2100.00, stock: 8, category: 'Elektronik' },
-];
-
-const INITIAL_ORDERS: Order[] = [
-  {
-    id: 'SIP-2023-001',
-    customerId: '1',
-    customerName: 'Ahmet Yılmaz',
-    date: '2023-10-25 14:30',
-    total: 2500.00,
-    status: OrderStatus.COMPLETED,
-    items: [
-      { productId: '1', productName: 'Kablosuz Kulaklık', quantity: 2, price: 1250.00 }
-    ]
-  }
-];
+import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction } from '../types';
+import { useAppStore } from '../lib/store';
+import { api } from '../lib/api';
 
 export const Siparisler: React.FC = () => {
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const store = useAppStore();
+  const orders = store.orders;
+  const setOrders = store.setOrders;
+  const customers = store.customers;
+  const setCustomers = store.setCustomers;
+  const transactions = store.transactions;
+  const setTransactions = store.setTransactions;
+  const cashTransactions = store.cashTransactions;
+  const setCashTransactions = store.setCashTransactions;
+
+  const [products, setProducts] = useState<Product[]>([]);
+  
+  useEffect(() => {
+    api.getProducts().then(setProducts).catch(console.error);
+  }, []);
   
   // Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [printType, setPrintType] = useState<'80mm' | 'A4'>('80mm');
 
@@ -46,6 +33,7 @@ export const Siparisler: React.FC = () => {
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
   const [selectedProductToAdd, setSelectedProductToAdd] = useState<string>('');
   const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
+  const [isPaid, setIsPaid] = useState<boolean>(true); // Peşin Tahsil Et
 
   // Derived state for new order total
   const cartTotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -55,13 +43,14 @@ export const Siparisler: React.FC = () => {
     setCartItems([]);
     setSelectedProductToAdd('');
     setQuantityToAdd(1);
+    setIsPaid(true);
     setIsCreateModalOpen(true);
   };
 
   const addItemToCart = () => {
     if (!selectedProductToAdd) return;
     
-    const product = SELECTABLE_PRODUCTS.find(p => p.id === selectedProductToAdd);
+    const product = products.find(p => p.id === selectedProductToAdd);
     if (!product) return;
 
     const existingItemIndex = cartItems.findIndex(item => item.productId === product.id);
@@ -94,17 +83,72 @@ export const Siparisler: React.FC = () => {
   const handleCreateOrder = () => {
     if (!selectedCustomer || cartItems.length === 0) return;
 
+    const orderDate = new Date();
+    
     const newOrder: Order = {
-      id: `SIP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: `SIP-${orderDate.getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
       customerId: selectedCustomer.id,
       customerName: selectedCustomer.name,
-      date: new Date().toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+      date: orderDate.toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
       total: cartTotal,
-      status: OrderStatus.PENDING,
+      status: OrderStatus.COMPLETED, // Mark as completed if we are integrating with cari directly, or pending. Let's say completed since it's an active sale.
       items: cartItems
     };
 
     setOrders([newOrder, ...orders]);
+    
+    // 1. Cariye Satış İşle
+    const newTransaction: CustomerTransaction = {
+      id: Math.random().toString(36).substr(2, 9),
+      customerId: selectedCustomer.id,
+      date: orderDate.toISOString().split('T')[0],
+      type: 'Satış',
+      amount: cartTotal,
+      description: `Sipariş: ${newOrder.id}`
+    };
+    
+    setTransactions([...transactions, newTransaction]);
+    
+    // Update Customer Balance (Satış means customer debt increases -> positive balance)
+    let finalBalanceDelta = cartTotal;
+
+    // 2. Eğer peşin ödendiyse, tahsilat işle
+    if (isPaid) {
+      const paymentTransaction: CustomerTransaction = {
+        id: Math.random().toString(36).substr(2, 9),
+        customerId: selectedCustomer.id,
+        date: orderDate.toISOString().split('T')[0],
+        type: 'Tahsilat',
+        amount: -cartTotal,
+        description: `Sipariş Tahsilatı: ${newOrder.id}`
+      };
+      setTransactions(prev => [...prev, paymentTransaction]);
+      
+      const newCashTx: CashTransaction = {
+        id: Math.random().toString(36).substr(2, 9),
+        date: orderDate.toISOString().split('T')[0],
+        type: 'Gelir',
+        category: 'Satış',
+        amount: cartTotal,
+        description: `Sipariş Tahsilatı (${selectedCustomer.companyName || selectedCustomer.name}): ${newOrder.id}`,
+        customerId: selectedCustomer.id
+      };
+      setCashTransactions([...cashTransactions, newCashTx]);
+      
+      // Balance cancels out
+      finalBalanceDelta = 0;
+    }
+
+    if (finalBalanceDelta !== 0) {
+      const updatedCustomers = customers.map(c => {
+        if (c.id === selectedCustomer.id) {
+          return { ...c, balance: c.balance + finalBalanceDelta };
+        }
+        return c;
+      });
+      setCustomers(updatedCustomers);
+    }
+
     setIsCreateModalOpen(false);
     
     // Auto open print modal for receipt
@@ -162,7 +206,14 @@ export const Siparisler: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-emerald-50/30 transition-colors">
-                  <td className="px-6 py-4 font-mono text-sm text-gray-600">{order.id}</td>
+                  <td className="px-6 py-4 font-mono text-sm">
+                    <button 
+                      onClick={() => { setSelectedOrder(order); setIsDetailsModalOpen(true); }}
+                      className="text-emerald-600 hover:text-emerald-800 hover:underline font-semibold"
+                    >
+                      {order.id}
+                    </button>
+                  </td>
                   <td className="px-6 py-4 font-medium text-gray-800">{order.customerName}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{order.date}</td>
                   <td className="px-6 py-4 font-semibold text-gray-800">
@@ -188,6 +239,97 @@ export const Siparisler: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Order Details Modal */}
+      {isDetailsModalOpen && selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in no-print" onClick={() => setIsDetailsModalOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                <FileText className="text-emerald-600" />
+                Sipariş Detayı
+              </h3>
+              <button onClick={() => setIsDetailsModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-500 mb-2">Müşteri Bilgileri</h4>
+                  <p className="font-medium text-gray-800">{selectedOrder.customerName}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-500 mb-2">Sipariş Bilgileri</h4>
+                  <p><span className="text-gray-500">No:</span> <span className="font-medium text-gray-800">{selectedOrder.id}</span></p>
+                  <p><span className="text-gray-500">Tarih:</span> <span className="font-medium text-gray-800">{selectedOrder.date}</span></p>
+                  <p className="mt-1">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedOrder.status)}`}>
+                      {selectedOrder.status}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              
+              <h4 className="text-sm font-semibold text-gray-500 mb-3 border-b pb-2">Sipariş Kalemleri</h4>
+              <table className="w-full text-left mb-4">
+                <thead className="bg-gray-50 text-gray-600 text-sm">
+                  <tr>
+                    <th className="py-2 px-3">Ürün</th>
+                    <th className="py-2 px-3 text-right">Adet</th>
+                    <th className="py-2 px-3 text-right">Birim Fiyat</th>
+                    <th className="py-2 px-3 text-right">Toplam</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100/50">
+                  {selectedOrder.items.map((item, idx) => (
+                    <tr key={idx} className="text-sm text-gray-800">
+                      <td className="py-2 px-3">{item.productName}</td>
+                      <td className="py-2 px-3 text-right">{item.quantity}</td>
+                      <td className="py-2 px-3 text-right">
+                        {(item.price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                      </td>
+                      <td className="py-2 px-3 text-right font-medium">
+                        {(item.price * item.quantity).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="flex justify-end pt-4 border-t border-gray-100">
+                <div className="w-64">
+                   <div className="flex justify-between items-center text-lg font-bold">
+                     <span className="text-gray-600">Genel Toplam:</span>
+                     <span className="text-emerald-600">
+                       {selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                     </span>
+                   </div>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+               <button 
+                 onClick={() => {
+                   setPrintType('80mm');
+                   setTimeout(() => {
+                     window.print();
+                   }, 100);
+                 }}
+                 className="px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors font-medium flex items-center gap-2"
+               >
+                 <Printer size={18} />
+                 Hızlı Fiş Yazdır
+               </button>
+               <button 
+                 onClick={() => setIsDetailsModalOpen(false)} 
+                 className="px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium"
+               >
+                 Kapat
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Order Modal */}
       {isCreateModalOpen && (
@@ -216,19 +358,19 @@ export const Siparisler: React.FC = () => {
                     <select 
                       className="w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                       onChange={(e) => {
-                        const cust = SELECTABLE_CUSTOMERS.find(c => c.id === e.target.value);
+                        const cust = customers.find(c => c.id === e.target.value);
                         setSelectedCustomer(cust || null);
                       }}
                       value={selectedCustomer?.id || ''}
                     >
                       <option value="">Seçiniz...</option>
-                      {SELECTABLE_CUSTOMERS.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                      {customers.filter(c => c.type === 'Alıcı').map(c => (
+                        <option key={c.id} value={c.id}>{c.name} {c.companyName ? `(${c.companyName})` : ''}</option>
                       ))}
                     </select>
                     {selectedCustomer && (
                        <div className="mt-3 text-xs text-gray-500 bg-white p-2 rounded border">
-                          <p>Bakiye: {selectedCustomer.balance} ₺</p>
+                          <p>Bakiye: {selectedCustomer.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
                           <p>{selectedCustomer.address}</p>
                        </div>
                     )}
@@ -246,8 +388,8 @@ export const Siparisler: React.FC = () => {
                         onChange={(e) => setSelectedProductToAdd(e.target.value)}
                       >
                         <option value="">Ürün Seçiniz...</option>
-                        {SELECTABLE_PRODUCTS.map(p => (
-                          <option key={p.id} value={p.id}>{p.code} - {p.name} ({p.price}₺)</option>
+                        {products.map(p => (
+                          <option key={p.id} value={p.id}>{p.code} - {p.name} ({Number(p.price).toLocaleString('tr-TR')}₺)</option>
                         ))}
                       </select>
                       
@@ -309,12 +451,27 @@ export const Siparisler: React.FC = () => {
                     </div>
                     
                     <div className="bg-gray-50 p-4 border-t border-gray-200">
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center mb-3">
                         <span className="text-gray-600 font-medium">Toplam Tutar</span>
                         <span className="text-2xl font-bold text-emerald-600">
                           {cartTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                         </span>
                       </div>
+                      
+                      {cartTotal > 0 && selectedCustomer && (
+                        <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+                          <input 
+                            type="checkbox" 
+                            id="isPaid"
+                            checked={isPaid}
+                            onChange={(e) => setIsPaid(e.target.checked)}
+                            className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                          />
+                          <label htmlFor="isPaid" className="text-sm text-gray-700 select-none">
+                            Tutar peşin olarak tahsil edildi (Kasa ve Cari'ye işlenecek)
+                          </label>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

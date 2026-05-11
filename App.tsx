@@ -7,6 +7,8 @@ import { Depo } from './pages/Depo';
 import { Siparisler } from './pages/Siparisler';
 import { Ayarlar } from './pages/Ayarlar';
 import { Login } from './pages/Login';
+import { Kasa } from './pages/Kasa';
+import { Personel } from './pages/Personel';
 import { Bell, Search, User } from 'lucide-react';
 
 const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
@@ -33,9 +35,9 @@ const App: React.FC = () => {
       case 'depo': return <Depo />;
       case 'siparisler': return <Siparisler />;
       case 'ayarlar': return <Ayarlar />;
-      case 'kasa': return <ComingSoon title="Kasa" />;
+      case 'kasa': return <Kasa />;
       case 'kargo': return <ComingSoon title="Kargo" />;
-      case 'personel': return <ComingSoon title="Personel" />;
+      case 'personel': return <Personel />;
       case 'efatura': return <ComingSoon title="E-Fatura" />;
       case 'teklif': return <ComingSoon title="Teklifler" />;
       default: return <ComingSoon title={activePage} />;

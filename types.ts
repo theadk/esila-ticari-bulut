@@ -35,6 +35,11 @@ export interface Category {
   subCategories: string[];
 }
 
+export interface Brand {
+  id: string;
+  name: string;
+}
+
 export interface CustomerTransaction {
   id: string;
   customerId: string;
@@ -77,6 +82,55 @@ export interface Order {
   total: number;
   status: OrderStatus;
   items: OrderItem[];
+}
+
+export interface CashTransaction {
+  id: string;
+  date: string;
+  type: 'Gelir' | 'Gider';
+  category: 'Cari Tahsilat' | 'Cari Ödeme' | 'Satış' | 'Alış' | 'Diğer Gelir' | 'Diğer Gider' | 'Fatura Ödemesi' | 'Personel Maaşı' | 'Personel Avans';
+  amount: number;
+  description: string;
+  customerId?: string; // If related to a customer
+  personnelId?: string; // If related to an employee
+}
+
+export interface PersonnelRecord {
+  id: string;
+  targetId: string; // Document or note ID
+  date: string;
+  type: 'Belge' | 'Not' | 'İhtar' | 'Ödül' | 'Maaş Değişikliği' | 'İzin' | 'Rapor';
+  title: string;
+  description: string;
+  documentUrl?: string;
+  documentName?: string;
+}
+
+export interface Personnel {
+  id: string;
+  firstName: string;
+  lastName: string;
+  tcNo: string;
+  birthDate: string;
+  gender: 'Erkek' | 'Kadın' | 'Diğer';
+  bloodType: string;
+  phone: string;
+  email: string;
+  address: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  
+  // Employment Info
+  department: string;
+  position: string;
+  startDate: string;
+  endDate?: string;
+  employmentStatus: 'Aktif' | 'Ayrıldı' | 'İzinde';
+  salary: number;
+  iban: string;
+  socialSecurityNo: string; // SGK No
+  
+  records: PersonnelRecord[];
 }
 
 export interface Settings {
