@@ -35,12 +35,20 @@ export const Teklifler: React.FC = () => {
   const [selectedProductToAdd, setSelectedProductToAdd] = useState<string>('');
   const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
   const [discountToAdd, setDiscountToAdd] = useState<number>(0);
+  const [taxToAdd, setTaxToAdd] = useState<number>(20);
   const [notes, setNotes] = useState<string>('');
   const [validDays, setValidDays] = useState<number>(15);
 
   const subTotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const discountTotal = cartItems.reduce((acc, item) => acc + ((item.price * item.quantity) * (item.discountRate / 100)), 0);
-  const taxTotal = (subTotal - discountTotal) * 0.20; // 20% tax default
+  
+  const taxTotal = cartItems.reduce((acc, item) => {
+    const itemTotal = item.price * item.quantity;
+    const itemDiscount = itemTotal * (item.discountRate / 100);
+    const itemNet = itemTotal - itemDiscount;
+    return acc + (itemNet * ((item.taxRate || 20) / 100));
+  }, 0);
+  
   const cartTotal = subTotal - discountTotal + taxTotal;
 
   const filteredProposals = proposals.filter(p => 
@@ -78,6 +86,7 @@ export const Teklifler: React.FC = () => {
       const newItems = [...cartItems];
       newItems[existingIndex].quantity += quantityToAdd;
       newItems[existingIndex].discountRate = discountToAdd; // update discount
+      newItems[existingIndex].taxRate = taxToAdd; // update tax
       setCartItems(newItems);
     } else {
       setCartItems([
@@ -87,7 +96,8 @@ export const Teklifler: React.FC = () => {
           productName: product.name,
           price: product.price,
           quantity: quantityToAdd,
-          discountRate: discountToAdd
+          discountRate: discountToAdd,
+          taxRate: taxToAdd
         }
       ]);
     }
@@ -95,6 +105,7 @@ export const Teklifler: React.FC = () => {
     setSelectedProductToAdd('');
     setQuantityToAdd(1);
     setDiscountToAdd(0);
+    setTaxToAdd(20);
   };
 
   const removeItemFromCart = (index: number) => {
@@ -143,13 +154,16 @@ export const Teklifler: React.FC = () => {
       customerId: selectedProposal.customerId,
       customerName: selectedProposal.customerName,
       date: new Date().toISOString().split('T')[0],
+      subTotal: selectedProposal.subTotal,
+      taxTotal: selectedProposal.taxTotal,
       total: selectedProposal.total,
       status: OrderStatus.PENDING,
       items: selectedProposal.items.map(i => ({
         productId: i.productId,
         productName: i.productName,
         price: i.price - (i.price * (i.discountRate / 100)),
-        quantity: i.quantity
+        quantity: i.quantity,
+        taxRate: i.taxRate || 20
       }))
     };
     setOrders([...orders, newOrder]);
@@ -337,22 +351,28 @@ export const Teklifler: React.FC = () => {
                          <th className="px-4 py-2 font-medium text-gray-600">Ürün</th>
                          <th className="px-4 py-2 font-medium text-gray-600 text-right">Fiyat</th>
                          <th className="px-4 py-2 font-medium text-gray-600 text-right">İndirim</th>
+                         <th className="px-4 py-2 font-medium text-gray-600 text-right">KDV</th>
                          <th className="px-4 py-2 font-medium text-gray-600 text-right">Miktar</th>
-                         <th className="px-4 py-2 font-medium text-gray-600 text-right">Toplam</th>
+                         <th className="px-4 py-2 font-medium text-gray-600 text-right">Net Tutar</th>
                        </tr>
                      </thead>
                      <tbody className="divide-y divide-gray-100">
-                       {selectedProposal.items.map((item, idx) => (
-                         <tr key={idx}>
-                           <td className="px-4 py-3">{item.productName}</td>
-                           <td className="px-4 py-3 text-right">{item.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
-                           <td className="px-4 py-3 text-right text-red-500">% {item.discountRate}</td>
-                           <td className="px-4 py-3 text-right">{item.quantity}</td>
-                           <td className="px-4 py-3 text-right font-medium">
-                             {((item.price * item.quantity) * (1 - item.discountRate / 100)).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                           </td>
-                         </tr>
-                       ))}
+                       {selectedProposal.items.map((item, idx) => {
+                         const netTotal = (item.price * item.quantity) * (1 - item.discountRate / 100);
+                         const taxTotalForItem = netTotal * ((item.taxRate || 20) / 100);
+                         return (
+                           <tr key={idx}>
+                             <td className="px-4 py-3">{item.productName}</td>
+                             <td className="px-4 py-3 text-right">{item.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                             <td className="px-4 py-3 text-right text-red-500">% {item.discountRate}</td>
+                             <td className="px-4 py-3 text-right text-gray-500">% {item.taxRate || 20}</td>
+                             <td className="px-4 py-3 text-right">{item.quantity}</td>
+                             <td className="px-4 py-3 text-right font-medium">
+                               {(netTotal + taxTotalForItem).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                             </td>
+                           </tr>
+                         );
+                       })}
                      </tbody>
                    </table>
                  </div>
@@ -531,6 +551,19 @@ export const Teklifler: React.FC = () => {
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                           />
                         </div>
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">KDV (%)</label>
+                          <select 
+                            value={taxToAdd}
+                            onChange={(e) => setTaxToAdd(Number(e.target.value))}
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                          >
+                            <option value="0">%0</option>
+                            <option value="1">%1</option>
+                            <option value="10">%10</option>
+                            <option value="20">%20</option>
+                          </select>
+                        </div>
                         <div className="flex items-end">
                           <button 
                             onClick={addItemToCart}
@@ -550,38 +583,44 @@ export const Teklifler: React.FC = () => {
                  <table className="w-full text-sm text-left">
                    <thead className="bg-gray-50">
                      <tr>
-                       <th className="px-4 py-2 font-medium text-gray-600 w-1/2">Ürün</th>
+                       <th className="px-4 py-2 font-medium text-gray-600 w-1/3">Ürün</th>
                        <th className="px-4 py-2 font-medium text-gray-600">B. Fiyat</th>
-                       <th className="px-4 py-2 font-medium text-gray-600">İnd. %</th>
+                       <th className="px-4 py-2 font-medium text-gray-600 text-center">İnd. %</th>
+                       <th className="px-4 py-2 font-medium text-gray-600 text-center">KDV %</th>
                        <th className="px-4 py-2 font-medium text-gray-600 text-center">Mik.</th>
-                       <th className="px-4 py-2 font-medium text-gray-600 text-right">Tutar</th>
+                       <th className="px-4 py-2 font-medium text-gray-600 text-right">Net Tutar</th>
                        <th className="px-4 py-2"></th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-gray-100">
                      {cartItems.length === 0 ? (
                        <tr>
-                         <td colSpan={6} className="px-4 py-6 text-center text-gray-500 bg-white">
+                         <td colSpan={7} className="px-4 py-6 text-center text-gray-500 bg-white">
                            Henüz ürün eklenmedi.
                          </td>
                        </tr>
                      ) : (
-                       cartItems.map((item, idx) => (
-                         <tr key={idx} className="bg-white">
-                           <td className="px-4 py-2">{item.productName}</td>
-                           <td className="px-4 py-2">{item.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
-                           <td className="px-4 py-2 text-red-500">%{item.discountRate}</td>
-                           <td className="px-4 py-2 text-center">{item.quantity}</td>
-                           <td className="px-4 py-2 text-right font-medium">
-                              {((item.price * item.quantity) * (1 - item.discountRate / 100)).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                           </td>
-                           <td className="px-4 py-2 text-right">
-                             <button onClick={() => removeItemFromCart(idx)} className="text-red-500 hover:bg-red-50 p-1 rounded transition-colors">
-                               <Trash2 size={16} />
-                             </button>
-                           </td>
-                         </tr>
-                       ))
+                       cartItems.map((item, idx) => {
+                         const netTotal = (item.price * item.quantity) * (1 - item.discountRate / 100);
+                         const taxTotalForItem = netTotal * ((item.taxRate || 20) / 100);
+                         return (
+                           <tr key={idx} className="bg-white">
+                             <td className="px-4 py-2">{item.productName}</td>
+                             <td className="px-4 py-2">{item.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                             <td className="px-4 py-2 text-red-500 text-center">%{item.discountRate}</td>
+                             <td className="px-4 py-2 text-gray-500 text-center">%{item.taxRate || 20}</td>
+                             <td className="px-4 py-2 text-center">{item.quantity}</td>
+                             <td className="px-4 py-2 text-right font-medium">
+                                {(netTotal + taxTotalForItem).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                             </td>
+                             <td className="px-4 py-2 text-right">
+                               <button onClick={() => removeItemFromCart(idx)} className="text-red-500 hover:bg-red-50 p-1 rounded transition-colors">
+                                 <Trash2 size={16} />
+                               </button>
+                             </td>
+                           </tr>
+                         );
+                       })
                      )}
                    </tbody>
                  </table>
@@ -599,7 +638,7 @@ export const Teklifler: React.FC = () => {
                       <span>- {discountTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                     </div>
                     <div className="flex justify-between text-gray-600 pb-2 border-b border-gray-200">
-                      <span>KDV (Tahmini %20):</span>
+                      <span>KDV Tutarı:</span>
                       <span>+ {taxTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                     </div>
                     <div className="pt-2 flex justify-between font-bold text-lg text-emerald-700">
@@ -639,10 +678,14 @@ export const Teklifler: React.FC = () => {
               <>
                 <div className="flex justify-between items-start border-b-2 border-emerald-800 pb-6 mb-8">
                   <div>
-                    <h1 className="text-5xl font-logo text-emerald-900 mb-2">esila</h1>
-                    <p className="text-gray-500">Esila Ticari Yazılımları A.Ş.</p>
-                    <p className="text-gray-500 text-sm">Atatürk Cad. No:1, İstanbul</p>
-                    <p className="text-gray-500 text-sm">Tel: 0212 555 0000</p>
+                    {store.settings.companyLogo ? (
+                      <img src={store.settings.companyLogo} alt="Logo" className="max-h-20 object-contain mb-2" />
+                    ) : (
+                      <h1 className="text-5xl font-logo text-emerald-900 mb-2">{store.settings.printer_header_text || 'esila'}</h1>
+                    )}
+                    <p className="text-gray-500 font-medium">{store.settings.companyName}</p>
+                    <p className="text-gray-500 text-sm whitespace-pre-line">{store.settings.address}</p>
+                    {store.settings.phone && <p className="text-gray-500 text-sm">Tel: {store.settings.phone}</p>}
                   </div>
                   <div className="text-right">
                     <h2 className="text-3xl font-bold text-gray-800 mb-4 uppercase tracking-widest text-emerald-800">TEKLİF FORMU</h2>
@@ -674,22 +717,31 @@ export const Teklifler: React.FC = () => {
                       <th className="py-3 px-4 text-left font-medium uppercase text-sm tracking-wider w-1/2">Açıklama (Ürün/Hizmet)</th>
                       <th className="py-3 px-4 text-center font-medium uppercase text-sm tracking-wider">Miktar</th>
                       <th className="py-3 px-4 text-right font-medium uppercase text-sm tracking-wider">Birim Fiyat</th>
+                      <th className="py-3 px-4 text-center font-medium uppercase text-sm tracking-wider">KDV</th>
                       <th className="py-3 px-4 text-right font-medium uppercase text-sm tracking-wider">İndirim</th>
-                      <th className="py-3 px-4 text-right font-medium uppercase text-sm tracking-wider">Tutar</th>
+                      <th className="py-3 px-4 text-right font-medium uppercase text-sm tracking-wider">Net Tutar</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 text-gray-800">
-                    {selectedProposal.items.map((item, idx) => (
-                      <tr key={idx} className="bg-white">
-                        <td className="py-3 px-4">{item.productName}</td>
-                        <td className="py-3 px-4 text-center">{item.quantity}</td>
-                        <td className="py-3 px-4 text-right">{item.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
-                        <td className="py-3 px-4 text-right">{item.discountRate > 0 ? `%${item.discountRate}` : '-'}</td>
-                        <td className="py-3 px-4 text-right font-medium">
-                          {((item.price * item.quantity) * (1 - item.discountRate / 100)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
-                        </td>
-                      </tr>
-                    ))}
+                    {selectedProposal.items.map((item, idx) => {
+                      const baseAmount = item.price * item.quantity;
+                      const discountAmount = baseAmount * (item.discountRate / 100);
+                      const netBeforeTax = baseAmount - discountAmount;
+                      const taxAmount = netBeforeTax * ((item.taxRate || 20) / 100);
+                      const netAmount = netBeforeTax + taxAmount;
+                      return (
+                        <tr key={idx} className="bg-white">
+                          <td className="py-3 px-4">{item.productName}</td>
+                          <td className="py-3 px-4 text-center">{item.quantity}</td>
+                          <td className="py-3 px-4 text-right">{item.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
+                          <td className="py-3 px-4 text-center">%{item.taxRate || 20}</td>
+                          <td className="py-3 px-4 text-right">{item.discountRate > 0 ? `%${item.discountRate}` : '-'}</td>
+                          <td className="py-3 px-4 text-right font-medium">
+                            {netAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
 
@@ -756,8 +808,12 @@ export const Teklifler: React.FC = () => {
               // 80MM LAYOUT
               <>
                 <div className="text-center mb-6">
-                  <h1 className="font-logo text-4xl mb-2 text-black">esila</h1>
-                  <p className="text-xs">Esila Ticari Yazılımları A.Ş.</p>
+                  {store.settings.companyLogo ? (
+                    <img src={store.settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />
+                  ) : (
+                    <h1 className="font-logo text-4xl mb-2 text-black">{store.settings.printer_header_text || 'esila'}</h1>
+                  )}
+                  <p className="text-xs">{store.settings.companyName}</p>
                   <p className="text-xs uppercase mt-2 font-bold tracking-widest border-y border-black py-1">Teklif Formu</p>
                 </div>
                 

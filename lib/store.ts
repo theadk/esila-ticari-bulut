@@ -1,6 +1,20 @@
 import { useState, useEffect } from 'react';
 import { MOCK_CUSTOMERS, MOCK_TRANSACTIONS, MOCK_CASH_TRANSACTIONS, MOCK_PERSONNEL } from '../mockData';
-import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus } from '../types';
+import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings } from '../types';
+
+let globalSettings: Settings = {
+  companyName: 'Esila Örnek Şirket Ltd. Şti.',
+  address: 'Örnek Mah. Atatürk Cad. No:1, İstanbul',
+  phone: '0850 123 45 67',
+  email: 'info@esila.com',
+  companyLogo: '',
+  smtp_host: 'smtp.gmail.com',
+  smtp_port: '587',
+  smtp_user: 'bildirim@esila.com',
+  sms_token: 'A1B2-C3D4-E5F6',
+  printer_header_text: 'Esila Ticari',
+  printer_footer_text: 'Bizi tercih ettiğiniz için teşekkürler!'
+};
 
 let globalCustomers = [...MOCK_CUSTOMERS];
 let globalTransactions = [...MOCK_TRANSACTIONS];
@@ -85,6 +99,11 @@ export const useAppStore = () => {
     get proposals() { return globalProposals; },
     setProposals(updater: Proposal[] | ((prev: Proposal[]) => Proposal[])) {
       globalProposals = typeof updater === 'function' ? updater(globalProposals) : updater;
+      emit();
+    },
+    get settings() { return globalSettings; },
+    setSettings(updater: Settings | ((prev: Settings) => Settings)) {
+      globalSettings = typeof updater === 'function' ? updater(globalSettings) : updater;
       emit();
     }
   };

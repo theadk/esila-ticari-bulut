@@ -34,10 +34,13 @@ export const Siparisler: React.FC = () => {
   const [productSearch, setProductSearch] = useState('');
   const [selectedProductToAdd, setSelectedProductToAdd] = useState<string>('');
   const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
+  const [taxToAdd, setTaxToAdd] = useState<number>(20);
   const [isPaid, setIsPaid] = useState<boolean>(true); // Peşin Tahsil Et
 
   // Derived state for new order total
-  const cartTotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const cartSubTotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const cartTaxTotal = cartItems.reduce((acc, item) => acc + ((item.price * item.quantity) * ((item.taxRate || 20) / 100)), 0);
+  const cartTotal = cartSubTotal + cartTaxTotal;
 
   const handleOpenCreateModal = () => {
     setSelectedCustomer(null);
@@ -59,6 +62,7 @@ export const Siparisler: React.FC = () => {
     if (existingItemIndex > -1) {
       const newItems = [...cartItems];
       newItems[existingItemIndex].quantity += quantityToAdd;
+      newItems[existingItemIndex].taxRate = taxToAdd;
       setCartItems(newItems);
     } else {
       setCartItems([
@@ -67,11 +71,13 @@ export const Siparisler: React.FC = () => {
           productId: product.id,
           productName: product.name,
           price: product.price,
-          quantity: quantityToAdd
+          quantity: quantityToAdd,
+          taxRate: taxToAdd
         }
       ]);
     }
     setQuantityToAdd(1);
+    setTaxToAdd(20);
     setSelectedProductToAdd('');
   };
 
@@ -91,6 +97,8 @@ export const Siparisler: React.FC = () => {
       customerId: selectedCustomer.id,
       customerName: selectedCustomer.name,
       date: orderDate.toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+      subTotal: cartSubTotal,
+      taxTotal: cartTaxTotal,
       total: cartTotal,
       status: OrderStatus.COMPLETED, // Mark as completed if we are integrating with cari directly, or pending. Let's say completed since it's an active sale.
       items: cartItems
@@ -156,6 +164,25 @@ export const Siparisler: React.FC = () => {
     setSelectedOrder(newOrder);
     setPrintType('80mm');
     setPrintModalOpen(true);
+  };
+
+  const handleStatusChange = (status: OrderStatus, targetOrder: Order) => {
+    // Check if we're cancelling
+    if (status === OrderStatus.CANCELLED && targetOrder.status !== OrderStatus.CANCELLED) {
+      if (!window.confirm('Bu siparişi iptal etmek istediğinize emin misiniz?')) {
+         return;
+      }
+    }
+
+    const updatedOrders = orders.map(o => 
+      o.id === targetOrder.id ? { ...o, status } : o
+    );
+    setOrders(updatedOrders);
+    
+    // Optimistic UI update for modal
+    if (selectedOrder && selectedOrder.id === targetOrder.id) {
+      setSelectedOrder({ ...selectedOrder, status });
+    }
   };
 
   const handlePrintClick = (order: Order) => {
@@ -225,7 +252,25 @@ export const Siparisler: React.FC = () => {
                       {order.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right flex items-center justify-end gap-1">
+                    {order.status === OrderStatus.PENDING && (
+                      <button
+                        onClick={() => handleStatusChange(OrderStatus.COMPLETED, order)}
+                        className="text-emerald-600 hover:bg-emerald-50 p-2 rounded-lg transition-colors"
+                        title="Siparişi Onayla"
+                      >
+                        <CheckCircle size={18} />
+                      </button>
+                    )}
+                    {(order.status === OrderStatus.PENDING || order.status === OrderStatus.COMPLETED) && (
+                      <button
+                        onClick={() => handleStatusChange(OrderStatus.CANCELLED, order)}
+                        className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                        title="Siparişi İptal Et"
+                      >
+                        <XCircle size={18} />
+                      </button>
+                    )}
                     <button 
                       onClick={() => handlePrintClick(order)}
                       className="text-gray-500 hover:text-emerald-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
@@ -308,25 +353,45 @@ export const Siparisler: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3 rounded-b-xl">
-               <button 
-                 onClick={() => {
-                   setPrintType('80mm');
-                   setTimeout(() => {
-                     window.print();
-                   }, 100);
-                 }}
-                 className="px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors font-medium flex items-center gap-2"
-               >
-                 <Printer size={18} />
-                 Hızlı Fiş Yazdır
-               </button>
-               <button 
-                 onClick={() => setIsDetailsModalOpen(false)} 
-                 className="px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium"
-               >
-                 Kapat
-               </button>
+            <div className="p-4 border-t bg-gray-50 flex justify-between items-center rounded-b-xl">
+               <div className="flex gap-2">
+                 {selectedOrder.status === OrderStatus.PENDING && (
+                   <button 
+                     onClick={() => handleStatusChange(OrderStatus.COMPLETED, selectedOrder)}
+                     className="px-3 py-1.5 text-sm bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg transition-colors font-medium flex items-center gap-2"
+                   >
+                     <CheckCircle size={16} /> Onayla
+                   </button>
+                 )}
+                 {(selectedOrder.status === OrderStatus.PENDING || selectedOrder.status === OrderStatus.COMPLETED) && (
+                   <button 
+                     onClick={() => handleStatusChange(OrderStatus.CANCELLED, selectedOrder)}
+                     className="px-3 py-1.5 text-sm bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors font-medium flex items-center gap-2"
+                   >
+                     <XCircle size={16} /> İptal Et
+                   </button>
+                 )}
+               </div>
+               <div className="flex gap-3">
+                 <button 
+                   onClick={() => {
+                     setPrintType('80mm');
+                     setTimeout(() => {
+                       window.print();
+                     }, 100);
+                   }}
+                   className="px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors font-medium flex items-center gap-2"
+                 >
+                   <Printer size={18} />
+                   Hızlı Fiş Yazdır
+                 </button>
+                 <button 
+                   onClick={() => setIsDetailsModalOpen(false)} 
+                   className="px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium"
+                 >
+                   Kapat
+                 </button>
+               </div>
             </div>
           </div>
         </div>
@@ -409,10 +474,22 @@ export const Siparisler: React.FC = () => {
                         <input 
                           type="number" 
                           min="1"
+                          title="Miktar"
                           className="w-20 p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 text-sm"
                           value={quantityToAdd}
                           onChange={(e) => setQuantityToAdd(parseInt(e.target.value) || 1)}
                         />
+                        <select 
+                          title="KDV Oranı"
+                          className="w-20 p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 text-sm"
+                          value={taxToAdd}
+                          onChange={(e) => setTaxToAdd(parseInt(e.target.value))}
+                        >
+                          <option value="0">%0</option>
+                          <option value="1">%1</option>
+                          <option value="10">%10</option>
+                          <option value="20">%20</option>
+                        </select>
                         <button 
                           onClick={addItemToCart}
                           disabled={!selectedProductToAdd}
@@ -430,7 +507,8 @@ export const Siparisler: React.FC = () => {
                   <div className="flex-1 border border-gray-200 rounded-xl overflow-hidden flex flex-col">
                     <div className="bg-gray-100 px-4 py-2 border-b font-medium text-sm text-gray-600 flex">
                       <div className="flex-1">Ürün</div>
-                      <div className="w-20 text-center">Adet</div>
+                      <div className="w-16 text-center">Adet</div>
+                      <div className="w-16 text-center">KDV</div>
                       <div className="w-24 text-right">Tutar</div>
                       <div className="w-10"></div>
                     </div>
@@ -445,9 +523,10 @@ export const Siparisler: React.FC = () => {
                         cartItems.map((item, idx) => (
                           <div key={idx} className="flex items-center p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-100 transition-colors text-sm">
                              <div className="flex-1 font-medium text-gray-800">{item.productName}</div>
-                             <div className="w-20 text-center text-gray-600">{item.quantity}</div>
+                             <div className="w-16 text-center text-gray-600">{item.quantity}</div>
+                             <div className="w-16 text-center text-gray-500 text-xs">%{item.taxRate || 0}</div>
                              <div className="w-24 text-right font-semibold text-gray-800">
-                               {(item.price * item.quantity).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                               {((item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate||20)/100))).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                              </div>
                              <div className="w-10 flex justify-end">
                                <button 
@@ -463,8 +542,16 @@ export const Siparisler: React.FC = () => {
                     </div>
                     
                     <div className="bg-gray-50 p-4 border-t border-gray-200">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-gray-600 font-medium">Toplam Tutar</span>
+                      <div className="flex justify-between items-center mb-1 text-sm text-gray-600">
+                        <span>Ara Toplam</span>
+                        <span>{cartSubTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-3 text-sm text-gray-600">
+                        <span>KDV Tutarı</span>
+                        <span>{cartTaxTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-3 pt-2 border-t border-gray-200">
+                        <span className="text-gray-800 font-bold">Genel Toplam</span>
                         <span className="text-2xl font-bold text-emerald-600">
                           {cartTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                         </span>
@@ -549,9 +636,13 @@ export const Siparisler: React.FC = () => {
                 style={{ fontSize: printType === '80mm' ? '12px' : '14px' }}
               >
                  <div className="text-center mb-6">
-                    <h1 className="font-logo text-4xl mb-2 text-emerald-900">esila</h1>
-                    <p className="text-xs text-gray-500">Esila Ticari Yazılımları A.Ş.</p>
-                    <p className="text-xs text-gray-500">Atatürk Cad. No:1, İstanbul</p>
+                    {store.settings.companyLogo ? (
+                      <img src={store.settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />
+                    ) : (
+                      <h1 className="font-logo text-4xl mb-2 text-emerald-900">{store.settings.printer_header_text || 'esila'}</h1>
+                    )}
+                    <p className="text-xs text-gray-500">{store.settings.companyName}</p>
+                    <p className="text-xs text-gray-500 whitespace-pre-line">{store.settings.address}</p>
                  </div>
                  
                  <div className="border-b-2 border-dashed border-gray-300 my-4"></div>
@@ -567,6 +658,7 @@ export const Siparisler: React.FC = () => {
                      <tr className="border-b border-gray-300 text-left">
                        <th className="py-1">Ürün</th>
                        <th className="py-1 text-right">Mik.</th>
+                       {printType === 'A4' && <th className="py-1 text-right">KDV</th>}
                        <th className="py-1 text-right">Tutar</th>
                      </tr>
                    </thead>
@@ -575,8 +667,11 @@ export const Siparisler: React.FC = () => {
                        <tr key={idx} className="border-b border-gray-100">
                          <td className="py-1">{item.productName}</td>
                          <td className="py-1 text-right">{item.quantity}</td>
+                         {printType === 'A4' && (
+                           <td className="py-1 text-right text-gray-500 font-medium">%{item.taxRate || 0}</td>
+                         )}
                          <td className="py-1 text-right">
-                           {(item.price * item.quantity).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                           {((item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate || 0) / 100))).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                          </td>
                        </tr>
                      ))}
@@ -584,15 +679,24 @@ export const Siparisler: React.FC = () => {
                  </table>
 
                  <div className="flex justify-end mb-6">
-                   <div className="text-right">
-                     <p className="font-bold text-lg">Toplam: {selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
-                     <p className="text-xs text-gray-500">KDV Dahildir</p>
+                   <div className="text-right w-full border-t border-gray-300 pt-2 border-dashed mt-2">
+                     <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
+                       <span>Ara Toplam:</span>
+                       <span>{(selectedOrder.subTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                     </div>
+                     <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
+                       <span>KDV:</span>
+                       <span>{(selectedOrder.taxTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                     </div>
+                     <div className="flex justify-between items-center text-lg font-bold border-t border-gray-300 pt-1 mt-1">
+                       <span>Genel Toplam:</span>
+                       <span>{selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                     </div>
                    </div>
                  </div>
 
                  <div className="text-center text-xs text-gray-500 mt-8">
-                   <p>Bizi tercih ettiğiniz için teşekkürler!</p>
-                   <p>www.esilaticari.com</p>
+                   <p className="whitespace-pre-line">{store.settings.printer_footer_text}</p>
                  </div>
               </div>
             </div>
@@ -621,8 +725,12 @@ export const Siparisler: React.FC = () => {
         <div className="print-only">
           <div className={`${printType === '80mm' ? 'max-w-[300px]' : 'max-w-[100%]'} mx-auto`}>
              <div className="text-center mb-6">
-                <h1 className="font-logo text-4xl mb-2 text-black">esila</h1>
-                <p className="text-xs">Esila Ticari Yazılımları A.Ş.</p>
+                {store.settings.companyLogo ? (
+                  <img src={store.settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />
+                ) : (
+                  <h1 className="font-logo text-4xl mb-2 text-black">{store.settings.printer_header_text || 'esila'}</h1>
+                )}
+                <p className="text-xs">{store.settings.companyName}</p>
              </div>
              
              <div className="border-b border-black my-4"></div>

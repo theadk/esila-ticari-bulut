@@ -72,6 +72,7 @@ export interface OrderItem {
   productName: string;
   quantity: number;
   price: number;
+  taxRate?: number;
 }
 
 export interface Order {
@@ -79,6 +80,8 @@ export interface Order {
   customerId: string;
   customerName: string;
   date: string;
+  subTotal?: number;
+  taxTotal?: number;
   total: number;
   status: OrderStatus;
   items: OrderItem[];
@@ -96,6 +99,7 @@ export interface ProposalItem {
   quantity: number;
   price: number;
   discountRate: number; // Yüzde olarak indirim
+  taxRate?: number;
 }
 
 export interface Proposal {
@@ -168,8 +172,7 @@ export interface Settings {
   address: string;
   phone: string;
   email: string;
-  marketplace_trendyol_api: string;
-  marketplace_hepsiburada_api: string;
+  companyLogo?: string;
   smtp_host: string;
   smtp_port: string;
   smtp_user: string;

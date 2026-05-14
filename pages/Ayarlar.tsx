@@ -1,33 +1,37 @@
-import React, { useState } from 'react';
-import { Save, Globe, Mail, MessageSquare, Printer, Settings as SettingsIcon } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X } from 'lucide-react';
 import { Settings } from '../types';
-
-const INITIAL_SETTINGS: Settings = {
-  companyName: 'Esila Örnek Şirket Ltd. Şti.',
-  address: 'Örnek Mah. Atatürk Cad. No:1, İstanbul',
-  phone: '0850 123 45 67',
-  email: 'info@esila.com',
-  marketplace_trendyol_api: '****************',
-  marketplace_hepsiburada_api: '****************',
-  smtp_host: 'smtp.gmail.com',
-  smtp_port: '587',
-  smtp_user: 'bildirim@esila.com',
-  sms_token: 'A1B2-C3D4-E5F6',
-  printer_header_text: 'Esila Ticari',
-  printer_footer_text: 'Bizi tercih ettiğiniz için teşekkürler!'
-};
+import { useAppStore } from '../lib/store';
 
 export const Ayarlar: React.FC = () => {
+  const store = useAppStore();
   const [activeTab, setActiveTab] = useState('genel');
-  const [settings, setSettings] = useState<Settings>(INITIAL_SETTINGS);
+  const [settings, setSettings] = useState<Settings>(store.settings);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (key: keyof Settings, value: string) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleSave = () => {
+    store.setSettings(settings);
+    alert('Ayarlar kaydedildi.');
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        handleChange('companyLogo', base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const tabs = [
     { id: 'genel', label: 'Genel', icon: SettingsIcon },
-    { id: 'pazaryeri', label: 'Pazar Yerleri', icon: Globe },
     { id: 'eposta', label: 'E-Posta (SMTP)', icon: Mail },
     { id: 'sms', label: 'SMS', icon: MessageSquare },
     { id: 'yazici', label: 'Yazıcı & Çıktı', icon: Printer },
@@ -68,6 +72,41 @@ export const Ayarlar: React.FC = () => {
               <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Firma Bilgileri</h3>
               <div className="grid grid-cols-1 gap-6">
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Firma Logosu</label>
+                  <div className="flex items-center gap-4">
+                    {settings.companyLogo ? (
+                      <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                        <img src={settings.companyLogo} alt="Logo" className="w-full h-full object-contain p-2" />
+                        <button 
+                          onClick={() => handleChange('companyLogo', '')}
+                          className="absolute top-1 right-1 bg-white rounded-full p-1 shadow hover:bg-gray-100 text-red-500"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-emerald-500 transition-colors"
+                      >
+                        <Upload size={24} className="mb-2" />
+                        <span className="text-xs">Logo Yükle</span>
+                      </button>
+                    )}
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleLogoUpload} 
+                      accept="image/*" 
+                      className="hidden" 
+                    />
+                    <div className="text-sm text-gray-500">
+                      <p>Önerilen boyut: 250x100px</p>
+                      <p>Maksimum dosya boyutu: 1MB (Sadece PNG, JPG, WEBP)</p>
+                    </div>
+                  </div>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Firma Ünvanı</label>
                   <input 
                     type="text" 
@@ -101,41 +140,6 @@ export const Ayarlar: React.FC = () => {
                       type="email" 
                       value={settings.email}
                       onChange={(e) => handleChange('email', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'pazaryeri' && (
-            <div className="space-y-6 animate-fade-in">
-              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Pazar Yeri Entegrasyonları</h3>
-              <div className="p-4 bg-blue-50 text-blue-800 rounded-lg text-sm mb-4">
-                Bu API anahtarları ürünlerinizi Trendyol ve Hepsiburada ile senkronize etmek için kullanılır.
-              </div>
-              <div className="space-y-6">
-                <div className="border p-4 rounded-xl">
-                  <h4 className="font-semibold text-orange-600 mb-4">Trendyol Entegrasyonu</h4>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-                    <input 
-                      type="password" 
-                      value={settings.marketplace_trendyol_api}
-                      onChange={(e) => handleChange('marketplace_trendyol_api', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    />
-                  </div>
-                </div>
-                <div className="border p-4 rounded-xl">
-                   <h4 className="font-semibold text-orange-500 mb-4">Hepsiburada Entegrasyonu</h4>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Merchant ID</label>
-                    <input 
-                      type="password" 
-                      value={settings.marketplace_hepsiburada_api}
-                      onChange={(e) => handleChange('marketplace_hepsiburada_api', e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     />
                   </div>
@@ -196,31 +200,70 @@ export const Ayarlar: React.FC = () => {
           )}
 
           {activeTab === 'yazici' && (
-            <div className="space-y-6 animate-fade-in">
-              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Makbuz & Çıktı Tasarımı</h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Makbuz Başlığı</label>
-                <input 
-                  type="text" 
-                  value={settings.printer_header_text}
-                  onChange={(e) => handleChange('printer_header_text', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                />
+            <div className="animate-fade-in flex flex-col lg:flex-row gap-8">
+              <div className="flex-1 space-y-6">
+                <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Makbuz & Çıktı Tasarımı</h3>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Makbuz Başlığı</label>
+                  <input 
+                    type="text" 
+                    value={settings.printer_header_text}
+                    onChange={(e) => handleChange('printer_header_text', e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Makbuz Alt Bilgisi</label>
+                  <textarea 
+                     rows={3}
+                    value={settings.printer_footer_text}
+                    onChange={(e) => handleChange('printer_footer_text', e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+                <div className="pt-4 text-sm text-gray-500">
+                  <p>Not: Logoyu 'Genel' sekmesinden değiştirebilirsiniz. Yüklenen logo çıktı belgelerinde de kullanılacaktır.</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Makbuz Alt Bilgisi</label>
-                <textarea 
-                   rows={3}
-                  value={settings.printer_footer_text}
-                  onChange={(e) => handleChange('printer_footer_text', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                />
+              <div className="w-full lg:w-[320px] bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center border-b pb-2 mb-4">Önizleme (80mm Fiş)</h4>
+                <div className="bg-white border p-4 shadow-sm w-full mx-auto" style={{ maxWidth: '280px' }}>
+                  {settings.companyLogo && (
+                    <div className="mb-3 flex justify-center">
+                      <img src={settings.companyLogo} alt="Logo" className="max-h-12 object-contain" />
+                    </div>
+                  )}
+                  <div className="text-center mb-4">
+                    <h2 className="font-bold text-lg mb-1">{settings.printer_header_text || 'Firma Başlığı'}</h2>
+                    <p className="text-xs text-gray-500">{settings.address?.substring(0, 30)}...</p>
+                    <p className="text-xs text-gray-500">{settings.phone}</p>
+                  </div>
+                  
+                  <div className="border-t border-dashed border-gray-300 py-3 mb-3 text-sm">
+                    <div className="flex justify-between font-bold mb-1">
+                      <span>Örnek Ürün</span>
+                      <span>150.00 TL</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>1 x 150.00 TL</span>
+                      <span>KDV %20</span>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t border-dashed border-gray-300 pt-3 text-right">
+                    <div className="font-bold text-lg">TOPLAM: 150.00 TL</div>
+                  </div>
+                  
+                  <div className="mt-6 text-center text-xs italic text-gray-600">
+                    <p>{settings.printer_footer_text || 'Alt bilgi buraya gelecek...'}</p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           <div className="pt-6 mt-6 border-t flex justify-end">
-            <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+            <button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
               <Save size={18} />
               <span>Ayarları Kaydet</span>
             </button>
