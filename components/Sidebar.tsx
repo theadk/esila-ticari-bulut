@@ -27,7 +27,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
     { id: 'siparisler', label: 'Siparişler', icon: ShoppingCart },
     { id: 'depo', label: 'Depo', icon: Warehouse },
     { id: 'kasa', label: 'Kasa', icon: Wallet },
-    { id: 'kargo', label: 'Kargo', icon: Truck },
     { id: 'personel', label: 'Personel', icon: UserCheck },
     { id: 'efatura', label: 'E-Fatura', icon: FileText },
     { id: 'teklif', label: 'Teklifler', icon: FileBadge },

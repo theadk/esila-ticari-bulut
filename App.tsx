@@ -36,9 +36,8 @@ const App: React.FC = () => {
       case 'siparisler': return <Siparisler />;
       case 'ayarlar': return <Ayarlar />;
       case 'kasa': return <Kasa />;
-      case 'kargo': return <ComingSoon title="Kargo" />;
       case 'personel': return <Personel />;
-      case 'efatura': return <ComingSoon title="E-Fatura" />;
+      case 'efatura': return <iframe src="https://eportal.e-esila.com.tr" className="w-full h-full flex-1 border-0" title="E-Fatura Portal" />;
       case 'teklif': return <ComingSoon title="Teklifler" />;
       default: return <ComingSoon title={activePage} />;
     }
@@ -80,7 +79,7 @@ const App: React.FC = () => {
         </header>
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 overflow-auto p-8">
+        <main className={`flex-1 flex flex-col ${activePage === 'efatura' ? 'p-0 overflow-hidden' : 'p-8 overflow-auto'}`}>
            {renderContent()}
         </main>
       </div>
