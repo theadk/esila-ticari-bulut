@@ -1,11 +1,29 @@
 import { useState, useEffect } from 'react';
 import { MOCK_CUSTOMERS, MOCK_TRANSACTIONS, MOCK_CASH_TRANSACTIONS, MOCK_PERSONNEL } from '../mockData';
-import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus } from '../types';
+import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus } from '../types';
 
 let globalCustomers = [...MOCK_CUSTOMERS];
 let globalTransactions = [...MOCK_TRANSACTIONS];
 let globalCashTransactions = [...MOCK_CASH_TRANSACTIONS];
 let globalPersonnel = [...MOCK_PERSONNEL];
+let globalProposals: Proposal[] = [
+  {
+    id: 'TEK-2023-001',
+    customerId: '1',
+    customerName: 'Ahmet Yılmaz',
+    date: '2023-10-26 10:00',
+    validUntil: '2023-11-26 10:00',
+    subTotal: 1000,
+    discountTotal: 0,
+    taxTotal: 200,
+    total: 1200,
+    status: ProposalStatus.PENDING,
+    items: [
+      { productId: '1', productName: 'Kablosuz Kulaklık', quantity: 1, price: 1000, discountRate: 0 }
+    ],
+    notes: 'Ürün garanti kapsamındadır.'
+  }
+];
 let globalOrders: Order[] = [
   {
     id: 'SIP-2023-001',
@@ -62,6 +80,11 @@ export const useAppStore = () => {
     get orders() { return globalOrders; },
     setOrders(updater: Order[] | ((prev: Order[]) => Order[])) {
       globalOrders = typeof updater === 'function' ? updater(globalOrders) : updater;
+      emit();
+    },
+    get proposals() { return globalProposals; },
+    setProposals(updater: Proposal[] | ((prev: Proposal[]) => Proposal[])) {
+      globalProposals = typeof updater === 'function' ? updater(globalProposals) : updater;
       emit();
     }
   };

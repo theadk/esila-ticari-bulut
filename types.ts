@@ -84,6 +84,36 @@ export interface Order {
   items: OrderItem[];
 }
 
+export enum ProposalStatus {
+  PENDING = 'Bekliyor',
+  ACCEPTED = 'Onaylandı',
+  REJECTED = 'Reddedildi'
+}
+
+export interface ProposalItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+  discountRate: number; // Yüzde olarak indirim
+}
+
+export interface Proposal {
+  id: string;
+  customerId: string;
+  customerName: string;
+  date: string;
+  validUntil: string;
+  subTotal: number;
+  discountTotal: number;
+  taxTotal: number;
+  total: number;
+  status: ProposalStatus;
+  items: ProposalItem[];
+  notes?: string;
+  isConvertedToOrder?: boolean;
+}
+
 export interface CashTransaction {
   id: string;
   date: string;

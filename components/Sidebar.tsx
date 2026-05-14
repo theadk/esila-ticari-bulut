@@ -47,7 +47,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => setActivePage(item.id)}
+                  onClick={() => {
+                    if (item.id === 'efatura') {
+                      window.open('https://eportal.e-esila.com.tr', '_blank');
+                    } else {
+                      setActivePage(item.id);
+                    }
+                  }}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive 
                       ? 'bg-emerald-700 text-white shadow-lg translate-x-1' 

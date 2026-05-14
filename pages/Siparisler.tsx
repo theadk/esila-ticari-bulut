@@ -31,6 +31,7 @@ export const Siparisler: React.FC = () => {
   // New Order Form State
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
+  const [productSearch, setProductSearch] = useState('');
   const [selectedProductToAdd, setSelectedProductToAdd] = useState<string>('');
   const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
   const [isPaid, setIsPaid] = useState<boolean>(true); // Peşin Tahsil Et
@@ -382,16 +383,27 @@ export const Siparisler: React.FC = () => {
                       <Plus size={16} /> Ürün Ekle
                     </label>
                     <div className="space-y-3">
-                      <select 
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                        value={selectedProductToAdd}
-                        onChange={(e) => setSelectedProductToAdd(e.target.value)}
-                      >
-                        <option value="">Ürün Seçiniz...</option>
-                        {products.map(p => (
-                          <option key={p.id} value={p.id}>{p.code} - {p.name} ({Number(p.price).toLocaleString('tr-TR')}₺)</option>
-                        ))}
-                      </select>
+                      <div className="space-y-2 mb-3">
+                        <input 
+                          type="text"
+                          placeholder="Ürün Ara (Ad veya Barkod/Kod)..."
+                          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                          value={productSearch}
+                          onChange={(e) => setProductSearch(e.target.value)}
+                        />
+                        <select 
+                          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                          value={selectedProductToAdd}
+                          onChange={(e) => setSelectedProductToAdd(e.target.value)}
+                          size={4}
+                        >
+                          {products.filter(p => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase()) || p.barcode?.includes(productSearch)).map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.code} - {p.name} - {Number(p.price).toLocaleString('tr-TR')}₺
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                       
                       <div className="flex gap-2">
                         <input 

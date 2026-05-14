@@ -66,11 +66,10 @@ export const Depo: React.FC = () => {
     
     const hasProducts = products.some(p => p.warehouse === whStatName);
     if (hasProducts) {
-      alert('Bu depoda ürünler bulunmaktadır. Lütfen önce ürünleri başka bir depoya taşıyın veya silin.');
+      // alert blocked by iframe
       return;
     }
 
-    if (!window.confirm(`${whStatName} deposunu silmek istediğinize emin misiniz?`)) return;
     try {
       const whToDelete = warehouses.find(w => w.name === whStatName);
       if (whToDelete) {
