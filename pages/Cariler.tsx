@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { Customer, CustomerTransaction, CashTransaction } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -189,6 +190,78 @@ export const Cariler: React.FC = () => {
     }
   }, [formData.city, provinces]);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const exportToExcel = () => {
+    const exportData = filteredCustomers.map(c => ({
+      'Tür': c.customerType,
+      'Cari Tipi': c.type,
+      'Ad Soyad / Yetkili': c.name,
+      'Firma Unvanı': c.companyName || '',
+      'E-Posta': c.email || '',
+      'Telefon': c.phone || '',
+      'İl': c.city || '',
+      'İlçe': c.district || '',
+      'Adres': c.address || '',
+      'Vergi Dairesi': c.taxOffice || '',
+      'Vergi / TC No': c.taxNumber || '',
+      'IBAN': c.iban || '',
+      'Durum': c.status,
+      'Bakiye': c.balance
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Cariler");
+    XLSX.writeFile(wb, "cari_listesi.xlsx");
+  };
+
+  const importFromExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+        
+        const newCustomers: Customer[] = data.map((row: any) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          customerType: (row['Tür'] === 'Tüzel' ? 'Tüzel' : 'Şahıs') as 'Şahıs' | 'Tüzel',
+          type: (row['Cari Tipi'] === 'Satıcı' ? 'Satıcı' : 'Alıcı') as 'Alıcı' | 'Satıcı',
+          name: row['Ad Soyad / Yetkili']?.toString() || '',
+          companyName: row['Firma Unvanı']?.toString() || '',
+          email: row['E-Posta']?.toString() || '',
+          phone: row['Telefon']?.toString() || '',
+          city: row['İl']?.toString() || '',
+          district: row['İlçe']?.toString() || '',
+          address: row['Adres']?.toString() || '',
+          taxOffice: row['Vergi Dairesi']?.toString() || '',
+          taxNumber: row['Vergi / TC No']?.toString() || '',
+          iban: row['IBAN']?.toString() || '',
+          status: (row['Durum'] === 'Pasif' ? 'Pasif' : 'Aktif') as 'Aktif' | 'Pasif',
+          balance: Number(row['Bakiye']) || 0
+        })).filter((c: any) => c.name || c.companyName);
+        
+        if (newCustomers.length > 0) {
+          setCustomers([...customers, ...newCustomers]);
+          alert(`${newCustomers.length} cari başarıyla eklendi.`);
+        }
+      } catch (error) {
+        console.error("Error importing excel:", error);
+        alert("Excel dosyası okunurken bir hata oluştu.");
+      }
+    };
+    reader.readAsBinaryString(file);
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  };
+
   const filteredCustomers = customers.filter(c => {
     const searchStr = searchTerm.toLowerCase();
     const matchName = c.name?.toLowerCase().includes(searchStr);
@@ -229,13 +302,30 @@ export const Cariler: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">Cari Hesaplar</h2>
-        <button 
-          onClick={handleAddNew}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-        >
-          <Plus size={18} />
-          <span>Yeni Cari Ekle</span>
-        </button>
+        <div className="flex gap-2">
+          <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx, .xls, .csv" />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Upload size={18} />
+            <span className="hidden sm:inline">İçe Aktar</span>
+          </button>
+          <button 
+            onClick={exportToExcel}
+            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Download size={18} />
+            <span className="hidden sm:inline">Dışa Aktar</span>
+          </button>
+          <button 
+            onClick={handleAddNew}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <Plus size={18} />
+            <span>Yeni Cari Ekle</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

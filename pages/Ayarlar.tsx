@@ -248,15 +248,18 @@ export const Ayarlar: React.FC = () => {
               <div className="w-full lg:w-[320px] bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col">
                 <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center border-b pb-2 mb-4">Önizleme (80mm Fiş)</h4>
                 <div className="bg-white border p-4 shadow-sm w-full mx-auto" style={{ maxWidth: '280px' }}>
-                  {settings.companyLogo && (
-                    <div className="mb-3 flex justify-center">
-                      <img src={settings.companyLogo} alt="Logo" className="max-h-12 object-contain" />
-                    </div>
-                  )}
                   <div className="text-center mb-4">
-                    <h2 className="font-bold text-lg mb-1">{settings.printer_header_text || 'Firma Başlığı'}</h2>
-                    <p className="text-xs text-gray-500">{settings.address?.substring(0, 30)}...</p>
+                    {settings.companyLogo ? (
+                      <img src={settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />
+                    ) : (
+                      <h2 className="font-logo text-4xl mb-2 text-black">{settings.printer_header_text || 'esila'}</h2>
+                    )}
+                    <p className="text-xs font-medium">{settings.companyName || 'Firma Ünvanı'}</p>
+                    <p className="text-xs text-gray-500 whitespace-pre-line">{settings.address?.substring(0, 30)}...</p>
                     <p className="text-xs text-gray-500">{settings.phone}</p>
+                    {settings.taxOffice && settings.taxNumber && (
+                      <p className="text-xs text-gray-500 mt-1">{settings.taxOffice} - VKN: {settings.taxNumber}</p>
+                    )}
                   </div>
                   
                   <div className="border-t border-dashed border-gray-300 py-3 mb-3 text-sm">
@@ -275,7 +278,7 @@ export const Ayarlar: React.FC = () => {
                   </div>
                   
                   <div className="mt-6 text-center text-xs italic text-gray-600">
-                    <p>{settings.printer_footer_text || 'Alt bilgi buraya gelecek...'}</p>
+                    <p className="whitespace-pre-line">{settings.printer_footer_text || 'Alt bilgi buraya gelecek...'}</p>
                   </div>
                 </div>
               </div>

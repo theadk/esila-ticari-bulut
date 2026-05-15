@@ -13,6 +13,7 @@ import {
   LogOut,
   FileBadge
 } from 'lucide-react';
+import { useAppStore } from '../lib/store';
 
 interface SidebarProps {
   activePage: string;
@@ -20,6 +21,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
+  const { settings } = useAppStore();
   const menuItems = [
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
     { id: 'cariler', label: 'Cariler', icon: Users },
@@ -36,7 +38,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
   return (
     <div className="h-screen w-64 bg-emerald-900 text-white flex flex-col fixed left-0 top-0 shadow-xl z-50">
       <div className="p-6 flex items-center justify-center border-b border-emerald-800">
-        <h1 className="text-5xl font-logo text-emerald-100 drop-shadow-md">esila</h1>
+        {settings.companyLogo ? (
+          <img src={settings.companyLogo} alt="Logo" className="max-h-16 object-contain bg-white rounded-lg p-2" />
+        ) : (
+          <h1 className="text-5xl font-logo text-emerald-100 drop-shadow-md">{settings.printer_header_text || 'esila'}</h1>
+        )}
       </div>
       
       <nav className="flex-1 overflow-y-auto py-4">

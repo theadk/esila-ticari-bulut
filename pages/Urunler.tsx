@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { Product, Warehouse, Category, Brand } from '../types';
 import { api } from '../lib/api';
 
@@ -65,6 +66,75 @@ export const Urunler: React.FC = () => {
     }
   };
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const exportToExcel = () => {
+    const exportData = filteredProducts.map(p => ({
+      'Ürün Kodu': p.code,
+      'Ürün Adı': p.name,
+      'Kategori': p.category,
+      'Alt Kategori': p.subCategory || '',
+      'Marka': p.brand || '',
+      'Perakende Fiyatı': p.price,
+      'Stok': p.stock,
+      'KDV Oranı': p.taxRate || 0,
+      'Depo': p.warehouse || '',
+      'Barkod': p.barcode || ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ürünler");
+    XLSX.writeFile(wb, "urun_listesi.xlsx");
+  };
+
+  const importFromExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+        
+        const newProducts: Product[] = data.map((row: any) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          code: row['Ürün Kodu']?.toString() || '',
+          name: row['Ürün Adı']?.toString() || '',
+          category: row['Kategori']?.toString() || 'Genel',
+          subCategory: row['Alt Kategori']?.toString() || '',
+          brand: row['Marka']?.toString() || '',
+          price: Number(row['Perakende Fiyatı']) || Number(row['Fiyat']) || 0,
+          stock: Number(row['Stok']) || 0,
+          taxRate: Number(row['KDV Oranı']) || 0,
+          warehouse: row['Depo']?.toString() || '',
+          barcode: row['Barkod']?.toString() || ''
+        })).filter((p: any) => p.name && p.code);
+        
+        if (newProducts.length > 0) {
+          // just use setProducts and assume a simple store mechanism, but since api exists we can also use that if createBulk is available. 
+          // Let's check what 'api.products.createBulk' is... Actually we have a store in this app probably or just local state saving is done with `api.addProduct`.
+          for(const p of newProducts) {
+             await api.addProduct(p);
+          }
+          setProducts([...products, ...newProducts]);
+          alert(`${newProducts.length} ürün başarıyla eklendi.`);
+        }
+      } catch (error) {
+        console.error("Error importing excel:", error);
+        alert("Excel dosyası okunurken bir hata oluştu.");
+      }
+    };
+    reader.readAsBinaryString(file);
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  };
+
   const filteredProducts = (products || []).filter(p => 
     p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -237,6 +307,21 @@ export const Urunler: React.FC = () => {
         <div className="flex gap-2">
           {activeTab === 'urunler' ? (
             <>
+              <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx, .xls, .csv" />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <Upload size={18} />
+                <span className="hidden sm:inline">İçe Aktar</span>
+              </button>
+              <button 
+                onClick={exportToExcel}
+                className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <Download size={18} />
+                <span className="hidden sm:inline">Dışa Aktar</span>
+              </button>
               <button className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
                  <Filter size={18} />
                  <span>Filtrele</span>

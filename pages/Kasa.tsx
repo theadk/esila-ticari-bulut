@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
-import { Plus, Search, TrendingUp, TrendingDown, Wallet, X, Save } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Wallet, X, Save, Printer } from 'lucide-react';
 import { CashTransaction } from '../types';
 
 export const Kasa: React.FC = () => {
-  const { cashTransactions, setCashTransactions, customers, setCustomers, transactions, setTransactions, personnel, setPersonnel } = useAppStore();
+  const { settings, cashTransactions, setCashTransactions, customers, setCustomers, transactions, setTransactions, personnel, setPersonnel } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [selectedTxForPrint, setSelectedTxForPrint] = useState<CashTransaction | null>(null);
   const [formData, setFormData] = useState<{
     date: string;
     type: 'Gelir' | 'Gider';
@@ -83,6 +85,15 @@ export const Kasa: React.FC = () => {
     }
     
     setIsModalOpen(false);
+  };
+
+  const handlePrintClick = (tx: CashTransaction) => {
+    setSelectedTxForPrint(tx);
+    setPrintModalOpen(true);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   return (
@@ -162,12 +173,13 @@ export const Kasa: React.FC = () => {
                 <th className="px-6 py-4">Açıklama</th>
                 <th className="px-6 py-4">İşlem Türü</th>
                 <th className="px-6 py-4 text-right">Tutar</th>
+                <th className="px-6 py-4 text-right">İşlemler</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                     İşlem bulunamadı.
                   </td>
                 </tr>
@@ -184,6 +196,15 @@ export const Kasa: React.FC = () => {
                     </td>
                     <td className={`px-6 py-4 text-right font-semibold ${tx.type === 'Gelir' ? 'text-emerald-600' : 'text-red-600'}`}>
                       {tx.type === 'Gelir' ? '+' : '-'}{tx.amount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handlePrintClick(tx)}
+                        className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        title="Yazdır"
+                      >
+                        <Printer size={18} />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -318,6 +339,124 @@ export const Kasa: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {printModalOpen && selectedTxForPrint && (
+        <div className="fixed inset-0 bg-gray-500/75 z-50 flex items-start justify-center p-4 sm:p-6 shadow-2xl backdrop-blur-sm overflow-y-auto print:bg-white print:p-0 print:m-0 animate-fade-in print:block">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mb-8 print:shadow-none print:max-w-full print:m-0 print:rounded-none">
+            {/* Modal Header - Hidden on Print */}
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl no-print">
+              <div className="flex items-center gap-3">
+                <Printer className="text-gray-400" />
+                <h3 className="text-lg font-bold text-gray-800">Tahsilat/Ödeme Makbuzu Yazdır</h3>
+              </div>
+              <button onClick={() => setPrintModalOpen(false)} className="text-gray-500 hover:text-gray-700 transition-colors">
+                 <X size={24} />
+              </button>
+            </div>
+
+            {/* Print Content - 80mm format layout */}
+            <div className="p-8 print:p-0">
+               <div className="print-only">
+                 <div className="max-w-[300px] mx-auto text-sm">
+                    <div className="text-center mb-6">
+                      {settings.companyLogo ? (
+                        <img src={settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />
+                      ) : (
+                        <h1 className="font-logo text-4xl mb-2 text-black">{settings.printer_header_text || 'esila'}</h1>
+                      )}
+                      <p className="text-xs font-medium">{settings.companyName}</p>
+                      <p className="text-xs whitespace-pre-line">{settings.address}</p>
+                      {settings.taxOffice && settings.taxNumber && (
+                        <p className="text-xs mt-1">{settings.taxOffice} - VKN: {settings.taxNumber}</p>
+                      )}
+                    </div>
+                    
+                    <div className="border-b border-black my-4"></div>
+                    
+                    <div className="mb-4 text-sm">
+                      <p><strong>Tarih:</strong> {new Date(selectedTxForPrint.date).toLocaleDateString('tr-TR')}</p>
+                      <p><strong>İşlem No:</strong> {selectedTxForPrint.id}</p>
+                      <p><strong>Tür:</strong> {selectedTxForPrint.category}</p>
+                    </div>
+
+                    <div className="border-b border-black my-4"></div>
+
+                    <div className="mb-4 text-sm">
+                       <p className="font-bold border-b border-dashed border-gray-300 pb-2 mb-2">Açıklama</p>
+                       <p>{selectedTxForPrint.description}</p>
+                    </div>
+                    
+                    <div className="border-b border-black my-4"></div>
+                    
+                    <div className="flex justify-between font-bold text-base mt-2">
+                       <span>{selectedTxForPrint.type} Tutarı ({selectedTxForPrint.type === 'Gelir' ? 'Tahsilat' : 'Ödeme'}):</span>
+                       <span>{selectedTxForPrint.amount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                    </div>
+                    
+                    <div className="text-center text-xs text-gray-500 mt-8">
+                       <p className="whitespace-pre-line">{settings.printer_footer_text}</p>
+                    </div>
+                 </div>
+               </div>
+
+               {/* Preview Content (visible only on screen) */}
+               <div className="no-print bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <div className="max-w-[300px] mx-auto bg-white p-6 shadow-sm border border-gray-100">
+                    <div className="text-center mb-6">
+                      {settings.companyLogo ? (
+                        <img src={settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />
+                      ) : (
+                        <h1 className="font-logo text-4xl mb-2 text-emerald-900">{settings.printer_header_text || 'esila'}</h1>
+                      )}
+                      <p className="text-xs text-gray-500 font-medium">{settings.companyName}</p>
+                      <p className="text-xs text-gray-500 whitespace-pre-line">{settings.address}</p>
+                    </div>
+                    
+                    <div className="border-b-2 border-dashed border-gray-300 my-4"></div>
+                    
+                    <div className="mb-4 text-sm">
+                      <p><strong>Tarih:</strong> {new Date(selectedTxForPrint.date).toLocaleDateString('tr-TR')}</p>
+                      <p><strong>Tür:</strong> {selectedTxForPrint.category}</p>
+                    </div>
+                    
+                    <div className="border-b-2 border-dashed border-gray-300 my-4"></div>
+                    
+                     <div className="mb-4 text-sm">
+                       <p className="font-bold border-b border-dashed border-gray-300 pb-2 mb-2">Açıklama</p>
+                       <p>{selectedTxForPrint.description}</p>
+                    </div>
+                    
+                    <div className="border-b border-gray-300 my-4"></div>
+                    
+                    <div className="flex justify-between font-bold text-lg mt-2">
+                       <span>{selectedTxForPrint.type} Tutarı:</span>
+                       <span className={selectedTxForPrint.type === 'Gelir' ? 'text-emerald-600' : 'text-red-600'}>
+                         {selectedTxForPrint.amount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                       </span>
+                    </div>
+                  </div>
+               </div>
+            </div>
+
+            {/* Modal Footer - Hidden on Print */}
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3 rounded-b-xl no-print">
+               <button 
+                 onClick={() => setPrintModalOpen(false)}
+                 className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium"
+               >
+                 İptal
+               </button>
+               <button 
+                 onClick={handlePrint}
+                 className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+               >
+                 <Printer size={18} />
+                 Yazdır (80mm)
+               </button>
+            </div>
           </div>
         </div>
       )}

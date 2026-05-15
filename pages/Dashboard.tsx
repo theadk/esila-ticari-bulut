@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   TrendingUp, 
   Users, 
@@ -16,18 +16,63 @@ import {
   LineChart,
   Line
 } from 'recharts';
-
-const data = [
-  { name: 'Pzt', satis: 4000, cari: 2400 },
-  { name: 'Sal', satis: 3000, cari: 1398 },
-  { name: 'Çar', satis: 2000, cari: 9800 },
-  { name: 'Per', satis: 2780, cari: 3908 },
-  { name: 'Cum', satis: 1890, cari: 4800 },
-  { name: 'Cmt', satis: 2390, cari: 3800 },
-  { name: 'Paz', satis: 3490, cari: 4300 },
-];
+import { useAppStore } from '../lib/store';
 
 export const Dashboard: React.FC = () => {
+  const { customers, products, transactions } = useAppStore();
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const monthlySales = transactions
+      .filter(t => t.type === 'Satış')
+      .filter(t => {
+        const tDate = new Date(t.date);
+        return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const activeCustomers = customers.length;
+    const totalProducts = products.length;
+    const criticalStock = products.filter(p => p.stock < 10).length;
+
+    return { monthlySales, activeCustomers, totalProducts, criticalStock };
+  }, [transactions, customers, products]);
+
+  const chartData = useMemo(() => {
+    const data = [];
+    const days = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+    
+    // Generate last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateString = d.toISOString().split('T')[0];
+      const dayName = days[d.getDay()];
+
+      // Daily sales
+      const dailySales = transactions.filter(t => 
+        t.type === 'Satış' && t.date === dateString
+      );
+      const satis = dailySales.reduce((sum, t) => sum + t.amount, 0);
+
+      // Daily collections
+      const dailyCollections = transactions.filter(t => 
+        t.type === 'Tahsilat' && t.date === dateString
+      );
+      const tahsilat = dailyCollections.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      
+      data.push({
+        name: dayName,
+        satis,
+        tahsilat
+      });
+    }
+    return data;
+  }, [transactions]);
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800">Yönetim Paneli</h2>
@@ -40,7 +85,9 @@ export const Dashboard: React.FC = () => {
           </div>
           <div>
             <p className="text-sm text-gray-500">Toplam Satış (Aylık)</p>
-            <p className="text-2xl font-bold text-gray-800">₺124,500</p>
+            <p className="text-2xl font-bold text-gray-800">
+              {stats.monthlySales.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+            </p>
           </div>
         </div>
 
@@ -49,8 +96,8 @@ export const Dashboard: React.FC = () => {
             <Users size={24} />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Aktif Cariler</p>
-            <p className="text-2xl font-bold text-gray-800">1,204</p>
+            <p className="text-sm text-gray-500">Kayıtlı Cariler</p>
+            <p className="text-2xl font-bold text-gray-800">{stats.activeCustomers}</p>
           </div>
         </div>
 
@@ -60,7 +107,7 @@ export const Dashboard: React.FC = () => {
           </div>
           <div>
             <p className="text-sm text-gray-500">Toplam Ürün</p>
-            <p className="text-2xl font-bold text-gray-800">856</p>
+            <p className="text-2xl font-bold text-gray-800">{stats.totalProducts}</p>
           </div>
         </div>
 
@@ -70,7 +117,7 @@ export const Dashboard: React.FC = () => {
           </div>
           <div>
             <p className="text-sm text-gray-500">Kritik Stok</p>
-            <p className="text-2xl font-bold text-gray-800">12</p>
+            <p className="text-2xl font-bold text-gray-800">{stats.criticalStock}</p>
           </div>
         </div>
       </div>
@@ -78,34 +125,36 @@ export const Dashboard: React.FC = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold mb-4">Haftalık Satış Grafiği</h3>
+          <h3 className="text-lg font-semibold mb-4">Haftalık Satış Grafiği (Son 7 Gün)</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
+              <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value: number) => value.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                 />
-                <Bar dataKey="satis" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="satis" name="Satış" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold mb-4">Cari Hareketleri</h3>
+          <h3 className="text-lg font-semibold mb-4">Tahsilat Grafiği (Son 7 Gün)</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip 
                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                   formatter={(value: number) => value.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                 />
-                <Line type="monotone" dataKey="cari" stroke="#059669" strokeWidth={3} dot={{ r: 4 }} />
+                <Line type="monotone" name="Tahsilat" dataKey="tahsilat" stroke="#059669" strokeWidth={3} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
