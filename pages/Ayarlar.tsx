@@ -115,6 +115,26 @@ export const Ayarlar: React.FC = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Vergi Dairesi</label>
+                    <input 
+                      type="text" 
+                      value={settings.taxOffice || ''}
+                      onChange={(e) => handleChange('taxOffice', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Vergi Numarası (VKN/TCKN)</label>
+                    <input 
+                      type="text" 
+                      value={settings.taxNumber || ''}
+                      onChange={(e) => handleChange('taxNumber', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Adres</label>
                   <textarea 

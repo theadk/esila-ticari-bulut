@@ -169,9 +169,29 @@ export const Siparisler: React.FC = () => {
   const handleStatusChange = (status: OrderStatus, targetOrder: Order) => {
     // Check if we're cancelling
     if (status === OrderStatus.CANCELLED && targetOrder.status !== OrderStatus.CANCELLED) {
-      if (!window.confirm('Bu siparişi iptal etmek istediğinize emin misiniz?')) {
+      if (!window.confirm('Bu siparişi iptal etmek istediğinize emin misiniz? (Sipariş tutarı cariden düşülecektir)')) {
          return;
       }
+
+      // Add cancellation transaction
+      const cancellationTx: CustomerTransaction = {
+        id: Math.random().toString(36).substr(2, 9),
+        customerId: targetOrder.customerId,
+        date: new Date().toISOString().split('T')[0],
+        type: 'Tahsilat',
+        amount: -targetOrder.total,
+        description: `Sipariş İptali: ${targetOrder.id}`
+      };
+      setTransactions([...transactions, cancellationTx]);
+
+      // Deduct from customer balance
+      const updatedCustomers = customers.map(c => {
+        if (c.id === targetOrder.customerId) {
+          return { ...c, balance: c.balance - targetOrder.total };
+        }
+        return c;
+      });
+      setCustomers(updatedCustomers);
     }
 
     const updatedOrders = orders.map(o => 
@@ -641,8 +661,11 @@ export const Siparisler: React.FC = () => {
                     ) : (
                       <h1 className="font-logo text-4xl mb-2 text-emerald-900">{store.settings.printer_header_text || 'esila'}</h1>
                     )}
-                    <p className="text-xs text-gray-500">{store.settings.companyName}</p>
+                    <p className="text-xs text-gray-500 font-medium">{store.settings.companyName}</p>
                     <p className="text-xs text-gray-500 whitespace-pre-line">{store.settings.address}</p>
+                    {store.settings.taxOffice && store.settings.taxNumber && (
+                      <p className="text-xs text-gray-500 mt-1">{store.settings.taxOffice} - VKN: {store.settings.taxNumber}</p>
+                    )}
                  </div>
                  
                  <div className="border-b-2 border-dashed border-gray-300 my-4"></div>
@@ -730,7 +753,11 @@ export const Siparisler: React.FC = () => {
                 ) : (
                   <h1 className="font-logo text-4xl mb-2 text-black">{store.settings.printer_header_text || 'esila'}</h1>
                 )}
-                <p className="text-xs">{store.settings.companyName}</p>
+                <p className="text-xs font-medium">{store.settings.companyName}</p>
+                <p className="text-xs whitespace-pre-line">{store.settings.address}</p>
+                {store.settings.taxOffice && store.settings.taxNumber && (
+                   <p className="text-xs mt-1">{store.settings.taxOffice} - VKN: {store.settings.taxNumber}</p>
+                )}
              </div>
              
              <div className="border-b border-black my-4"></div>

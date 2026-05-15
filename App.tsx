@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
+import { Header } from './components/Header';
 import { Dashboard } from './pages/Dashboard';
 import { Cariler } from './pages/Cariler';
 import { Urunler } from './pages/Urunler';
@@ -10,7 +11,7 @@ import { Login } from './pages/Login';
 import { Kasa } from './pages/Kasa';
 import { Personel } from './pages/Personel';
 import { Teklifler } from './pages/Teklifler';
-import { Bell, Search, User, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
   <div className="flex flex-col items-center justify-center h-full text-gray-400">
@@ -77,29 +78,7 @@ const App: React.FC = () => {
       <div className="flex-1 flex flex-col ml-64 no-print-margin transition-all duration-300 w-full">
         
         {/* Header - Hidden on print */}
-        <header className="h-16 bg-white shadow-sm border-b border-gray-100 flex items-center justify-between px-8 no-print">
-          <div className="flex items-center text-gray-400 gap-2">
-             <Search size={20} />
-             <input type="text" placeholder="Genel arama..." className="bg-transparent border-none focus:outline-none text-gray-600 placeholder-gray-400 w-64" />
-          </div>
-          
-          <div className="flex items-center gap-4">
-             <button className="p-2 relative text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
-                <Bell size={20} />
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-             </button>
-             <div className="h-8 w-px bg-gray-200"></div>
-             <div className="flex items-center gap-3">
-               <div className="text-right hidden md:block">
-                 <p className="text-sm font-semibold text-gray-700">Yönetici</p>
-                 <p className="text-xs text-gray-500">admin@esila.com</p>
-               </div>
-               <div className="h-10 w-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 border-2 border-emerald-200">
-                 <User size={20} />
-               </div>
-             </div>
-          </div>
-        </header>
+        <Header setActivePage={setActivePage} onLogout={() => setIsAuthenticated(false)} />
 
         {/* Dynamic Page Content */}
         <main className="flex-1 flex flex-col p-8 overflow-auto">

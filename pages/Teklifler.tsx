@@ -686,6 +686,9 @@ export const Teklifler: React.FC = () => {
                     <p className="text-gray-500 font-medium">{store.settings.companyName}</p>
                     <p className="text-gray-500 text-sm whitespace-pre-line">{store.settings.address}</p>
                     {store.settings.phone && <p className="text-gray-500 text-sm">Tel: {store.settings.phone}</p>}
+                    {store.settings.taxOffice && store.settings.taxNumber && (
+                      <p className="text-gray-500 text-sm">{store.settings.taxOffice} - VKN: {store.settings.taxNumber}</p>
+                    )}
                   </div>
                   <div className="text-right">
                     <h2 className="text-3xl font-bold text-gray-800 mb-4 uppercase tracking-widest text-emerald-800">TEKLİF FORMU</h2>
@@ -814,6 +817,10 @@ export const Teklifler: React.FC = () => {
                     <h1 className="font-logo text-4xl mb-2 text-black">{store.settings.printer_header_text || 'esila'}</h1>
                   )}
                   <p className="text-xs">{store.settings.companyName}</p>
+                  <p className="text-xs whitespace-pre-line">{store.settings.address}</p>
+                  {store.settings.taxOffice && store.settings.taxNumber && (
+                    <p className="text-xs mt-1">{store.settings.taxOffice} - VKN: {store.settings.taxNumber}</p>
+                  )}
                   <p className="text-xs uppercase mt-2 font-bold tracking-widest border-y border-black py-1">Teklif Formu</p>
                 </div>
                 

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { MOCK_CUSTOMERS, MOCK_TRANSACTIONS, MOCK_CASH_TRANSACTIONS, MOCK_PERSONNEL } from '../mockData';
-import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings } from '../types';
+import { MOCK_CUSTOMERS, MOCK_TRANSACTIONS, MOCK_CASH_TRANSACTIONS, MOCK_PERSONNEL, MOCK_PRODUCTS } from '../mockData';
+import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product } from '../types';
 
 let globalSettings: Settings = {
   companyName: 'Esila Örnek Şirket Ltd. Şti.',
   address: 'Örnek Mah. Atatürk Cad. No:1, İstanbul',
   phone: '0850 123 45 67',
   email: 'info@esila.com',
+  taxOffice: 'Marmara Kurumlar V.D.',
+  taxNumber: '1234567890',
   companyLogo: '',
   smtp_host: 'smtp.gmail.com',
   smtp_port: '587',
@@ -17,6 +19,7 @@ let globalSettings: Settings = {
 };
 
 let globalCustomers = [...MOCK_CUSTOMERS];
+let globalProducts = [...MOCK_PRODUCTS];
 let globalTransactions = [...MOCK_TRANSACTIONS];
 let globalCashTransactions = [...MOCK_CASH_TRANSACTIONS];
 let globalPersonnel = [...MOCK_PERSONNEL];
@@ -74,6 +77,11 @@ export const useAppStore = () => {
     get customers() { return globalCustomers; },
     setCustomers(updater: Customer[] | ((prev: Customer[]) => Customer[])) {
       globalCustomers = typeof updater === 'function' ? updater(globalCustomers) : updater;
+      emit();
+    },
+    get products() { return globalProducts; },
+    setProducts(updater: Product[] | ((prev: Product[]) => Product[])) {
+      globalProducts = typeof updater === 'function' ? updater(globalProducts) : updater;
       emit();
     },
     get transactions() { return globalTransactions; },

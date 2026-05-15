@@ -172,6 +172,8 @@ export interface Settings {
   address: string;
   phone: string;
   email: string;
+  taxOffice?: string;
+  taxNumber?: string;
   companyLogo?: string;
   smtp_host: string;
   smtp_port: string;
