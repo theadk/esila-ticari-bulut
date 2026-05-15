@@ -46,7 +46,10 @@ async function startServer() {
     try {
       const pool = getPool();
       const { rows } = await pool.query('SELECT * FROM products');
-      res.json(rows);
+      res.json(rows.map((row: any) => ({
+        ...row,
+        warehouseStocks: typeof row.warehouseStocks === 'string' ? JSON.parse(row.warehouseStocks) : (row.warehouseStocks || [])
+      })));
     } catch (e) {
       res.status(500).json({ error: String(e) });
     }
@@ -259,12 +262,12 @@ async function startServer() {
       return res.json({ id: req.params.id, ...req.body });
     }
     const { id } = req.params;
-    const { code, name, price, stock, category, warehouse, barcode, description, brand, taxRate } = req.body;
+    const { code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, warehouseStocks } = req.body;
     try {
       const pool = getPool();
       await pool.query(
-        'UPDATE products SET code = $1, name = $2, price = $3, stock = $4, category = $5, warehouse = $6, barcode = $7, description = $8, brand = $9, "taxRate" = $10 WHERE id = $11',
-        [code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, id]
+        'UPDATE products SET code = $1, name = $2, price = $3, stock = $4, category = $5, warehouse = $6, barcode = $7, description = $8, brand = $9, "taxRate" = $10, "warehouseStocks" = $11 WHERE id = $12',
+        [code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), id]
       );
       res.json({ id, ...req.body });
     } catch (e) {
@@ -277,12 +280,12 @@ async function startServer() {
       fallbackProducts.push({ ...req.body, id: req.body.id || String(Date.now()) });
       return res.json(req.body);
     }
-    const { id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate } = req.body;
+    const { id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, warehouseStocks } = req.body;
     try {
       const pool = getPool();
       await pool.query(
-        'INSERT INTO products (id, code, name, price, stock, category, warehouse, barcode, description, brand, "taxRate") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
-        [id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate]
+        'INSERT INTO products (id, code, name, price, stock, category, warehouse, barcode, description, brand, "taxRate", "warehouseStocks") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
+        [id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || [])]
       );
       res.json(req.body);
     } catch (e) {

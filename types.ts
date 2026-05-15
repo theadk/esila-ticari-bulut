@@ -15,6 +15,7 @@ export interface Product {
   subCategory?: string;
   image?: string;
   warehouse?: string;
+  warehouseStocks?: { warehouseId: string; stock: number }[];
   barcode?: string;
   description?: string;
   brand?: string;

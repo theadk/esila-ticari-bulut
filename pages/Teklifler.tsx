@@ -233,7 +233,7 @@ export const Teklifler: React.FC = () => {
         </div>
 
         {/* Proposlas Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-gray-600">
@@ -330,7 +330,7 @@ export const Teklifler: React.FC = () => {
               </div>
             </div>
             <div className="p-6 overflow-auto flex-1">
-               <div className="grid grid-cols-2 gap-6 mb-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                  <div>
                    <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Müşteri Bilgileri</h4>
                    <p className="font-medium text-gray-900">{selectedProposal.customerName}</p>

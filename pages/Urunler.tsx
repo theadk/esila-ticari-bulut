@@ -13,6 +13,7 @@ const INITIAL_FORM: Product = {
   category: '',
   subCategory: '',
   warehouse: '',
+  warehouseStocks: [{ warehouseId: '', stock: 0 }],
   barcode: '',
   description: '',
   brand: '',
@@ -23,6 +24,14 @@ const INITIAL_FORM: Product = {
 export const Urunler: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'urunler' | 'kategoriler' | 'markalar'>('urunler');
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterBrand, setFilterBrand] = useState('');
+  const [filterStockStatus, setFilterStockStatus] = useState<'all' | 'out_of_stock' | 'low_stock'>('all');
+  const [filterMinStock, setFilterMinStock] = useState<number | ''>('');
+  const [filterMaxStock, setFilterMaxStock] = useState<number | ''>('');
+  const [filterMinPrice, setFilterMinPrice] = useState<number | ''>('');
+  const [filterMaxPrice, setFilterMaxPrice] = useState<number | ''>('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -135,12 +144,27 @@ export const Urunler: React.FC = () => {
     }
   };
 
-  const filteredProducts = (products || []).filter(p => 
-    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.barcode && p.barcode.includes(searchTerm)) ||
-    (p.warehouse && p.warehouse.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredProducts = (products || []).filter(p => {
+    const matchesSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.barcode && p.barcode.includes(searchTerm)) ||
+      (p.warehouse && p.warehouse.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesCategory = filterCategory ? p.category === filterCategory : true;
+    const matchesBrand = filterBrand ? p.brand === filterBrand : true;
+    
+    let matchesStockStatus = true;
+    if (filterStockStatus === 'out_of_stock') matchesStockStatus = p.stock === 0;
+    if (filterStockStatus === 'low_stock') matchesStockStatus = p.stock > 0 && p.stock <= 10;
+
+    const matchesMinStock = (filterMinStock !== '') ? p.stock >= Number(filterMinStock) : true;
+    const matchesMaxStock = (filterMaxStock !== '') ? p.stock <= Number(filterMaxStock) : true;
+    
+    const matchesMinPrice = (filterMinPrice !== '') ? p.price >= Number(filterMinPrice) : true;
+    const matchesMaxPrice = (filterMaxPrice !== '') ? p.price <= Number(filterMaxPrice) : true;
+
+    return matchesSearch && matchesCategory && matchesBrand && matchesStockStatus && matchesMinStock && matchesMaxStock && matchesMinPrice && matchesMaxPrice;
+  });
 
   const handleAddNew = () => {
     setFormData({ ...INITIAL_FORM, id: Math.random().toString(36).substr(2, 9) });
@@ -322,7 +346,10 @@ export const Urunler: React.FC = () => {
                 <Download size={18} />
                 <span className="hidden sm:inline">Dışa Aktar</span>
               </button>
-              <button className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
+              <button 
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className={`bg-white border ${isFilterOpen ? 'border-emerald-500 text-emerald-600' : 'border-gray-300 text-gray-700'} hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors`}
+              >
                  <Filter size={18} />
                  <span>Filtrele</span>
               </button>
@@ -356,7 +383,7 @@ export const Urunler: React.FC = () => {
 
       {activeTab === 'urunler' ? (
         <>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
             <div className="p-4 border-b border-gray-100">
            <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -369,6 +396,101 @@ export const Urunler: React.FC = () => {
             />
           </div>
         </div>
+
+        {isFilterOpen && (
+          <div className="p-4 bg-gray-50 border-b border-gray-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Kategori</label>
+              <select 
+                value={filterCategory} 
+                onChange={e => setFilterCategory(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                <option value="">Tümü</option>
+                {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Marka</label>
+              <select 
+                value={filterBrand} 
+                onChange={e => setFilterBrand(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                <option value="">Tümü</option>
+                {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Stok Durumu</label>
+              <select 
+                value={filterStockStatus} 
+                onChange={e => setFilterStockStatus(e.target.value as any)}
+                className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                <option value="all">Tümü</option>
+                <option value="out_of_stock">Tükendi (Stok = 0)</option>
+                <option value="low_stock">Stok Az (1-10)</option>
+              </select>
+            </div>
+            <div>
+               <label className="block text-sm text-gray-600 mb-1">Stok Miktarı</label>
+               <div className="flex gap-2">
+                 <input 
+                   type="number" 
+                   placeholder="Min" 
+                   value={filterMinStock} 
+                   onChange={e => setFilterMinStock(e.target.value)}
+                   className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                 />
+                 <input 
+                   type="number" 
+                   placeholder="Max" 
+                   value={filterMaxStock} 
+                   onChange={e => setFilterMaxStock(e.target.value)}
+                   className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                 />
+               </div>
+            </div>
+            <div>
+               <label className="block text-sm text-gray-600 mb-1">Fiyat (₺)</label>
+               <div className="flex gap-2">
+                 <input 
+                   type="number" 
+                   placeholder="Min" 
+                   value={filterMinPrice} 
+                   onChange={e => setFilterMinPrice(e.target.value)}
+                   className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                 />
+                 <input 
+                   type="number" 
+                   placeholder="Max" 
+                   value={filterMaxPrice} 
+                   onChange={e => setFilterMaxPrice(e.target.value)}
+                   className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
+                 />
+               </div>
+            </div>
+            
+            <div className="md:col-span-2 lg:col-span-3 flex items-end justify-end">
+              <button 
+                onClick={() => {
+                  setFilterCategory('');
+                  setFilterBrand('');
+                  setFilterStockStatus('all');
+                  setFilterMinStock('');
+                  setFilterMaxStock('');
+                  setFilterMinPrice('');
+                  setFilterMaxPrice('');
+                }}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Filtreleri Temizle
+              </button>
+            </div>
+
+          </div>
+        )}
         
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-600 font-medium">
@@ -419,7 +541,15 @@ export const Urunler: React.FC = () => {
                              {product.variants.join(', ')}
                          </span>
                       )}
-                      {product.warehouse && (
+                      {product.warehouseStocks && product.warehouseStocks.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                           {product.warehouseStocks.map((ws, i) => ws.warehouseId && (
+                              <span key={i} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-medium w-fit border border-blue-100">
+                                {ws.warehouseId}: {ws.stock}
+                              </span>
+                           ))}
+                        </div>
+                      ) : product.warehouse && (
                         <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium w-fit">
                           {product.warehouse}
                         </span>
@@ -483,7 +613,7 @@ export const Urunler: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6 text-sm">
                  <div>
                     <span className="block text-gray-500 mb-1">Barkod</span>
                     <span className="font-medium text-gray-800">{selectedProduct.barcode || '-'}</span>
@@ -502,14 +632,34 @@ export const Urunler: React.FC = () => {
                       <span className="font-medium text-gray-800">{selectedProduct.subCategory}</span>
                    </div>
                  )}
-                 <div>
-                    <span className="block text-gray-500 mb-1">Depo</span>
-                    <span className="font-medium text-gray-800">{selectedProduct.warehouse || '-'}</span>
-                 </div>
-                 <div>
-                    <span className="block text-gray-500 mb-1">Stok Miktarı</span>
-                    <span className="font-medium text-gray-800">{selectedProduct.stock}</span>
-                 </div>
+                 {selectedProduct.warehouseStocks && selectedProduct.warehouseStocks.length > 0 ? (
+                    <div className="col-span-2">
+                       <span className="block text-gray-500 mb-2">Depo ve Stok Dağılımı</span>
+                       <div className="flex flex-col gap-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                          {selectedProduct.warehouseStocks.map((ws, i) => ws.warehouseId && (
+                             <div key={i} className="flex justify-between items-center text-sm">
+                               <span className="font-medium text-gray-700 font-medium">{ws.warehouseId}</span>
+                               <span className="bg-white px-2 py-1 rounded text-gray-800 font-semibold shadow-sm text-xs">{ws.stock} Adet</span>
+                             </div>
+                          ))}
+                          <div className="flex justify-between items-center text-sm pt-2 mt-1 border-t border-gray-200">
+                               <span className="font-bold text-gray-800">Toplam Stok</span>
+                               <span className="text-emerald-600 font-bold px-2">{selectedProduct.stock} Adet</span>
+                          </div>
+                       </div>
+                    </div>
+                 ) : (
+                   <>
+                     <div>
+                        <span className="block text-gray-500 mb-1">Depo</span>
+                        <span className="font-medium text-gray-800">{selectedProduct.warehouse || '-'}</span>
+                     </div>
+                     <div>
+                        <span className="block text-gray-500 mb-1">Stok Miktarı</span>
+                        <span className="font-medium text-gray-800">{selectedProduct.stock}</span>
+                     </div>
+                   </>
+                 )}
                  <div>
                     <span className="block text-gray-500 mb-1">Birimi</span>
                     <span className="font-medium text-gray-800">{selectedProduct.unit || 'Adet'}</span>
@@ -565,7 +715,7 @@ export const Urunler: React.FC = () => {
             </div>
             
             <form onSubmit={handleSave} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ürün Kodu</label>
                   <input 
@@ -598,7 +748,7 @@ export const Urunler: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                   <select
@@ -629,7 +779,7 @@ export const Urunler: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Varyasyonlar (Virgülle ayırın)</label>
                   <input 
@@ -665,7 +815,7 @@ export const Urunler: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fiyat (₺)</label>
                   <input 
@@ -688,47 +838,76 @@ export const Urunler: React.FC = () => {
                     <option value={20}>%20</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Stok Adedi</label>
-                  <input 
-                    required
-                    type="number" 
-                    value={formData.stock}
-                    onChange={(e) => setFormData({...formData, stock: Number(e.target.value)})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Depo</label>
-                <div className="flex gap-2">
-                  <select 
-                    required={!isQuickWhOpen}
-                    value={formData.warehouse || ''}
-                    onChange={(e) => setFormData({...formData, warehouse: e.target.value})}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
-                  >
-                    <option value="">Depo Seçin</option>
-                    {warehouses.map(wh => (
-                      <option key={wh.id} value={wh.name}>{wh.name}</option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={() => setIsQuickWhOpen(true)} className="p-2 border border-gray-300 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors">
-                    <Plus size={20} />
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Depo ve Stok Dağılımı</label>
+                  <span className="text-sm font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md">Toplam Stok: {formData.stock}</span>
+                </div>
+                {(formData.warehouseStocks || []).map((ws, i) => (
+                  <div key={i} className="flex gap-2 mb-2">
+                    <select 
+                      required
+                      value={ws.warehouseId}
+                      onChange={(e) => {
+                         const newStocks = [...(formData.warehouseStocks || [])];
+                         newStocks[i].warehouseId = e.target.value;
+                         setFormData({...formData, warehouseStocks: newStocks, warehouse: newStocks[0]?.warehouseId});
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                    >
+                      <option value="">Depo Seçin</option>
+                      {warehouses.map(wh => (
+                        <option key={wh.id} value={wh.name}>{wh.name}</option>
+                      ))}
+                    </select>
+                    <input 
+                      required
+                      type="number" 
+                      placeholder="Adet"
+                      value={ws.stock === 0 ? '' : ws.stock}
+                      onChange={(e) => {
+                         const newStocks = [...(formData.warehouseStocks || [])];
+                         newStocks[i].stock = Number(e.target.value);
+                         const totalStock = newStocks.reduce((sum, s) => sum + s.stock, 0);
+                         setFormData({...formData, warehouseStocks: newStocks, stock: totalStock});
+                      }}
+                      className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                    <button type="button" onClick={() => {
+                         const newStocks = [...(formData.warehouseStocks || [])];
+                         newStocks.splice(i, 1);
+                         const totalStock = newStocks.reduce((sum, s) => sum + s.stock, 0);
+                         setFormData({...formData, warehouseStocks: newStocks, stock: totalStock});
+                    }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-200">
+                      <X size={20} />
+                    </button>
+                  </div>
+                ))}
+                
+                <div className="flex gap-4 mt-2">
+                  <button type="button" onClick={() => {
+                    setFormData({...formData, warehouseStocks: [...(formData.warehouseStocks || []), { warehouseId: '', stock: 0 }]});
+                   }} className="text-sm text-emerald-600 font-medium flex items-center gap-1 hover:text-emerald-700">
+                    <Plus size={16} /> Başka Depo Ekle
+                  </button>
+                  <button type="button" onClick={() => setIsQuickWhOpen(true)} className="text-sm text-blue-600 font-medium flex items-center gap-1 hover:text-blue-700">
+                    <Plus size={16} /> Yeni Depo Tanımla
                   </button>
                 </div>
+                
                 {isQuickWhOpen && (
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-3 flex gap-2">
                     <input 
                        type="text" 
                        value={newWhName} 
                        onChange={e => setNewWhName(e.target.value)} 
                        placeholder="Yeni depo adı"
-                       className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+                       className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500"
                     />
-                    <button type="button" onClick={handleQuickWhAdd} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-emerald-700">Ekle</button>
-                    <button type="button" onClick={() => setIsQuickWhOpen(false)} className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-200">İptal</button>
+                    <button type="button" onClick={handleQuickWhAdd} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-emerald-700 transition-colors">Ekle</button>
+                    <button type="button" onClick={() => setIsQuickWhOpen(false)} className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-200 transition-colors">İptal</button>
                   </div>
                 )}
               </div>
@@ -755,7 +934,7 @@ export const Urunler: React.FC = () => {
       )}
       </>
       ) : activeTab === 'kategoriler' ? (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-600 font-medium">
             <tr>
@@ -868,7 +1047,7 @@ export const Urunler: React.FC = () => {
         )}
       </div>
       ) : (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-600 font-medium">
             <tr>

@@ -239,7 +239,7 @@ export const Siparisler: React.FC = () => {
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-gray-50 text-gray-600 font-medium">
               <tr>
@@ -320,7 +320,7 @@ export const Siparisler: React.FC = () => {
               </button>
             </div>
             <div className="p-6 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <h4 className="text-sm font-semibold text-gray-500 mb-2">Müşteri Bilgileri</h4>
                   <p className="font-medium text-gray-800">{selectedOrder.customerName}</p>
@@ -432,7 +432,7 @@ export const Siparisler: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-auto p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 
                 {/* Left Column: Selection */}
                 <div className="md:col-span-1 space-y-6">

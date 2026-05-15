@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { 
   TrendingUp, 
   Users, 
@@ -17,9 +17,18 @@ import {
   Line
 } from 'recharts';
 import { useAppStore } from '../lib/store';
+import { api } from '../lib/api';
+import { Product } from '../types';
 
 export const Dashboard: React.FC = () => {
-  const { customers, products, transactions } = useAppStore();
+  const { customers, transactions } = useAppStore();
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    api.getProducts()
+      .then(fetchedProducts => setProducts(fetchedProducts))
+      .catch(err => console.error("Error fetching products", err));
+  }, []);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -78,7 +87,7 @@ export const Dashboard: React.FC = () => {
       <h2 className="text-2xl font-bold text-gray-800">Yönetim Paneli</h2>
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-emerald-100 text-emerald-600 rounded-full">
             <TrendingUp size={24} />

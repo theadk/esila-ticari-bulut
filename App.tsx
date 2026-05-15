@@ -24,6 +24,7 @@ const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activePage, setActivePage] = useState('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />;
@@ -68,20 +69,32 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar - Hidden on print */}
-      <div className="no-print">
-        <Sidebar activePage={activePage} setActivePage={setActivePage} />
+      <div className={`fixed inset-y-0 left-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-200 ease-in-out no-print`}>
+        <Sidebar activePage={activePage} setActivePage={(page) => { setActivePage(page); setIsMobileMenuOpen(false); }} />
       </div>
 
+      {/* Mobile overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Main Content */}
-      <div className="flex-1 flex flex-col ml-64 no-print-margin transition-all duration-300 w-full">
+      <div className="flex-1 flex flex-col min-w-0 no-print-margin transition-all duration-300 w-full overflow-hidden">
         
         {/* Header - Hidden on print */}
-        <Header setActivePage={setActivePage} onLogout={() => setIsAuthenticated(false)} />
+        <Header 
+          setActivePage={setActivePage} 
+          onLogout={() => setIsAuthenticated(false)} 
+          toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+        />
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 flex flex-col p-8 overflow-auto">
+        <main className="flex-1 flex flex-col p-4 md:p-8 overflow-auto">
            {renderContent()}
         </main>
       </div>

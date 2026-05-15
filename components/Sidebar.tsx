@@ -10,7 +10,7 @@ import {
   UserCheck, 
   FileText, 
   Settings as SettingsIcon,
-  LogOut,
+  Globe,
   FileBadge
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
@@ -36,7 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
   ];
 
   return (
-    <div className="h-screen w-64 bg-emerald-900 text-white flex flex-col fixed left-0 top-0 shadow-xl z-50">
+    <div className="h-screen w-64 bg-emerald-900 text-white flex flex-col shadow-xl z-50">
       <div className="p-6 flex items-center justify-center border-b border-emerald-800">
         {settings.companyLogo ? (
           <img src={settings.companyLogo} alt="Logo" className="max-h-16 object-contain bg-white rounded-lg p-2" />
@@ -76,10 +76,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
       </nav>
 
       <div className="p-4 border-t border-emerald-800">
-        <button className="w-full flex items-center space-x-3 px-4 py-2 text-emerald-200 hover:text-white transition-colors">
-          <LogOut size={20} />
-          <span>Çıkış Yap</span>
-        </button>
+        <a href="https://www.esilaticari.com" target="_blank" rel="noopener noreferrer" className="w-full flex items-center space-x-3 px-4 py-2 text-emerald-200 hover:text-white transition-colors">
+          <Globe size={20} />
+          <span>www.esilaticari.com</span>
+        </a>
       </div>
     </div>
   );

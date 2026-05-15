@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, User, LogOut, Settings as SettingsIcon, Package, FileText, ShoppingCart, Users } from 'lucide-react';
+import { Bell, Search, User, LogOut, Settings as SettingsIcon, Package, FileText, ShoppingCart, Users, Menu } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 
 interface HeaderProps {
   setActivePage: (page: string) => void;
   onLogout: () => void;
+  toggleMobileMenu: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout }) => {
+export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleMobileMenu }) => {
   const store = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [showResults, setShowResults] = useState(false);
@@ -49,21 +50,30 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout }) => {
   const hasSearchResults = searchResults.products.length > 0 || searchResults.customers.length > 0 || searchResults.orders.length > 0;
 
   return (
-    <header className="h-16 bg-white shadow-sm border-b border-gray-100 flex items-center justify-between px-8 no-print relative z-50">
-      {/* Search */}
-      <div className="flex items-center text-gray-400 gap-2 relative" ref={searchRef}>
-         <Search size={20} />
-         <input 
-           type="text" 
-           value={searchTerm}
-           onChange={(e) => {
-             setSearchTerm(e.target.value);
-             setShowResults(true);
-           }}
-           onFocus={() => setShowResults(true)}
-           placeholder="Genel arama..." 
-           className="bg-transparent border-none focus:outline-none text-gray-600 placeholder-gray-400 w-64" 
-         />
+    <header className="h-16 bg-white shadow-sm border-b border-gray-100 flex items-center justify-between px-4 md:px-8 no-print relative z-30">
+      <div className="flex items-center gap-4">
+        {/* Mobile Menu Toggle */}
+        <button 
+          onClick={toggleMobileMenu}
+          className="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <Menu size={24} />
+        </button>
+
+        {/* Search */}
+        <div className="flex items-center text-gray-400 gap-2 relative" ref={searchRef}>
+           <Search size={20} className="hidden sm:block" />
+           <input 
+             type="text" 
+             value={searchTerm}
+             onChange={(e) => {
+               setSearchTerm(e.target.value);
+               setShowResults(true);
+             }}
+             onFocus={() => setShowResults(true)}
+             placeholder="Genel arama..." 
+             className="bg-transparent border-none focus:outline-none text-gray-600 placeholder-gray-400 w-32 sm:w-64" 
+           />
          
          {/* Search Dropdown */}
          {showResults && searchTerm && (

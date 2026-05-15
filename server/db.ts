@@ -56,9 +56,16 @@ export async function initDb() {
         barcode VARCHAR(255),
         description TEXT,
         brand VARCHAR(255),
-        "taxRate" REAL
+        "taxRate" REAL,
+        "warehouseStocks" TEXT
       );
     `);
+
+    try {
+      await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "warehouseStocks" TEXT;`);
+    } catch (e) {
+      console.warn("Could not add warehouseStocks column", e);
+    }
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS brands (
