@@ -40,7 +40,8 @@ const INITIAL_RECORD: PersonnelRecord = {
 };
 
 export const Personel: React.FC = () => {
-  const { personnel, setPersonnel } = useAppStore();
+  const store = useAppStore();
+  const { personnel, setPersonnel } = store;
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -67,12 +68,23 @@ export const Personel: React.FC = () => {
     p.position.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleAddNew = () => {
+    const nextId = `${store.settings.prefix_personnel || 'PER'}-${store.settings.next_personnel_id || 1001}`;
+    setFormData({ ...INITIAL_FORM, id: nextId });
+    setIsEditing(false);
+    setIsModalOpen(true);
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (isEditing) {
       setPersonnel(personnel.map(p => p.id === formData.id ? formData : p));
     } else {
-      setPersonnel([...personnel, { ...formData, id: Math.random().toString(36).substr(2, 9) }]);
+      setPersonnel([...personnel, formData]);
+      store.setSettings({
+        ...store.settings,
+        next_personnel_id: (store.settings.next_personnel_id || 1001) + 1
+      });
     }
     setIsModalOpen(false);
   };
@@ -260,11 +272,7 @@ export const Personel: React.FC = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Personel Yönetimi</h2>
         <button 
-          onClick={() => {
-            setFormData(INITIAL_FORM);
-            setIsEditing(false);
-            setIsModalOpen(true);
-          }}
+          onClick={handleAddNew}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
         >
           <Plus size={20} />

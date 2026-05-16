@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X } from 'lucide-react';
+import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X, Hash } from 'lucide-react';
 import { Settings } from '../types';
 import { useAppStore } from '../lib/store';
 
@@ -35,6 +35,7 @@ export const Ayarlar: React.FC = () => {
     { id: 'eposta', label: 'E-Posta (SMTP)', icon: Mail },
     { id: 'sms', label: 'SMS', icon: MessageSquare },
     { id: 'yazici', label: 'Yazıcı & Çıktı', icon: Printer },
+    { id: 'numaralandirma', label: 'Numaralandırma', icon: Hash },
   ];
 
   return (
@@ -258,9 +259,9 @@ export const Ayarlar: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Makbuz Alt Bilgisi</label>
                   <textarea 
                      rows={3}
-                    value={settings.printer_footer_text}
-                    onChange={(e) => handleChange('printer_footer_text', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                     value={settings.printer_footer_text}
+                     onChange={(e) => handleChange('printer_footer_text', e.target.value)}
+                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
                 </div>
                 <div className="pt-4 text-sm text-gray-500">
@@ -303,6 +304,146 @@ export const Ayarlar: React.FC = () => {
                     <p className="whitespace-pre-line">{settings.printer_footer_text || 'Alt bilgi buraya gelecek...'}</p>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'numaralandirma' && (
+            <div className="space-y-6 animate-fade-in md:p-8">
+              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Evrak & Kayıt Numaralandırma Şablonları</h3>
+              <p className="text-sm text-gray-600 mb-6">Yeni oluşturulacak kayıtlarda otomatik olarak atanacak ön ekleri ve numara başlangıçlarını belirleyebilirsiniz.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                {/* Cari Şablonu */}
+                <div className="flex flex-col gap-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                  <h4 className="font-semibold text-gray-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500"></div>Cari Kart Numarası</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Ön Ek</label>
+                      <input 
+                        type="text" 
+                        value={settings.prefix_customer || 'CAR'}
+                        onChange={(e) => handleChange('prefix_customer', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Sıradaki No</label>
+                      <input 
+                        type="number" 
+                        value={settings.next_customer_id || 1001}
+                        onChange={(e) => handleChange('next_customer_id', Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs mt-1 text-gray-500 text-right">Örnek Sonuç: <strong className="text-gray-800">{(settings.prefix_customer || 'CAR')}-{(settings.next_customer_id || 1001)}</strong></div>
+                </div>
+
+                {/* Sipariş Şablonu */}
+                <div className="flex flex-col gap-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                  <h4 className="font-semibold text-gray-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-orange-500"></div>Sipariş Numarası</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Ön Ek</label>
+                      <input 
+                        type="text" 
+                        value={settings.prefix_order || 'SIP'}
+                        onChange={(e) => handleChange('prefix_order', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Sıradaki No</label>
+                      <input 
+                        type="number" 
+                        value={settings.next_order_id || 1001}
+                        onChange={(e) => handleChange('next_order_id', Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs mt-1 text-gray-500 text-right">Örnek Sonuç: <strong className="text-gray-800">{(settings.prefix_order || 'SIP')}-{(settings.next_order_id || 1001)}</strong></div>
+                </div>
+
+                {/* Teklif Şablonu */}
+                <div className="flex flex-col gap-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                  <h4 className="font-semibold text-gray-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500"></div>Teklif Numarası</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Ön Ek</label>
+                      <input 
+                        type="text" 
+                        value={settings.prefix_offer || 'TEK'}
+                        onChange={(e) => handleChange('prefix_offer', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Sıradaki No</label>
+                      <input 
+                        type="number" 
+                        value={settings.next_offer_id || 1001}
+                        onChange={(e) => handleChange('next_offer_id', Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs mt-1 text-gray-500 text-right">Örnek Sonuç: <strong className="text-gray-800">{(settings.prefix_offer || 'TEK')}-{(settings.next_offer_id || 1001)}</strong></div>
+                </div>
+
+                {/* Ürün Kodu Şablonu */}
+                <div className="flex flex-col gap-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                  <h4 className="font-semibold text-gray-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div>Ürün / Stok Kodu</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Ön Ek</label>
+                      <input 
+                        type="text" 
+                        value={settings.prefix_product || 'URN'}
+                        onChange={(e) => handleChange('prefix_product', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Sıradaki No</label>
+                      <input 
+                        type="number" 
+                        value={settings.next_product_id || 1001}
+                        onChange={(e) => handleChange('next_product_id', Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs mt-1 text-gray-500 text-right">Örnek Sonuç: <strong className="text-gray-800">{(settings.prefix_product || 'URN')}-{(settings.next_product_id || 1001)}</strong></div>
+                </div>
+
+                {/* Personel Numarası Şablonu */}
+                <div className="flex flex-col gap-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                  <h4 className="font-semibold text-gray-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-500"></div>Personel Sicil Numarası</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Ön Ek</label>
+                      <input 
+                        type="text" 
+                        value={settings.prefix_personnel || 'PER'}
+                        onChange={(e) => handleChange('prefix_personnel', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Sıradaki No</label>
+                      <input 
+                        type="number" 
+                        value={settings.next_personnel_id || 1001}
+                        onChange={(e) => handleChange('next_personnel_id', Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs mt-1 text-gray-500 text-right">Örnek Sonuç: <strong className="text-gray-800">{(settings.prefix_personnel || 'PER')}-{(settings.next_personnel_id || 1001)}</strong></div>
+                </div>
+
               </div>
             </div>
           )}

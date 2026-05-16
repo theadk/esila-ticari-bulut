@@ -17,7 +17,18 @@ let globalSettings: Settings = {
   sms_token: 'A1B2-C3D4-E5F6',
   sms_sender_id: 'ESILA',
   printer_header_text: 'Esila Ticari',
-  printer_footer_text: 'Bizi tercih ettiğiniz için teşekkürler!'
+  printer_footer_text: 'Bizi tercih ettiğiniz için teşekkürler!',
+  
+  prefix_customer: 'CAR',
+  next_customer_id: 1001,
+  prefix_order: 'SIP',
+  next_order_id: 1001,
+  prefix_offer: 'TEK',
+  next_offer_id: 1001,
+  prefix_product: 'URN',
+  next_product_id: 1001,
+  prefix_personnel: 'PER',
+  next_personnel_id: 1001,
 };
 
 let globalCustomers = [...MOCK_CUSTOMERS];

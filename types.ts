@@ -220,4 +220,16 @@ export interface Settings {
   sms_sender_id?: string;
   printer_header_text: string;
   printer_footer_text: string;
+  
+  // Numaralandırma / Ön Ekler
+  prefix_customer?: string;
+  next_customer_id?: number;
+  prefix_order?: string;
+  next_order_id?: number;
+  prefix_offer?: string;
+  next_offer_id?: number;
+  prefix_product?: string;
+  next_product_id?: number;
+  prefix_personnel?: string;
+  next_personnel_id?: number;
 }

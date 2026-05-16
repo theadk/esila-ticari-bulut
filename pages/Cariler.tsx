@@ -311,7 +311,8 @@ export const Cariler: React.FC = () => {
   });
 
   const handleAddNew = () => {
-    setFormData({ ...INITIAL_FORM, id: Math.random().toString(36).substr(2, 9) });
+    const nextId = `${store.settings.prefix_customer || 'CAR'}-${store.settings.next_customer_id || 1001}`;
+    setFormData({ ...INITIAL_FORM, id: nextId });
     setIsEditing(false);
     setIsModalOpen(true);
   };
@@ -334,6 +335,10 @@ export const Cariler: React.FC = () => {
       setCustomers(customers.map(c => c.id === formData.id ? formData : c));
     } else {
       setCustomers([...customers, formData]);
+      store.setSettings({
+        ...store.settings,
+        next_customer_id: (store.settings.next_customer_id || 1001) + 1
+      });
     }
     setIsModalOpen(false);
   };

@@ -3,6 +3,7 @@ import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download
 import * as XLSX from 'xlsx';
 import { Product, Warehouse, Category, Brand } from '../types';
 import { api } from '../lib/api';
+import { useAppStore } from '../lib/store';
 
 const INITIAL_FORM: Product = {
   id: '',
@@ -23,6 +24,7 @@ const INITIAL_FORM: Product = {
 };
 
 export const Urunler: React.FC = () => {
+  const store = useAppStore();
   const [activeTab, setActiveTab] = useState<'urunler' | 'kategoriler' | 'markalar'>('urunler');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -168,7 +170,8 @@ export const Urunler: React.FC = () => {
   });
 
   const handleAddNew = () => {
-    setFormData({ ...INITIAL_FORM, id: Math.random().toString(36).substr(2, 9) });
+    const nextId = `${store.settings.prefix_product || 'URN'}-${store.settings.next_product_id || 1001}`;
+    setFormData({ ...INITIAL_FORM, code: nextId, id: Math.random().toString(36).substr(2, 9) });
     setIsEditing(false);
     setIsModalOpen(true);
   };
@@ -190,6 +193,10 @@ export const Urunler: React.FC = () => {
         await api.updateProduct(formData.id, formData);
       } else {
         await api.addProduct(formData);
+        store.setSettings({
+          ...store.settings,
+          next_product_id: (store.settings.next_product_id || 1001) + 1
+        });
       }
       await loadData();
       setIsModalOpen(false);

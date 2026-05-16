@@ -118,9 +118,10 @@ export const Teklifler: React.FC = () => {
     const now = new Date();
     const validUntilDate = new Date(now);
     validUntilDate.setDate(now.getDate() + validDays);
+    const nextOfferId = `${store.settings.prefix_offer || 'TEK'}-${store.settings.next_offer_id || 1001}`;
 
     const newProposal: Proposal = {
-      id: `TEK-${now.getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+      id: nextOfferId,
       customerId: selectedCustomer.id,
       customerName: selectedCustomer.companyName || selectedCustomer.name,
       date: now.toISOString().split('T')[0],
@@ -135,6 +136,10 @@ export const Teklifler: React.FC = () => {
     };
 
     setProposals([...proposals, newProposal]);
+    store.setSettings({
+      ...store.settings,
+      next_offer_id: (store.settings.next_offer_id || 1001) + 1
+    });
     setIsCreateModalOpen(false);
   };
 

@@ -91,9 +91,10 @@ export const Siparisler: React.FC = () => {
     if (!selectedCustomer || cartItems.length === 0) return;
 
     const orderDate = new Date();
+    const nextOrderId = `${store.settings.prefix_order || 'SIP'}-${store.settings.next_order_id || 1001}`;
     
     const newOrder: Order = {
-      id: `SIP-${orderDate.getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: nextOrderId,
       customerId: selectedCustomer.id,
       customerName: selectedCustomer.name,
       date: orderDate.toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
@@ -105,6 +106,11 @@ export const Siparisler: React.FC = () => {
     };
 
     setOrders([newOrder, ...orders]);
+    store.setSettings({
+      ...store.settings,
+      next_order_id: (store.settings.next_order_id || 1001) + 1
+    });
+
     
     // 1. Cariye Satış İşle
     const newTransaction: CustomerTransaction = {
