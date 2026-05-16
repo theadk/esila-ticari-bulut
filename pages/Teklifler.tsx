@@ -297,7 +297,7 @@ export const Teklifler: React.FC = () => {
       {/* Details Modal */}
       {isDetailsModalOpen && selectedProposal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in no-print" onClick={() => setIsDetailsModalOpen(false)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
               <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                 <FileBadge className="text-emerald-600" />
@@ -329,8 +329,8 @@ export const Teklifler: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="p-6 overflow-auto flex-1">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="p-4 sm:p-6 overflow-auto flex-1">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6 mb-6">
                  <div>
                    <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Müşteri Bilgileri</h4>
                    <p className="font-medium text-gray-900">{selectedProposal.customerName}</p>
@@ -447,7 +447,7 @@ export const Teklifler: React.FC = () => {
       {/* Create Proposal Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in no-print">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="p-4 border-b flex justify-between items-center bg-gray-50">
               <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                 <FileBadge className="text-emerald-600" />
@@ -458,8 +458,8 @@ export const Teklifler: React.FC = () => {
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6 mb-6">
                   {/* Left Column: Customer and Options */}
                   <div className="space-y-4">
                     <div>
@@ -529,7 +529,7 @@ export const Teklifler: React.FC = () => {
                         </select>
                       </div>
                       
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <div className="flex-1">
                           <label className="block text-xs font-medium text-gray-500 mb-1">Miktar</label>
                           <input 
@@ -672,7 +672,7 @@ export const Teklifler: React.FC = () => {
       {/* Print View */}
       {selectedProposal && (
         <div className="print-only">
-          <div className={`${printType === '80mm' ? 'max-w-[300px]' : 'max-w-4xl'} mx-auto ${printType === '80mm' ? '' : 'p-12'} bg-white text-gray-900`}>
+          <div className={`${printType === '80mm' ? 'max-w-[300px]' : 'max-w-full sm:max-w-4xl'} mx-auto ${printType === '80mm' ? '' : 'p-12'} bg-white text-gray-900`}>
             {printType === 'A4' ? (
               // A4 LAYOUT
               <>

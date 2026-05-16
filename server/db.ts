@@ -50,6 +50,7 @@ export async function initDb() {
         code VARCHAR(255),
         name VARCHAR(255),
         price REAL,
+        "purchasePrice" REAL,
         stock INTEGER,
         category VARCHAR(255),
         warehouse VARCHAR(255),
@@ -73,6 +74,27 @@ export async function initDb() {
         name VARCHAR(255)
       );
     `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS reconciliations (
+        id VARCHAR(255) PRIMARY KEY,
+        "customerId" VARCHAR(255),
+        "customerName" VARCHAR(255),
+        date VARCHAR(255),
+        "balanceType" VARCHAR(50),
+        balance REAL,
+        status VARCHAR(50),
+        notes TEXT,
+        "emailSentAt" VARCHAR(255),
+        "respondedAt" VARCHAR(255),
+        "responseNotes" TEXT
+      );
+    `);
+
+    // Make sure purchasePrice column exists
+    await client.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS "purchasePrice" REAL;
+    `).catch(() => {});
 
     // seeding warehouses
     const whRes = await client.query('SELECT count(*) FROM warehouses');

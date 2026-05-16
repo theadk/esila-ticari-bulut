@@ -1,0 +1,296 @@
+import React, { useState, useEffect } from 'react';
+import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { useAppStore } from '../lib/store';
+import { Reconciliation, ReconciliationStatus, Customer } from '../types';
+
+export const Mutabakat: React.FC = () => {
+  const [reconciliations, setReconciliations] = useState<Reconciliation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const store = useAppStore();
+
+  const [formData, setFormData] = useState<Partial<Reconciliation>>({
+    date: new Date().toISOString().split('T')[0],
+    balanceType: 'Borç',
+    balance: 0,
+    status: ReconciliationStatus.PENDING,
+    notes: ''
+  });
+
+  const fetchReconciliations = async () => {
+    try {
+      const res = await fetch('/api/reconciliations');
+      const data = await res.json();
+      setReconciliations(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReconciliations();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.customerId) {
+        alert("Lütfen Cari seçiniz");
+        return;
+    }
+    const customer = store.customers.find(c => c.id === formData.customerId);
+    
+    // Simulate API Call
+    try {
+      const res = await fetch('/api/reconciliations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          customerName: customer?.companyName || customer?.name || 'Bilinmiyor',
+        }),
+      });
+      if (res.ok) {
+        setIsModalOpen(false);
+        fetchReconciliations();
+        // Reset form
+        setFormData({
+            date: new Date().toISOString().split('T')[0],
+            balanceType: 'Borç',
+            balance: 0,
+            status: ReconciliationStatus.PENDING,
+            notes: ''
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const calculateAutoBalance = (customerId: string) => {
+    const customer = store.customers.find(c => c.id === customerId);
+    if (!customer) return;
+    const isDebt = customer.balance >= 0;
+    setFormData(prev => ({
+        ...prev,
+        customerId,
+        balance: Math.abs(customer.balance),
+        balanceType: customer.balance === 0 ? 'Yok' : (isDebt ? 'Borç' : 'Alacak')
+    }));
+  };
+
+  const filteredReconciliations = reconciliations.filter(r => 
+    r.customerName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold rounded-lg text-gray-800">Mutabakat Yönetimi</h1>
+          <p className="text-gray-500 text-sm mt-1">Müşteri/Tedarikçi bakiye mutabakatlarını yönetin</p>
+        </div>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+        >
+          <Plus size={20} />
+          <span>Yeni Mutabakat Gönder</span>
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="relative max-w-full sm:max-w-md w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input 
+              type="text" 
+              placeholder="Cari adı ile ara..." 
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <button onClick={fetchReconciliations} className="flex gap-2 items-center text-emerald-600 hover:bg-emerald-50 px-3 py-2 rounded-lg">
+              <RefreshCcw size={18} /> Yenile
+          </button>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 text-gray-600 font-medium">
+              <tr>
+                <th className="py-3 px-4 rounded-tl-lg">Tarih</th>
+                <th className="py-3 px-4">Cari Adı</th>
+                <th className="py-3 px-4">Bakiye</th>
+                <th className="py-3 px-4">Durum</th>
+                <th className="py-3 px-4">Gönderim</th>
+                <th className="py-3 px-4">Yanıt Zamanı</th>
+                <th className="py-3 px-4 text-right">Müşteri Linki (Test)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                    <td colSpan={6} className="text-center py-8 text-gray-500">Yükleniyor...</td>
+                </tr>
+              ) : filteredReconciliations.length === 0 ? (
+                <tr>
+                    <td colSpan={6} className="text-center py-8 text-gray-500">Kayıtlı mutabakat bulunamadı.</td>
+                </tr>
+              ) : filteredReconciliations.map((r) => (
+                <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-3 px-4">{new Date(r.date).toLocaleDateString('tr-TR')}</td>
+                  <td className="py-3 px-4 font-medium text-gray-800">{r.customerName}</td>
+                  <td className="py-3 px-4">
+                    <div className="font-medium text-gray-800">{r.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</div>
+                    <div className="text-xs text-gray-500">{r.balanceType}</div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium flex inline-flex items-center gap-1 ${
+                      r.status === ReconciliationStatus.APPROVED ? 'bg-emerald-100 text-emerald-700' :
+                      r.status === ReconciliationStatus.REJECTED ? 'bg-red-100 text-red-700' :
+                      'bg-amber-100 text-amber-700'
+                    }`}>
+                      {r.status === ReconciliationStatus.APPROVED && <CheckCircle size={14} />}
+                      {r.status === ReconciliationStatus.REJECTED && <XCircle size={14} />}
+                      {r.status === ReconciliationStatus.PENDING && <Clock size={14} />}
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                      {r.emailSentAt ? (
+                          <div className="text-xs text-gray-500 flex items-center gap-1">
+                              <Mail size={14} /> {new Date(r.emailSentAt).toLocaleString('tr-TR')}
+                          </div>
+                      ) : '-'}
+                  </td>
+                  <td className="py-3 px-4">
+                      {r.respondedAt ? (
+                           <div className="text-xs text-gray-500" title={r.responseNotes}>
+                               {new Date(r.respondedAt).toLocaleString('tr-TR')}
+                           </div>
+                      ) : '-'}
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    {r.status === ReconciliationStatus.PENDING && (
+                       <div className="flex justify-end gap-2">
+                         <a href={`/api/reconciliations/${r.id}/approve`} target="_blank" className="text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded">Onayla</a>
+                         <a href={`/api/reconciliations/${r.id}/reject`} target="_blank" className="text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1 rounded">Reddet</a>
+                       </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* New Reconciliation Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-800">Yeni Mutabakat Gönder</h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <XCircle size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSave} className="flex flex-col overflow-hidden">
+              <div className="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cari Seçimi</label>
+                  <select
+                    required
+                    value={formData.customerId || ''}
+                    onChange={(e) => calculateAutoBalance(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  >
+                    <option value="">Cari Seçiniz</option>
+                    {store.customers.map(c => (
+                        <option key={c.id} value={c.id}>{c.companyName || c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mutabakat Tarihi</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.date || ''}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Bakiye (₺)</label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      step="0.01"
+                      value={formData.balance || ''}
+                      onChange={(e) => setFormData({...formData, balance: Number(e.target.value)})}
+                      className="w-full border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Bakiye Yönü</label>
+                    <select
+                      value={formData.balanceType}
+                      onChange={(e) => setFormData({...formData, balanceType: e.target.value as any})}
+                      className="w-full border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    >
+                      <option value="Borç">Borçlu</option>
+                      <option value="Alacak">Alacaklı</option>
+                      <option value="Yok">Bakiye Yok</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama / Not (Opsiyonel)</label>
+                  <textarea
+                    rows={3}
+                    value={formData.notes || ''}
+                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    placeholder="Müşteriye iletilecek not..."
+                  />
+                </div>
+                
+                <div className="bg-emerald-50 p-3 rounded-lg text-sm text-emerald-800">
+                    <strong>Bilgi:</strong> Mutabakat kaydedildiğinde, cariye onay/red bağlantısını içeren otomatik bir e-posta gönderilecektir.
+                </div>
+              </div>
+              
+              <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors text-sm font-medium"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                >
+                  <Mail size={16} /> Gönder
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};

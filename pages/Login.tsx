@@ -22,13 +22,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-800 to-emerald-900 p-4">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-        <div className="p-8 bg-emerald-50 border-b border-emerald-100 flex flex-col items-center">
+      <div className="bg-white w-full max-w-full sm:max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div className="p-4 md:p-8 bg-emerald-50 border-b border-emerald-100 flex flex-col items-center">
           <h1 className="text-6xl font-logo text-emerald-700 drop-shadow-sm mb-2">esila</h1>
           <p className="text-emerald-600 font-medium tracking-wide text-sm">TİCARİ YÖNETİM SİSTEMİ</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 md:p-8 space-y-6">
           <div className="space-y-1">
              <h2 className="text-2xl font-bold text-gray-800">Giriş Yap</h2>
              <p className="text-gray-500 text-sm">Devam etmek için hesabınıza giriş yapın.</p>

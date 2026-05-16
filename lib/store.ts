@@ -13,7 +13,9 @@ let globalSettings: Settings = {
   smtp_host: 'smtp.gmail.com',
   smtp_port: '587',
   smtp_user: 'bildirim@esila.com',
+  smtp_pass: '',
   sms_token: 'A1B2-C3D4-E5F6',
+  sms_sender_id: 'ESILA',
   printer_header_text: 'Esila Ticari',
   printer_footer_text: 'Bizi tercih ettiğiniz için teşekkürler!'
 };

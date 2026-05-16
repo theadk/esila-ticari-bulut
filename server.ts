@@ -262,12 +262,12 @@ async function startServer() {
       return res.json({ id: req.params.id, ...req.body });
     }
     const { id } = req.params;
-    const { code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, warehouseStocks } = req.body;
+    const { code, name, price, purchasePrice, stock, category, warehouse, barcode, description, brand, taxRate, warehouseStocks } = req.body;
     try {
       const pool = getPool();
       await pool.query(
-        'UPDATE products SET code = $1, name = $2, price = $3, stock = $4, category = $5, warehouse = $6, barcode = $7, description = $8, brand = $9, "taxRate" = $10, "warehouseStocks" = $11 WHERE id = $12',
-        [code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), id]
+        'UPDATE products SET code = $1, name = $2, price = $3, stock = $4, category = $5, warehouse = $6, barcode = $7, description = $8, brand = $9, "taxRate" = $10, "warehouseStocks" = $11, "purchasePrice" = $12 WHERE id = $13',
+        [code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice, id]
       );
       res.json({ id, ...req.body });
     } catch (e) {
@@ -280,16 +280,167 @@ async function startServer() {
       fallbackProducts.push({ ...req.body, id: req.body.id || String(Date.now()) });
       return res.json(req.body);
     }
-    const { id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, warehouseStocks } = req.body;
+    const { id, code, name, price, purchasePrice, stock, category, warehouse, barcode, description, brand, taxRate, warehouseStocks } = req.body;
     try {
       const pool = getPool();
       await pool.query(
-        'INSERT INTO products (id, code, name, price, stock, category, warehouse, barcode, description, brand, "taxRate", "warehouseStocks") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
-        [id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || [])]
+        'INSERT INTO products (id, code, name, price, stock, category, warehouse, barcode, description, brand, "taxRate", "warehouseStocks", "purchasePrice") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+        [id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice]
       );
       res.json(req.body);
     } catch (e) {
       res.status(500).json({ error: String(e) });
+    }
+  });
+
+  let fallbackReconciliations: any[] = [];
+  
+  app.get('/api/reconciliations', async (req, res) => {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) return res.json(fallbackReconciliations);
+    try {
+      const pool = getPool();
+      const { rows } = await pool.query('SELECT * FROM reconciliations');
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.post('/api/reconciliations', async (req, res) => {
+    const mutabakat = { ...req.body, id: req.body.id || String(Date.now()), emailSentAt: new Date().toISOString() };
+    // Simulate sending email
+    console.log(`[Mutabakat] Email gönderildi: ${mutabakat.customerName} - Bakiye: ${mutabakat.balance} ${mutabakat.balanceType}`);
+    console.log(`[Onay Linki] /api/reconciliations/${mutabakat.id}/approve`);
+    console.log(`[Red Linki] /api/reconciliations/${mutabakat.id}/reject`);
+
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      fallbackReconciliations.push(mutabakat);
+      return res.json(mutabakat);
+    }
+    
+    try {
+      const pool = getPool();
+      await pool.query(
+        'INSERT INTO reconciliations (id, "customerId", "customerName", date, "balanceType", balance, status, notes, "emailSentAt", "respondedAt", "responseNotes") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+        [mutabakat.id, mutabakat.customerId, mutabakat.customerName, mutabakat.date, mutabakat.balanceType, mutabakat.balance, mutabakat.status, mutabakat.notes, mutabakat.emailSentAt, mutabakat.respondedAt, mutabakat.responseNotes]
+      );
+      res.json(mutabakat);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.put('/api/reconciliations/:id', async (req, res) => {
+    const { id } = req.params;
+    const { customerId, customerName, date, balanceType, balance, status, notes, emailSentAt, respondedAt, responseNotes } = req.body;
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      const idx = fallbackReconciliations.findIndex(r => String(r.id) === String(id));
+      if (idx !== -1) fallbackReconciliations[idx] = { ...fallbackReconciliations[idx], ...req.body, id };
+      return res.json({ id, ...req.body });
+    }
+    try {
+      const pool = getPool();
+      await pool.query(
+        'UPDATE reconciliations SET "customerId" = $1, "customerName" = $2, date = $3, "balanceType" = $4, balance = $5, status = $6, notes = $7, "emailSentAt" = $8, "respondedAt" = $9, "responseNotes" = $10 WHERE id = $11',
+        [customerId, customerName, date, balanceType, balance, status, notes, emailSentAt, respondedAt, responseNotes, id]
+      );
+      res.json({ id, ...req.body });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.delete('/api/reconciliations/:id', async (req, res) => {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      fallbackReconciliations = fallbackReconciliations.filter(r => String(r.id) !== String(req.params.id));
+      return res.json({ success: true });
+    }
+    try {
+      const pool = getPool();
+      await pool.query('DELETE FROM reconciliations WHERE id = $1', [req.params.id]);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.get('/api/reconciliations/:id/approve', async (req, res) => {
+    const id = req.params.id;
+    const notes = req.query.notes || '';
+    const date = new Date().toISOString();
+    
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      const rec = fallbackReconciliations.find(r => String(r.id) === String(id));
+      if (rec) {
+        rec.status = 'Onaylandı';
+        rec.respondedAt = date;
+        rec.responseNotes = notes;
+      }
+      return res.send(`
+        <html>
+          <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
+            <h1 style="color: green;">Mutabakat Onaylandı</h1>
+            <p>Onayınız sisteme başarıyla işlenmiştir.</p>
+            <script>setTimeout(() => window.close(), 3000);</script>
+          </body>
+        </html>
+      `);
+    }
+
+    try {
+      const pool = getPool();
+      await pool.query('UPDATE reconciliations SET status = $1, "respondedAt" = $2, "responseNotes" = $3 WHERE id = $4', ['Onaylandı', date, notes, id]);
+      res.send(`
+        <html>
+          <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
+            <h1 style="color: green;">Mutabakat Onaylandı</h1>
+            <p>Onayınız sisteme başarıyla işlenmiştir.</p>
+            <script>setTimeout(() => window.close(), 3000);</script>
+          </body>
+        </html>
+      `);
+    } catch (e) {
+      res.status(500).send('Sunucu hatası: ' + e);
+    }
+  });
+
+  app.get('/api/reconciliations/:id/reject', async (req, res) => {
+    const id = req.params.id;
+    const notes = req.query.notes || '';
+    const date = new Date().toISOString();
+    
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+      const rec = fallbackReconciliations.find(r => String(r.id) === String(id));
+      if (rec) {
+        rec.status = 'Reddedildi';
+        rec.respondedAt = date;
+        rec.responseNotes = notes;
+      }
+      return res.send(`
+        <html>
+          <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
+            <h1 style="color: red;">Mutabakat Reddedildi</h1>
+            <p>Ret işleminiz sisteme başarıyla işlenmiştir.</p>
+            <script>setTimeout(() => window.close(), 3000);</script>
+          </body>
+        </html>
+      `);
+    }
+
+    try {
+      const pool = getPool();
+      await pool.query('UPDATE reconciliations SET status = $1, "respondedAt" = $2, "responseNotes" = $3 WHERE id = $4', ['Reddedildi', date, notes, id]);
+      res.send(`
+        <html>
+          <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
+            <h1 style="color: red;">Mutabakat Reddedildi</h1>
+            <p>Ret işleminiz sisteme başarıyla işlenmiştir.</p>
+            <script>setTimeout(() => window.close(), 3000);</script>
+          </body>
+        </html>
+      `);
+    } catch (e) {
+      res.status(500).send('Sunucu hatası: ' + e);
     }
   });
 

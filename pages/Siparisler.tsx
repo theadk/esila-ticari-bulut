@@ -309,7 +309,7 @@ export const Siparisler: React.FC = () => {
       {/* Order Details Modal */}
       {isDetailsModalOpen && selectedOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in no-print" onClick={() => setIsDetailsModalOpen(false)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
               <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                 <FileText className="text-emerald-600" />
@@ -319,8 +319,8 @@ export const Siparisler: React.FC = () => {
                 <X size={24} />
               </button>
             </div>
-            <div className="p-6 overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="p-4 sm:p-6 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6 mb-6">
                 <div>
                   <h4 className="text-sm font-semibold text-gray-500 mb-2">Müşteri Bilgileri</h4>
                   <p className="font-medium text-gray-800">{selectedOrder.customerName}</p>
@@ -374,7 +374,7 @@ export const Siparisler: React.FC = () => {
               </div>
             </div>
             <div className="p-4 border-t bg-gray-50 flex justify-between items-center rounded-b-xl">
-               <div className="flex gap-2">
+               <div className="flex flex-wrap gap-2">
                  {selectedOrder.status === OrderStatus.PENDING && (
                    <button 
                      onClick={() => handleStatusChange(OrderStatus.COMPLETED, selectedOrder)}
@@ -420,7 +420,7 @@ export const Siparisler: React.FC = () => {
       {/* Create Order Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in no-print">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="p-4 border-b bg-emerald-50 flex justify-between items-center">
               <h3 className="font-bold text-lg text-emerald-900 flex items-center gap-2">
                 <ShoppingCart className="text-emerald-600" />
@@ -431,8 +431,8 @@ export const Siparisler: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="flex-1 overflow-auto p-4 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:p-6">
                 
                 {/* Left Column: Selection */}
                 <div className="md:col-span-1 space-y-6">
@@ -490,7 +490,7 @@ export const Siparisler: React.FC = () => {
                         </select>
                       </div>
                       
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <input 
                           type="number" 
                           min="1"
@@ -620,7 +620,7 @@ export const Siparisler: React.FC = () => {
       {/* Print Modal */}
       {printModalOpen && selectedOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-2xl max-h-[90vh] flex flex-col">
             <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
               <h3 className="font-bold text-lg">Makbuz Yazdır</h3>
               <button onClick={() => setPrintModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
@@ -649,7 +649,7 @@ export const Siparisler: React.FC = () => {
                </button>
             </div>
 
-            <div className="flex-1 overflow-auto p-8 bg-gray-200 flex justify-center">
+            <div className="flex-1 overflow-auto p-4 md:p-8 bg-gray-200 flex justify-center">
               {/* Preview Area */}
               <div 
                 className={`bg-white shadow-lg text-black p-4 transition-all duration-300 ${printType === '80mm' ? 'w-[300px]' : 'w-[595px]'}`}

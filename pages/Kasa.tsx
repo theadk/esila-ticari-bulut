@@ -118,8 +118,8 @@ export const Kasa: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 flex flex-col items-center justify-center relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
             <Wallet size={120} />
           </div>
@@ -129,7 +129,7 @@ export const Kasa: React.FC = () => {
           </h3>
         </div>
         
-        <div className="bg-white rounded-xl shadow-sm border border-emerald-100 p-6 flex items-center gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 sm:p-6 flex items-center gap-4">
           <div className="h-14 w-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
              <TrendingUp size={32} />
           </div>
@@ -139,7 +139,7 @@ export const Kasa: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-red-100 p-6 flex items-center gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-red-100 p-4 sm:p-6 flex items-center gap-4">
           <div className="h-14 w-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0">
              <TrendingDown size={32} />
           </div>
@@ -152,7 +152,7 @@ export const Kasa: React.FC = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
         <div className="p-4 border-b border-gray-100">
-          <div className="relative max-w-md">
+          <div className="relative max-w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input 
               type="text" 
@@ -216,14 +216,14 @@ export const Kasa: React.FC = () => {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden flex flex-col">
             <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
                <h3 className="font-bold text-lg text-gray-800">Yeni İşlem</h3>
                <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
                  <X size={24} />
                </button>
             </div>
-            <form onSubmit={handleSave} className="p-6 space-y-4">
+            <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-4">
               <div>
                  <label className="block text-sm font-medium text-gray-700 mb-1">İşlem Türü</label>
                  <select 
@@ -344,8 +344,8 @@ export const Kasa: React.FC = () => {
       )}
 
       {printModalOpen && selectedTxForPrint && (
-        <div className="fixed inset-0 bg-gray-500/75 z-50 flex items-start justify-center p-4 sm:p-6 shadow-2xl backdrop-blur-sm overflow-y-auto print:bg-white print:p-0 print:m-0 animate-fade-in print:block">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mb-8 print:shadow-none print:max-w-full print:m-0 print:rounded-none">
+        <div className="fixed inset-0 bg-gray-500/75 z-50 flex items-start justify-center p-4 sm:p-4 sm:p-6 shadow-2xl backdrop-blur-sm overflow-y-auto print:bg-white print:p-0 print:m-0 animate-fade-in print:block">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-lg mb-8 print:shadow-none print:max-w-full print:m-0 print:rounded-none">
             {/* Modal Header - Hidden on Print */}
             <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl no-print">
               <div className="flex items-center gap-3">
@@ -358,7 +358,7 @@ export const Kasa: React.FC = () => {
             </div>
 
             {/* Print Content - 80mm format layout */}
-            <div className="p-8 print:p-0">
+            <div className="p-4 md:p-8 print:p-0">
                <div className="print-only">
                  <div className="max-w-[300px] mx-auto text-sm">
                     <div className="text-center mb-6">
@@ -403,8 +403,8 @@ export const Kasa: React.FC = () => {
                </div>
 
                {/* Preview Content (visible only on screen) */}
-               <div className="no-print bg-gray-50 p-6 rounded-lg border border-gray-200">
-                  <div className="max-w-[300px] mx-auto bg-white p-6 shadow-sm border border-gray-100">
+               <div className="no-print bg-gray-50 p-4 sm:p-6 rounded-lg border border-gray-200">
+                  <div className="max-w-[300px] mx-auto bg-white p-4 sm:p-6 shadow-sm border border-gray-100">
                     <div className="text-center mb-6">
                       {settings.companyLogo ? (
                         <img src={settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />

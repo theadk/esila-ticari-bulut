@@ -1,7 +1,9 @@
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
 import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download } from 'lucide-react';
-import { Personnel, PersonnelRecord } from '../types';
+import { Personnel, PersonnelRecord, Payroll } from '../types';
 
 const INITIAL_FORM: Personnel = {
   id: '',
@@ -50,6 +52,13 @@ export const Personel: React.FC = () => {
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [recordFormData, setRecordFormData] = useState<PersonnelRecord>(INITIAL_RECORD);
   const [isAddingRecord, setIsAddingRecord] = useState(false);
+
+  // Bordro States
+  const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
+  const [isAddingPayroll, setIsAddingPayroll] = useState(false);
+  const [payrollFormData, setPayrollFormData] = useState<Payroll>({
+    id: '', date: new Date().toISOString().substring(0, 7), workedDays: 30, basicSalary: 0, overtimeHours: 0, overtimePay: 0, bonus: 0, deductions: 0, netSalary: 0, status: 'Bekliyor'
+  });
 
   const filteredPersonnel = personnel.filter(p => 
     `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -143,6 +152,108 @@ export const Personel: React.FC = () => {
       }
   }
 
+  // Bordro & Puantaj
+  const handleOpenPayroll = (p: Personnel) => {
+    setSelectedPersonnel(p);
+    setIsPayrollModalOpen(true);
+    setIsAddingPayroll(false);
+  };
+
+  const calculateNetSalary = (data: Payroll) => {
+    return (data.basicSalary / 30 * data.workedDays) + data.overtimePay + data.bonus - data.deductions;
+  };
+
+  const handleSavePayroll = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPersonnel) return;
+
+    const netSalary = calculateNetSalary(payrollFormData);
+    const newPayroll = { ...payrollFormData, id: Math.random().toString(36).substr(2, 9), netSalary };
+    
+    setPersonnel(personnel.map(p => {
+        if (p.id === selectedPersonnel.id) {
+            return { ...p, payrolls: [newPayroll, ...(p.payrolls || [])] };
+        }
+        return p;
+    }));
+
+    setSelectedPersonnel({
+        ...selectedPersonnel,
+        payrolls: [newPayroll, ...(selectedPersonnel.payrolls || [])]
+    });
+    
+    setIsAddingPayroll(false);
+  };
+
+  const sendEPayroll = (payroll: Payroll) => {
+    alert(`E-Bordro ${selectedPersonnel?.email} adresine mail olarak gönderildi (Simülasyon)`);
+    // update sent at
+    const updatedPayroll = {...payroll, emailSentAt: new Date().toISOString()};
+    setPersonnel(personnel.map(p => {
+        if(p.id === selectedPersonnel?.id) {
+            return {...p, payrolls: p.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || [] };
+        }
+        return p;
+    }));
+    setSelectedPersonnel({
+        ...selectedPersonnel!,
+        payrolls: selectedPersonnel?.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || []
+    });
+  };
+
+  const downloadPayrollPDF = (payroll: Payroll) => {
+    if (!selectedPersonnel) return;
+    const doc = new jsPDF();
+    
+    const sanitize = (text: string) => {
+      if (!text) return '';
+      const trMap: Record<string, string> = {
+          'ç': 'c', 'Ç': 'C',
+          'ğ': 'g', 'Ğ': 'G',
+          'ı': 'i', 'İ': 'I',
+          'ö': 'o', 'Ö': 'O',
+          'ş': 's', 'Ş': 'S',
+          'ü': 'u', 'Ü': 'U'
+      };
+      return String(text).replace(/[çÇğĞıİöÖşŞüÜ]/g, (match) => trMap[match] || match);
+    };
+
+    // Header
+    doc.setFontSize(20);
+    doc.text('E-Bordro', 15, 20);
+    
+    doc.setFontSize(12);
+    doc.text(`Firma: Erp Sistemi A.S.`, 15, 30);
+    doc.text(`Donem: ${payroll.date}`, 15, 38);
+    
+    doc.text(`Personel Adi: ${sanitize(selectedPersonnel.firstName)} ${sanitize(selectedPersonnel.lastName)}`, 15, 52);
+    doc.text(`TC Kimlik No: ${selectedPersonnel.tcNo}`, 15, 60);
+    doc.text(`Departman: ${sanitize(selectedPersonnel.department)}`, 15, 68);
+    doc.text(`Gorev: ${sanitize(selectedPersonnel.position)}`, 15, 76);
+    
+    const tableData = [
+      ['Calisilan Gun', `${payroll.workedDays} gun`],
+      ['Temel Maas', `${payroll.basicSalary.toLocaleString('tr-TR')} TL`],
+      ['Mesai Saati', `${payroll.overtimeHours} saat`],
+      ['Mesai Ucreti', `${payroll.overtimePay.toLocaleString('tr-TR')} TL`],
+      ['Prim / Ikramiye', `${payroll.bonus.toLocaleString('tr-TR')} TL`],
+      ['Kesintiler', `-${payroll.deductions.toLocaleString('tr-TR')} TL`],
+      ['', ''],
+      ['NET HAKEDIS', `${payroll.netSalary.toLocaleString('tr-TR')} TL`],
+    ];
+
+    autoTable(doc, {
+      startY: 85,
+      head: [['Aciklama', 'Tutar / Deger']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [52, 211, 153] }, // Emerald 400
+      footStyles: { fillColor: [243, 244, 246] },
+    });
+    
+    doc.save(`Bordro_${sanitize(selectedPersonnel.firstName)}_${sanitize(selectedPersonnel.lastName)}_${payroll.date}.pdf`);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -163,7 +274,7 @@ export const Personel: React.FC = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
         <div className="p-4 border-b border-gray-100">
-          <div className="relative max-w-md">
+          <div className="relative max-w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input 
               type="text" 
@@ -232,6 +343,13 @@ export const Personel: React.FC = () => {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
+                        onClick={(e) => { e.stopPropagation(); handleOpenPayroll(p); }} 
+                        className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        title="Puantaj & Bordro"
+                      >
+                        <DollarSign size={18} />
+                      </button>
+                      <button 
                         onClick={(e) => { e.stopPropagation(); handleOpenRecords(p); }} 
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Özlük Dosyası"
@@ -264,7 +382,7 @@ export const Personel: React.FC = () => {
       {/* Personel Ekle/Düzenle Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
               <h3 className="text-lg font-bold text-gray-800">
                 {isEditing ? 'Personel Düzenle' : 'Yeni Personel Ekle'}
@@ -274,8 +392,8 @@ export const Personel: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
+            <form onSubmit={handleSave} className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:p-8 relative">
                 
                 {/* Kişisel Bilgiler */}
                 <div className="space-y-4">
@@ -420,7 +538,7 @@ export const Personel: React.FC = () => {
          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <div className="bg-gray-50 rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
                 <div className="bg-white px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0">
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-4">
                        <div className="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold text-xl">
                            {selectedPersonnel.firstName[0]}{selectedPersonnel.lastName[0]}
                        </div>
@@ -517,7 +635,7 @@ export const Personel: React.FC = () => {
                                     <X size={20} />
                                 </button>
                             </div>
-                            <form onSubmit={handleSaveRecord} className="p-6 space-y-4">
+                            <form onSubmit={handleSaveRecord} className="p-4 sm:p-6 space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Tarih <span className="text-red-500">*</span></label>
                                     <input required type="date" value={recordFormData.date} onChange={e => setRecordFormData({...recordFormData, date: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
@@ -553,6 +671,161 @@ export const Personel: React.FC = () => {
                                     </button>
                                     <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-2">
                                         <Save size={18} /> Ekle
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+                </div>
+            </div>
+         </div>
+      )}
+
+      {/* Bordro Dosyası Modal */}
+      {isPayrollModalOpen && selectedPersonnel && (
+         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-50 rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+                <div className="bg-white px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0">
+                    <div className="flex flex-wrap items-center gap-4">
+                       <div className="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold text-xl">
+                           {selectedPersonnel.firstName[0]}{selectedPersonnel.lastName[0]}
+                       </div>
+                       <div>
+                           <h3 className="text-xl font-bold text-gray-800">Puantaj ve E-Bordro</h3>
+                           <p className="text-sm text-gray-500">{selectedPersonnel.firstName} {selectedPersonnel.lastName} • Net Maaş: {selectedPersonnel.salary.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
+                       </div>
+                    </div>
+                    <button onClick={() => setIsPayrollModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100">
+                      <X size={24} />
+                    </button>
+                </div>
+
+                <div className="flex-1 flex overflow-hidden">
+                    {/* List */}
+                    <div className={`w-full ${isAddingPayroll ? 'hidden md:block md:w-1/2 lg:w-3/5' : ''} border-r border-gray-200 bg-gray-50 flex flex-col`}>
+                        <div className="p-4 border-b border-gray-200 bg-white flex justify-between items-center shrink-0">
+                            <h4 className="font-semibold text-gray-700">Bordro Geçmişi</h4>
+                            <button 
+                                onClick={() => {
+                                    setPayrollFormData({
+                                        id: '', date: new Date().toISOString().substring(0, 7), workedDays: 30, basicSalary: selectedPersonnel.salary || 0, overtimeHours: 0, overtimePay: 0, bonus: 0, deductions: 0, netSalary: 0, status: 'Bekliyor'
+                                    });
+                                    setIsAddingPayroll(true);
+                                }}
+                                className="text-sm bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1"
+                            >
+                                <Plus size={16} /> Yeni Bordro Çıkar
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                            {(!selectedPersonnel.payrolls || selectedPersonnel.payrolls.length === 0) ? (
+                                <div className="text-center text-gray-500 py-10 flex flex-col items-center">
+                                    <DollarSign size={48} className="text-gray-300 mb-3" />
+                                    <p>Henüz bordro kaydı bulunmamaktadır.</p>
+                                </div>
+                            ) : (
+                                selectedPersonnel.payrolls.map((pr) => (
+                                    <div key={pr.id} className="bg-white border text-left border-gray-200 rounded-lg p-4 hover:border-emerald-300 transition-colors group relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="font-bold text-gray-800 text-lg">{pr.date}</span>
+                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${pr.status === 'Ödendi' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                    {pr.status}
+                                                </span>
+                                                {pr.emailSentAt && <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded flex items-center gap-1"><Mail size={12}/> Gönderildi</span>}
+                                            </div>
+                                            <p className="text-sm text-gray-600">Puantaj: {pr.workedDays} Gün | Mesai: {pr.overtimeHours} Saat</p>
+                                            <p className="font-bold text-emerald-600 mt-1">{pr.netSalary.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} Hakediş</p>
+                                        </div>
+                                        <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+                                            <button 
+                                                onClick={() => downloadPayrollPDF(pr)}
+                                                className="px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-medium text-sm flex items-center gap-1 transition-colors border border-emerald-200"
+                                            >
+                                                <Download size={16} /> PDF İndir
+                                            </button>
+                                            <button 
+                                                onClick={() => sendEPayroll(pr)}
+                                                className="px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-medium text-sm flex items-center gap-1 transition-colors border border-blue-200"
+                                            >
+                                                <Mail size={16} /> Gönder
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Add Form */}
+                    {isAddingPayroll && (
+                        <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col bg-white overflow-y-auto relative">
+                             <div className="p-4 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10 shrink-0">
+                                <h4 className="font-bold text-gray-800 flex items-center gap-2">
+                                    <DollarSign size={18} className="text-emerald-600"/> Yeni Bordro Çıkar
+                                </h4>
+                                <button onClick={() => setIsAddingPayroll(false)} className="text-gray-400 hover:text-gray-600 md:hidden">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <form onSubmit={handleSavePayroll} className="p-4 sm:p-6 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Dönem (Ay/Yıl)</label>
+                                        <input required type="month" value={payrollFormData.date} onChange={e => setPayrollFormData({...payrollFormData, date: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Durum</label>
+                                        <select value={payrollFormData.status} onChange={e => setPayrollFormData({...payrollFormData, status: e.target.value as any})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white">
+                                            <option value="Bekliyor">Bekliyor</option>
+                                            <option value="Ödendi">Ödendi</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Çalışılan Gün</label>
+                                        <input required type="number" min="0" max="31" value={payrollFormData.workedDays} onChange={e => setPayrollFormData({...payrollFormData, workedDays: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Temel Maaş (Net)</label>
+                                        <input required type="number" value={payrollFormData.basicSalary} onChange={e => setPayrollFormData({...payrollFormData, basicSalary: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Mesai Saati</label>
+                                        <input required type="number" min="0" value={payrollFormData.overtimeHours} onChange={e => setPayrollFormData({...payrollFormData, overtimeHours: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Mesai Ücreti Miktarı</label>
+                                        <input required type="number" min="0" value={payrollFormData.overtimePay} onChange={e => setPayrollFormData({...payrollFormData, overtimePay: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Prim / İkramiye</label>
+                                        <input required type="number" min="0" value={payrollFormData.bonus} onChange={e => setPayrollFormData({...payrollFormData, bonus: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Kesintiler</label>
+                                        <input required type="number" min="0" value={payrollFormData.deductions} onChange={e => setPayrollFormData({...payrollFormData, deductions: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 p-4 bg-emerald-50 rounded-lg flex justify-between items-center border border-emerald-100">
+                                    <span className="font-semibold text-emerald-800">Hesaplanan Net Hakediş:</span>
+                                    <span className="text-xl font-bold text-emerald-600">
+                                        {calculateNetSalary(payrollFormData).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                                    </span>
+                                </div>
+
+                                <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
+                                    <button type="button" onClick={() => setIsAddingPayroll(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                                        İptal
+                                    </button>
+                                    <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-2">
+                                        <Save size={18} /> Bordro Oluştur
                                     </button>
                                 </div>
                             </form>

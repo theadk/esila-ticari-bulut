@@ -164,7 +164,7 @@ export const Depo: React.FC = () => {
             <Box className="text-emerald-600" size={20} />
             {activeWarehouse} Ürünleri
           </h3>
-          <div className="relative w-full max-w-md">
+          <div className="relative w-full max-w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input 
               type="text" 
@@ -231,7 +231,7 @@ export const Depo: React.FC = () => {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex flex-col items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden">
             <div className="p-4 border-b flex justify-between items-center bg-gray-50">
               <h3 className="font-bold text-lg text-gray-800">{isEditing ? 'Depo Düzenle' : 'Yeni Depo Ekle'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
@@ -239,7 +239,7 @@ export const Depo: React.FC = () => {
               </button>
             </div>
             
-            <form onSubmit={handleAddOrEditWarehouse} className="p-6 space-y-4">
+            <form onSubmit={handleAddOrEditWarehouse} className="p-4 sm:p-6 space-y-4">
                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Depo Adı</label>
                   <input 

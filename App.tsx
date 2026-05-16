@@ -11,6 +11,8 @@ import { Login } from './pages/Login';
 import { Kasa } from './pages/Kasa';
 import { Personel } from './pages/Personel';
 import { Teklifler } from './pages/Teklifler';
+import { Mutabakat } from './pages/Mutabakat';
+import { Raporlar } from './pages/Raporlar';
 import { FileText } from 'lucide-react';
 
 const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
@@ -40,6 +42,8 @@ const App: React.FC = () => {
       case 'ayarlar': return <Ayarlar />;
       case 'kasa': return <Kasa />;
       case 'personel': return <Personel />;
+      case 'mutabakat': return <Mutabakat />;
+      case 'raporlar': return <Raporlar />;
       case 'efatura': 
         return (
           <div className="flex flex-col items-center justify-center p-12 h-full">

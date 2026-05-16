@@ -11,7 +11,8 @@ import {
   FileText, 
   Settings as SettingsIcon,
   Globe,
-  FileBadge
+  FileBadge,
+  Handshake
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 
@@ -30,6 +31,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
     { id: 'depo', label: 'Depo', icon: Warehouse },
     { id: 'kasa', label: 'Kasa', icon: Wallet },
     { id: 'personel', label: 'Personel', icon: UserCheck },
+    { id: 'mutabakat', label: 'Mutabakat', icon: Handshake },
+    { id: 'raporlar', label: 'Raporlar', icon: FileText },
     { id: 'efatura', label: 'E-Fatura', icon: FileText },
     { id: 'teklif', label: 'Teklifler', icon: FileBadge },
     { id: 'ayarlar', label: 'Ayarlar', icon: SettingsIcon },

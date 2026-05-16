@@ -10,6 +10,7 @@ export interface Product {
   code: string;
   name: string;
   price: number;
+  purchasePrice?: number;
   stock: number;
   category: string;
   subCategory?: string;
@@ -141,6 +142,20 @@ export interface PersonnelRecord {
   documentName?: string;
 }
 
+export interface Payroll {
+  id: string;
+  date: string; // YYYY-MM
+  workedDays: number;
+  basicSalary: number;
+  overtimeHours: number;
+  overtimePay: number;
+  bonus: number;
+  deductions: number;
+  netSalary: number;
+  status: 'Ödendi' | 'Bekliyor';
+  emailSentAt?: string;
+}
+
 export interface Personnel {
   id: string;
   firstName: string;
@@ -166,6 +181,27 @@ export interface Personnel {
   socialSecurityNo: string; // SGK No
   
   records: PersonnelRecord[];
+  payrolls?: Payroll[];
+}
+
+export enum ReconciliationStatus {
+  PENDING = 'Bekliyor',
+  APPROVED = 'Onaylandı',
+  REJECTED = 'Reddedildi'
+}
+
+export interface Reconciliation {
+  id: string;
+  customerId: string;
+  customerName: string;
+  date: string;
+  balanceType: 'Borç' | 'Alacak' | 'Yok';
+  balance: number;
+  status: ReconciliationStatus;
+  notes?: string;
+  emailSentAt?: string;
+  respondedAt?: string;
+  responseNotes?: string;
 }
 
 export interface Settings {
@@ -179,7 +215,9 @@ export interface Settings {
   smtp_host: string;
   smtp_port: string;
   smtp_user: string;
+  smtp_pass?: string;
   sms_token: string;
+  sms_sender_id?: string;
   printer_header_text: string;
   printer_footer_text: string;
 }

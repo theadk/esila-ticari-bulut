@@ -9,6 +9,7 @@ const INITIAL_FORM: Product = {
   code: '',
   name: '',
   price: 0,
+  purchasePrice: 0,
   stock: 0,
   category: '',
   subCategory: '',
@@ -293,7 +294,7 @@ export const Urunler: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-800">Ürün Yönetimi</h2>
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
@@ -328,7 +329,7 @@ export const Urunler: React.FC = () => {
             </button>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {activeTab === 'urunler' ? (
             <>
               <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx, .xls, .csv" />
@@ -385,7 +386,7 @@ export const Urunler: React.FC = () => {
         <>
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
             <div className="p-4 border-b border-gray-100">
-           <div className="relative max-w-md">
+           <div className="relative max-w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input 
               type="text" 
@@ -594,7 +595,7 @@ export const Urunler: React.FC = () => {
       {/* Ürün Detay Modal */}
       {isDetailsOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setIsDetailsOpen(false)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
               <h3 className="font-bold text-lg text-gray-800">Ürün Detayları</h3>
               <button onClick={() => setIsDetailsOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
@@ -602,7 +603,7 @@ export const Urunler: React.FC = () => {
               </button>
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-16 h-16 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
                    <Package size={32} />
@@ -706,7 +707,7 @@ export const Urunler: React.FC = () => {
       {/* Ürün Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-lg overflow-hidden">
             <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
               <h3 className="font-bold text-lg text-gray-800">{isEditing ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
@@ -714,7 +715,7 @@ export const Urunler: React.FC = () => {
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-6 space-y-4">
+            <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ürün Kodu</label>
@@ -815,9 +816,18 @@ export const Urunler: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fiyat (₺)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Alış Fiyatı (₺)</label>
+                  <input 
+                    type="number" 
+                    value={formData.purchasePrice || ''}
+                    onChange={(e) => setFormData({...formData, purchasePrice: Number(e.target.value)})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Satış Fiyatı (₺)</label>
                   <input 
                     required
                     type="number" 
@@ -994,7 +1004,7 @@ export const Urunler: React.FC = () => {
         {/* Kategori Modal */}
         {isCategoryModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden">
               <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
                 <h3 className="font-bold text-lg text-gray-800">{isCategoryEditing ? 'Kategori Düzenle' : 'Yeni Kategori Ekle'}</h3>
                 <button onClick={() => setIsCategoryModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
@@ -1002,7 +1012,7 @@ export const Urunler: React.FC = () => {
                 </button>
               </div>
               
-              <form onSubmit={handleSaveCategory} className="p-6 space-y-4">
+              <form onSubmit={handleSaveCategory} className="p-4 sm:p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Adı</label>
                   <input 
@@ -1093,7 +1103,7 @@ export const Urunler: React.FC = () => {
         {/* Marka Modal */}
         {isBrandModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden">
               <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
                 <h3 className="font-bold text-lg text-gray-800">{isBrandEditing ? 'Marka Düzenle' : 'Yeni Marka Ekle'}</h3>
                 <button onClick={() => setIsBrandModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
@@ -1101,7 +1111,7 @@ export const Urunler: React.FC = () => {
                 </button>
               </div>
               
-              <form onSubmit={handleSaveBrand} className="p-6 space-y-4">
+              <form onSubmit={handleSaveBrand} className="p-4 sm:p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Marka Adı</label>
                   <input 
@@ -1140,7 +1150,7 @@ export const Urunler: React.FC = () => {
       {deleteData && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in text-left">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-4">
                 <Trash2 size={24} />
               </div>

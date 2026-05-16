@@ -87,8 +87,8 @@ export const Dashboard: React.FC = () => {
       <h2 className="text-2xl font-bold text-gray-800">Yönetim Paneli</h2>
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:p-6">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-emerald-100 text-emerald-600 rounded-full">
             <TrendingUp size={24} />
           </div>
@@ -100,7 +100,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
             <Users size={24} />
           </div>
@@ -110,7 +110,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-purple-100 text-purple-600 rounded-full">
             <Package size={24} />
           </div>
@@ -120,7 +120,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-red-100 text-red-600 rounded-full">
             <AlertCircle size={24} />
           </div>
@@ -132,8 +132,8 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:p-6">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold mb-4">Haftalık Satış Grafiği (Son 7 Gün)</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -151,7 +151,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold mb-4">Tahsilat Grafiği (Son 7 Gün)</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">

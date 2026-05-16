@@ -75,69 +75,70 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
              className="bg-transparent border-none focus:outline-none text-gray-600 placeholder-gray-400 w-32 sm:w-64" 
            />
          
-         {/* Search Dropdown */}
-         {showResults && searchTerm && (
-           <div className="absolute top-12 left-0 w-96 bg-white border border-gray-200 shadow-xl rounded-xl py-2 max-h-[80vh] overflow-y-auto">
-             {!hasSearchResults ? (
-               <div className="px-4 py-3 text-sm text-gray-500">Sonuç bulunamadı.</div>
-             ) : (
-               <>
-                 {searchResults.products.length > 0 && (
-                   <div className="mb-2">
-                     <div className="px-4 py-1 flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                       <Package size={12} /> Ürünler
-                     </div>
-                     {searchResults.products.map(p => (
-                       <div key={p.id} onClick={() => { setActivePage('urunler'); setShowResults(false); }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer pointer flex justify-between items-center group">
-                         <div>
-                           <div className="text-sm font-medium text-gray-800 group-hover:text-emerald-600">{p.name}</div>
-                           <div className="text-xs text-gray-500">Stok: {p.stock} adet</div>
-                         </div>
-                         <div className="text-sm font-medium text-gray-600">{p.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</div>
-                       </div>
-                     ))}
-                   </div>
-                 )}
+          {/* Search Dropdown */}
+          {showResults && searchTerm && (
+            <div className="absolute top-12 left-0 w-96 bg-white border border-gray-200 shadow-xl rounded-xl py-2 max-h-[80vh] overflow-y-auto">
+              {!hasSearchResults ? (
+                <div className="px-4 py-3 text-sm text-gray-500">Sonuç bulunamadı.</div>
+              ) : (
+                <>
+                  {searchResults.products.length > 0 && (
+                    <div className="mb-2">
+                      <div className="px-4 py-1 flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        <Package size={12} /> Ürünler
+                      </div>
+                      {searchResults.products.map(p => (
+                        <div key={p.id} onClick={() => { setActivePage('urunler'); setShowResults(false); }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer pointer flex justify-between items-center group">
+                          <div>
+                            <div className="text-sm font-medium text-gray-800 group-hover:text-emerald-600">{p.name}</div>
+                            <div className="text-xs text-gray-500">Stok: {p.stock} adet</div>
+                          </div>
+                          <div className="text-sm font-medium text-gray-600">{p.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-                 {searchResults.customers.length > 0 && (
-                   <div className="mb-2 border-t border-gray-100 pt-2">
-                     <div className="px-4 py-1 flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                       <Users size={12} /> Cariler
-                     </div>
-                     {searchResults.customers.map(c => (
-                       <div key={c.id} onClick={() => { setActivePage('cariler'); setShowResults(false); }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer flex justify-between items-center group">
-                         <div>
-                           <div className="text-sm font-medium text-gray-800 group-hover:text-emerald-600">{c.companyName || c.name}</div>
-                           <div className="text-xs text-gray-500">{c.type}</div>
-                         </div>
-                         <div className={`text-xs font-medium px-2 py-1 rounded-full ${c.balance >= 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                           {Math.abs(c.balance).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} {c.balance >= 0 ? '(Borç)' : '(Alacak)'}
-                         </div>
-                       </div>
-                     ))}
-                   </div>
-                 )}
+                  {searchResults.customers.length > 0 && (
+                    <div className="mb-2 border-t border-gray-100 pt-2">
+                      <div className="px-4 py-1 flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        <Users size={12} /> Cariler
+                      </div>
+                      {searchResults.customers.map(c => (
+                        <div key={c.id} onClick={() => { setActivePage('cariler'); setShowResults(false); }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer flex justify-between items-center group">
+                          <div>
+                            <div className="text-sm font-medium text-gray-800 group-hover:text-emerald-600">{c.companyName || c.name}</div>
+                            <div className="text-xs text-gray-500">{c.type}</div>
+                          </div>
+                          <div className={`text-xs font-medium px-2 py-1 rounded-full ${c.balance >= 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                            {Math.abs(c.balance).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} {c.balance >= 0 ? '(Borç)' : '(Alacak)'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-                 {searchResults.orders.length > 0 && (
-                   <div className="border-t border-gray-100 pt-2">
-                     <div className="px-4 py-1 flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                       <ShoppingCart size={12} /> Siparişler
-                     </div>
-                     {searchResults.orders.map(o => (
-                       <div key={o.id} onClick={() => { setActivePage('siparisler'); setShowResults(false); }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer flex justify-between items-center group">
-                         <div>
-                           <div className="text-sm font-medium text-gray-800 group-hover:text-emerald-600">{o.id}</div>
-                           <div className="text-xs text-gray-500">{o.customerName}</div>
-                         </div>
-                         <div className="text-sm font-medium text-gray-600">{o.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</div>
-                       </div>
-                     ))}
-                   </div>
-                 )}
-               </>
-             )}
-           </div>
-         )}
+                  {searchResults.orders.length > 0 && (
+                    <div className="border-t border-gray-100 pt-2">
+                      <div className="px-4 py-1 flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        <ShoppingCart size={12} /> Siparişler
+                      </div>
+                      {searchResults.orders.map(o => (
+                        <div key={o.id} onClick={() => { setActivePage('siparisler'); setShowResults(false); }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer flex justify-between items-center group">
+                          <div>
+                            <div className="text-sm font-medium text-gray-800 group-hover:text-emerald-600">{o.id}</div>
+                            <div className="text-xs text-gray-500">{o.customerName}</div>
+                          </div>
+                          <div className="text-sm font-medium text-gray-600">{o.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="flex items-center gap-4">
