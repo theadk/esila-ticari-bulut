@@ -62,6 +62,16 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     }
   };
 
+  const handleActivate = async (vkn: string) => {
+    try {
+      await fetch(`/api/tenants/${vkn}/activate`, { method: 'PUT' });
+      fetchTenants();
+      alert('Firma başarıyla aktive edildi.');
+    } catch(e) {
+      alert("Aktivasyon sırasında hata oluştu.");
+    }
+  };
+
   const toggleModule = (modId: string) => {
     if (formData.modules.includes(modId)) {
       setFormData({ ...formData, modules: formData.modules.filter(m => m !== modId) });
@@ -116,9 +126,14 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                   </td>
                   <td className="p-4">
                     {t.status === 'Bekliyor' ? (
-                       <button className="text-blue-600 flex items-center gap-1 hover:underline" onClick={() => alert('Mail yeniden gönderildi.')}>
-                         <Mail size={14} /> Tekrar Mail Gönder
-                       </button>
+                       <div className="flex flex-col sm:flex-row items-center gap-2">
+                         <button className="text-blue-600 flex items-center gap-1 hover:underline text-xs bg-blue-50 px-2 py-1 rounded" onClick={() => alert('Mail yeniden gönderildi.')}>
+                           <Mail size={14} /> Mail
+                         </button>
+                         <button className="text-emerald-600 flex items-center gap-1 hover:underline text-xs bg-emerald-50 px-2 py-1 rounded" onClick={() => handleActivate(t.vkn)}>
+                           <UserCheck size={14} /> Aktive Et
+                         </button>
+                       </div>
                     ) : (
                        <span className="text-gray-400 flex items-center gap-1"><UserCheck size={14} /> Aktive Edildi</span>
                     )}
