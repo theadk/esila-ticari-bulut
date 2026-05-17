@@ -1,6 +1,18 @@
 -- Esila Ticari Yönetim Sistemi - MySQL Veritabanı Şeması
 
+
+CREATE TABLE IF NOT EXISTS tenants (
+    vkn VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(255),
+    email VARCHAR(255),
+    modules JSON,
+    status ENUM('Bekliyor', 'Aktif', 'Pasif') DEFAULT 'Bekliyor',
+    activationToken VARCHAR(255)
+);
+
 CREATE TABLE IF NOT EXISTS users (
+    vkn VARCHAR(50),
+
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     username VARCHAR(100) UNIQUE NOT NULL,
@@ -11,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS settings (
+    vkn VARCHAR(50),
     id INT PRIMARY KEY DEFAULT 1,
     companyName VARCHAR(255),
     address TEXT,
@@ -40,6 +53,7 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 CREATE TABLE IF NOT EXISTS warehouses (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255),
     address TEXT,
@@ -47,17 +61,20 @@ CREATE TABLE IF NOT EXISTS warehouses (
 );
 
 CREATE TABLE IF NOT EXISTS categories (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255),
     sub_categories JSON
 );
 
 CREATE TABLE IF NOT EXISTS brands (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS products (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     code VARCHAR(255),
     name VARCHAR(255),
@@ -74,6 +91,7 @@ CREATE TABLE IF NOT EXISTS products (
 );
 
 CREATE TABLE IF NOT EXISTS customers (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     type ENUM('Bireysel', 'Kurumsal'),
     name VARCHAR(255),
@@ -89,6 +107,7 @@ CREATE TABLE IF NOT EXISTS customers (
 );
 
 CREATE TABLE IF NOT EXISTS customer_transactions (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     customerId VARCHAR(255),
     date DATETIME,
@@ -100,6 +119,7 @@ CREATE TABLE IF NOT EXISTS customer_transactions (
 );
 
 CREATE TABLE IF NOT EXISTS cash_transactions (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     date DATETIME,
     type ENUM('Gelir', 'Gider'),
@@ -110,6 +130,7 @@ CREATE TABLE IF NOT EXISTS cash_transactions (
 );
 
 CREATE TABLE IF NOT EXISTS personnel (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255),
     tcNo VARCHAR(11),
@@ -128,6 +149,7 @@ CREATE TABLE IF NOT EXISTS personnel (
 );
 
 CREATE TABLE IF NOT EXISTS personnel_records (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     personnelId VARCHAR(255),
     date DATETIME,
@@ -138,6 +160,7 @@ CREATE TABLE IF NOT EXISTS personnel_records (
 );
 
 CREATE TABLE IF NOT EXISTS orders (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     customerId VARCHAR(255),
     customerName VARCHAR(255),
@@ -151,6 +174,7 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 CREATE TABLE IF NOT EXISTS proposals (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     customerId VARCHAR(255),
     customerName VARCHAR(255),
@@ -165,6 +189,7 @@ CREATE TABLE IF NOT EXISTS proposals (
 );
 
 CREATE TABLE IF NOT EXISTS reconciliations (
+    vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
     customerId VARCHAR(255),
     customerName VARCHAR(255),
@@ -180,5 +205,8 @@ CREATE TABLE IF NOT EXISTS reconciliations (
 );
 
 -- Örnek Veriler (Opsiyonel)
-INSERT IGNORE INTO users (id, name, username, email, passwordHash, role, status)
-VALUES ('admin-1', 'Sistem Yöneticisi', 'admin', 'admin@firma.com', 'admin123', 'Admin', 'Aktif');
+
+INSERT IGNORE INTO tenants (vkn, name, email, modules, status) VALUES ('1111111111', 'Esila Master', 'admin@firma.com', '["all"]', 'Aktif');
+
+INSERT IGNORE INTO users (id, vkn, name, username, email, passwordHash, role, status)
+VALUES ('admin-1', '1111111111', 'Sistem Yöneticisi', 'admin', 'admin@firma.com', 'admin123', 'Admin', 'Aktif');

@@ -13,6 +13,8 @@ import { Personel } from './pages/Personel';
 import { Teklifler } from './pages/Teklifler';
 import { Mutabakat } from './pages/Mutabakat';
 import { Raporlar } from './pages/Raporlar';
+import { SuperAdminLogin } from './src/pages/SuperAdminLogin';
+import { SuperAdminDashboard } from './src/pages/SuperAdminDashboard';
 import { FileText } from 'lucide-react';
 import { initializeStore } from './lib/store';
 
@@ -29,9 +31,21 @@ const App: React.FC = () => {
   const [activePage, setActivePage] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Super Admin Check via URL params
+  const searchParams = new URLSearchParams(window.location.search);
+  const isSuperAdminRoute = searchParams.get('admin') === 'true';
+  const [isSuperAdminAuthenticated, setIsSuperAdminAuthenticated] = useState(false);
+
   useEffect(() => {
     initializeStore();
   }, []);
+
+  if (isSuperAdminRoute) {
+    if (!isSuperAdminAuthenticated) {
+      return <SuperAdminLogin onLogin={() => setIsSuperAdminAuthenticated(true)} />;
+    }
+    return <SuperAdminDashboard onLogout={() => setIsSuperAdminAuthenticated(false)} />;
+  }
 
   if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />;

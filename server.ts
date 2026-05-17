@@ -445,7 +445,40 @@ async function startServer() {
   });
 
   
+
+  app.get('/api/tenants', async (req, res) => {
+    try {
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json([]);
+      const pool = getPool();
+      const [rows] = await pool.query("SELECT * FROM tenants");
+      res.json(rows);
+    } catch (e) { res.status(500).json({error: String(e)}); }
+  });
+
+  app.post('/api/tenants', async (req, res) => {
+    try {
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json({success: true});
+      const pool = getPool();
+      const data = req.body;
+      
+      let expInterval = '1 YEAR';
+      if (data.package === 'Aylık') expInterval = '1 MONTH';
+      if (data.package === 'Sınırsız') expInterval = '100 YEAR';
+
+      const q = `INSERT INTO tenants (vkn, name, email, modules, status, package, expirationDate) VALUES (?, ?, ?, ?, 'Bekliyor', ?, DATE_ADD(NOW(), INTERVAL ${expInterval}))`;
+      await pool.query(q, [data.vkn, data.name, data.email, JSON.stringify(data.modules), data.package || 'Yıllık']);
+      
+      // Seed user for tenant
+      await pool.query("INSERT INTO users (id, vkn, name, username, email, passwordHash, role, status) VALUES (?, ?, ?, ?, ?, ?, 'Admin', 'Aktif')",
+        ["admin-" + data.vkn, data.vkn, data.name + ' Admin', data.vkn, data.email, data.vkn + '123']
+      );
+
+      res.json({success: true});
+    } catch(e) { res.status(500).json({error: String(e)}); }
+  });
+
   // Generic CRUD API for all tables
+
   const tables = ["users","settings","customers","customer_transactions","cash_transactions","personnel","personnel_records","orders","proposals"];
   for (const table of tables) {
     app.get(`/api/${table}`, async (req, res) => {

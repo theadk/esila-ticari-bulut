@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Reconciliation, ReconciliationStatus, Customer } from '../types';
 
@@ -15,6 +15,13 @@ export const Mutabakat: React.FC = () => {
     balanceType: 'Borç',
     balance: 0,
     status: ReconciliationStatus.PENDING,
+    notes: ''
+  });
+
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isSendingBulk, setIsSendingBulk] = useState(false);
+  const [bulkFormData, setBulkFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
     notes: ''
   });
 
@@ -69,6 +76,45 @@ export const Mutabakat: React.FC = () => {
     }
   };
 
+  const handleBulkSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingBulk(true);
+    let sentCount = 0;
+
+    for (const customer of store.customers) {
+      const isDebt = customer.balance >= 0;
+      const bType = customer.balance === 0 ? 'Yok' : (isDebt ? 'Borç' : 'Alacak');
+      
+      try {
+        await fetch('/api/reconciliations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId: customer.id,
+            customerName: customer.companyName || customer.name || 'Bilinmiyor',
+            date: bulkFormData.date,
+            balance: Math.abs(customer.balance),
+            balanceType: bType,
+            status: ReconciliationStatus.PENDING,
+            notes: bulkFormData.notes
+          }),
+        });
+        sentCount++;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    
+    setIsSendingBulk(false);
+    setIsBulkModalOpen(false);
+    fetchReconciliations();
+    setBulkFormData({
+        date: new Date().toISOString().split('T')[0],
+        notes: ''
+    });
+    alert(`${sentCount} adet cariye mutabakat başarıyla gönderildi.`);
+  };
+
   const calculateAutoBalance = (customerId: string) => {
     const customer = store.customers.find(c => c.id === customerId);
     if (!customer) return;
@@ -92,13 +138,24 @@ export const Mutabakat: React.FC = () => {
           <h1 className="text-2xl font-bold rounded-lg text-gray-800">Mutabakat Yönetimi</h1>
           <p className="text-gray-500 text-sm mt-1">Müşteri/Tedarikçi bakiye mutabakatlarını yönetin</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-        >
-          <Plus size={20} />
-          <span>Yeni Mutabakat Gönder</span>
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setIsBulkModalOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <Users size={20} />
+            <span className="hidden sm:inline">Toplu Mutabakat Gönder</span>
+            <span className="sm:hidden">Toplu Gönder</span>
+          </button>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <Plus size={20} />
+            <span className="hidden sm:inline">Yeni Mutabakat Gönder</span>
+            <span className="sm:hidden">Yeni Gönder</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -284,6 +341,74 @@ export const Mutabakat: React.FC = () => {
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
                 >
                   <Mail size={16} /> Gönder
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Reconciliation Modal */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <Users className="text-indigo-600" size={24} />
+                Toplu Mutabakat Gönder
+              </h2>
+              <button disabled={isSendingBulk} onClick={() => setIsBulkModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <XCircle size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleBulkSend} className="flex flex-col overflow-hidden">
+              <div className="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
+                <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-lg text-sm text-indigo-800">
+                  <p><strong>{store.customers.length}</strong> adet aktif cariye otomatik bakiye hesaplanarak mutabakat gönderilecektir.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mutabakat Tarihi</label>
+                  <input
+                    type="date"
+                    required
+                    disabled={isSendingBulk}
+                    value={bulkFormData.date || ''}
+                    onChange={(e) => setBulkFormData({...bulkFormData, date: e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Toplu Açıklama / Not (Opsiyonel)</label>
+                  <textarea
+                    rows={3}
+                    disabled={isSendingBulk}
+                    value={bulkFormData.notes || ''}
+                    onChange={(e) => setBulkFormData({...bulkFormData, notes: e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    placeholder="Müşterilere iletilecek genel not..."
+                  />
+                </div>
+              </div>
+              
+              <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+                <button
+                  type="button"
+                  disabled={isSendingBulk}
+                  onClick={() => setIsBulkModalOpen(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingBulk || store.customers.length === 0}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium disabled:opacity-50"
+                >
+                  <Mail size={16} /> 
+                  {isSendingBulk ? 'Gönderiliyor...' : 'Tümüne Gönder'}
                 </button>
               </div>
             </form>
