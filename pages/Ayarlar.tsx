@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X, Hash } from 'lucide-react';
+import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X, Hash, Users } from 'lucide-react';
 import { Settings } from '../types';
 import { useAppStore } from '../lib/store';
+import { UsersSettings } from '../components/UsersSettings';
 
 export const Ayarlar: React.FC = () => {
   const store = useAppStore();
@@ -36,6 +37,7 @@ export const Ayarlar: React.FC = () => {
     { id: 'sms', label: 'SMS', icon: MessageSquare },
     { id: 'yazici', label: 'Yazıcı & Çıktı', icon: Printer },
     { id: 'numaralandirma', label: 'Numaralandırma', icon: Hash },
+    { id: 'kullanicilar', label: 'Kullanıcılar', icon: Users },
   ];
 
   return (
@@ -447,6 +449,8 @@ export const Ayarlar: React.FC = () => {
               </div>
             </div>
           )}
+
+          {activeTab === 'kullanicilar' && <UsersSettings />}
 
           <div className="pt-6 mt-6 border-t flex justify-end">
             <button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">

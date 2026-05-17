@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './pages/Dashboard';
@@ -14,6 +14,7 @@ import { Teklifler } from './pages/Teklifler';
 import { Mutabakat } from './pages/Mutabakat';
 import { Raporlar } from './pages/Raporlar';
 import { FileText } from 'lucide-react';
+import { initializeStore } from './lib/store';
 
 const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
   <div className="flex flex-col items-center justify-center h-full text-gray-400">
@@ -27,6 +28,10 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activePage, setActivePage] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    initializeStore();
+  }, []);
 
   if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />;

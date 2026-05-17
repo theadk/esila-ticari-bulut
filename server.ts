@@ -42,10 +42,10 @@ async function startServer() {
   app.use(cors());
 
   app.get('/api/products', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) return res.json(fallbackProducts);
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackProducts);
     try {
       const pool = getPool();
-      const { rows } = await pool.query('SELECT * FROM products');
+      const [rows] = await pool.query('SELECT * FROM products');
       res.json(rows.map((row: any) => ({
         ...row,
         warehouseStocks: typeof row.warehouseStocks === 'string' ? JSON.parse(row.warehouseStocks) : (row.warehouseStocks || [])
@@ -56,14 +56,14 @@ async function startServer() {
   });
 
   app.delete('/api/products/:id', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       fallbackProducts = fallbackProducts.filter(p => String(p.id) !== String(req.params.id));
       return res.json({ success: true });
     }
     const { id } = req.params;
     try {
       const pool = getPool();
-      await pool.query('DELETE FROM products WHERE id = $1', [id]);
+      await pool.query('DELETE FROM products WHERE id = ?', [id]);
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -71,10 +71,10 @@ async function startServer() {
   });
 
   app.get('/api/categories', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) return res.json(fallbackCategories);
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackCategories);
     try {
       const pool = getPool();
-      const { rows } = await pool.query('SELECT * FROM categories');
+      const [rows] = await pool.query('SELECT * FROM categories');
       res.json(rows.map(r => ({
         id: r.id,
         name: r.name,
@@ -87,14 +87,14 @@ async function startServer() {
 
   app.post('/api/categories', async (req, res) => {
     const newCat = { ...req.body, id: req.body.id || String(Date.now()) };
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       fallbackCategories.push(newCat);
       return res.json(newCat);
     }
     const { id, name, subCategories } = newCat;
     try {
       const pool = getPool();
-      await pool.query('INSERT INTO categories (id, name, sub_categories) VALUES ($1, $2, $3)', [id, name, JSON.stringify(subCategories)]);
+      await pool.query('INSERT INTO categories (id, name, sub_categories) VALUES (?, ?, ?)', [id, name, JSON.stringify(subCategories)]);
       res.json(newCat);
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -102,7 +102,7 @@ async function startServer() {
   });
 
   app.put('/api/categories/:id', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       const idx = fallbackCategories.findIndex(c => String(c.id) === String(req.params.id));
       if (idx !== -1) fallbackCategories[idx] = { ...fallbackCategories[idx], ...req.body, id: req.params.id };
       return res.json({ id: req.params.id, ...req.body });
@@ -111,7 +111,7 @@ async function startServer() {
     const { name, subCategories } = req.body;
     try {
       const pool = getPool();
-      await pool.query('UPDATE categories SET name = $1, sub_categories = $2 WHERE id = $3', [name, JSON.stringify(subCategories), id]);
+      await pool.query('UPDATE categories SET name = ?, sub_categories = ? WHERE id = ?', [name, JSON.stringify(subCategories), id]);
       res.json({ id, ...req.body });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -119,14 +119,14 @@ async function startServer() {
   });
 
   app.delete('/api/categories/:id', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       fallbackCategories = fallbackCategories.filter(c => String(c.id) !== String(req.params.id));
       return res.json({ success: true });
     }
     const { id } = req.params;
     try {
       const pool = getPool();
-      await pool.query('DELETE FROM categories WHERE id = $1', [id]);
+      await pool.query('DELETE FROM categories WHERE id = ?', [id]);
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -134,10 +134,10 @@ async function startServer() {
   });
 
   app.get('/api/brands', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) return res.json(fallbackBrands);
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackBrands);
     try {
       const pool = getPool();
-      const { rows } = await pool.query('SELECT * FROM brands');
+      const [rows] = await pool.query('SELECT * FROM brands');
       res.json(rows);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -145,14 +145,14 @@ async function startServer() {
   });
 
   app.post('/api/brands', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       fallbackBrands.push(req.body);
       return res.json(req.body);
     }
     const { id, name } = req.body;
     try {
       const pool = getPool();
-      await pool.query('INSERT INTO brands (id, name) VALUES ($1, $2)', [id, name]);
+      await pool.query('INSERT INTO brands (id, name) VALUES (?, ?)', [id, name]);
       res.json(req.body);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -160,7 +160,7 @@ async function startServer() {
   });
 
   app.put('/api/brands/:id', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       const idx = fallbackBrands.findIndex(b => String(b.id) === String(req.params.id));
       if (idx !== -1) fallbackBrands[idx] = { ...fallbackBrands[idx], ...req.body, id: req.params.id };
       return res.json({ id: req.params.id, ...req.body });
@@ -169,7 +169,7 @@ async function startServer() {
     const { name } = req.body;
     try {
       const pool = getPool();
-      await pool.query('UPDATE brands SET name = $1 WHERE id = $2', [name, id]);
+      await pool.query('UPDATE brands SET name = ? WHERE id = ?', [name, id]);
       res.json({ id, ...req.body });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -177,13 +177,13 @@ async function startServer() {
   });
 
   app.delete('/api/brands/:id', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       fallbackBrands = fallbackBrands.filter(b => String(b.id) !== String(req.params.id));
       return res.json({ success: true });
     }
     try {
       const pool = getPool();
-      await pool.query('DELETE FROM brands WHERE id = $1', [req.params.id]);
+      await pool.query('DELETE FROM brands WHERE id = ?', [req.params.id]);
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -191,10 +191,10 @@ async function startServer() {
   });
 
   app.get('/api/warehouses', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) return res.json(fallbackWarehouses);
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackWarehouses);
     try {
       const pool = getPool();
-      const { rows } = await pool.query('SELECT * FROM warehouses');
+      const [rows] = await pool.query('SELECT * FROM warehouses');
       res.json(rows);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -202,7 +202,7 @@ async function startServer() {
   });
 
   app.post('/api/warehouses', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       fallbackWarehouses.push(req.body);
       return res.json(req.body);
     }
@@ -210,7 +210,7 @@ async function startServer() {
     try {
       const pool = getPool();
       await pool.query(
-        'INSERT INTO warehouses (id, name, address, capacity) VALUES ($1, $2, $3, $4)', 
+        'INSERT INTO warehouses (id, name, address, capacity) VALUES (?, ?, ?, ?)', 
         [id, name, address, capacity]
       );
       res.json(req.body);
@@ -220,7 +220,7 @@ async function startServer() {
   });
 
   app.put('/api/warehouses/:id', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       const idx = fallbackWarehouses.findIndex(w => String(w.id) === String(req.params.id));
       if (idx !== -1) fallbackWarehouses[idx] = { ...fallbackWarehouses[idx], ...req.body, id: req.params.id };
       return res.json({ id: req.params.id, ...req.body });
@@ -229,7 +229,7 @@ async function startServer() {
     try {
       const pool = getPool();
       await pool.query(
-        'UPDATE warehouses SET name = $1, address = $2, capacity = $3 WHERE id = $4',
+        'UPDATE warehouses SET name = ?, address = ?, capacity = ? WHERE id = ?',
         [name, address, capacity, req.params.id]
       );
       res.json({ id: req.params.id, ...req.body });
@@ -239,7 +239,7 @@ async function startServer() {
   });
 
   app.delete('/api/warehouses/:id', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       const initLen = fallbackWarehouses.length;
       const filtered = fallbackWarehouses.filter(w => String(w.id) !== String(req.params.id));
       fallbackWarehouses.length = 0;
@@ -248,7 +248,7 @@ async function startServer() {
     }
     try {
       const pool = getPool();
-      await pool.query('DELETE FROM warehouses WHERE id = $1', [req.params.id]);
+      await pool.query('DELETE FROM warehouses WHERE id = ?', [req.params.id]);
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -256,7 +256,7 @@ async function startServer() {
   });
 
   app.put('/api/products/:id', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       const idx = fallbackProducts.findIndex(p => String(p.id) === String(req.params.id));
       if (idx !== -1) fallbackProducts[idx] = { ...fallbackProducts[idx], ...req.body, id: req.params.id };
       return res.json({ id: req.params.id, ...req.body });
@@ -266,7 +266,7 @@ async function startServer() {
     try {
       const pool = getPool();
       await pool.query(
-        'UPDATE products SET code = $1, name = $2, price = $3, stock = $4, category = $5, warehouse = $6, barcode = $7, description = $8, brand = $9, "taxRate" = $10, "warehouseStocks" = $11, "purchasePrice" = $12 WHERE id = $13',
+        'UPDATE products SET code = ?, name = ?, price = ?, stock = ?, category = ?, warehouse = ?, barcode = ?, description = ?, brand = ?, `taxRate` = ?, `warehouseStocks` = ?, `purchasePrice` = ? WHERE id = ?',
         [code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice, id]
       );
       res.json({ id, ...req.body });
@@ -276,7 +276,7 @@ async function startServer() {
   });
 
   app.post('/api/products', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       fallbackProducts.push({ ...req.body, id: req.body.id || String(Date.now()) });
       return res.json(req.body);
     }
@@ -284,7 +284,7 @@ async function startServer() {
     try {
       const pool = getPool();
       await pool.query(
-        'INSERT INTO products (id, code, name, price, stock, category, warehouse, barcode, description, brand, "taxRate", "warehouseStocks", "purchasePrice") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+        'INSERT INTO products (id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice]
       );
       res.json(req.body);
@@ -296,10 +296,10 @@ async function startServer() {
   let fallbackReconciliations: any[] = [];
   
   app.get('/api/reconciliations', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) return res.json(fallbackReconciliations);
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackReconciliations);
     try {
       const pool = getPool();
-      const { rows } = await pool.query('SELECT * FROM reconciliations');
+      const [rows] = await pool.query('SELECT * FROM reconciliations');
       res.json(rows);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -313,7 +313,7 @@ async function startServer() {
     console.log(`[Onay Linki] /api/reconciliations/${mutabakat.id}/approve`);
     console.log(`[Red Linki] /api/reconciliations/${mutabakat.id}/reject`);
 
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       fallbackReconciliations.push(mutabakat);
       return res.json(mutabakat);
     }
@@ -321,7 +321,7 @@ async function startServer() {
     try {
       const pool = getPool();
       await pool.query(
-        'INSERT INTO reconciliations (id, "customerId", "customerName", date, "balanceType", balance, status, notes, "emailSentAt", "respondedAt", "responseNotes") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+        'INSERT INTO reconciliations (id, `customerId`, `customerName`, date, `balanceType`, balance, status, notes, `emailSentAt`, `respondedAt`, `responseNotes`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [mutabakat.id, mutabakat.customerId, mutabakat.customerName, mutabakat.date, mutabakat.balanceType, mutabakat.balance, mutabakat.status, mutabakat.notes, mutabakat.emailSentAt, mutabakat.respondedAt, mutabakat.responseNotes]
       );
       res.json(mutabakat);
@@ -333,7 +333,7 @@ async function startServer() {
   app.put('/api/reconciliations/:id', async (req, res) => {
     const { id } = req.params;
     const { customerId, customerName, date, balanceType, balance, status, notes, emailSentAt, respondedAt, responseNotes } = req.body;
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       const idx = fallbackReconciliations.findIndex(r => String(r.id) === String(id));
       if (idx !== -1) fallbackReconciliations[idx] = { ...fallbackReconciliations[idx], ...req.body, id };
       return res.json({ id, ...req.body });
@@ -341,7 +341,7 @@ async function startServer() {
     try {
       const pool = getPool();
       await pool.query(
-        'UPDATE reconciliations SET "customerId" = $1, "customerName" = $2, date = $3, "balanceType" = $4, balance = $5, status = $6, notes = $7, "emailSentAt" = $8, "respondedAt" = $9, "responseNotes" = $10 WHERE id = $11',
+        'UPDATE reconciliations SET `customerId` = ?, `customerName` = ?, date = ?, `balanceType` = ?, balance = ?, status = ?, notes = ?, `emailSentAt` = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ?',
         [customerId, customerName, date, balanceType, balance, status, notes, emailSentAt, respondedAt, responseNotes, id]
       );
       res.json({ id, ...req.body });
@@ -351,13 +351,13 @@ async function startServer() {
   });
 
   app.delete('/api/reconciliations/:id', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       fallbackReconciliations = fallbackReconciliations.filter(r => String(r.id) !== String(req.params.id));
       return res.json({ success: true });
     }
     try {
       const pool = getPool();
-      await pool.query('DELETE FROM reconciliations WHERE id = $1', [req.params.id]);
+      await pool.query('DELETE FROM reconciliations WHERE id = ?', [req.params.id]);
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -369,7 +369,7 @@ async function startServer() {
     const notes = req.query.notes || '';
     const date = new Date().toISOString();
     
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       const rec = fallbackReconciliations.find(r => String(r.id) === String(id));
       if (rec) {
         rec.status = 'Onaylandı';
@@ -389,7 +389,7 @@ async function startServer() {
 
     try {
       const pool = getPool();
-      await pool.query('UPDATE reconciliations SET status = $1, "respondedAt" = $2, "responseNotes" = $3 WHERE id = $4', ['Onaylandı', date, notes, id]);
+      await pool.query('UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ?', ['Onaylandı', date, notes, id]);
       res.send(`
         <html>
           <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
@@ -409,7 +409,7 @@ async function startServer() {
     const notes = req.query.notes || '';
     const date = new Date().toISOString();
     
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("postgres"))) {
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
       const rec = fallbackReconciliations.find(r => String(r.id) === String(id));
       if (rec) {
         rec.status = 'Reddedildi';
@@ -429,7 +429,7 @@ async function startServer() {
 
     try {
       const pool = getPool();
-      await pool.query('UPDATE reconciliations SET status = $1, "respondedAt" = $2, "responseNotes" = $3 WHERE id = $4', ['Reddedildi', date, notes, id]);
+      await pool.query('UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ?', ['Reddedildi', date, notes, id]);
       res.send(`
         <html>
           <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
@@ -444,7 +444,70 @@ async function startServer() {
     }
   });
 
-  // Vite middleware setup
+  
+  // Generic CRUD API for all tables
+  const tables = ["users","settings","customers","customer_transactions","cash_transactions","personnel","personnel_records","orders","proposals"];
+  for (const table of tables) {
+    app.get(`/api/${table}`, async (req, res) => {
+      try {
+        if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json([]);
+        const pool = getPool();
+        const [rows] = await pool.query(`SELECT * FROM ${table}`);
+        res.json(rows);
+      } catch (e) {
+        res.status(500).json({ error: String(e) });
+      }
+    });
+
+    app.post(`/api/${table}`, async (req, res) => {
+      try {
+        if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json(req.body);
+        const pool = getPool();
+        const data = req.body;
+        const keys = Object.keys(data);
+        const values = Object.values(data).map(v => typeof v === 'object' && v !== null ? JSON.stringify(v) : v);
+        const questionMarks = keys.map(() => '?').join(', ');
+        const backtick = String.fromCharCode(96);
+        const fields = keys.map(k => backtick + k + backtick).join(', ');
+        const query = `INSERT INTO ${table} (${fields}) VALUES (${questionMarks})`;
+        await pool.query(query, values);
+        res.json(req.body);
+      } catch (e) {
+        res.status(500).json({ error: String(e) });
+      }
+    });
+
+    app.put(`/api/${table}/:id`, async (req, res) => {
+      try {
+        if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json(req.body);
+        const pool = getPool();
+        const data = req.body;
+        if (data.id) delete data.id; // Don't update id
+        const keys = Object.keys(data);
+        const values = keys.map(k => typeof data[k] === 'object' && data[k] !== null ? JSON.stringify(data[k]) : data[k]);
+        const backtick = String.fromCharCode(96);
+        const setString = keys.map(k => backtick + k + backtick + ' = ?').join(', ');
+        const query = `UPDATE ${table} SET ${setString} WHERE id = ?`;
+        await pool.query(query, [...values, req.params.id]);
+        res.json({ id: req.params.id, ...data });
+      } catch (e) {
+        res.status(500).json({ error: String(e) });
+      }
+    });
+
+    app.delete(`/api/${table}/:id`, async (req, res) => {
+      try {
+        if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json({ success: true });
+        const pool = getPool();
+        await pool.query(`DELETE FROM ${table} WHERE id = ?`, [req.params.id]);
+        res.json({ success: true });
+      } catch (e) {
+        res.status(500).json({ error: String(e) });
+      }
+    });
+  }
+
+// Vite middleware setup
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },

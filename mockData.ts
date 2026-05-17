@@ -1,4 +1,16 @@
-import { Product, Customer, CustomerTransaction, CashTransaction, Personnel } from './types';
+import { Product, Customer, CustomerTransaction, CashTransaction, Personnel, User } from './types';
+
+export const MOCK_USERS: User[] = [
+  {
+    id: 'u1',
+    name: 'Sistem Yöneticisi',
+    username: 'admin',
+    email: 'admin@esila.com',
+    passwordHash: 'admin123', // In a real app this would be hashed
+    role: 'Admin',
+    status: 'Aktif'
+  }
+];
 
 export const MOCK_PRODUCTS: Product[] = [
   { id: '1', code: 'PRD-001', name: 'Kablosuz Kulaklık', price: 1250.00, stock: 45, category: 'Elektronik', warehouse: 'Ana Depo', barcode: '8691234567890' },

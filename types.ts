@@ -204,6 +204,16 @@ export interface Reconciliation {
   responseNotes?: string;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  passwordHash: string;
+  role: 'Admin' | 'Kullanıcı';
+  status: 'Aktif' | 'Pasif';
+}
+
 export interface Settings {
   companyName: string;
   address: string;
