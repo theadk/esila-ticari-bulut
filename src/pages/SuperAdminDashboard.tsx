@@ -56,7 +56,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
       });
       setIsModalOpen(false);
       fetchTenants();
-      alert(`Aktivasyon maili ${formData.email} adresine gönderildi!`);
+      alert(`Firma eklendi. ${formData.email} adresine mail gönderimi simüle edildi.\nYönetici Şifresi: ${formData.vkn}123`);
     } catch(e) {
       alert("Hata oluştu.");
     }
@@ -105,24 +105,34 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
             <thead className="bg-gray-100 text-gray-600 text-sm">
               <tr>
                 <th className="p-4">VKN</th>
-                <th className="p-4">Firma Adı</th>
-                <th className="p-4">E-Posta</th>
-                <th className="p-4">Paket</th>
+                <th className="p-4">Firma Adı & E-Posta</th>
+                <th className="p-4">Paket & Modüller</th>
                 <th className="p-4">Bitiş Tarihi</th>
                 <th className="p-4">Durum</th>
-                <th className="p-4">Aktivasyon İşlemi</th>
+                <th className="p-4">Yönetici Şifresi</th>
+                <th className="p-4">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {tenants.map(t => (
                 <tr key={t.vkn} className="text-sm">
                   <td className="p-4 font-mono font-medium text-gray-900">{t.vkn}</td>
-                  <td className="p-4 text-gray-800">{t.name}</td>
-                  <td className="p-4 text-gray-600">{t.email}</td>
-                  <td className="p-4 text-gray-800 font-medium">{t.package || 'Yıllık'}</td>
+                  <td className="p-4">
+                    <div className="font-medium text-gray-800">{t.name}</div>
+                    <div className="text-gray-500 text-xs mt-1">{t.email}</div>
+                  </td>
+                  <td className="p-4">
+                    <div className="font-medium text-emerald-700">{t.package || 'Yıllık'}</div>
+                    <div className="text-gray-500 text-xs mt-1 line-clamp-2 max-w-[200px]" title={t.modules ? (typeof t.modules === 'string' ? JSON.parse(t.modules) : t.modules)?.map((m: string) => MODULES.find(x => x.id === m)?.name || m).join(', ') : 'Tümü'}>
+                      {(t.modules ? (typeof t.modules === 'string' ? JSON.parse(t.modules) : t.modules) : ['all'])?.map((m: string) => MODULES.find(x => x.id === m)?.name || m).join(', ')}
+                    </div>
+                  </td>
                   <td className="p-4 text-gray-600">{t.expirationDate ? new Date(t.expirationDate).toLocaleDateString('tr-TR') : '-'}</td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${t.status === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}`}>{t.status}</span>
+                  </td>
+                  <td className="p-4 font-mono text-xs font-bold text-gray-600">
+                    {t.vkn}123
                   </td>
                   <td className="p-4">
                     {t.status === 'Bekliyor' ? (
@@ -135,7 +145,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                          </button>
                        </div>
                     ) : (
-                       <span className="text-gray-400 flex items-center gap-1"><UserCheck size={14} /> Aktive Edildi</span>
+                       <span className="text-gray-400 flex items-center gap-1 text-xs"><UserCheck size={14} /> Aktive Edildi</span>
                     )}
                   </td>
                 </tr>
