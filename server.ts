@@ -49,11 +49,36 @@ async function startServer() {
   app.use(express.json());
   app.use(cors());
 
+  app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const user = fallbackUsers.find(u => (u.username === username || u.email === username) && u.passwordHash === password);
+        if (user) {
+          if (user.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
+          return res.json(user);
+        }
+        return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
+      }
+      
+      const pool = getPool();
+      const [rows] = await pool.query('SELECT * FROM users WHERE (username = ? OR email = ?) AND passwordHash = ?', [username, username, password]);
+      const user = rows[0];
+      if (user) {
+        if (user.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
+        return res.json(user);
+      }
+      return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
   app.get('/api/products', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackProducts);
     try {
       const pool = getPool();
-      const [rows] = await pool.query('SELECT * FROM products');
+      const [rows] = await pool.query('SELECT * FROM products WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
       res.json(rows.map((row: any) => ({
         ...row,
         warehouseStocks: typeof row.warehouseStocks === 'string' ? JSON.parse(row.warehouseStocks) : (row.warehouseStocks || [])
@@ -71,7 +96,7 @@ async function startServer() {
     const { id } = req.params;
     try {
       const pool = getPool();
-      await pool.query('DELETE FROM products WHERE id = ?', [id]);
+      await pool.query('DELETE FROM products WHERE id = ? AND vkn = ?', [id, req.headers['x-tenant-id'] || '1111111111']);
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -82,7 +107,7 @@ async function startServer() {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackCategories);
     try {
       const pool = getPool();
-      const [rows] = await pool.query('SELECT * FROM categories');
+      const [rows] = await pool.query('SELECT * FROM categories WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
       res.json(rows.map(r => ({
         id: r.id,
         name: r.name,
@@ -102,7 +127,7 @@ async function startServer() {
     const { id, name, subCategories } = newCat;
     try {
       const pool = getPool();
-      await pool.query('INSERT INTO categories (id, name, sub_categories) VALUES (?, ?, ?)', [id, name, JSON.stringify(subCategories)]);
+      await pool.query('INSERT INTO categories (vkn, id, name, sub_categories) VALUES (?, ?, ?, ?)', [req.headers['x-tenant-id'] || '1111111111', id, name, JSON.stringify(subCategories)]);
       res.json(newCat);
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -119,7 +144,7 @@ async function startServer() {
     const { name, subCategories } = req.body;
     try {
       const pool = getPool();
-      await pool.query('UPDATE categories SET name = ?, sub_categories = ? WHERE id = ?', [name, JSON.stringify(subCategories), id]);
+      await pool.query('UPDATE categories SET name = ?, sub_categories = ? WHERE id = ? AND vkn = ?', [name, JSON.stringify(subCategories), id, req.headers['x-tenant-id'] || '1111111111']);
       res.json({ id, ...req.body });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -134,7 +159,7 @@ async function startServer() {
     const { id } = req.params;
     try {
       const pool = getPool();
-      await pool.query('DELETE FROM categories WHERE id = ?', [id]);
+      await pool.query('DELETE FROM categories WHERE id = ? AND vkn = ?', [id, req.headers['x-tenant-id'] || '1111111111']);
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -145,7 +170,7 @@ async function startServer() {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackBrands);
     try {
       const pool = getPool();
-      const [rows] = await pool.query('SELECT * FROM brands');
+      const [rows] = await pool.query('SELECT * FROM brands WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -160,7 +185,7 @@ async function startServer() {
     const { id, name } = req.body;
     try {
       const pool = getPool();
-      await pool.query('INSERT INTO brands (id, name) VALUES (?, ?)', [id, name]);
+      await pool.query('INSERT INTO brands (vkn, id, name) VALUES (?, ?, ?)', [req.headers['x-tenant-id'] || '1111111111', id, name]);
       res.json(req.body);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -177,7 +202,7 @@ async function startServer() {
     const { name } = req.body;
     try {
       const pool = getPool();
-      await pool.query('UPDATE brands SET name = ? WHERE id = ?', [name, id]);
+      await pool.query('UPDATE brands SET name = ? WHERE id = ? AND vkn = ?', [name, id, req.headers['x-tenant-id'] || '1111111111']);
       res.json({ id, ...req.body });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -191,7 +216,7 @@ async function startServer() {
     }
     try {
       const pool = getPool();
-      await pool.query('DELETE FROM brands WHERE id = ?', [req.params.id]);
+      await pool.query('DELETE FROM brands WHERE id = ? AND vkn = ?', [req.params.id, req.headers['x-tenant-id'] || '1111111111']);
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -202,7 +227,7 @@ async function startServer() {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackWarehouses);
     try {
       const pool = getPool();
-      const [rows] = await pool.query('SELECT * FROM warehouses');
+      const [rows] = await pool.query('SELECT * FROM warehouses WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -217,10 +242,7 @@ async function startServer() {
     const { id, name, address, capacity } = req.body;
     try {
       const pool = getPool();
-      await pool.query(
-        'INSERT INTO warehouses (id, name, address, capacity) VALUES (?, ?, ?, ?)', 
-        [id, name, address, capacity]
-      );
+      await pool.query('INSERT INTO warehouses (vkn, id, name, address, capacity) VALUES (?, ?, ?, ?, ?)', [req.headers['x-tenant-id'] || '1111111111', id, name, address, capacity]);
       res.json(req.body);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -236,10 +258,7 @@ async function startServer() {
     const { name, address, capacity } = req.body;
     try {
       const pool = getPool();
-      await pool.query(
-        'UPDATE warehouses SET name = ?, address = ?, capacity = ? WHERE id = ?',
-        [name, address, capacity, req.params.id]
-      );
+      await pool.query('UPDATE warehouses SET name = ?, address = ?, capacity = ? WHERE id = ? AND vkn = ?', [name, address, capacity, req.params.id, req.headers['x-tenant-id'] || '1111111111']);
       res.json({ id: req.params.id, ...req.body });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -256,7 +275,7 @@ async function startServer() {
     }
     try {
       const pool = getPool();
-      await pool.query('DELETE FROM warehouses WHERE id = ?', [req.params.id]);
+      await pool.query('DELETE FROM warehouses WHERE id = ? AND vkn = ?', [req.params.id, req.headers['x-tenant-id'] || '1111111111']);
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -274,8 +293,8 @@ async function startServer() {
     try {
       const pool = getPool();
       await pool.query(
-        'UPDATE products SET code = ?, name = ?, price = ?, stock = ?, category = ?, warehouse = ?, barcode = ?, description = ?, brand = ?, `taxRate` = ?, `warehouseStocks` = ?, `purchasePrice` = ? WHERE id = ?',
-        [code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice, id]
+        'UPDATE products SET code = ?, name = ?, price = ?, stock = ?, category = ?, warehouse = ?, barcode = ?, description = ?, brand = ?, `taxRate` = ?, `warehouseStocks` = ?, `purchasePrice` = ? WHERE id = ? AND vkn = ?',
+        [code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice, id, req.headers['x-tenant-id'] || '1111111111']
       );
       res.json({ id, ...req.body });
     } catch (e) {
@@ -291,9 +310,7 @@ async function startServer() {
     const { id, code, name, price, purchasePrice, stock, category, warehouse, barcode, description, brand, taxRate, warehouseStocks } = req.body;
     try {
       const pool = getPool();
-      await pool.query(
-        'INSERT INTO products (id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice]
+      await pool.query('INSERT INTO products (vkn, id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [req.headers['x-tenant-id'] || '1111111111', id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice]
       );
       res.json(req.body);
     } catch (e) {
@@ -307,7 +324,7 @@ async function startServer() {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackReconciliations);
     try {
       const pool = getPool();
-      const [rows] = await pool.query('SELECT * FROM reconciliations');
+      const [rows] = await pool.query('SELECT * FROM reconciliations WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -328,10 +345,7 @@ async function startServer() {
     
     try {
       const pool = getPool();
-      await pool.query(
-        'INSERT INTO reconciliations (id, `customerId`, `customerName`, date, `balanceType`, balance, status, notes, `emailSentAt`, `respondedAt`, `responseNotes`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [mutabakat.id, mutabakat.customerId, mutabakat.customerName, mutabakat.date, mutabakat.balanceType, mutabakat.balance, mutabakat.status, mutabakat.notes, mutabakat.emailSentAt, mutabakat.respondedAt, mutabakat.responseNotes]
-      );
+      await pool.query('INSERT INTO reconciliations (vkn, id, `customerId`, `customerName`, date, `balanceType`, balance, status, notes, `emailSentAt`, `respondedAt`, `responseNotes`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [req.headers['x-tenant-id'] || '1111111111', mutabakat.id, mutabakat.customerId, mutabakat.customerName, mutabakat.date, mutabakat.balanceType, mutabakat.balance, mutabakat.status, mutabakat.notes, mutabakat.emailSentAt, mutabakat.respondedAt, mutabakat.responseNotes]);
       res.json(mutabakat);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -348,10 +362,7 @@ async function startServer() {
     }
     try {
       const pool = getPool();
-      await pool.query(
-        'UPDATE reconciliations SET `customerId` = ?, `customerName` = ?, date = ?, `balanceType` = ?, balance = ?, status = ?, notes = ?, `emailSentAt` = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ?',
-        [customerId, customerName, date, balanceType, balance, status, notes, emailSentAt, respondedAt, responseNotes, id]
-      );
+      await pool.query('UPDATE reconciliations SET `customerId` = ?, `customerName` = ?, date = ?, `balanceType` = ?, balance = ?, status = ?, notes = ?, `emailSentAt` = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?', [customerId, customerName, date, balanceType, balance, status, notes, emailSentAt, respondedAt, responseNotes, id, req.headers['x-tenant-id'] || '1111111111']);
       res.json({ id, ...req.body });
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -365,7 +376,7 @@ async function startServer() {
     }
     try {
       const pool = getPool();
-      await pool.query('DELETE FROM reconciliations WHERE id = ?', [req.params.id]);
+      await pool.query('DELETE FROM reconciliations WHERE id = ? AND vkn = ?', [req.params.id, req.headers['x-tenant-id'] || '1111111111']);
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -397,7 +408,7 @@ async function startServer() {
 
     try {
       const pool = getPool();
-      await pool.query('UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ?', ['Onaylandı', date, notes, id]);
+      await pool.query('UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?', ['Onaylandı', date, notes, id, req.headers['x-tenant-id'] || '1111111111']);
       res.send(`
         <html>
           <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
@@ -437,7 +448,7 @@ async function startServer() {
 
     try {
       const pool = getPool();
-      await pool.query('UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ?', ['Reddedildi', date, notes, id]);
+      await pool.query('UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?', ['Reddedildi', date, notes, id, req.headers['x-tenant-id'] || '1111111111']);
       res.send(`
         <html>
           <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
@@ -502,6 +513,11 @@ async function startServer() {
         ["admin-" + data.vkn, data.vkn, data.name + ' Admin', data.vkn, data.email, data.vkn + '123']
       );
 
+      // Seed settings
+      await pool.query("INSERT INTO settings (vkn, id, companyName, email) VALUES (?, 1, ?, ?)",
+        [data.vkn, data.name, data.email]
+      );
+
       res.json({success: true});
     } catch(e) { res.status(500).json({error: String(e)}); }
   });
@@ -530,12 +546,13 @@ async function startServer() {
   for (const table of tables) {
     app.get(`/api/${table}`, async (req, res) => {
       try {
+        const vkn = req.headers['x-tenant-id'] || '1111111111';
         if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
-          if (table === 'users') return res.json(fallbackUsers);
+          if (table === 'users') return res.json(fallbackUsers.filter(u => !u.vkn || u.vkn === vkn || vkn === '1111111111'));
           return res.json([]);
         }
         const pool = getPool();
-        const [rows] = await pool.query(`SELECT * FROM ${table}`);
+        const [rows] = await pool.query(`SELECT * FROM ${table} WHERE vkn = ?`, [vkn]);
         res.json(rows);
       } catch (e) {
         res.status(500).json({ error: String(e) });
@@ -552,8 +569,9 @@ async function startServer() {
         const questionMarks = keys.map(() => '?').join(', ');
         const backtick = String.fromCharCode(96);
         const fields = keys.map(k => backtick + k + backtick).join(', ');
-        const query = `INSERT INTO ${table} (${fields}) VALUES (${questionMarks})`;
-        await pool.query(query, values);
+        const vkn = req.headers['x-tenant-id'] || '1111111111';
+        const query = `INSERT INTO ${table} (vkn, ${fields}) VALUES (?, ${questionMarks})`;
+        await pool.query(query, [vkn, ...values]);
         res.json(req.body);
       } catch (e) {
         res.status(500).json({ error: String(e) });
@@ -570,8 +588,9 @@ async function startServer() {
         const values = keys.map(k => typeof data[k] === 'object' && data[k] !== null ? JSON.stringify(data[k]) : data[k]);
         const backtick = String.fromCharCode(96);
         const setString = keys.map(k => backtick + k + backtick + ' = ?').join(', ');
-        const query = `UPDATE ${table} SET ${setString} WHERE id = ?`;
-        await pool.query(query, [...values, req.params.id]);
+        const vkn = req.headers['x-tenant-id'] || '1111111111';
+        const query = `UPDATE ${table} SET ${setString} WHERE id = ? AND vkn = ?`;
+        await pool.query(query, [...values, req.params.id, vkn]);
         res.json({ id: req.params.id, ...data });
       } catch (e) {
         res.status(500).json({ error: String(e) });
@@ -582,7 +601,8 @@ async function startServer() {
       try {
         if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json({ success: true });
         const pool = getPool();
-        await pool.query(`DELETE FROM ${table} WHERE id = ?`, [req.params.id]);
+        const vkn = req.headers['x-tenant-id'] || '1111111111';
+        await pool.query(`DELETE FROM ${table} WHERE id = ? AND vkn = ?`, [req.params.id, vkn]);
         res.json({ success: true });
       } catch (e) {
         res.status(500).json({ error: String(e) });

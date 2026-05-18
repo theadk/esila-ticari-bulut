@@ -24,35 +24,19 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     try {
-      // Always fetch latest users when verifying login to catch newly created ones
-      let currentUsers = store.users;
-      try {
-        const res = await fetch('/api/users');
-        if (res.ok) {
-          const freshUsers = await res.json();
-          if (Array.isArray(freshUsers) && freshUsers.length > 0) {
-            currentUsers = freshUsers;
-            store.setUsers(freshUsers);
-          }
-        }
-      } catch (fetchErr) {
-        console.warn("Could not fetch fresh users, using cached.", fetchErr);
-      }
-
-      // For simplicity, doing a loose check on username & password
-      const user = currentUsers.find(u => 
-        (u.username === username || u.email === username) && 
-        u.passwordHash === password
-      );
-
-      if (user) {
-        if (user.status === 'Pasif') {
-          setError('Hesabınız pasif durumdadır. Yöneticinize başvurun.');
-        } else {
-          onLogin();
-        }
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      if (res.ok) {
+        const user = await res.json();
+        localStorage.setItem('esila_tenant_id', user.vkn || '1111111111');
+        localStorage.setItem('esila_user_id', user.id);
+        onLogin();
       } else {
-        setError('Kullanıcı adı veya şifre hatalı.');
+        const err = await res.json();
+        setError(err.error || 'Kullanıcı adı veya şifre hatalı.');
       }
     } catch (err) {
       setError('Giriş işlemi sırasında bir hata oluştu.');

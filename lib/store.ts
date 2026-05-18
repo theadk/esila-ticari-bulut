@@ -79,6 +79,14 @@ function emit() {
 }
 
 
+// Use this for all API requests to pass the tenant context
+async function apiFetch(input: RequestInfo, init?: RequestInit) {
+  const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
+  const headers = new Headers(init?.headers || {});
+  headers.set('x-tenant-id', tenantId);
+  return fetch(input, { ...init, headers });
+}
+
 async function syncArray(table: string, oldArray: any[], newArray: any[]) {
   try {
     const oldIds = new Set(oldArray.map(x => x.id));
@@ -87,14 +95,14 @@ async function syncArray(table: string, oldArray: any[], newArray: any[]) {
     // Deletes
     for (const item of oldArray) {
       if (!newIds.has(item.id)) {
-        fetch(`/api/${table}/${item.id}`, { method: 'DELETE' }).catch(console.error);
+        apiFetch(`/api/${table}/${item.id}`, { method: 'DELETE' }).catch(console.error);
       }
     }
     
     // Inserts and Updates
     for (const item of newArray) {
       if (!oldIds.has(item.id)) {
-        fetch(`/api/${table}`, { 
+        apiFetch(`/api/${table}`, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
           body: JSON.stringify(item) 
@@ -102,7 +110,7 @@ async function syncArray(table: string, oldArray: any[], newArray: any[]) {
       } else {
         const oldItem = oldArray.find(x => x.id === item.id);
         if (JSON.stringify(oldItem) !== JSON.stringify(item)) {
-          fetch(`/api/${table}/${item.id}`, { 
+          apiFetch(`/api/${table}/${item.id}`, { 
             method: 'PUT', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(item) 
@@ -118,7 +126,7 @@ async function syncArray(table: string, oldArray: any[], newArray: any[]) {
 async function syncObject(table: string, oldObj: any, newObj: any) {
   try {
      if (JSON.stringify(oldObj) !== JSON.stringify(newObj)) {
-         fetch(`/api/${table}/1`, {
+         apiFetch(`/api/${table}/1`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(newObj)
@@ -150,11 +158,13 @@ export async function initializeStore() {
     ];
     
     for (const t of tables) {
-      const res = await fetch(`/api/${t.name}`);
+      const res = await apiFetch(`/api/${t.name}`);
       if (res.ok) {
          const data = await res.json();
-         if (data && data.length > 0) {
-            t.ref(data);
+         if (t.name === 'settings') {
+           if (data && data.length > 0) t.ref(data);
+         } else {
+           t.ref(data || []);
          }
       }
     }

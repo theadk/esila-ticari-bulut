@@ -37,8 +37,10 @@ const App: React.FC = () => {
   const [isSuperAdminAuthenticated, setIsSuperAdminAuthenticated] = useState(false);
 
   useEffect(() => {
-    initializeStore();
-  }, []);
+    if (isAuthenticated) {
+      initializeStore();
+    }
+  }, [isAuthenticated]);
 
   if (isSuperAdminRoute) {
     if (!isSuperAdminAuthenticated) {
@@ -112,7 +114,7 @@ const App: React.FC = () => {
         {/* Header - Hidden on print */}
         <Header 
           setActivePage={setActivePage} 
-          onLogout={() => setIsAuthenticated(false)} 
+          onLogout={() => { setIsAuthenticated(false); localStorage.removeItem('esila_tenant_id'); window.location.reload(); }} 
           toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
         />
 

@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS settings (
     vkn VARCHAR(50),
-    id INT PRIMARY KEY DEFAULT 1,
+    id INT DEFAULT 1,
     companyName VARCHAR(255),
     address TEXT,
     phone VARCHAR(50),
@@ -49,7 +49,8 @@ CREATE TABLE IF NOT EXISTS settings (
     prefix_product VARCHAR(50),
     next_product_id INT,
     prefix_personnel VARCHAR(50),
-    next_personnel_id INT
+    next_personnel_id INT,
+    PRIMARY KEY (vkn, id)
 );
 
 CREATE TABLE IF NOT EXISTS warehouses (
@@ -210,3 +211,6 @@ INSERT IGNORE INTO tenants (vkn, name, email, modules, status) VALUES ('11111111
 
 INSERT IGNORE INTO users (id, vkn, name, username, email, passwordHash, role, status)
 VALUES ('admin-1', '1111111111', 'Sistem Yöneticisi', 'admin', 'admin@firma.com', 'admin123', 'Admin', 'Aktif');
+
+INSERT IGNORE INTO settings (vkn, id, companyName, email)
+VALUES ('1111111111', 1, 'Esila Master', 'admin@firma.com');
