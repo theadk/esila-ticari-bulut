@@ -8,17 +8,38 @@ import { getFallbackTable, insertFallbackRow, updateFallbackRow, deleteFallbackR
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+let fallbackUsers: any[] = [
+  { id: 'u1', name: 'Sistem Yöneticisi', username: 'admin', email: 'admin@esila.com', passwordHash: 'admin123', role: 'Admin', status: 'Aktif' }
+];
 
+let fallbackTenants = [
+  { vkn: '1111111111', name: 'Esila Master', email: 'admin@firma.com', modules: ['all'], status: 'Aktif', package: 'Sınırsız', expirationDate: null }
+];
 
+let fallbackCategories = [
+  { id: '1', name: 'Elektronik', subCategories: ['Telefon', 'Bilgisayar', 'Aksesuar'] },
+  { id: '2', name: 'Giyim', subCategories: ['Erkek', 'Kadın', 'Çocuk'] }
+];
 
+let fallbackWarehouses = [
+  { id: '1', name: 'Ana Depo', address: 'Merkez', capacity: 1000 },
+  { id: '2', name: 'Şube Depo', address: 'Kadıköy', capacity: 500 },
+  { id: '3', name: 'Soğuk Hava Deposu', address: 'Bodrum', capacity: 200 },
+  { id: '4', name: 'İade Deposu', address: 'Merkez', capacity: 300 }
+];
 
+let fallbackBrands = [
+  { id: '1', name: 'Sony' },
+  { id: '2', name: 'Apple' },
+  { id: '3', name: 'Samsung' }
+];
 
-
-
-
-
-
-
+let fallbackProducts = [
+  { id: '1', code: 'PRD-001', name: 'Kablosuz Kulaklık', price: 1250.00, stock: 45, category: 'Elektronik', warehouse: 'Ana Depo', barcode: '8691234567890', description: 'Gürültü önleyici kulaklık', brand: 'Sony', taxRate: 20 },
+  { id: '2', code: 'PRD-002', name: 'Akıllı Saat', price: 3400.00, stock: 12, category: 'Elektronik', warehouse: 'Şube Depo', barcode: '8691234567891', description: 'Nabız ölçerli akıllı saat', brand: 'Apple', taxRate: 20 },
+  { id: '3', code: 'PRD-003', name: 'Laptop Çantası', price: 450.00, stock: 120, category: 'Aksesuar', warehouse: 'Ana Depo', barcode: '8691234567892', description: 'Su geçirmez çanta', brand: 'Targus', taxRate: 20 },
+  { id: '4', code: 'PRD-004', name: 'USB-C Kablo', price: 150.00, stock: 0, category: 'Aksesuar', warehouse: 'Ana Depo', barcode: '8691234567893', description: 'Hızlı şarj destekli', brand: 'Anker', taxRate: 20 }
+];
 
 async function startServer() {
   await initDb();
@@ -33,7 +54,6 @@ async function startServer() {
     const { username, password } = req.body;
     try {
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
-        const fallbackUsers = getFallbackTable('users');
         const user = fallbackUsers.find(u => (u.username === username || u.email === username) && u.passwordHash === password);
         if (user) {
           if (user.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
@@ -85,7 +105,7 @@ async function startServer() {
   });
 
   app.get('/api/categories', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(getFallbackTable('categories', req.headers['x-tenant-id'] || '1111111111'));
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackCategories);
     try {
       const pool = getPool();
       const [rows] = await pool.query('SELECT * FROM categories WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
@@ -102,8 +122,7 @@ async function startServer() {
   app.post('/api/categories', async (req, res) => {
     const newCat = { ...req.body, id: req.body.id || String(Date.now()) };
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      const vkn = req.headers['x-tenant-id'] || '1111111111';
-      insertFallbackRow('categories', { ...newCat, vkn });
+      fallbackCategories.push(newCat);
       return res.json(newCat);
     }
     const { id, name, subCategories } = newCat;
@@ -118,8 +137,8 @@ async function startServer() {
 
   app.put('/api/categories/:id', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      const vkn = req.headers['x-tenant-id'] || '1111111111';
-      updateFallbackRow('categories', req.params.id, vkn, req.body);
+      const idx = fallbackCategories.findIndex(c => String(c.id) === String(req.params.id));
+      if (idx !== -1) fallbackCategories[idx] = { ...fallbackCategories[idx], ...req.body, id: req.params.id };
       return res.json({ id: req.params.id, ...req.body });
     }
     const { id } = req.params;
@@ -135,7 +154,7 @@ async function startServer() {
 
   app.delete('/api/categories/:id', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      deleteFallbackRow('categories', req.params.id, req.headers['x-tenant-id'] || '1111111111');
+      fallbackCategories = fallbackCategories.filter(c => String(c.id) !== String(req.params.id));
       return res.json({ success: true });
     }
     const { id } = req.params;
@@ -149,7 +168,7 @@ async function startServer() {
   });
 
   app.get('/api/brands', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(getFallbackTable('brands', req.headers['x-tenant-id'] || '1111111111'));
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackBrands);
     try {
       const pool = getPool();
       const [rows] = await pool.query('SELECT * FROM brands WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
@@ -161,9 +180,9 @@ async function startServer() {
 
   app.post('/api/brands', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-    insertFallbackRow('brands', { ...req.body, vkn: req.headers['x-tenant-id'] || '1111111111' });
-    return res.json(req.body);
-  }
+      fallbackBrands.push(req.body);
+      return res.json(req.body);
+    }
     const { id, name } = req.body;
     try {
       const pool = getPool();
@@ -176,8 +195,8 @@ async function startServer() {
 
   app.put('/api/brands/:id', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      const vkn = req.headers['x-tenant-id'] || '1111111111';
-      updateFallbackRow('brands', req.params.id, vkn, req.body);
+      const idx = fallbackBrands.findIndex(b => String(b.id) === String(req.params.id));
+      if (idx !== -1) fallbackBrands[idx] = { ...fallbackBrands[idx], ...req.body, id: req.params.id };
       return res.json({ id: req.params.id, ...req.body });
     }
     const { id } = req.params;
@@ -193,7 +212,7 @@ async function startServer() {
 
   app.delete('/api/brands/:id', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      deleteFallbackRow('brands', req.params.id, req.headers['x-tenant-id'] || '1111111111');
+      fallbackBrands = fallbackBrands.filter(b => String(b.id) !== String(req.params.id));
       return res.json({ success: true });
     }
     try {
@@ -206,7 +225,7 @@ async function startServer() {
   });
 
   app.get('/api/warehouses', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(getFallbackTable('warehouses', req.headers['x-tenant-id'] || '1111111111'));
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackWarehouses);
     try {
       const pool = getPool();
       const [rows] = await pool.query('SELECT * FROM warehouses WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
@@ -218,9 +237,9 @@ async function startServer() {
 
   app.post('/api/warehouses', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-    insertFallbackRow('warehouses', { ...req.body, vkn: req.headers['x-tenant-id'] || '1111111111' });
-    return res.json(req.body);
-  }
+      fallbackWarehouses.push(req.body);
+      return res.json(req.body);
+    }
     const { id, name, address, capacity } = req.body;
     try {
       const pool = getPool();
@@ -233,8 +252,8 @@ async function startServer() {
 
   app.put('/api/warehouses/:id', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      const vkn = req.headers['x-tenant-id'] || '1111111111';
-      updateFallbackRow('warehouses', req.params.id, vkn, req.body);
+      const idx = fallbackWarehouses.findIndex(w => String(w.id) === String(req.params.id));
+      if (idx !== -1) fallbackWarehouses[idx] = { ...fallbackWarehouses[idx], ...req.body, id: req.params.id };
       return res.json({ id: req.params.id, ...req.body });
     }
     const { name, address, capacity } = req.body;
@@ -249,7 +268,10 @@ async function startServer() {
 
   app.delete('/api/warehouses/:id', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      deleteFallbackRow('warehouses', req.params.id, req.headers['x-tenant-id'] || '1111111111');
+      const initLen = fallbackWarehouses.length;
+      const filtered = fallbackWarehouses.filter(w => String(w.id) !== String(req.params.id));
+      fallbackWarehouses.length = 0;
+      fallbackWarehouses.push(...filtered);
       return res.json({ success: true });
     }
     try {
@@ -263,8 +285,8 @@ async function startServer() {
 
   app.put('/api/products/:id', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      const vkn = req.headers['x-tenant-id'] || '1111111111';
-      updateFallbackRow('products', req.params.id, vkn, req.body);
+      const idx = fallbackProducts.findIndex(p => String(p.id) === String(req.params.id));
+      if (idx !== -1) fallbackProducts[idx] = { ...fallbackProducts[idx], ...req.body, id: req.params.id };
       return res.json({ id: req.params.id, ...req.body });
     }
     const { id } = req.params;
@@ -298,10 +320,10 @@ async function startServer() {
     }
   });
 
-  
+  let fallbackReconciliations: any[] = [];
   
   app.get('/api/reconciliations', async (req, res) => {
-    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(getFallbackTable('reconciliations', req.headers['x-tenant-id'] || '1111111111'));
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(fallbackReconciliations);
     try {
       const pool = getPool();
       const [rows] = await pool.query('SELECT * FROM reconciliations WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
@@ -319,8 +341,7 @@ async function startServer() {
     console.log(`[Red Linki] /api/reconciliations/${mutabakat.id}/reject`);
 
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      const vkn = req.headers['x-tenant-id'] || '1111111111';
-      insertFallbackRow('reconciliations', { ...mutabakat, vkn });
+      fallbackReconciliations.push(mutabakat);
       return res.json(mutabakat);
     }
     
@@ -337,7 +358,8 @@ async function startServer() {
     const { id } = req.params;
     const { customerId, customerName, date, balanceType, balance, status, notes, emailSentAt, respondedAt, responseNotes } = req.body;
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      updateFallbackRow('reconciliations', id, req.headers['x-tenant-id'] || '1111111111', req.body);
+      const idx = fallbackReconciliations.findIndex(r => String(r.id) === String(id));
+      if (idx !== -1) fallbackReconciliations[idx] = { ...fallbackReconciliations[idx], ...req.body, id };
       return res.json({ id, ...req.body });
     }
     try {
@@ -351,7 +373,7 @@ async function startServer() {
 
   app.delete('/api/reconciliations/:id', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      deleteFallbackRow('reconciliations', req.params.id, req.headers['x-tenant-id'] || '1111111111');
+      fallbackReconciliations = fallbackReconciliations.filter(r => String(r.id) !== String(req.params.id));
       return res.json({ success: true });
     }
     try {
@@ -369,7 +391,12 @@ async function startServer() {
     const date = new Date().toISOString();
     
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      updateFallbackRow('reconciliations', id, req.headers['x-tenant-id'] || '1111111111', { status: 'Onaylandı', respondedAt: date, responseNotes: notes });
+      const rec = fallbackReconciliations.find(r => String(r.id) === String(id));
+      if (rec) {
+        rec.status = 'Onaylandı';
+        rec.respondedAt = date;
+        rec.responseNotes = notes;
+      }
       return res.send(`
         <html>
           <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
@@ -404,7 +431,12 @@ async function startServer() {
     const date = new Date().toISOString();
     
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      updateFallbackRow('reconciliations', id, req.headers['x-tenant-id'] || '1111111111', { status: 'Reddedildi', respondedAt: date, responseNotes: notes });
+      const rec = fallbackReconciliations.find(r => String(r.id) === String(id));
+      if (rec) {
+        rec.status = 'Reddedildi';
+        rec.respondedAt = date;
+        rec.responseNotes = notes;
+      }
       return res.send(`
         <html>
           <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
@@ -437,7 +469,7 @@ async function startServer() {
 
   app.get('/api/tenants', async (req, res) => {
     try {
-      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json(getFallbackTable('tenants'));
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json(fallbackTenants);
       const pool = getPool();
       const [rows] = await pool.query("SELECT * FROM tenants");
       res.json(rows);
@@ -456,9 +488,21 @@ async function startServer() {
         dDate.setFullYear(dDate.getFullYear() + (data.package === 'Aylık' ? 0 : data.package === 'Sınırsız' ? 100 : 1));
         if (data.package === 'Aylık') dDate.setMonth(dDate.getMonth() + 1);
 
-        insertFallbackRow('tenants', { ...data, status: 'Bekliyor', expirationDate: dDate.toISOString() });
-        insertFallbackRow('users', { id: "admin-" + data.vkn, vkn: data.vkn, name: data.name + ' Admin', username: data.vkn, email: data.email, passwordHash: data.vkn + '123', role: 'Admin', status: 'Aktif' });
-   insertFallbackRow('settings', { vkn: data.vkn, id: 1, companyName: data.name, email: data.email });
+        fallbackTenants.push({
+          ...data,
+          status: 'Bekliyor',
+          expirationDate: dDate.toISOString()
+        });
+        fallbackUsers.push({
+          id: "admin-" + data.vkn,
+          vkn: data.vkn,
+          name: data.name + ' Admin',
+          username: data.vkn,
+          email: data.email,
+          passwordHash: data.vkn + '123',
+          role: 'Admin',
+          status: 'Aktif'
+        });
         return res.json({success: true});
       }
 
@@ -484,17 +528,19 @@ async function startServer() {
     try {
       const { vkn } = req.params;
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
-      updateFallbackRow('tenants', vkn, vkn, { status: 'Aktif' }); // Note: wait, id of tenant is its vkn... fallbackDb searches by id? The tenant has vkn as primary key!
-      // I'll manually modify tenants lookup below.
-      return res.json({success: true});
-    }
+        const t = fallbackTenants.find(x => x.vkn === vkn);
+        if (t) t.status = 'Aktif';
+        return res.json({success: true});
+      }
       const pool = getPool();
       await pool.query("UPDATE tenants SET status = 'Aktif' WHERE vkn = ?", [vkn]);
       res.json({success: true});
     } catch(e) { res.status(500).json({error: String(e)}); }
   });
 
-  app.get('/api/test-users', (req, res) => { res.json(getFallbackTable('users')); });
+  app.get('/api/test-users', (req, res) => {
+    res.json(fallbackUsers);
+  });
   
   // Generic CRUD API for all tables
 
@@ -541,8 +587,8 @@ async function startServer() {
       try {
         if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
           const vkn = req.headers['x-tenant-id'] || '1111111111';
-          updateFallbackRow(table, req.params.id, vkn, req.body);
-          return res.json({ id: req.params.id, ...req.body });
+          insertFallbackRow(table, { ...req.body, vkn });
+          return res.json(req.body);
         }
         const pool = getPool();
         const data = req.body;
@@ -562,11 +608,7 @@ async function startServer() {
 
     app.delete(`/api/${table}/:id`, async (req, res) => {
       try {
-        if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
-          const vkn = req.headers['x-tenant-id'] || '1111111111';
-          deleteFallbackRow(table, req.params.id, vkn);
-          return res.json({ success: true });
-        }
+        if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json({ success: true });
         const pool = getPool();
         const vkn = req.headers['x-tenant-id'] || '1111111111';
         await pool.query(`DELETE FROM ${table} WHERE id = ? AND vkn = ?`, [req.params.id, vkn]);
