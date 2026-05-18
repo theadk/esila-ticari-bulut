@@ -14,7 +14,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [view, setView] = useState<'login' | 'forgot_password' | 'email_sent'>('login');
   const [resetEmail, setResetEmail] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -23,21 +23,39 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
-    const { users } = store;
-    // For simplicity, doing a loose check on username & password
-    const user = users.find(u => 
-      (u.username === username || u.email === username) && 
-      u.passwordHash === password
-    );
-
-    if (user) {
-      if (user.status === 'Pasif') {
-        setError('Hesabınız pasif durumdadır. Yöneticinize başvurun.');
-      } else {
-        onLogin();
+    try {
+      // Always fetch latest users when verifying login to catch newly created ones
+      let currentUsers = store.users;
+      try {
+        const res = await fetch('/api/users');
+        if (res.ok) {
+          const freshUsers = await res.json();
+          if (Array.isArray(freshUsers) && freshUsers.length > 0) {
+            currentUsers = freshUsers;
+            store.setUsers(freshUsers);
+          }
+        }
+      } catch (fetchErr) {
+        console.warn("Could not fetch fresh users, using cached.", fetchErr);
       }
-    } else {
-      setError('Kullanıcı adı veya şifre hatalı.');
+
+      // For simplicity, doing a loose check on username & password
+      const user = currentUsers.find(u => 
+        (u.username === username || u.email === username) && 
+        u.passwordHash === password
+      );
+
+      if (user) {
+        if (user.status === 'Pasif') {
+          setError('Hesabınız pasif durumdadır. Yöneticinize başvurun.');
+        } else {
+          onLogin();
+        }
+      } else {
+        setError('Kullanıcı adı veya şifre hatalı.');
+      }
+    } catch (err) {
+      setError('Giriş işlemi sırasında bir hata oluştu.');
     }
   };
 
@@ -69,7 +87,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-800 to-emerald-900 p-4">
       <div className="bg-white w-full max-w-full sm:max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         <div className="p-4 md:p-8 bg-emerald-50 border-b border-emerald-100 flex flex-col items-center">
-          <h1 className="text-6xl font-logo text-emerald-700 drop-shadow-sm mb-2">esila</h1>
+          <h1 className="text-4xl font-sans font-bold tracking-tight text-emerald-700 drop-shadow-sm mb-2 cursor-default">Esila Ticari</h1>
           <p className="text-emerald-600 font-medium tracking-wide text-sm">TİCARİ YÖNETİM SİSTEMİ</p>
         </div>
 

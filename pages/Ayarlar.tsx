@@ -75,7 +75,7 @@ export const Ayarlar: React.FC = () => {
               <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Firma Bilgileri</h3>
               <div className="grid grid-cols-1 gap-4 sm:p-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Firma Logosu</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Yazıcı / Çıktı Logosu</label>
                   <div className="flex flex-wrap items-center gap-4">
                     {settings.companyLogo ? (
                       <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
@@ -267,7 +267,7 @@ export const Ayarlar: React.FC = () => {
                   />
                 </div>
                 <div className="pt-4 text-sm text-gray-500">
-                  <p>Not: Logoyu 'Genel' sekmesinden değiştirebilirsiniz. Yüklenen logo çıktı belgelerinde de kullanılacaktır.</p>
+                  <p>Not: Logoyu 'Genel' sekmesinden yükleyebilirsiniz. Yüklenen logo sadece çıktı belgelerinde (makbuz, fatura vb.) kullanılacaktır.</p>
                 </div>
               </div>
               <div className="w-full lg:w-[320px] bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col">

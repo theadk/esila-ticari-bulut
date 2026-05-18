@@ -7,6 +7,10 @@ import cors from 'cors';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+let fallbackUsers: any[] = [
+  { id: 'u1', name: 'Sistem Yöneticisi', username: 'admin', email: 'admin@esila.com', passwordHash: 'admin123', role: 'Admin', status: 'Aktif' }
+];
+
 let fallbackTenants = [
   { vkn: '1111111111', name: 'Esila Master', email: 'admin@firma.com', modules: ['all'], status: 'Aktif', package: 'Sınırsız', expirationDate: null }
 ];
@@ -40,7 +44,7 @@ async function startServer() {
   await initDb();
   
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
 
   app.use(express.json());
   app.use(cors());
@@ -476,6 +480,16 @@ async function startServer() {
           status: 'Bekliyor',
           expirationDate: dDate.toISOString()
         });
+        fallbackUsers.push({
+          id: "admin-" + data.vkn,
+          vkn: data.vkn,
+          name: data.name + ' Admin',
+          username: data.vkn,
+          email: data.email,
+          passwordHash: data.vkn + '123',
+          role: 'Admin',
+          status: 'Aktif'
+        });
         return res.json({success: true});
       }
 
@@ -506,13 +520,20 @@ async function startServer() {
     } catch(e) { res.status(500).json({error: String(e)}); }
   });
 
+  app.get('/api/test-users', (req, res) => {
+    res.json(fallbackUsers);
+  });
+  
   // Generic CRUD API for all tables
 
   const tables = ["users","settings","customers","customer_transactions","cash_transactions","personnel","personnel_records","orders","proposals"];
   for (const table of tables) {
     app.get(`/api/${table}`, async (req, res) => {
       try {
-        if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json([]);
+        if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+          if (table === 'users') return res.json(fallbackUsers);
+          return res.json([]);
+        }
         const pool = getPool();
         const [rows] = await pool.query(`SELECT * FROM ${table}`);
         res.json(rows);
