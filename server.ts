@@ -89,11 +89,17 @@ async function startServer() {
     try {
       const pool = getPool();
       const [rows] = await pool.query('SELECT * FROM categories WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
-      res.json(rows.map(r => ({
-        id: r.id,
-        name: r.name,
-        subCategories: typeof r.sub_categories === 'string' ? JSON.parse(r.sub_categories) : (r.sub_categories || [])
-      })));
+      res.json(rows.map((r: any) => {
+        let parsed = [];
+        try {
+          parsed = typeof r.sub_categories === 'string' ? JSON.parse(r.sub_categories) : (r.sub_categories || []);
+        } catch(e) {}
+        return {
+          id: r.id,
+          name: r.name,
+          subCategories: Array.isArray(parsed) ? parsed : []
+        };
+      }));
     } catch (err) {
       res.status(500).json({ error: String(err) });
     }

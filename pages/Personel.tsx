@@ -579,13 +579,13 @@ export const Personel: React.FC = () => {
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                            {selectedPersonnel.records.length === 0 ? (
+                            {(!selectedPersonnel.records || selectedPersonnel.records.length === 0) ? (
                                 <div className="text-center text-gray-500 py-10 flex flex-col items-center">
                                     <FileText size={48} className="text-gray-300 mb-3" />
                                     <p>Henüz özlük dosyasına kayıt eklenmemiş.</p>
                                 </div>
                             ) : (
-                                selectedPersonnel.records.map((record) => (
+                                (selectedPersonnel.records || []).map((record) => (
                                     <div key={record.id} className="bg-white border text-left border-gray-200 rounded-lg p-4 hover:border-emerald-300 transition-colors group relative">
                                         <button 
                                             onClick={() => handleDeleteRecord(record.id)}

@@ -780,7 +780,7 @@ export const Urunler: React.FC = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white disabled:bg-gray-100"
                   >
                     <option value="">Alt Kategori Seçin</option>
-                    {categories.find(c => c.name === formData.category)?.subCategories.map(sc => (
+                    {(categories.find(c => c.name === formData.category)?.subCategories || []).map(sc => (
                       <option key={sc} value={sc}>{sc}</option>
                     ))}
                   </select>
@@ -975,7 +975,7 @@ export const Urunler: React.FC = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-2">
-                      {category.subCategories.length > 0 ? (
+                      {category.subCategories && category.subCategories.length > 0 ? (
                         category.subCategories.map(sc => (
                           <span key={sc} className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-md text-xs font-medium">
                             {sc}
@@ -1035,7 +1035,7 @@ export const Urunler: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Alt Kategoriler (Virgülle ayırın)</label>
                   <input 
                     type="text" 
-                    value={categoryFormData.subCategories.join(', ')}
+                    value={(categoryFormData.subCategories || []).join(', ')}
                     onChange={(e) => setCategoryFormData({...categoryFormData, subCategories: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="Örn: Telefon, Bilgisayar, Aksesuar"

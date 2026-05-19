@@ -1,14 +1,21 @@
 import { Product, Warehouse, Category, Brand } from '../types';
 
+async function apiFetch(input: RequestInfo, init?: RequestInit) {
+  const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
+  const headers = new Headers(init?.headers || {});
+  headers.set('x-tenant-id', tenantId);
+  return fetch(input, { ...init, headers });
+}
+
 export const api = {
   async getCategories(): Promise<Category[]> {
-    const response = await fetch('/api/categories');
+    const response = await apiFetch('/api/categories');
     if (!response.ok) throw new Error('Network response was not ok');
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   },
   async addCategory(category: Category): Promise<Category> {
-    const response = await fetch('/api/categories', {
+    const response = await apiFetch('/api/categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(category),
@@ -17,7 +24,7 @@ export const api = {
     return await response.json();
   },
   async updateCategory(id: string, category: Category): Promise<Category> {
-    const response = await fetch(`/api/categories/${id}`, {
+    const response = await apiFetch(`/api/categories/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(category),
@@ -26,17 +33,17 @@ export const api = {
     return await response.json();
   },
   async deleteCategory(id: string): Promise<void> {
-    const response = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+    const response = await apiFetch(`/api/categories/${id}`, { method: 'DELETE' });
     if (!response.ok) throw new Error('Network response was not ok');
   },
   async getBrands(): Promise<Brand[]> {
-    const response = await fetch('/api/brands');
+    const response = await apiFetch('/api/brands');
     if (!response.ok) throw new Error('Network response was not ok');
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   },
   async addBrand(brand: Brand): Promise<Brand> {
-    const response = await fetch('/api/brands', {
+    const response = await apiFetch('/api/brands', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(brand),
@@ -45,7 +52,7 @@ export const api = {
     return await response.json();
   },
   async updateBrand(id: string, brand: Brand): Promise<Brand> {
-    const response = await fetch(`/api/brands/${id}`, {
+    const response = await apiFetch(`/api/brands/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(brand),
@@ -54,17 +61,17 @@ export const api = {
     return await response.json();
   },
   async deleteBrand(id: string): Promise<void> {
-    const response = await fetch(`/api/brands/${id}`, { method: 'DELETE' });
+    const response = await apiFetch(`/api/brands/${id}`, { method: 'DELETE' });
     if (!response.ok) throw new Error('Network response was not ok');
   },
   async getProducts(): Promise<Product[]> {
-    const response = await fetch('/api/products');
+    const response = await apiFetch('/api/products');
     if (!response.ok) throw new Error('Network response was not ok');
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   },
   async addProduct(product: Product): Promise<Product> {
-    const response = await fetch('/api/products', {
+    const response = await apiFetch('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(product),
@@ -73,7 +80,7 @@ export const api = {
     return await response.json();
   },
   async updateProduct(id: string, product: Product): Promise<Product> {
-    const response = await fetch(`/api/products/${id}`, {
+    const response = await apiFetch(`/api/products/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(product),
@@ -82,17 +89,17 @@ export const api = {
     return await response.json();
   },
   async deleteProduct(id: string): Promise<void> {
-    const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+    const response = await apiFetch(`/api/products/${id}`, { method: 'DELETE' });
     if (!response.ok) throw new Error('Network response was not ok');
   },
   async getWarehouses(): Promise<Warehouse[]> {
-    const response = await fetch('/api/warehouses');
+    const response = await apiFetch('/api/warehouses');
     if (!response.ok) throw new Error('Network response was not ok');
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   },
   async addWarehouse(warehouse: Warehouse): Promise<Warehouse> {
-    const response = await fetch('/api/warehouses', {
+    const response = await apiFetch('/api/warehouses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(warehouse),
@@ -102,7 +109,7 @@ export const api = {
   },
 
   async updateWarehouse(id: string, warehouse: Warehouse): Promise<Warehouse> {
-    const response = await fetch(`/api/warehouses/${id}`, {
+    const response = await apiFetch(`/api/warehouses/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(warehouse),
@@ -112,7 +119,7 @@ export const api = {
   },
 
   async deleteWarehouse(id: string): Promise<void> {
-    const response = await fetch(`/api/warehouses/${id}`, { method: 'DELETE' });
+    const response = await apiFetch(`/api/warehouses/${id}`, { method: 'DELETE' });
     if (!response.ok) throw new Error('Network response was not ok');
   }
 };
