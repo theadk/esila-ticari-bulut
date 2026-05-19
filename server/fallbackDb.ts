@@ -42,7 +42,8 @@ function save() {
 export function getFallbackTable(table: string, vkn?: string) {
   if (!dbData[table]) dbData[table] = [];
   if (vkn) {
-     return dbData[table].filter(r => r.vkn === vkn || vkn === '1111111111' || !r.vkn);
+     if (table === 'tenants') return dbData[table];
+     return dbData[table].filter(r => r.vkn === vkn);
   }
   return dbData[table];
 }
@@ -56,7 +57,18 @@ export function insertFallbackRow(table: string, row: any) {
 
 export function updateFallbackRow(table: string, id: string, vkn: string, updates: any) {
   if (!dbData[table]) dbData[table] = [];
-  const index = dbData[table].findIndex(r => (String(r.id) === String(id) || String(r.vkn) === String(id)) && (r.vkn === vkn || vkn === '1111111111' || !r.vkn));
+  
+  if (table === 'tenants') {
+     const index = dbData[table].findIndex(r => String(r.vkn) === String(id));
+     if (index !== -1) {
+       dbData[table][index] = { ...dbData[table][index], ...updates };
+       save();
+       return dbData[table][index];
+     }
+     return null;
+  }
+
+  const index = dbData[table].findIndex(r => String(r.id) === String(id) && r.vkn === vkn);
   if (index !== -1) {
     dbData[table][index] = { ...dbData[table][index], ...updates };
     save();
@@ -67,7 +79,18 @@ export function updateFallbackRow(table: string, id: string, vkn: string, update
 
 export function deleteFallbackRow(table: string, id: string, vkn: string) {
   if (!dbData[table]) dbData[table] = [];
-  const index = dbData[table].findIndex(r => (String(r.id) === String(id) || String(r.vkn) === String(id)) && (r.vkn === vkn || vkn === '1111111111' || !r.vkn));
+  
+  if (table === 'tenants') {
+     const index = dbData[table].findIndex(r => String(r.vkn) === String(id));
+     if (index !== -1) {
+       dbData[table].splice(index, 1);
+       save();
+       return true;
+     }
+     return false;
+  }
+
+  const index = dbData[table].findIndex(r => String(r.id) === String(id) && r.vkn === vkn);
   if (index !== -1) {
     dbData[table].splice(index, 1);
     save();

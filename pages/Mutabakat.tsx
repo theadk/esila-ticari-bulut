@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Reconciliation, ReconciliationStatus, Customer } from '../types';
+import { apiFetch } from '../lib/api';
 
 export const Mutabakat: React.FC = () => {
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>([]);
@@ -27,7 +28,7 @@ export const Mutabakat: React.FC = () => {
 
   const fetchReconciliations = async () => {
     try {
-      const res = await fetch('/api/reconciliations');
+      const res = await apiFetch('/api/reconciliations');
       const data = await res.json();
       setReconciliations(data);
     } catch (e) {
@@ -51,7 +52,7 @@ export const Mutabakat: React.FC = () => {
     
     // Simulate API Call
     try {
-      const res = await fetch('/api/reconciliations', {
+      const res = await apiFetch('/api/reconciliations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -86,7 +87,7 @@ export const Mutabakat: React.FC = () => {
       const bType = customer.balance === 0 ? 'Yok' : (isDebt ? 'Borç' : 'Alacak');
       
       try {
-        await fetch('/api/reconciliations', {
+        await apiFetch('/api/reconciliations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
