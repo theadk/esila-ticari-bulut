@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download } from 'lucide-react';
+import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Product, Warehouse, Category, Brand } from '../types';
 import { api } from '../lib/api';
@@ -145,6 +145,95 @@ export const Urunler: React.FC = () => {
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
+  };
+
+  const handlePrintBarcode = (product: Product) => {
+    if (!product.barcode) {
+      alert("Bu ürünün barkodu bulunmuyor. Öncelikle barkod ekleyin.");
+      return;
+    }
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        alert("Pop-up engelleyiciyi kapatıp tekrar deneyin.");
+        return;
+    }
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>${product.name} - Barkod</title>
+          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+          <style>
+            @media print {
+              @page { margin: 0; size: auto; }
+              body { margin: 0; }
+            }
+            body { 
+              font-family: Arial, sans-serif; 
+              display: flex; 
+              justify-content: center; 
+              align-items: center; 
+              height: 100vh; 
+              margin: 0; 
+              background: #fff;
+            }
+            .label {
+              width: 50mm;
+              height: 30mm;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              padding: 2mm;
+              box-sizing: border-box;
+            }
+            .product-name {
+              font-size: 10px;
+              font-weight: bold;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              width: 100%;
+              margin-bottom: 2px;
+            }
+            .price {
+              font-size: 12px;
+              font-weight: bold;
+              margin-top: 2px;
+            }
+            svg {
+              max-width: 100%;
+              height: 15mm;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="label">
+            <div class="product-name">${product.name}</div>
+            <svg id="barcode"></svg>
+            <div class="price">${product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</div>
+          </div>
+          <script>
+            JsBarcode("#barcode", "${product.barcode}", {
+              format: "CODE128",
+              width: 1.5,
+              height: 40,
+              displayValue: true,
+              fontSize: 12,
+              margin: 0
+            });
+            setTimeout(() => {
+              window.print();
+              window.close();
+            }, 500);
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   const filteredProducts = (products || []).filter(p => {
@@ -578,6 +667,13 @@ export const Urunler: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handlePrintBarcode(product); }}
+                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-blue-600 transition-colors"
+                          title="Barkod Yazdır"
+                        >
+                          <Printer size={18} />
+                        </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleEdit(product); }}
                           className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors"
