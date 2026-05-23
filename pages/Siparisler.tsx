@@ -650,83 +650,199 @@ export const Siparisler: React.FC = () => {
                >
                  <div className="flex flex-col items-center gap-1">
                    <FileText size={24} className="scale-125" />
-                   <span className="font-medium">A4 Normal</span>
-                 </div>
-               </button>
-            </div>
+                    <span className="font-medium">A4 Normal</span>
+                  </div>
+                </button>
+             </div>
 
-            <div className="flex-1 overflow-auto p-4 md:p-8 bg-gray-200 flex justify-center">
+             <div className="flex-1 overflow-auto p-4 md:p-8 bg-gray-200 flex justify-center">
               {/* Preview Area */}
-              <div 
-                className={`bg-white shadow-lg text-black p-4 transition-all duration-300 ${printType === '80mm' ? 'w-[300px]' : 'w-[595px]'}`}
-                style={{ fontSize: printType === '80mm' ? '12px' : '14px' }}
-              >
-                 <div className="text-center mb-6">
-                    {store.settings.companyLogo ? (
-                      <img src={store.settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />
-                    ) : (
-                      <h1 className="font-logo text-4xl mb-2 text-emerald-900">{store.settings.printer_header_text || 'esila'}</h1>
-                    )}
-                    <p className="text-xs text-gray-500 font-medium">{store.settings.companyName}</p>
-                    <p className="text-xs text-gray-500 whitespace-pre-line">{store.settings.address}</p>
-                    {store.settings.taxOffice && store.settings.taxNumber && (
-                      <p className="text-xs text-gray-500 mt-1">{store.settings.taxOffice} - VKN: {store.settings.taxNumber}</p>
-                    )}
-                 </div>
-                 
-                 <div className="border-b-2 border-dashed border-gray-300 my-4"></div>
-                 
-                 <div className="mb-4">
-                    <p><strong>Tarih:</strong> {selectedOrder.date}</p>
-                    <p><strong>Sipariş No:</strong> {selectedOrder.id}</p>
-                    <p><strong>Müşteri:</strong> {selectedOrder.customerName}</p>
-                 </div>
+              <div className={`bg-white text-black transition-all duration-300 ${printType === '80mm' ? 'w-[300px] shadow-lg p-4' : 'w-[800px] shadow-xl'}`}>
+                 {printType === 'A4' ? (
+                   // A4 LAYOUT
+                   <>
+                     <style>
+                        {`
+                          @media print {
+                            .print-only body { color: #000; font-family: 'Times New Roman', Times, serif; }
+                            table { border-collapse: collapse; }
+                            td, th { padding: 8px; border: 1px solid #000; text-align: left; }
+                          }
+                          .contract-style-header {
+                            font-family: Arial, sans-serif;
+                          }
+                          .contract-table th, .contract-table td {
+                            border: 1px solid #000;
+                            padding: 10px;
+                            font-size: 14px;
+                          }
+                        `}
+                     </style>
+                     <div className="contract-style-header bg-white text-black p-8 mx-auto" style={{ maxWidth: '800px' }}>
+                        <h2 className="text-center text-2xl font-bold mb-10 tracking-wider">SİPARİŞ FORMU</h2>
+                        
+                        <div className="flex justify-between mb-8">
+                           <div className="flex items-center gap-2">
+                              <span className="font-semibold w-24">Sipariş No</span>
+                              <span>: {selectedOrder.id}</span>
+                           </div>
+                           <div className="flex items-center gap-2">
+                              <span className="font-semibold w-28">Tarih</span>
+                              <span>: {selectedOrder.date}</span>
+                           </div>
+                        </div>
 
-                 <table className="w-full mb-4">
-                   <thead>
-                     <tr className="border-b border-gray-300 text-left">
-                       <th className="py-1">Ürün</th>
-                       <th className="py-1 text-right">Mik.</th>
-                       {printType === 'A4' && <th className="py-1 text-right">KDV</th>}
-                       <th className="py-1 text-right">Tutar</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     {selectedOrder.items.map((item, idx) => (
-                       <tr key={idx} className="border-b border-gray-100">
-                         <td className="py-1">{item.productName}</td>
-                         <td className="py-1 text-right">{item.quantity}</td>
-                         {printType === 'A4' && (
-                           <td className="py-1 text-right text-gray-500 font-medium">%{item.taxRate || 0}</td>
-                         )}
-                         <td className="py-1 text-right">
-                           {((item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate || 0) / 100))).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                         </td>
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
+                        <div className="mb-8">
+                           <h3 className="font-bold mb-4">Müşteri Bilgileri :</h3>
+                           <div className="grid grid-cols-[120px_1fr] gap-2 mb-2 items-center">
+                              <span className="font-semibold">Firma Adı</span>
+                              <span className="border-b border-black pb-1">: {selectedOrder.customerName || '______________________________________'}</span>
+                           </div>
+                           <div className="grid grid-cols-[120px_1fr] gap-2 mb-2 items-center">
+                              <span className="font-semibold">Satıcı</span>
+                              <span className="border-b border-black pb-1">: {store.settings.companyName || '______________________________________'}</span>
+                           </div>
+                        </div>
 
-                 <div className="flex justify-end mb-6">
-                   <div className="text-right w-full border-t border-gray-300 pt-2 border-dashed mt-2">
-                     <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
-                       <span>Ara Toplam:</span>
-                       <span>{(selectedOrder.subTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                        <div className="mb-4">
+                           <h3 className="font-bold mb-4">Sipariş Detayları :</h3>
+                           <table className="w-full contract-table border-collapse border border-black mb-6">
+                             <thead>
+                               <tr className="bg-gray-50">
+                                 <th className="font-bold border border-black w-1/2 text-left">Ürün/Hizmet</th>
+                                 <th className="font-bold border border-black text-center">Miktar</th>
+                                 <th className="font-bold border border-black text-right">Birim Fiyat (TL)</th>
+                                 <th className="font-bold border border-black text-right">Toplam (TL)</th>
+                               </tr>
+                             </thead>
+                             <tbody>
+                               {selectedOrder.items.map((item, idx) => {
+                                 const netAmount = (item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate || 0) / 100));
+                                 return (
+                                   <tr key={idx}>
+                                     <td className="border border-black text-left">{item.productName}</td>
+                                     <td className="border border-black text-center">{item.quantity}</td>
+                                     <td className="border border-black text-right">
+                                       {item.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                     </td>
+                                     <td className="border border-black text-right">
+                                       {netAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                     </td>
+                                   </tr>
+                                 );
+                               })}
+                             </tbody>
+                           </table>
+
+                           <div className="flex justify-end mb-12">
+                              <div className="w-64">
+                                 <div className="grid grid-cols-2 gap-2 mb-2 text-right">
+                                    <span className="font-bold">Ara Toplam :</span>
+                                    <span>{(selectedOrder.subTotal || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-2 mb-2 text-right">
+                                    <span className="font-bold">KDV Tutarı :</span>
+                                    <span>{(selectedOrder.taxTotal || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-2 mt-4 text-right">
+                                    <span className="font-bold">Genel Toplam :</span>
+                                    <span className="font-bold">{selectedOrder.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+
+                        <div className="mt-8">
+                           <h3 className="font-bold mb-2">Notlar :</h3>
+                           <p className="text-sm whitespace-pre-line">{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</p>
+                        </div>
+
+                        <div className="flex justify-between px-10 text-center mt-16">
+                           <div>
+                             <p className="font-bold mb-8">Teslim Eden</p>
+                             <div className="flex items-end gap-2">
+                                <span>İmza :</span>
+                                <span className="inline-block w-48 border-b border-black"></span>
+                             </div>
+                           </div>
+                           <div>
+                             <p className="font-bold mb-8">Teslim Alan</p>
+                             <div className="flex items-end gap-2">
+                                <span>İmza :</span>
+                                <span className="inline-block w-48 border-b border-black"></span>
+                             </div>
+                           </div>
+                        </div>
                      </div>
-                     <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
-                       <span>KDV:</span>
-                       <span>{(selectedOrder.taxTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                   </>
+                 ) : (
+                   // 80MM LAYOUT
+                   <div style={{ fontSize: '12px' }}>
+                     <div className="text-center mb-6">
+                        {store.settings.companyLogo ? (
+                          <img src={store.settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />
+                        ) : (
+                          <h1 className="font-logo text-4xl mb-2 text-black">{store.settings.printer_header_text || 'esila'}</h1>
+                        )}
+                        <p className="text-xs font-medium">{store.settings.companyName}</p>
+                        <p className="text-xs whitespace-pre-line">{store.settings.address}</p>
+                        {store.settings.taxOffice && store.settings.taxNumber && (
+                          <p className="text-xs mt-1">{store.settings.taxOffice} - VKN: {store.settings.taxNumber}</p>
+                        )}
+                        <p className="text-xs uppercase mt-2 font-bold tracking-widest border-y border-black py-1">Sipariş Fişi</p>
                      </div>
-                     <div className="flex justify-between items-center text-lg font-bold border-t border-gray-300 pt-1 mt-1">
-                       <span>Genel Toplam:</span>
-                       <span>{selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                     
+                     <div className="border-b-2 border-dashed border-gray-300 my-4"></div>
+                     
+                     <div className="mb-4">
+                        <p><strong>Tarih:</strong> {selectedOrder.date}</p>
+                        <p><strong>Sipariş No:</strong> {selectedOrder.id}</p>
+                        <p><strong>Müşteri:</strong> {selectedOrder.customerName}</p>
+                     </div>
+
+                     <table className="w-full mb-4">
+                       <thead>
+                         <tr className="border-b border-gray-300 text-left">
+                           <th className="py-1">Ürün</th>
+                           <th className="py-1 text-right">Mik.</th>
+                           <th className="py-1 text-right">Tutar</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                         {selectedOrder.items.map((item, idx) => (
+                           <tr key={idx} className="border-b border-gray-100">
+                             <td className="py-1">{item.productName}</td>
+                             <td className="py-1 text-right">{item.quantity}</td>
+                             <td className="py-1 text-right">
+                               {((item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate || 0) / 100))).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                             </td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
+
+                     <div className="flex justify-end mb-6">
+                       <div className="text-right w-full border-t border-gray-300 pt-2 border-dashed mt-2">
+                         <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
+                           <span>Ara Toplam:</span>
+                           <span>{(selectedOrder.subTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                         </div>
+                         <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
+                           <span>KDV:</span>
+                           <span>{(selectedOrder.taxTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                         </div>
+                         <div className="flex justify-between items-center text-lg font-bold border-t border-gray-300 pt-1 mt-1">
+                           <span>Genel Toplam:</span>
+                           <span>{selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                         </div>
+                       </div>
+                     </div>
+
+                     <div className="text-center text-xs text-gray-500 mt-8">
+                       <p className="whitespace-pre-line">{store.settings.printer_footer_text}</p>
                      </div>
                    </div>
-                 </div>
-
-                 <div className="text-center text-xs text-gray-500 mt-8">
-                   <p className="whitespace-pre-line">{store.settings.printer_footer_text}</p>
-                 </div>
+                 )}
               </div>
             </div>
 
@@ -752,58 +868,190 @@ export const Siparisler: React.FC = () => {
       {/* Actual Print Content (Hidden normally, shown on print) */}
       {selectedOrder && (
         <div className="print-only">
-          <div className={`${printType === '80mm' ? 'max-w-[300px]' : 'max-w-[100%]'} mx-auto`}>
-             <div className="text-center mb-6">
-                {store.settings.companyLogo ? (
-                  <img src={store.settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />
-                ) : (
-                  <h1 className="font-logo text-4xl mb-2 text-black">{store.settings.printer_header_text || 'esila'}</h1>
-                )}
-                <p className="text-xs font-medium">{store.settings.companyName}</p>
-                <p className="text-xs whitespace-pre-line">{store.settings.address}</p>
-                {store.settings.taxOffice && store.settings.taxNumber && (
-                   <p className="text-xs mt-1">{store.settings.taxOffice} - VKN: {store.settings.taxNumber}</p>
-                )}
-             </div>
-             
-             <div className="border-b border-black my-4"></div>
-             
-             <div className="mb-4 text-sm">
-                <p><strong>Tarih:</strong> {selectedOrder.date}</p>
-                <p><strong>Fiş No:</strong> {selectedOrder.id}</p>
-                <p><strong>Müşteri:</strong> {selectedOrder.customerName}</p>
-             </div>
+          <div className="mx-auto">
+             {printType === 'A4' ? (
+               // A4 LAYOUT
+               <>
+                 <style>
+                    {`
+                      @media print {
+                        .print-only body { color: #000; font-family: 'Times New Roman', Times, serif; }
+                        table { border-collapse: collapse; }
+                        td, th { padding: 8px; border: 1px solid #000; text-align: left; }
+                      }
+                      .contract-style-header {
+                        font-family: Arial, sans-serif;
+                      }
+                      .contract-table th, .contract-table td {
+                        border: 1px solid #000;
+                        padding: 10px;
+                        font-size: 14px;
+                      }
+                    `}
+                 </style>
+                 <div className="contract-style-header bg-white text-black p-8 mx-auto" style={{ maxWidth: '800px' }}>
+                    <h2 className="text-center text-2xl font-bold mb-10 tracking-wider">SİPARİŞ FORMU</h2>
+                    
+                    <div className="flex justify-between mb-8">
+                       <div className="flex items-center gap-2">
+                          <span className="font-semibold w-24">Sipariş No</span>
+                          <span>: {selectedOrder.id}</span>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <span className="font-semibold w-28">Tarih</span>
+                          <span>: {selectedOrder.date}</span>
+                       </div>
+                    </div>
 
-             <table className="w-full mb-4 text-sm">
-               <thead>
-                 <tr className="border-b border-black text-left">
-                   <th className="py-1">Ürün</th>
-                   <th className="py-1 text-right">Adet</th>
-                   <th className="py-1 text-right">Tutar</th>
-                 </tr>
-               </thead>
-               <tbody>
-                 {selectedOrder.items.map((item, idx) => (
-                   <tr key={idx} className="border-b border-gray-300">
-                     <td className="py-1">{item.productName}</td>
-                     <td className="py-1 text-right">{item.quantity}</td>
-                     <td className="py-1 text-right">
-                       {(item.price * item.quantity).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                     </td>
-                   </tr>
-                 ))}
-               </tbody>
-             </table>
+                    <div className="mb-8">
+                       <h3 className="font-bold mb-4">Müşteri Bilgileri :</h3>
+                       <div className="grid grid-cols-[120px_1fr] gap-2 mb-2 items-center">
+                          <span className="font-semibold">Firma Adı</span>
+                          <span className="border-b border-black pb-1">: {selectedOrder.customerName || '______________________________________'}</span>
+                       </div>
+                       <div className="grid grid-cols-[120px_1fr] gap-2 mb-2 items-center">
+                          <span className="font-semibold">Satıcı</span>
+                          <span className="border-b border-black pb-1">: {store.settings.companyName || '______________________________________'}</span>
+                       </div>
+                    </div>
 
-             <div className="flex justify-end mb-6">
-               <div className="text-right">
-                 <p className="font-bold text-lg">Toplam: {selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
+                    <div className="mb-4">
+                       <h3 className="font-bold mb-4">Sipariş Detayları :</h3>
+                       <table className="w-full contract-table border-collapse border border-black mb-6">
+                         <thead>
+                           <tr className="bg-gray-50">
+                             <th className="font-bold border border-black w-1/2 text-left">Ürün/Hizmet</th>
+                             <th className="font-bold border border-black text-center">Miktar</th>
+                             <th className="font-bold border border-black text-right">Birim Fiyat (TL)</th>
+                             <th className="font-bold border border-black text-right">Toplam (TL)</th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           {selectedOrder.items.map((item, idx) => {
+                             const netAmount = (item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate || 0) / 100));
+                             return (
+                               <tr key={idx}>
+                                 <td className="border border-black text-left">{item.productName}</td>
+                                 <td className="border border-black text-center">{item.quantity}</td>
+                                 <td className="border border-black text-right">
+                                   {item.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                 </td>
+                                 <td className="border border-black text-right">
+                                   {netAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                 </td>
+                               </tr>
+                             );
+                           })}
+                         </tbody>
+                       </table>
+
+                       <div className="flex justify-end mb-12">
+                          <div className="w-64">
+                             <div className="grid grid-cols-2 gap-2 mb-2 text-right">
+                                <span className="font-bold">Ara Toplam :</span>
+                                <span>{(selectedOrder.subTotal || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                             </div>
+                             <div className="grid grid-cols-2 gap-2 mb-2 text-right">
+                                <span className="font-bold">KDV Tutarı :</span>
+                                <span>{(selectedOrder.taxTotal || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                             </div>
+                             <div className="grid grid-cols-2 gap-2 mt-4 text-right">
+                                <span className="font-bold">Genel Toplam :</span>
+                                <span className="font-bold">{selectedOrder.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="mt-8">
+                       <h3 className="font-bold mb-2">Notlar :</h3>
+                       <p className="text-sm whitespace-pre-line">{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</p>
+                    </div>
+
+                    <div className="flex justify-between px-10 text-center mt-16">
+                       <div>
+                         <p className="font-bold mb-8">Teslim Eden</p>
+                         <div className="flex items-end gap-2">
+                            <span>İmza :</span>
+                            <span className="inline-block w-48 border-b border-black"></span>
+                         </div>
+                       </div>
+                       <div>
+                         <p className="font-bold mb-8">Teslim Alan</p>
+                         <div className="flex items-end gap-2">
+                            <span>İmza :</span>
+                            <span className="inline-block w-48 border-b border-black"></span>
+                         </div>
+                       </div>
+                    </div>
+                 </div>
+               </>
+             ) : (
+               // 80MM LAYOUT
+               <div className="w-[300px] mx-auto text-black" style={{ fontSize: '12px' }}>
+                 <div className="text-center mb-6">
+                    {store.settings.companyLogo ? (
+                      <img src={store.settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />
+                    ) : (
+                      <h1 className="font-logo text-4xl mb-2 text-black">{store.settings.printer_header_text || 'esila'}</h1>
+                    )}
+                    <p className="text-xs font-medium">{store.settings.companyName}</p>
+                    <p className="text-xs whitespace-pre-line">{store.settings.address}</p>
+                    {store.settings.taxOffice && store.settings.taxNumber && (
+                       <p className="text-xs mt-1">{store.settings.taxOffice} - VKN: {store.settings.taxNumber}</p>
+                    )}
+                    <p className="text-xs uppercase mt-2 font-bold tracking-widest border-y border-black py-1">Sipariş Fişi</p>
+                 </div>
+                 
+                 <div className="mb-4 text-sm">
+                    <p><strong>Tarih:</strong> {selectedOrder.date}</p>
+                    <p><strong>Fiş No:</strong> {selectedOrder.id}</p>
+                    <p><strong>Müşteri:</strong> {selectedOrder.customerName}</p>
+                 </div>
+
+                 <table className="w-full mb-4 text-sm">
+                   <thead>
+                     <tr className="border-b border-black text-left">
+                       <th className="py-1">Ürün</th>
+                       <th className="py-1 text-right">Adet</th>
+                       <th className="py-1 text-right">Tutar</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {selectedOrder.items.map((item, idx) => (
+                       <tr key={idx} className="border-b border-gray-300">
+                         <td className="py-1">{item.productName}</td>
+                         <td className="py-1 text-right">{item.quantity}</td>
+                         <td className="py-1 text-right">
+                           {(item.price * item.quantity).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+
+                 <div className="flex justify-end mb-6">
+                   <div className="text-right w-full border-t border-black pt-2 border-dashed mt-2">
+                     <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
+                       <span>Ara Toplam:</span>
+                       <span>{(selectedOrder.subTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                     </div>
+                     <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
+                       <span>KDV:</span>
+                       <span>{(selectedOrder.taxTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                     </div>
+                     <div className="flex justify-between items-center text-lg font-bold border-t border-black pt-1 mt-1">
+                       <span>Genel Toplam:</span>
+                       <span>{selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                     </div>
+                   </div>
+                 </div>
+                 
+                 <div className="text-center text-xs mt-8">
+                   <p className="whitespace-pre-line">{store.settings.printer_footer_text || 'Teşekkür Ederiz'}</p>
+                 </div>
                </div>
-             </div>
-             
-             <div className="text-center text-xs mt-8">
-               <p>Teşekkür Ederiz</p>
-             </div>
+             )}
           </div>
         </div>
       )}
