@@ -3,7 +3,8 @@ import {
   TrendingUp, 
   Users, 
   Package, 
-  AlertCircle 
+  AlertCircle,
+  Clock 
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -23,11 +24,18 @@ import { Product } from '../types';
 export const Dashboard: React.FC = () => {
   const { customers, transactions } = useAppStore();
   const [products, setProducts] = useState<Product[]>([]);
+  const [tenantInfo, setTenantInfo] = useState<any>(null);
 
   useEffect(() => {
     api.getProducts()
       .then(fetchedProducts => setProducts(fetchedProducts))
       .catch(err => console.error("Error fetching products", err));
+
+    fetch('/api/tenant-info', {
+      headers: {
+        'x-tenant-id': localStorage.getItem('esila_tenant_id') || ''
+      }
+    }).then(res => res.json()).then(data => setTenantInfo(data)).catch();
   }, []);
 
   const stats = useMemo(() => {
@@ -169,6 +177,19 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* License Info Footer */}
+      {tenantInfo && tenantInfo.expirationDate && (
+        <div className="mt-8 flex justify-center">
+          <div className="bg-white px-4 py-3 rounded-lg shadow-sm border border-gray-200 flex items-center gap-2 text-sm text-gray-600">
+            <Clock size={16} className="text-emerald-500" />
+            <span>Lisans Bitiş Tarihi: <strong>{new Date(tenantInfo.expirationDate).toLocaleDateString('tr-TR')}</strong></span>
+            {new Date(tenantInfo.expirationDate).getTime() < Date.now() + 15 * 24 * 60 * 60 * 1000 && (
+               <span className="text-red-500 font-semibold ml-2">Lisans süreniz yakında dolacak!</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -500,6 +500,69 @@ async function startServer() {
     } catch(e) { res.status(500).json({error: String(e)}); }
   });
 
+  app.put('/api/tenants/:vkn', async (req, res) => {
+    try {
+      const { vkn } = req.params;
+      const data = req.body;
+      
+      let expInterval = "1 YEAR";
+      if (data.package === 'Aylık') expInterval = "1 MONTH";
+      if (data.package === 'Sınırsız') expInterval = "100 YEAR";
+
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        updateFallbackRow('tenants', vkn, vkn, { 
+          name: data.name, 
+          email: data.email, 
+          package: data.package,
+          modules: JSON.stringify(data.modules)
+        });
+        return res.json({success: true});
+      }
+      const pool = getPool();
+      if (data.package) {
+        await pool.query("UPDATE tenants SET name = ?, email = ?, package = ?, modules = ?, expirationDate = DATE_ADD(NOW(), INTERVAL ?) WHERE vkn = ?", 
+        [data.name, data.email, data.package, JSON.stringify(data.modules), expInterval, vkn]);
+      } else {
+         await pool.query("UPDATE tenants SET name = ?, email = ?, modules = ? WHERE vkn = ?", 
+        [data.name, data.email, JSON.stringify(data.modules), vkn]);
+      }
+      res.json({success: true});
+    } catch(e) { res.status(500).json({error: String(e)}); }
+  });
+
+  app.delete('/api/tenants/:vkn', async (req, res) => {
+    try {
+      const { vkn } = req.params;
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const db = loadLocalDb();
+        db['tenants'] = (db['tenants'] || []).filter((t: any) => t.vkn !== vkn && t.id !== vkn);
+        saveLocalDb(db);
+        return res.json({success: true});
+      }
+      const pool = getPool();
+      await pool.query("DELETE FROM tenants WHERE vkn = ?", [vkn]);
+      // Optional: Delete from other tables where vkn = vkn ? Cascade delete handles it usually, or we can manually delete
+      await pool.query("DELETE FROM users WHERE vkn = ?", [vkn]);
+      await pool.query("DELETE FROM settings WHERE vkn = ?", [vkn]);
+      res.json({success: true});
+    } catch(e) { res.status(500).json({error: String(e)}); }
+  });
+
+  app.get('/api/tenant-info', async (req, res) => {
+    try {
+      const vkn = req.headers['x-tenant-id'] || '1111111111';
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const fallbacks = getFallbackTable('tenants');
+         const t = fallbacks.find((x: any) => x.vkn === vkn);
+         return res.json(t || { expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() });
+      }
+      const pool = getPool();
+      const [rows] = await pool.query('SELECT * FROM tenants WHERE vkn = ?', [vkn]);
+      if (rows.length > 0) return res.json(rows[0]);
+      res.json({});
+    } catch(e) { res.status(500).json({ error: String(e) }); }
+  });
+
   app.get('/api/test-users', (req, res) => { res.json(getFallbackTable('users')); });
   
   // Generic CRUD API for all tables

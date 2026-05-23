@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X, Hash, Users } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X, Hash, Users, Clock } from 'lucide-react';
 import { Settings } from '../types';
 import { useAppStore } from '../lib/store';
 import { UsersSettings } from '../components/UsersSettings';
@@ -9,6 +9,15 @@ export const Ayarlar: React.FC = () => {
   const [activeTab, setActiveTab] = useState('genel');
   const [settings, setSettings] = useState<Settings>(store.settings);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [tenantInfo, setTenantInfo] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/tenant-info', {
+      headers: {
+        'x-tenant-id': localStorage.getItem('esila_tenant_id') || ''
+      }
+    }).then(res => res.json()).then(data => setTenantInfo(data)).catch();
+  }, []);
 
   const handleChange = (key: keyof Settings, value: string) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -72,6 +81,23 @@ export const Ayarlar: React.FC = () => {
         <div className="max-w-full sm:max-w-3xl">
           {activeTab === 'genel' && (
             <div className="space-y-6 animate-fade-in">
+              {tenantInfo && tenantInfo.expirationDate && (
+                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                      <Clock size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-emerald-900">Lisans Durumu</h4>
+                      <p className="text-sm text-emerald-700">Lisans Bitiş Tarihi: <strong>{new Date(tenantInfo.expirationDate).toLocaleDateString('tr-TR')}</strong></p>
+                    </div>
+                  </div>
+                  {new Date(tenantInfo.expirationDate).getTime() < Date.now() + 15 * 24 * 60 * 60 * 1000 && (
+                     <span className="text-red-500 font-semibold text-sm bg-red-50 px-3 py-1 rounded-full">Yakında Dolacak!</span>
+                  )}
+                </div>
+              )}
+
               <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Firma Bilgileri</h3>
               <div className="grid grid-cols-1 gap-4 sm:p-6">
                 <div>

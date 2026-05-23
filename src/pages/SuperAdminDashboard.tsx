@@ -15,6 +15,7 @@ interface Tenant {
 export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     vkn: '', name: '', email: '', package: 'Yıllık',
     modules: ['cariler', 'urunler']
@@ -49,16 +50,56 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetch('/api/tenants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, modules: JSON.stringify(formData.modules) })
-      });
-      setIsModalOpen(false);
-      fetchTenants();
-      alert(`Firma eklendi. ${formData.email} adresine mail gönderimi simüle edildi.\nYönetici Şifresi: ${formData.vkn}123`);
+      if (isEditing) {
+        await fetch(`/api/tenants/${formData.vkn}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...formData, modules: formData.modules })
+        });
+        setIsModalOpen(false);
+        fetchTenants();
+        alert('Firma güncellendi.');
+      } else {
+        await fetch('/api/tenants', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...formData, modules: formData.modules })
+        });
+        setIsModalOpen(false);
+        fetchTenants();
+        alert(`Firma eklendi. ${formData.email} adresine mail gönderimi simüle edildi.\nYönetici Şifresi: ${formData.vkn}123`);
+      }
     } catch(e) {
       alert("Hata oluştu.");
+    }
+  };
+
+  const handleEdit = (tenant: Tenant) => {
+    let mods = tenant.modules;
+    if (typeof mods === 'string') {
+      try { mods = JSON.parse(mods); } catch(e) { mods = []; }
+    }
+    if (!mods) mods = [];
+    setFormData({
+      vkn: tenant.vkn,
+      name: tenant.name,
+      email: tenant.email,
+      package: tenant.package,
+      modules: mods
+    });
+    setIsEditing(true);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (vkn: string) => {
+    if (confirm("Bu firmayı tamamen silmek istediğinize emin misiniz? Tüm çalışan, ürün ve diğer verileri silinecektir!")) {
+      try {
+        await fetch(`/api/tenants/${vkn}`, { method: 'DELETE' });
+        fetchTenants();
+        alert('Firma silindi.');
+      } catch(e) {
+        alert("Hata oluştu.");
+      }
     }
   };
 
@@ -95,7 +136,14 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
       <main className="flex-1 max-w-6xl w-full mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Lisanslı Şirketler (Tenants)</h2>
-          <button onClick={() => setIsModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+          <button onClick={() => {
+            setIsEditing(false);
+            setFormData({
+              vkn: '', name: '', email: '', package: 'Yıllık',
+              modules: ['cariler', 'urunler']
+            });
+            setIsModalOpen(true);
+          }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
             <Plus size={18} /> Yeni Şirket Ekle
           </button>
         </div>
@@ -136,7 +184,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                   </td>
                   <td className="p-4">
                     {t.status === 'Bekliyor' ? (
-                       <div className="flex flex-col sm:flex-row items-center gap-2">
+                       <div className="flex flex-col sm:flex-row items-center gap-2 mb-2">
                          <button className="text-blue-600 flex items-center gap-1 hover:underline text-xs bg-blue-50 px-2 py-1 rounded" onClick={() => alert('Mail yeniden gönderildi.')}>
                            <Mail size={14} /> Mail
                          </button>
@@ -145,8 +193,14 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                          </button>
                        </div>
                     ) : (
-                       <span className="text-gray-400 flex items-center gap-1 text-xs"><UserCheck size={14} /> Aktive Edildi</span>
+                       <div className="mb-2">
+                         <span className="text-gray-400 flex items-center gap-1 text-xs"><UserCheck size={14} /> Aktive Edildi</span>
+                       </div>
                     )}
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => handleEdit(t)} className="text-blue-600 hover:underline text-xs">Düzenle</button>
+                      <button onClick={() => handleDelete(t.vkn)} className="text-red-600 hover:underline text-xs">Sil</button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -160,13 +214,13 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
              <div className="p-6 border-b bg-gray-50">
-               <h3 className="text-xl font-bold text-gray-800">Yeni Firma Tanımla</h3>
+               <h3 className="text-xl font-bold text-gray-800">{isEditing ? 'Firmayı Düzenle' : 'Yeni Firma Tanımla'}</h3>
              </div>
              <form onSubmit={handleCreate} className="p-6 overflow-y-auto space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700">VKN *</label>
-                    <input required type="text" value={formData.vkn} onChange={e=>setFormData({...formData, vkn: e.target.value})} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" placeholder="Örn: 1111111111" />
+                    <input required type="text" value={formData.vkn} disabled={isEditing} onChange={e=>setFormData({...formData, vkn: e.target.value})} className={`w-full mt-1 border rounded-lg px-3 py-2 text-sm ${isEditing ? 'bg-gray-100' : ''}`} placeholder="Örn: 1111111111" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">Firma Adı *</label>
@@ -203,7 +257,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                 <div className="pt-4 mt-6 flex justify-end gap-3">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium">İptal</button>
                   <button type="submit" className="px-4 py-2 bg-gray-900 hover:bg-black text-white rounded-lg flex items-center gap-2 text-sm font-medium">
-                    <Plus size={16} /> Tanımla ve Mail Gönder
+                    {isEditing ? 'Güncelle' : <><Plus size={16} /> Tanımla ve Mail Gönder</>}
                   </button>
                 </div>
              </form>
