@@ -681,136 +681,137 @@ export const Teklifler: React.FC = () => {
             {printType === 'A4' ? (
               // A4 LAYOUT
               <>
-                <div className="flex justify-between items-start border-b-2 border-emerald-800 pb-6 mb-8">
-                  <div>
-                    {store.settings.companyLogo ? (
-                      <img src={store.settings.companyLogo} alt="Logo" className="max-h-20 object-contain mb-2" />
-                    ) : (
-                      <h1 className="text-5xl font-logo text-emerald-900 mb-2">{store.settings.printer_header_text || 'esila'}</h1>
-                    )}
-                    <p className="text-gray-500 font-medium">{store.settings.companyName}</p>
-                    <p className="text-gray-500 text-sm whitespace-pre-line">{store.settings.address}</p>
-                    {store.settings.phone && <p className="text-gray-500 text-sm">Tel: {store.settings.phone}</p>}
-                    {store.settings.taxOffice && store.settings.taxNumber && (
-                      <p className="text-gray-500 text-sm">{store.settings.taxOffice} - VKN: {store.settings.taxNumber}</p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-4 uppercase tracking-widest text-emerald-800">TEKLİF FORMU</h2>
-                    <div className="inline-block bg-gray-50 p-4 border border-gray-200 rounded-lg text-left w-56">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-gray-500 text-sm font-medium">Teklif No:</span>
-                        <span className="font-bold text-gray-900">{selectedProposal.id}</span>
-                      </div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-gray-500 text-sm font-medium">Tarih:</span>
-                        <span className="text-gray-900">{selectedProposal.date}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 text-sm font-medium">Geçerlilik:</span>
-                        <span className="text-gray-900">{selectedProposal.validUntil}</span>
-                      </div>
+                 <style>
+                    {`
+                      @media print {
+                        .print-only body { color: #000; font-family: 'Times New Roman', Times, serif; }
+                        table { border-collapse: collapse; }
+                        td, th { padding: 8px; border: 1px solid #000; text-align: left; }
+                      }
+                      .contract-style-header {
+                        font-family: Arial, sans-serif;
+                      }
+                      .contract-table th, .contract-table td {
+                        border: 1px solid #000;
+                        padding: 10px;
+                        font-size: 14px;
+                      }
+                    `}
+                 </style>
+                 <div className="contract-style-header bg-white text-black p-8 mx-auto" style={{ maxWidth: '800px' }}>
+                    <h2 className="text-center text-2xl font-bold mb-10 tracking-wider">FİYAT TEKLİFİ</h2>
+                    
+                    <div className="flex justify-between mb-8">
+                       <div className="flex items-center gap-2">
+                          <span className="font-semibold w-24">Teklif No</span>
+                          <span>: {selectedProposal.id}</span>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <span className="font-semibold w-28">Teklif Tarihi</span>
+                          <span>: {selectedProposal.date}</span>
+                       </div>
                     </div>
-                  </div>
-                </div>
 
-                <div className="mb-10">
-                  <h3 className="text-lg font-bold text-emerald-800 mb-3 border-b border-emerald-100 pb-1 inline-block uppercase tracking-wide">MÜŞTERİ BİLGİLERİ</h3>
-                  <p className="text-xl font-bold text-gray-900">{selectedProposal.customerName}</p>
-                </div>
+                    <div className="mb-8">
+                       <h3 className="font-bold mb-4">Teklif Sahibi Bilgileri :</h3>
+                       <div className="grid grid-cols-[120px_1fr] gap-2 mb-2 items-center">
+                          <span className="font-semibold">Firma Adı</span>
+                          <span className="border-b border-black pb-1">: {store.settings.companyName || '______________________________________'}</span>
+                       </div>
+                       <div className="grid grid-cols-[120px_1fr] gap-2 mb-2 items-center">
+                          <span className="font-semibold">Yetkili Kişi</span>
+                          <span className="border-b border-black pb-1">: {store.settings.authorized_person || '______________________________________'}</span>
+                       </div>
+                       <div className="grid grid-cols-[120px_1fr] gap-2 mb-2 items-center">
+                          <span className="font-semibold">Adres</span>
+                          <span className="border-b border-black pb-1">: {store.settings.address || '______________________________________'}</span>
+                       </div>
+                       <div className="grid grid-cols-[120px_1fr] gap-2 mb-2 items-center">
+                          <span className="font-semibold">Telefon</span>
+                          <span className="border-b border-black pb-1">: {store.settings.phone || '______________________________________'}</span>
+                       </div>
+                       <div className="grid grid-cols-[120px_1fr] gap-2 mb-2 items-center">
+                          <span className="font-semibold">E-posta</span>
+                          <span className="border-b border-black pb-1">: {store.settings.email || '______________________________________'}</span>
+                       </div>
+                    </div>
 
-                <table className="w-full mb-10 border border-gray-200">
-                  <thead className="bg-emerald-800 text-white">
-                    <tr>
-                      <th className="py-3 px-4 text-left font-medium uppercase text-sm tracking-wider w-1/2">Açıklama (Ürün/Hizmet)</th>
-                      <th className="py-3 px-4 text-center font-medium uppercase text-sm tracking-wider">Miktar</th>
-                      <th className="py-3 px-4 text-right font-medium uppercase text-sm tracking-wider">Birim Fiyat</th>
-                      <th className="py-3 px-4 text-center font-medium uppercase text-sm tracking-wider">KDV</th>
-                      <th className="py-3 px-4 text-right font-medium uppercase text-sm tracking-wider">İndirim</th>
-                      <th className="py-3 px-4 text-right font-medium uppercase text-sm tracking-wider">Net Tutar</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 text-gray-800">
-                    {selectedProposal.items.map((item, idx) => {
-                      const baseAmount = item.price * item.quantity;
-                      const discountAmount = baseAmount * (item.discountRate / 100);
-                      const netBeforeTax = baseAmount - discountAmount;
-                      const taxAmount = netBeforeTax * ((item.taxRate || 20) / 100);
-                      const netAmount = netBeforeTax + taxAmount;
-                      return (
-                        <tr key={idx} className="bg-white">
-                          <td className="py-3 px-4">{item.productName}</td>
-                          <td className="py-3 px-4 text-center">{item.quantity}</td>
-                          <td className="py-3 px-4 text-right">{item.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
-                          <td className="py-3 px-4 text-center">%{item.taxRate || 20}</td>
-                          <td className="py-3 px-4 text-right">{item.discountRate > 0 ? `%${item.discountRate}` : '-'}</td>
-                          <td className="py-3 px-4 text-right font-medium">
-                            {netAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                    <div className="mb-4">
+                       <h3 className="font-bold mb-4">Teklif Detayları :</h3>
+                       <table className="w-full contract-table border-collapse border border-black mb-6">
+                         <thead>
+                           <tr className="bg-gray-50">
+                             <th className="font-bold border border-black w-1/2 text-left">Ürün/Hizmet</th>
+                             <th className="font-bold border border-black text-center">Miktar</th>
+                             <th className="font-bold border border-black text-right">Birim Fiyat (TL)</th>
+                             <th className="font-bold border border-black text-right">Toplam (TL)</th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           {selectedProposal.items.map((item, idx) => {
+                             const netPrice = item.price * (1 - item.discountRate / 100);
+                             const netAmount = netPrice * item.quantity;
+                             return (
+                               <tr key={idx}>
+                                 <td className="border border-black text-left">{item.productName}</td>
+                                 <td className="border border-black text-center">{item.quantity}</td>
+                                 <td className="border border-black text-right">
+                                   {netPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                 </td>
+                                 <td className="border border-black text-right">
+                                   {netAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                 </td>
+                               </tr>
+                             );
+                           })}
+                         </tbody>
+                       </table>
 
-                <div className="flex justify-between items-start mb-12">
-                  <div className="w-1/2 pr-8">
-                    {selectedProposal.notes && (
-                      <div>
-                        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-widest mb-2 border-b border-gray-200 pb-1">NOTLAR / ŞARTLAR</h3>
-                        <p className="text-gray-600 text-sm whitespace-pre-line leading-relaxed">
-                          {selectedProposal.notes}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="w-1/2">
-                    <table className="w-full text-gray-800">
-                      <tbody>
-                        <tr>
-                          <td className="py-2 px-4 text-right font-medium text-gray-600">Ara Toplam:</td>
-                          <td className="py-2 px-4 text-right">{selectedProposal.subTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
-                        </tr>
-                        {selectedProposal.discountTotal > 0 && (
-                          <tr>
-                            <td className="py-2 px-4 text-right font-medium text-red-500">Toplam İndirim:</td>
-                            <td className="py-2 px-4 text-right text-red-500">- {selectedProposal.discountTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
-                          </tr>
-                        )}
-                        <tr className="border-b border-gray-200">
-                          <td className="py-2 px-4 text-right font-medium text-gray-600">Ara Toplam (İndirimli):</td>
-                          <td className="py-2 px-4 text-right">{(selectedProposal.subTotal - selectedProposal.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
-                        </tr>
-                        <tr>
-                          <td className="py-2 px-4 text-right font-medium text-gray-600">KDV Tutarı:</td>
-                          <td className="py-2 px-4 text-right">{selectedProposal.taxTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
-                        </tr>
-                        <tr className="bg-gray-50 border border-emerald-200">
-                          <td className="py-3 px-4 text-right font-bold text-lg text-emerald-800">GENEL TOPLAM:</td>
-                          <td className="py-3 px-4 text-right font-bold text-lg text-emerald-800">
-                            {selectedProposal.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                       <div className="flex justify-end mb-12">
+                          <div className="w-64">
+                             <div className="grid grid-cols-2 gap-2 mb-2 text-right">
+                                <span className="font-bold">Ara Toplam :</span>
+                                <span>{(selectedProposal.subTotal - selectedProposal.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                             </div>
+                             <div className="grid grid-cols-2 gap-2 mb-2 text-right">
+                                <span className="font-bold">KDV Tutarı :</span>
+                                <span>{selectedProposal.taxTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                             </div>
+                             <div className="grid grid-cols-2 gap-2 mt-4 text-right">
+                                <span className="font-bold">Genel Toplam :</span>
+                                <span className="font-bold">{selectedProposal.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
 
-                <div className="pt-8 border-t border-gray-200 mt-8">
-                   <div className="flex justify-between px-12 pb-24 text-center">
-                      <div>
-                        <p className="font-bold text-gray-800 uppercase">Firma Yetkilisi</p>
-                        <p className="text-gray-500 mt-1">Kaşe / İmza</p>
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-800 uppercase">Müşteri / Firma Kabul Onayı</p>
-                        <p className="text-gray-500 mt-1">Kaşe / İmza</p>
-                      </div>
-                   </div>
-                </div>
-                <div className="text-center text-xs text-gray-400 mt-8">
-                  * Bu bir teklif belgesidir, mali değeri yoktur. Süresi geçen teklifler için onaydan önce mutlaka firmamızdan fiyat düzeltmesi talep ediniz.
-                </div>
+                    <div className="mb-8">
+                       <h3 className="font-bold mb-2">Ödeme ve Teslimat Koşulları :</h3>
+                       <p className="text-sm">Ödeme vadesi: Fatura tarihinden itibaren 30 gündür. Ödemeler banka havalesi ile yapılacaktır. Teslimat sipariş onayından itibaren 15 iş günü içerisinde gerçekleştirilecektir. Teklif {selectedProposal.validUntil ? `(Geçerlilik tarihi: ${selectedProposal.validUntil}) geçerlidir.` : '15 gün süreyle geçerlidir.'}</p>
+                    </div>
+
+                    <div className="mb-16">
+                       <h3 className="font-bold mb-2">Notlar :</h3>
+                       <p className="text-sm">{selectedProposal.notes || 'Bu teklif kapsamında belirtilen ürün/hizmetler Türkiye Cumhuriyeti mevzuatına uygun olarak sunulmaktadır. Teklif içeriğinde değişiklik yapılabilir. Ayrıntılı bilgi için lütfen iletişime geçiniz.'}</p>
+                    </div>
+
+                    <div className="flex justify-between px-10 text-center">
+                       <div>
+                         <p className="font-bold mb-8">Teklif Veren Yetkili</p>
+                         <div className="flex items-end gap-2">
+                            <span>İmza :</span>
+                            <span className="inline-block w-48 border-b border-black"></span>
+                         </div>
+                       </div>
+                       <div>
+                         <p className="font-bold mb-8">Teklif Alan</p>
+                         <div className="flex items-end gap-2">
+                            <span>İmza :</span>
+                            <span className="inline-block w-48 border-b border-black"></span>
+                         </div>
+                       </div>
+                    </div>
+                 </div>
               </>
             ) : (
               // 80MM LAYOUT

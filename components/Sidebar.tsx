@@ -12,7 +12,8 @@ import {
   Settings as SettingsIcon,
   Globe,
   FileBadge,
-  Handshake
+  Handshake,
+  Zap
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 
@@ -25,6 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
   const { settings } = useAppStore();
   const menuItems = [
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
+    { id: 'hizlisatis', label: 'Hızlı Satış', icon: Zap },
     { id: 'cariler', label: 'Cariler', icon: Users },
     { id: 'urunler', label: 'Ürünler', icon: Package },
     { id: 'siparisler', label: 'Siparişler', icon: ShoppingCart },
