@@ -64,7 +64,10 @@ export const Depo: React.FC = () => {
   const handleDeleteWarehouse = async (whStatName: string, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    const hasProducts = products.some(p => p.warehouse === whStatName);
+    const hasProducts = products.some(p => 
+      p.warehouse === whStatName || 
+      (p.warehouseStocks && p.warehouseStocks.some(ws => ws.warehouseId === whStatName && ws.stock > 0))
+    );
     if (hasProducts) {
       // alert blocked by iframe
       return;
@@ -86,18 +89,29 @@ export const Depo: React.FC = () => {
   };
 
   const warehouseStats = (warehouses || []).map(wh => {
-    const whProducts = (products || []).filter(p => p.warehouse === wh.name);
+    const whProducts = (products || []).filter(p => 
+      p.warehouse === wh.name || 
+      (p.warehouseStocks && p.warehouseStocks.some(ws => ws.warehouseId === wh.name))
+    );
     const uniqueItems = whProducts.length;
-    const totalStock = whProducts.reduce((sum, p) => sum + p.stock, 0);
+    const totalStock = whProducts.reduce((sum, p) => {
+       if (p.warehouseStocks && p.warehouseStocks.length > 0) {
+          const ws = p.warehouseStocks.find(ws => ws.warehouseId === wh.name);
+          return sum + (ws ? ws.stock : 0);
+       }
+       return sum + p.stock;
+    }, 0);
     return { name: wh.name, uniqueItems, totalStock };
   });
 
-  const filteredProducts = (products || []).filter(p => 
-    p.warehouse === activeWarehouse &&
-    (p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     (p.barcode && p.barcode.includes(searchTerm)))
-  );
+  const filteredProducts = (products || []).filter(p => {
+    const isInWh = p.warehouse === activeWarehouse || (p.warehouseStocks && p.warehouseStocks.some(ws => ws.warehouseId === activeWarehouse));
+    if (!isInWh) return false;
+    const searchMatch = p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (p.barcode && p.barcode.includes(searchTerm));
+    return searchMatch;
+  });
 
   return (
     <div className="space-y-6">
@@ -212,13 +226,16 @@ export const Depo: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="inline-flex items-center gap-2">
-                       {product.stock === 0 ? (
-                         <span className="text-red-500 font-medium">0</span>
-                       ) : product.stock < 10 ? (
-                         <span className="text-orange-500 font-medium">{product.stock}</span>
-                       ) : (
-                         <span className="text-emerald-600 font-medium">{product.stock}</span>
-                       )}
+                       {(() => {
+                         const stock = (product.warehouseStocks && product.warehouseStocks.length > 0) ? (product.warehouseStocks.find(ws => ws.warehouseId === activeWarehouse)?.stock || 0) : product.stock;
+                         return stock === 0 ? (
+                           <span className="text-red-500 font-medium">0</span>
+                         ) : stock < 10 ? (
+                           <span className="text-orange-500 font-medium">{stock}</span>
+                         ) : (
+                           <span className="text-emerald-600 font-medium">{stock}</span>
+                         );
+                       })()}
                        <span className="text-gray-400 text-sm">adet</span>
                     </div>
                   </td>

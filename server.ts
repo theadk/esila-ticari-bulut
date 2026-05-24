@@ -530,9 +530,11 @@ async function startServer() {
       if (data.package === 'Sınırsız') expInterval = "100 YEAR";
 
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
-        const dDate = new Date();
-        dDate.setFullYear(dDate.getFullYear() + (data.package === 'Aylık' ? 0 : data.package === 'Sınırsız' ? 100 : 1));
-        if (data.package === 'Aylık') dDate.setMonth(dDate.getMonth() + 1);
+        const dDate = data.expirationDate ? new Date(data.expirationDate) : new Date();
+        if (!data.expirationDate) {
+          dDate.setFullYear(dDate.getFullYear() + (data.package === 'Aylık' ? 0 : data.package === 'Sınırsız' ? 100 : 1));
+          if (data.package === 'Aylık') dDate.setMonth(dDate.getMonth() + 1);
+        }
         
         updateFallbackRow('tenants', vkn, vkn, { 
           name: data.name, 
@@ -545,8 +547,13 @@ async function startServer() {
       }
       const pool = getPool();
       if (data.package) {
-        const q = `UPDATE tenants SET name = ?, email = ?, package = ?, modules = ?, expirationDate = DATE_ADD(NOW(), INTERVAL ${expInterval}) WHERE vkn = ?`;
-        await pool.query(q, [data.name, data.email, data.package, JSON.stringify(data.modules), vkn]);
+        if (data.expirationDate) {
+           const q = `UPDATE tenants SET name = ?, email = ?, package = ?, modules = ?, expirationDate = ? WHERE vkn = ?`;
+           await pool.query(q, [data.name, data.email, data.package, JSON.stringify(data.modules), new Date(data.expirationDate).toISOString().slice(0, 19).replace('T', ' '), vkn]);
+        } else {
+           const q = `UPDATE tenants SET name = ?, email = ?, package = ?, modules = ?, expirationDate = DATE_ADD(NOW(), INTERVAL ${expInterval}) WHERE vkn = ?`;
+           await pool.query(q, [data.name, data.email, data.package, JSON.stringify(data.modules), vkn]);
+        }
       } else {
          await pool.query("UPDATE tenants SET name = ?, email = ?, modules = ? WHERE vkn = ?", 
         [data.name, data.email, JSON.stringify(data.modules), vkn]);

@@ -18,7 +18,8 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     vkn: '', name: '', email: '', package: 'Yıllık',
-    modules: ['cariler', 'urunler']
+    modules: ['cariler', 'urunler'],
+    expirationDate: ''
   });
 
   const MODULES = [
@@ -85,7 +86,8 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
       name: tenant.name,
       email: tenant.email,
       package: tenant.package,
-      modules: mods
+      modules: mods,
+      expirationDate: tenant.expirationDate ? tenant.expirationDate.split('T')[0] : ''
     });
     setIsEditing(true);
     setIsModalOpen(true);
@@ -140,7 +142,8 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
             setIsEditing(false);
             setFormData({
               vkn: '', name: '', email: '', package: 'Yıllık',
-              modules: ['cariler', 'urunler']
+              modules: ['cariler', 'urunler'],
+              expirationDate: ''
             });
             setIsModalOpen(true);
           }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
@@ -241,6 +244,14 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                     </select>
                   </div>
                 </div>
+
+                {isEditing && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block">Lisans Bitiş Tarihi</label>
+                    <p className="text-xs text-gray-500 mb-1">Eğer özel bir bitiş tarihi girmek istiyorsanız seçiniz (Boş bırakılırsa yukarıdaki pakete göre baştan hesaplanır).</p>
+                    <input type="date" value={formData.expirationDate} onChange={e=>setFormData({...formData, expirationDate: e.target.value})} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" />
+                  </div>
+                )}
                 
                 <div className="mt-4">
                   <label className="text-sm font-medium text-gray-700 mb-2 block">Aktif Edilecek Modüller</label>

@@ -50,6 +50,7 @@ export const Urunler: React.FC = () => {
   // Kategori Formu State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [categoryFormData, setCategoryFormData] = useState<Category>({ id: '', name: '', subCategories: [] });
+  const [newSubCategory, setNewSubCategory] = useState('');
   const [isCategoryEditing, setIsCategoryEditing] = useState(false);
 
   // Marka Formu State
@@ -297,12 +298,14 @@ export const Urunler: React.FC = () => {
 
   const handleAddNewCategory = () => {
     setCategoryFormData({ id: Math.random().toString(36).substr(2, 9), name: '', subCategories: [] });
+    setNewSubCategory('');
     setIsCategoryEditing(false);
     setIsCategoryModalOpen(true);
   };
 
   const handleEditCategory = (category: Category) => {
     setCategoryFormData({ ...category });
+    setNewSubCategory('');
     setIsCategoryEditing(true);
     setIsCategoryModalOpen(true);
   };
@@ -1147,14 +1150,56 @@ export const Urunler: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Alt Kategoriler (Virgülle ayırın)</label>
-                  <input 
-                    type="text" 
-                    value={(categoryFormData.subCategories || []).join(', ')}
-                    onChange={(e) => setCategoryFormData({...categoryFormData, subCategories: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="Örn: Telefon, Bilgisayar, Aksesuar"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Alt Kategoriler</label>
+                  <div className="flex gap-2 mb-2">
+                    <input 
+                      type="text" 
+                      value={newSubCategory}
+                      onChange={(e) => setNewSubCategory(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (newSubCategory.trim() && !categoryFormData.subCategories?.includes(newSubCategory.trim())) {
+                            setCategoryFormData({...categoryFormData, subCategories: [...(categoryFormData.subCategories || []), newSubCategory.trim()]});
+                            setNewSubCategory('');
+                          }
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Yeni alt kategori..."
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        if (newSubCategory.trim() && !categoryFormData.subCategories?.includes(newSubCategory.trim())) {
+                          setCategoryFormData({...categoryFormData, subCategories: [...(categoryFormData.subCategories || []), newSubCategory.trim()]});
+                          setNewSubCategory('');
+                        }
+                      }}
+                      className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors"
+                    >
+                      Ekle
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(categoryFormData.subCategories || []).map((subCat, index) => (
+                      <div key={index} className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full text-sm">
+                        <span className="text-gray-700">{subCat}</span>
+                        <button 
+                          type="button"
+                          onClick={() => setCategoryFormData({...categoryFormData, subCategories: categoryFormData.subCategories?.filter((_, i) => i !== index)})}
+                          className="text-gray-500 hover:text-red-500"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    {(categoryFormData.subCategories || []).length === 0 && (
+                      <div className="text-sm text-gray-400 p-2 text-center w-full bg-gray-50 rounded border border-dashed">
+                        Henüz alt kategori eklenmedi.
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3">
