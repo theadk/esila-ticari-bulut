@@ -81,7 +81,7 @@ export const Ayarlar: React.FC = () => {
         <div className="max-w-full sm:max-w-3xl">
           {activeTab === 'genel' && (
             <div className="space-y-6 animate-fade-in">
-              {tenantInfo && tenantInfo.expirationDate && (
+              {tenantInfo && (
                 <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-lg flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
@@ -89,10 +89,10 @@ export const Ayarlar: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold text-emerald-900">Lisans Durumu</h4>
-                      <p className="text-sm text-emerald-700">Lisans Bitiş Tarihi: <strong>{new Date(tenantInfo.expirationDate).toLocaleDateString('tr-TR')}</strong></p>
+                      <p className="text-sm text-emerald-700">Lisans Bitiş Tarihi: <strong>{tenantInfo.expirationDate ? new Date(tenantInfo.expirationDate).toLocaleDateString('tr-TR') : 'Sınırsız (Ömür Boyu)'}</strong></p>
                     </div>
                   </div>
-                  {new Date(tenantInfo.expirationDate).getTime() < Date.now() + 15 * 24 * 60 * 60 * 1000 && (
+                  {tenantInfo.expirationDate && new Date(tenantInfo.expirationDate).getTime() < Date.now() + 15 * 24 * 60 * 60 * 1000 && (
                      <span className="text-red-500 font-semibold text-sm bg-red-50 px-3 py-1 rounded-full">Yakında Dolacak!</span>
                   )}
                 </div>

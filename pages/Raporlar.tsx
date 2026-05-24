@@ -18,7 +18,7 @@ export const Raporlar: React.FC = () => {
     );
 
     completedOrders.forEach(order => {
-      totalRevenue += order.total;
+      totalRevenue += (order.total || (order as any).totalAmount || 0);
 
       order.items.forEach(item => {
         // Find product to get purchase price
@@ -317,7 +317,7 @@ export const Raporlar: React.FC = () => {
                       <td className="py-3 px-4">{new Date(o.date).toLocaleDateString('tr-TR')}</td>
                       <td className="py-3 px-4 font-medium text-gray-800">{o.customerName}</td>
                       <td className="py-3 px-4 text-right font-medium text-gray-800">
-                        {o.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                        {(o.total || (o as any).totalAmount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                       </td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">

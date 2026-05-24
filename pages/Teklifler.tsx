@@ -78,7 +78,7 @@ export const Teklifler: React.FC = () => {
 
   const addItemToCart = () => {
     if (!selectedProductToAdd) return;
-    const product = products.find(p => p.id === selectedProductToAdd);
+    const product = products.find(p => String(p.id) === String(selectedProductToAdd));
     if (!product) return;
 
     const existingIndex = cartItems.findIndex(item => item.productId === product.id);
@@ -272,7 +272,7 @@ export const Teklifler: React.FC = () => {
                   <td className="px-6 py-4 text-gray-600">{proposal.date}</td>
                   <td className="px-6 py-4 text-gray-600">{proposal.validUntil}</td>
                   <td className="px-6 py-4 font-medium text-emerald-600">
-                    {proposal.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    {(proposal.total || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(proposal.status)}`}>
@@ -399,7 +399,7 @@ export const Teklifler: React.FC = () => {
                     </div>
                     <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-lg text-emerald-700">
                       <span>GENEL TOPLAM:</span>
-                      <span>{selectedProposal.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                      <span>{(selectedProposal.total || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                     </div>
                  </div>
                </div>
@@ -473,7 +473,7 @@ export const Teklifler: React.FC = () => {
                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                         value={selectedCustomer?.id || ''}
                         onChange={(e) => {
-                          const c = customers.find(c => c.id === e.target.value);
+                          const c = customers.find(c => String(c.id) === String(e.target.value));
                           setSelectedCustomer(c || null);
                         }}
                       >
@@ -520,18 +520,20 @@ export const Teklifler: React.FC = () => {
                           value={productSearch}
                           onChange={(e) => setProductSearch(e.target.value)}
                         />
-                        <select 
-                          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                          value={selectedProductToAdd}
-                          onChange={(e) => setSelectedProductToAdd(e.target.value)}
-                          size={4}
-                        >
-                          {products.filter(p => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase()) || p.barcode?.includes(productSearch)).map(p => (
-                            <option key={p.id} value={p.id}>
-                              {p.code} - {p.name} - {p.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                            </option>
+                        <div className="w-full border border-gray-300 rounded-lg overflow-y-auto max-h-32 bg-white flex flex-col">
+                          {products.filter(p => !productSearch || (p.name || '').toLowerCase().includes(productSearch.toLowerCase()) || (p.code || '').toLowerCase().includes(productSearch.toLowerCase()) || (p.barcode || '').includes(productSearch)).map(p => (
+                            <div 
+                              key={p.id} 
+                              onClick={() => setSelectedProductToAdd(String(p.id))}
+                              className={`px-3 py-2 cursor-pointer text-sm border-b last:border-b-0 hover:bg-emerald-50 ${selectedProductToAdd === String(p.id) ? 'bg-emerald-100 text-emerald-800 font-medium' : 'text-gray-700'}`}
+                            >
+                              {p.code} - {p.name} - {(p.price || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                            </div>
                           ))}
-                        </select>
+                          {products.filter(p => !productSearch || (p.name || '').toLowerCase().includes(productSearch.toLowerCase()) || (p.code || '').toLowerCase().includes(productSearch.toLowerCase()) || (p.barcode || '').includes(productSearch)).length === 0 && (
+                            <div className="px-3 py-2 text-sm text-gray-500 text-center">Sonuç bulunamadı</div>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="flex flex-wrap gap-2">
@@ -779,7 +781,7 @@ export const Teklifler: React.FC = () => {
                              </div>
                              <div className="grid grid-cols-2 gap-2 mt-4 text-right">
                                 <span className="font-bold">Genel Toplam :</span>
-                                <span className="font-bold">{selectedProposal.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                <span className="font-bold">{(selectedProposal.total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                              </div>
                           </div>
                        </div>
@@ -869,7 +871,7 @@ export const Teklifler: React.FC = () => {
                     </div>
                     <div className="flex justify-between pt-1">
                       <span className="font-bold">Toplam:</span>
-                      <span className="font-bold text-lg">{selectedProposal.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</span>
+                      <span className="font-bold text-lg">{(selectedProposal.total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</span>
                     </div>
                   </div>
                 </div>

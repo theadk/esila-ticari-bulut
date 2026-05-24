@@ -22,6 +22,7 @@ export interface Product {
   brand?: string;
   taxRate?: number;
   variants?: string[];
+  showInQuickSale?: boolean;
 }
 
 export interface Warehouse {

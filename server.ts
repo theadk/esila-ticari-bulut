@@ -274,12 +274,12 @@ async function startServer() {
       return res.json({ id: req.params.id, ...req.body });
     }
     const { id } = req.params;
-    const { code, name, price, purchasePrice, stock, category, warehouse, barcode, description, brand, taxRate, warehouseStocks } = req.body;
+    const { code, name, price, purchasePrice, stock, category, warehouse, barcode, description, brand, taxRate, warehouseStocks, showInQuickSale } = req.body;
     try {
       const pool = getPool();
       await pool.query(
-        'UPDATE products SET code = ?, name = ?, price = ?, stock = ?, category = ?, warehouse = ?, barcode = ?, description = ?, brand = ?, `taxRate` = ?, `warehouseStocks` = ?, `purchasePrice` = ? WHERE id = ? AND vkn = ?',
-        [code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice, id, req.headers['x-tenant-id'] || '1111111111']
+        'UPDATE products SET code = ?, name = ?, price = ?, stock = ?, category = ?, warehouse = ?, barcode = ?, description = ?, brand = ?, `taxRate` = ?, `warehouseStocks` = ?, `purchasePrice` = ?, `showInQuickSale` = ? WHERE id = ? AND vkn = ?',
+        [code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice, showInQuickSale ? 1 : 0, id, req.headers['x-tenant-id'] || '1111111111']
       );
       res.json({ id, ...req.body });
     } catch (e) {
@@ -293,10 +293,10 @@ async function startServer() {
       insertFallbackRow('products', { ...req.body, vkn, id: req.body.id || String(Date.now()) });
       return res.json(req.body);
     }
-    const { id, code, name, price, purchasePrice, stock, category, warehouse, barcode, description, brand, taxRate, warehouseStocks } = req.body;
+    const { id, code, name, price, purchasePrice, stock, category, warehouse, barcode, description, brand, taxRate, warehouseStocks, showInQuickSale } = req.body;
     try {
       const pool = getPool();
-      await pool.query('INSERT INTO products (vkn, id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [req.headers['x-tenant-id'] || '1111111111', id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice]
+      await pool.query('INSERT INTO products (vkn, id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`, `showInQuickSale`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [req.headers['x-tenant-id'] || '1111111111', id, code, name, price, stock, category, warehouse, barcode, description, brand, taxRate, JSON.stringify(warehouseStocks || []), purchasePrice, showInQuickSale ? 1 : 0]
       );
       res.json(req.body);
     } catch (e) {
@@ -534,9 +534,7 @@ async function startServer() {
     try {
       const { vkn } = req.params;
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
-        const db = loadLocalDb();
-        db['tenants'] = (db['tenants'] || []).filter((t: any) => t.vkn !== vkn && t.id !== vkn);
-        saveLocalDb(db);
+        deleteFallbackRow('tenants', vkn, vkn);
         return res.json({success: true});
       }
       const pool = getPool();

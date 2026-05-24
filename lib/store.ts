@@ -146,15 +146,33 @@ export async function initializeStore() {
       { name: 'users', ref: (data: any) => { globalUsers = data; } },
       { name: 'settings', ref: (data: any) => { if(data.length > 0) globalSettings = data[0]; } },
       { name: 'customers', ref: (data: any) => { globalCustomers = data; } },
-      { name: 'products', ref: (data: any) => { globalProducts = data.map((d:any)=>({...d, warehouseStocks: typeof d.warehouseStocks === 'string' ? JSON.parse(d.warehouseStocks): (d.warehouseStocks||[])})); } },
+      { name: 'products', ref: (data: any) => { globalProducts = data.map((d:any)=>({...d, showInQuickSale: !!d.showInQuickSale, warehouseStocks: typeof d.warehouseStocks === 'string' ? JSON.parse(d.warehouseStocks): (d.warehouseStocks||[])})); } },
       { name: 'categories', ref: (data: any) => { /* already in another branch but if we migrate.. */ } },
       { name: 'brands', ref: (data: any) => { /* ... */ } },
       { name: 'warehouses', ref: (data: any) => { /* ... */ } },
       { name: 'customer_transactions', ref: (data: any) => { globalTransactions = data; } },
       { name: 'cash_transactions', ref: (data: any) => { globalCashTransactions = data; } },
       { name: 'personnel', ref: (data: any) => { globalPersonnel = data; } },
-      { name: 'orders', ref: (data: any) => { globalOrders = data.map((d:any)=>({...d, items: typeof d.items === 'string' ? JSON.parse(d.items): (d.items||[])})); } },
-      { name: 'proposals', ref: (data: any) => { globalProposals = data.map((d:any)=>({...d, items: typeof d.items === 'string' ? JSON.parse(d.items): (d.items||[])})); } }
+      { name: 'orders', ref: (data: any) => { 
+        globalOrders = data.map((d:any)=>{
+           const parsedItems = typeof d.items === 'string' ? JSON.parse(d.items): (d.items||[]);
+           const fixedItems = parsedItems.map((i: any) => ({
+               ...i, 
+               price: i.price !== undefined ? i.price : (i.unitPrice || 0)
+           }));
+           return { ...d, items: fixedItems, total: d.total !== undefined ? d.total : (d.totalAmount || 0) };
+        }); 
+      } },
+      { name: 'proposals', ref: (data: any) => { 
+        globalProposals = data.map((d:any)=>{
+           const parsedItems = typeof d.items === 'string' ? JSON.parse(d.items): (d.items||[]);
+           const fixedItems = parsedItems.map((i: any) => ({
+               ...i, 
+               price: i.price !== undefined ? i.price : (i.unitPrice || 0)
+           }));
+           return { ...d, items: fixedItems, total: d.total !== undefined ? d.total : (d.totalAmount || 0) };
+        }); 
+      } }
     ];
     
     for (const t of tables) {

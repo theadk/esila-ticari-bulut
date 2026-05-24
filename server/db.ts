@@ -63,7 +63,8 @@ export async function initDb() {
         description TEXT,
         brand VARCHAR(255),
         taxRate REAL,
-        warehouseStocks JSON
+        warehouseStocks JSON,
+        showInQuickSale BOOLEAN DEFAULT false
       );
     `);
 

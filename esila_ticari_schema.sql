@@ -88,7 +88,8 @@ CREATE TABLE IF NOT EXISTS products (
     description TEXT,
     brand VARCHAR(255),
     taxRate DECIMAL(5,2),
-    warehouseStocks JSON
+    warehouseStocks JSON,
+    showInQuickSale BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS customers (

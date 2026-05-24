@@ -179,12 +179,12 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* License Info Footer */}
-      {tenantInfo && tenantInfo.expirationDate && (
+      {tenantInfo && (
         <div className="mt-8 flex justify-center">
           <div className="bg-white px-4 py-3 rounded-lg shadow-sm border border-gray-200 flex items-center gap-2 text-sm text-gray-600">
             <Clock size={16} className="text-emerald-500" />
-            <span>Lisans Bitiş Tarihi: <strong>{new Date(tenantInfo.expirationDate).toLocaleDateString('tr-TR')}</strong></span>
-            {new Date(tenantInfo.expirationDate).getTime() < Date.now() + 15 * 24 * 60 * 60 * 1000 && (
+            <span>Lisans Bitiş Tarihi: <strong>{tenantInfo.expirationDate ? new Date(tenantInfo.expirationDate).toLocaleDateString('tr-TR') : 'Sınırsız (Ömür Boyu)'}</strong></span>
+            {tenantInfo.expirationDate && new Date(tenantInfo.expirationDate).getTime() < Date.now() + 15 * 24 * 60 * 60 * 1000 && (
                <span className="text-red-500 font-semibold ml-2">Lisans süreniz yakında dolacak!</span>
             )}
           </div>

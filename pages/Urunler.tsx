@@ -20,7 +20,8 @@ const INITIAL_FORM: Product = {
   description: '',
   brand: '',
   taxRate: 20,
-  variants: []
+  variants: [],
+  showInQuickSale: false
 };
 
 export const Urunler: React.FC = () => {
@@ -620,7 +621,10 @@ export const Urunler: React.FC = () => {
                         <Package size={20} />
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-800">{product.name}</div>
+                        <div className="font-semibold text-gray-800 flex items-center gap-2">
+                          {product.name}
+                          {product.showInQuickSale && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] rounded-full" title="Hızlı Satışta Listeleniyor">Hızlı</span>}
+                        </div>
                         <div className="text-xs text-gray-500">{product.code}</div>
                       </div>
                     </div>
@@ -712,7 +716,10 @@ export const Urunler: React.FC = () => {
                    <Package size={32} />
                 </div>
                 <div>
-                   <h2 className="text-xl font-bold text-gray-800">{selectedProduct.name}</h2>
+                   <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                     {selectedProduct.name}
+                     {selectedProduct.showInQuickSale && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs rounded-full" title="Hızlı Satışta Listeleniyor">Hızlı</span>}
+                   </h2>
                    <p className="text-gray-500">{selectedProduct.code}</p>
                 </div>
               </div>
@@ -950,6 +957,18 @@ export const Urunler: React.FC = () => {
                     <option value={10}>%10</option>
                     <option value={20}>%20</option>
                   </select>
+                </div>
+                <div className="flex items-center space-x-2 mt-7">
+                  <input
+                    type="checkbox"
+                    id="showInQuickSale"
+                    checked={formData.showInQuickSale || false}
+                    onChange={(e) => setFormData({...formData, showInQuickSale: e.target.checked})}
+                    className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 focus:ring-2"
+                  />
+                  <label htmlFor="showInQuickSale" className="text-sm font-medium text-gray-700">
+                    Hızlı Satışta Göster
+                  </label>
                 </div>
               </div>
 

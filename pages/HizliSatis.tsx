@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, Search, Plus, Minus, Trash2, CreditCard, Banknote, CheckCircle, Userplus, User } from 'lucide-react';
 import { useAppStore } from '../lib/store';
-import { Product, Customer } from '../types';
+import { Product, Customer, OrderStatus } from '../types';
 
 export const HizliSatis: React.FC = () => {
   const store = useAppStore();
@@ -109,7 +109,7 @@ export const HizliSatis: React.FC = () => {
   const handleCheckout = (paymentMethod: 'Nakit' | 'Kredi Kartı') => {
     if (cart.length === 0) return;
 
-    const currentCustomer = customers.find(c => c.id === selectedCustomerId) || { id: 'RETAIL', name: 'Perakende Müşteri' };
+    const currentCustomer = customers.find(c => String(c.id) === String(selectedCustomerId)) || { id: 'RETAIL', name: 'Perakende Müşteri' };
     const totalAmount = calculateTotal();
 
     // 1. Create Cash Transaction
@@ -143,17 +143,18 @@ export const HizliSatis: React.FC = () => {
     
     // 2.5 Create Order
     const newOrder = {
-       id: `ORD-${Date.now()}`,
+       id: `SIP-HS-${Date.now()}`,
        customerId: currentCustomer.id,
-       date: new Date().toISOString().split('T')[0],
-       status: 'Teslim Edildi' as const,
+       customerName: currentCustomer.name,
+       date: new Date().toISOString(),
+       status: OrderStatus.COMPLETED,
        items: cart.map(c => ({
          productId: c.product.id,
+         productName: c.product.name,
          quantity: c.quantity,
-         unitPrice: c.product.price,
-         totalPrice: c.product.price * c.quantity
+         price: c.product.price
        })),
-       totalAmount
+       total: totalAmount
     };
     store.setOrders([...(store.orders || []), newOrder]);
 
@@ -214,9 +215,9 @@ export const HizliSatis: React.FC = () => {
     if (!searchTerm) return [];
     const term = searchTerm.toLowerCase();
     return products.filter(p => 
-      p.name.toLowerCase().includes(term) || 
-      p.barcode?.includes(term) || 
-      p.code.toLowerCase().includes(term)
+      (p.name || '').toLowerCase().includes(term) || 
+      (p.barcode || '').toLowerCase().includes(term) || 
+      (p.code || '').toLowerCase().includes(term)
     );
   };
 
@@ -264,20 +265,18 @@ export const HizliSatis: React.FC = () => {
           </div>
         </div>
 
-        {/* Hızlı Kategori/Ürünler (Eğer arama yoksa popüler/tüm ürünleri listele) */}
+        {/* Hızlı Kategori/Ürünler (Eğer arama yoksa hızlı satışta gösterilenleri listele) */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex-1 overflow-hidden flex flex-col">
-          <h3 className="font-semibold text-gray-700 pb-2 border-b mb-4">Ürünler</h3>
-          <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-             {(searchTerm ? filteredProducts : products.slice(0, 48)).map(product => (
+          <h3 className="font-semibold text-gray-700 pb-2 border-b mb-4">Hızlı Satış Ürünleri</h3>
+          <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+             {(searchTerm ? filteredProducts : products.filter(p => p.showInQuickSale)).map(product => (
                 <div 
                   key={product.id} 
                   onClick={() => handleAddToCart(product)}
-                  className="border border-gray-200 rounded-lg p-3 hover:border-emerald-500 hover:shadow-md cursor-pointer transition-all flex flex-col items-center text-center justify-between"
-                  style={{ minHeight: '120px' }}
+                  className="border border-gray-200 rounded-xl p-2 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-400 hover:shadow-sm cursor-pointer transition-colors flex flex-col items-center text-center justify-center min-h-[80px]"
                 >
-                   <div className="text-sm font-medium text-gray-800 line-clamp-2 mb-2">{product.name}</div>
-                   <div className="text-emerald-600 font-bold">{product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</div>
-                   <div className="text-xs text-gray-500 mt-1">Stok: {product.stock}</div>
+                   <div className="text-xs font-semibold text-emerald-900 line-clamp-2 mb-1">{product.name}</div>
+                   <div className="text-emerald-700 font-bold text-sm">{(product.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</div>
                 </div>
              ))}
           </div>

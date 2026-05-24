@@ -54,7 +54,7 @@ export const Siparisler: React.FC = () => {
   const addItemToCart = () => {
     if (!selectedProductToAdd) return;
     
-    const product = products.find(p => p.id === selectedProductToAdd);
+    const product = products.find(p => String(p.id) === String(selectedProductToAdd));
     if (!product) return;
 
     const existingItemIndex = cartItems.findIndex(item => item.productId === product.id);
@@ -185,7 +185,7 @@ export const Siparisler: React.FC = () => {
         customerId: targetOrder.customerId,
         date: new Date().toISOString().split('T')[0],
         type: 'Tahsilat',
-        amount: -targetOrder.total,
+        amount: -(targetOrder.total || (targetOrder as any).totalAmount || 0),
         description: `Sipariş İptali: ${targetOrder.id}`
       };
       setTransactions([...transactions, cancellationTx]);
@@ -193,7 +193,7 @@ export const Siparisler: React.FC = () => {
       // Deduct from customer balance
       const updatedCustomers = customers.map(c => {
         if (c.id === targetOrder.customerId) {
-          return { ...c, balance: c.balance - targetOrder.total };
+          return { ...c, balance: c.balance - (targetOrder.total || (targetOrder as any).totalAmount || 0) };
         }
         return c;
       });
@@ -271,7 +271,7 @@ export const Siparisler: React.FC = () => {
                   <td className="px-6 py-4 font-medium text-gray-800">{order.customerName}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{order.date}</td>
                   <td className="px-6 py-4 font-semibold text-gray-800">
-                    {order.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    {(order.total || (order as any).totalAmount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
@@ -373,7 +373,7 @@ export const Siparisler: React.FC = () => {
                    <div className="flex justify-between items-center text-lg font-bold">
                      <span className="text-gray-600">Genel Toplam:</span>
                      <span className="text-emerald-600">
-                       {selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                       {(selectedOrder.total || (selectedOrder as any).totalAmount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                      </span>
                    </div>
                 </div>
@@ -482,18 +482,20 @@ export const Siparisler: React.FC = () => {
                           value={productSearch}
                           onChange={(e) => setProductSearch(e.target.value)}
                         />
-                        <select 
-                          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                          value={selectedProductToAdd}
-                          onChange={(e) => setSelectedProductToAdd(e.target.value)}
-                          size={4}
-                        >
-                          {products.filter(p => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase()) || p.barcode?.includes(productSearch)).map(p => (
-                            <option key={p.id} value={p.id}>
-                              {p.code} - {p.name} - {Number(p.price).toLocaleString('tr-TR')}₺
-                            </option>
+                        <div className="w-full border border-gray-300 rounded-lg overflow-y-auto max-h-32 bg-white flex flex-col text-sm">
+                          {products.filter(p => !productSearch || (p.name || '').toLowerCase().includes(productSearch.toLowerCase()) || (p.code || '').toLowerCase().includes(productSearch.toLowerCase()) || (p.barcode || '').includes(productSearch)).map(p => (
+                            <div 
+                              key={p.id} 
+                              onClick={() => setSelectedProductToAdd(String(p.id))}
+                              className={`px-3 py-2 cursor-pointer border-b last:border-b-0 hover:bg-emerald-50 ${selectedProductToAdd === String(p.id) ? 'bg-emerald-100 text-emerald-800 font-medium' : 'text-gray-700'}`}
+                            >
+                              {p.code} - {p.name} - {(p.price || 0).toLocaleString('tr-TR')}₺
+                            </div>
                           ))}
-                        </select>
+                          {products.filter(p => !productSearch || (p.name || '').toLowerCase().includes(productSearch.toLowerCase()) || (p.code || '').toLowerCase().includes(productSearch.toLowerCase()) || (p.barcode || '').includes(productSearch)).length === 0 && (
+                            <div className="px-3 py-2 text-gray-500 text-center">Sonuç bulunamadı</div>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="flex flex-wrap gap-2">
@@ -723,7 +725,7 @@ export const Siparisler: React.FC = () => {
                                      <td className="border border-black text-left">{item.productName}</td>
                                      <td className="border border-black text-center">{item.quantity}</td>
                                      <td className="border border-black text-right">
-                                       {item.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                       {(item.price || (item as any).unitPrice || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                      </td>
                                      <td className="border border-black text-right">
                                        {netAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
@@ -746,7 +748,7 @@ export const Siparisler: React.FC = () => {
                                  </div>
                                  <div className="grid grid-cols-2 gap-2 mt-4 text-right">
                                     <span className="font-bold">Genel Toplam :</span>
-                                    <span className="font-bold">{selectedOrder.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                    <span className="font-bold">{(selectedOrder.total || (selectedOrder as any).totalAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                                  </div>
                               </div>
                            </div>
@@ -833,7 +835,7 @@ export const Siparisler: React.FC = () => {
                          </div>
                          <div className="flex justify-between items-center text-lg font-bold border-t border-gray-300 pt-1 mt-1">
                            <span>Genel Toplam:</span>
-                           <span>{selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                           <span>{(selectedOrder.total || (selectedOrder as any).totalAmount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                          </div>
                        </div>
                      </div>
@@ -957,7 +959,7 @@ export const Siparisler: React.FC = () => {
                              </div>
                              <div className="grid grid-cols-2 gap-2 mt-4 text-right">
                                 <span className="font-bold">Genel Toplam :</span>
-                                <span className="font-bold">{selectedOrder.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                <span className="font-bold">{(selectedOrder.total || (selectedOrder as any).totalAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                              </div>
                           </div>
                        </div>
@@ -1042,7 +1044,7 @@ export const Siparisler: React.FC = () => {
                      </div>
                      <div className="flex justify-between items-center text-lg font-bold border-t border-black pt-1 mt-1">
                        <span>Genel Toplam:</span>
-                       <span>{selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                       <span>{(selectedOrder.total || (selectedOrder as any).totalAmount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                      </div>
                    </div>
                  </div>
