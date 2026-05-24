@@ -34,9 +34,19 @@ async function startServer() {
     try {
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
         const fallbackUsers = getFallbackTable('users');
+        const fallbackTenants = getFallbackTable('tenants');
         const user = fallbackUsers.find(u => (u.username === username || u.email === username) && u.passwordHash === password);
         if (user) {
           if (user.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
+          
+          const tenant = fallbackTenants.find((t: any) => t.vkn === user.vkn);
+          if (tenant) {
+             if (tenant.status === 'Pasif') return res.status(401).json({ error: 'Firma hesabı pasif durumdadır.' });
+             if (tenant.expirationDate && new Date(tenant.expirationDate) < new Date()) {
+                return res.status(401).json({ error: 'Firma lisans süresi dolmuştur.' });
+             }
+          }
+          
           return res.json(user);
         }
         return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
@@ -47,6 +57,16 @@ async function startServer() {
       const user = rows[0];
       if (user) {
         if (user.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
+        
+        const [tenantRows] = await pool.query('SELECT * FROM tenants WHERE vkn = ?', [user.vkn]);
+        const tenant = tenantRows[0];
+        if (tenant) {
+           if (tenant.status === 'Pasif') return res.status(401).json({ error: 'Firma hesabı pasif durumdadır.' });
+           if (tenant.expirationDate && new Date(tenant.expirationDate) < new Date()) {
+              return res.status(401).json({ error: 'Firma lisans süresi dolmuştur.' });
+           }
+        }
+        
         return res.json(user);
       }
       return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
@@ -510,18 +530,23 @@ async function startServer() {
       if (data.package === 'Sınırsız') expInterval = "100 YEAR";
 
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const dDate = new Date();
+        dDate.setFullYear(dDate.getFullYear() + (data.package === 'Aylık' ? 0 : data.package === 'Sınırsız' ? 100 : 1));
+        if (data.package === 'Aylık') dDate.setMonth(dDate.getMonth() + 1);
+        
         updateFallbackRow('tenants', vkn, vkn, { 
           name: data.name, 
           email: data.email, 
           package: data.package,
-          modules: JSON.stringify(data.modules)
+          modules: JSON.stringify(data.modules),
+          expirationDate: dDate.toISOString()
         });
         return res.json({success: true});
       }
       const pool = getPool();
       if (data.package) {
-        await pool.query("UPDATE tenants SET name = ?, email = ?, package = ?, modules = ?, expirationDate = DATE_ADD(NOW(), INTERVAL ?) WHERE vkn = ?", 
-        [data.name, data.email, data.package, JSON.stringify(data.modules), expInterval, vkn]);
+        const q = `UPDATE tenants SET name = ?, email = ?, package = ?, modules = ?, expirationDate = DATE_ADD(NOW(), INTERVAL ${expInterval}) WHERE vkn = ?`;
+        await pool.query(q, [data.name, data.email, data.package, JSON.stringify(data.modules), vkn]);
       } else {
          await pool.query("UPDATE tenants SET name = ?, email = ?, modules = ? WHERE vkn = ?", 
         [data.name, data.email, JSON.stringify(data.modules), vkn]);

@@ -31,6 +31,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activePage, setActivePage] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [tenantInfo, setTenantInfo] = useState<any>(null);
 
   // Super Admin Check via URL params
   const searchParams = new URLSearchParams(window.location.search);
@@ -40,6 +41,9 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       initializeStore();
+      fetch('/api/tenant-info', {
+        headers: { 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '' }
+      }).then(res => res.json()).then(data => setTenantInfo(data)).catch(console.error);
     }
   }, [isAuthenticated]);
 
@@ -99,7 +103,7 @@ const App: React.FC = () => {
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar - Hidden on print */}
       <div className={`fixed inset-y-0 left-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-200 ease-in-out no-print`}>
-        <Sidebar activePage={activePage} setActivePage={(page) => { setActivePage(page); setIsMobileMenuOpen(false); }} />
+        <Sidebar activePage={activePage} setActivePage={(page) => { setActivePage(page); setIsMobileMenuOpen(false); }} tenantInfo={tenantInfo} />
       </div>
 
       {/* Mobile overlay */}

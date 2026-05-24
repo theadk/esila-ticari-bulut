@@ -20,11 +20,12 @@ import { useAppStore } from '../lib/store';
 interface SidebarProps {
   activePage: string;
   setActivePage: (page: string) => void;
+  tenantInfo?: any;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, tenantInfo }) => {
   const { settings } = useAppStore();
-  const menuItems = [
+  const allMenuItems = [
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
     { id: 'hizlisatis', label: 'Hızlı Satış', icon: Zap },
     { id: 'cariler', label: 'Cariler', icon: Users },
@@ -39,6 +40,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
     { id: 'teklif', label: 'Teklifler', icon: FileBadge },
     { id: 'ayarlar', label: 'Ayarlar', icon: SettingsIcon },
   ];
+
+  const allowedModules = tenantInfo?.modules 
+    ? (typeof tenantInfo.modules === 'string' ? JSON.parse(tenantInfo.modules) : tenantInfo.modules)
+    : ['all'];
+
+  const menuItems = allMenuItems.filter(item => {
+    if (allowedModules.includes('all')) return true;
+    if (item.id === 'dashboard' || item.id === 'ayarlar' || item.id === 'efatura') return true;
+    // Map some module names
+    const mappedId = item.id === 'teklif' ? 'teklifler' : item.id === 'hizlisatis' ? 'siparisler' : item.id;
+    return allowedModules.includes(mappedId);
+  });
 
   return (
     <div className="h-screen w-64 bg-emerald-900 text-white flex flex-col shadow-xl z-50">
