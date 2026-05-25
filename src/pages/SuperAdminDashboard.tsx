@@ -32,7 +32,8 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     { id: 'siparisler', name: 'Siparişler' },
     { id: 'teklifler', name: 'Teklifler' },
     { id: 'mutabakat', name: 'Mutabakat' },
-    { id: 'raporlar', name: 'Raporlar' }
+    { id: 'raporlar', name: 'Raporlar' },
+    { id: 'ariza', name: 'Arıza Formları' }
   ];
 
   const fetchTenants = async () => {
