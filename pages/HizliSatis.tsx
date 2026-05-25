@@ -130,15 +130,26 @@ export const HizliSatis: React.FC = () => {
     cart.forEach(item => {
       const idx = newProducts.findIndex(p => p.id === item.product.id);
       if (idx !== -1) {
-        newProducts[idx] = { ...newProducts[idx], stock: Math.max(0, newProducts[idx].stock - item.quantity) };
-        try {
-          // Assume api.updateProduct exists, if not it will fail silently here, but we also update local store for UI reactivity
-          // We would import api from '../lib/api'. For now just update local store.
-        } catch(e) {}
+        let p = newProducts[idx];
+        let remainingQuantity = item.quantity;
+        let newWarehouseStocks = [...(p.warehouseStocks || [])];
+        
+        for (let i = 0; i < newWarehouseStocks.length; i++) {
+            if (remainingQuantity <= 0) break;
+            if (newWarehouseStocks[i].stock > 0) {
+                const deduct = Math.min(newWarehouseStocks[i].stock, remainingQuantity);
+                newWarehouseStocks[i] = { ...newWarehouseStocks[i], stock: newWarehouseStocks[i].stock - deduct };
+                remainingQuantity -= deduct;
+            }
+        }
+
+        newProducts[idx] = { 
+            ...p, 
+            stock: Math.max(0, p.stock - item.quantity),
+            warehouseStocks: newWarehouseStocks
+        };
       }
     });
-    // This is assuming 'store.setProducts' exists, but Siparisler updates its own state. 
-    // In Siparisler, they do: api.updateProduct and setProducts. Since I'm using store.products, I can just use store.setProducts.
     store.setProducts(newProducts);
     
     // 2.5 Create Order
@@ -269,7 +280,7 @@ export const HizliSatis: React.FC = () => {
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex-1 overflow-hidden flex flex-col">
           <h3 className="font-semibold text-gray-700 pb-2 border-b mb-4">Hızlı Satış Ürünleri</h3>
           <div className="flex-1 overflow-y-auto pr-2 flex flex-wrap gap-2 content-start">
-             {(searchTerm ? filteredProducts : products).map(product => (
+             {(searchTerm ? filteredProducts : products.filter(p => p.showInQuickSale)).map(product => (
                 <div 
                   key={product.id} 
                   onClick={() => handleAddToCart(product)}

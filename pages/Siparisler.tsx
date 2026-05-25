@@ -15,11 +15,8 @@ export const Siparisler: React.FC = () => {
   const cashTransactions = store.cashTransactions;
   const setCashTransactions = store.setCashTransactions;
 
-  const [products, setProducts] = useState<Product[]>([]);
-  
-  useEffect(() => {
-    api.getProducts().then(setProducts).catch(console.error);
-  }, []);
+  const products = store.products;
+  const setProducts = store.setProducts;
   
   // Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -111,6 +108,33 @@ export const Siparisler: React.FC = () => {
       next_order_id: (store.settings.next_order_id || 1001) + 1
     });
 
+    // Reduce Stock
+    let newProducts = [...products];
+    cartItems.forEach(item => {
+      const idx = newProducts.findIndex(p => String(p.id) === String(item.productId));
+      if (idx !== -1) {
+        let p = newProducts[idx];
+        let remainingQuantity = item.quantity;
+        let newWarehouseStocks = [...(p.warehouseStocks || [])];
+        
+        for (let i = 0; i < newWarehouseStocks.length; i++) {
+            if (remainingQuantity <= 0) break;
+            if (newWarehouseStocks[i].stock > 0) {
+                const deduct = Math.min(newWarehouseStocks[i].stock, remainingQuantity);
+                newWarehouseStocks[i] = { ...newWarehouseStocks[i], stock: newWarehouseStocks[i].stock - deduct };
+                remainingQuantity -= deduct;
+            }
+        }
+
+        newProducts[idx] = { 
+            ...p, 
+            stock: Math.max(0, p.stock - item.quantity),
+            warehouseStocks: newWarehouseStocks
+        };
+      }
+    });
+    setProducts(newProducts);
+
     
     // 1. Cariye Satış İşle
     const newTransaction: CustomerTransaction = {
@@ -198,6 +222,27 @@ export const Siparisler: React.FC = () => {
         return c;
       });
       setCustomers(updatedCustomers);
+      
+      // Restore stock
+      let newProducts = [...products];
+      (targetOrder.items || []).forEach(item => {
+        const idx = newProducts.findIndex(p => String(p.id) === String(item.productId));
+        if (idx !== -1) {
+          let p = newProducts[idx];
+          // Since we cannot perfectly know which warehouse it was deducted from in multi-warehouse scenarios without transaction logs,
+          // we'll just add it to the first warehouse or the main stock.
+          let newWarehouseStocks = [...(p.warehouseStocks || [])];
+          if (newWarehouseStocks.length > 0) {
+             newWarehouseStocks[0] = { ...newWarehouseStocks[0], stock: newWarehouseStocks[0].stock + item.quantity };
+          }
+          newProducts[idx] = { 
+              ...p, 
+              stock: p.stock + item.quantity,
+              warehouseStocks: newWarehouseStocks
+          };
+        }
+      });
+      setProducts(newProducts);
     }
 
     const updatedOrders = orders.map(o => 
