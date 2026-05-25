@@ -197,20 +197,53 @@ export const Personel: React.FC = () => {
     setIsAddingPayroll(false);
   };
 
-  const sendEPayroll = (payroll: Payroll) => {
-    alert(`E-Bordro ${selectedPersonnel?.email} adresine mail olarak gönderildi (Simülasyon)`);
-    // update sent at
-    const updatedPayroll = {...payroll, emailSentAt: new Date().toISOString()};
-    setPersonnel(personnel.map(p => {
-        if(p.id === selectedPersonnel?.id) {
-            return {...p, payrolls: p.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || [] };
-        }
-        return p;
-    }));
-    setSelectedPersonnel({
-        ...selectedPersonnel!,
-        payrolls: selectedPersonnel?.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || []
-    });
+  const sendEPayroll = async (payroll: Payroll) => {
+    if (!selectedPersonnel?.email) return alert("Personelin e-posta adresi bulunmamaktadır.");
+
+    const body = `
+      <div style="font-family: sans-serif; padding: 20px;">
+        <h2>Sayın ${selectedPersonnel.firstName} ${selectedPersonnel.lastName},</h2>
+        <p><strong>${payroll.date}</strong> dönemi e-bordronuz ektedir.</p>
+        <ul>
+          <li><strong>Temel Maaş:</strong> ${payroll.basicSalary.toLocaleString('tr-TR')} TL</li>
+          <li><strong>Toplam Kesintiler:</strong> ${payroll.totalDeductions.toLocaleString('tr-TR')} TL</li>
+          <li><strong>Net Ödenen:</strong> ${payroll.netSalary.toLocaleString('tr-TR')} TL</li>
+        </ul>
+        <p>İyi çalışmalar dileriz.</p>
+      </div>
+    `;
+
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+           to: selectedPersonnel.email, 
+           subject: `${payroll.date} Dönemi Maaş Bordrosu`, 
+           html: body 
+        })
+      });
+
+      if (res.ok) {
+        alert(`E-Bordro ${selectedPersonnel.email} adresine mail olarak gönderildi.`);
+        // update sent at
+        const updatedPayroll = {...payroll, emailSentAt: new Date().toISOString()};
+        setPersonnel(personnel.map(p => {
+            if(p.id === selectedPersonnel.id) {
+                return {...p, payrolls: p.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || [] };
+            }
+            return p;
+        }));
+        setSelectedPersonnel({
+            ...selectedPersonnel,
+            payrolls: selectedPersonnel.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || []
+        });
+      } else {
+        alert("E-Bordro gönderilemedi.");
+      }
+    } catch (e) {
+      alert("Mail gönderimi sırasında hata oluştu.");
+    }
   };
 
   const downloadPayrollPDF = (payroll: Payroll) => {

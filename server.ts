@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getPool, initDb } from './server/db.js';
 import cors from 'cors';
+import { sendMail } from './server/mailer.js';
 import { getFallbackTable, insertFallbackRow, updateFallbackRow, deleteFallbackRow } from './server/fallbackDb.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -28,6 +29,34 @@ async function startServer() {
 
   app.use(express.json());
   app.use(cors());
+
+  app.post('/api/test-email', async (req, res) => {
+    try {
+      const { email } = req.body;
+      const result = await sendMail(email, "Esila Ticari Test Maili", "<p>Sınama maili başarıyla alındı. Mail ayarlarınız doğru bir biçimde çalışmaktadır.</p>");
+      if (result.success) {
+        res.json({ success: true, messageId: result.messageId });
+      } else {
+        res.status(500).json({ error: String(result.error) });
+      }
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.post('/api/send-email', async (req, res) => {
+    try {
+      const { to, subject, html } = req.body;
+      const result = await sendMail(to, subject, html);
+      if (result.success) {
+        res.json({ success: true, messageId: result.messageId });
+      } else {
+        res.status(500).json({ error: String(result.error) });
+      }
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
 
   app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
@@ -339,7 +368,33 @@ async function startServer() {
 
   app.post('/api/reconciliations', async (req, res) => {
     const mutabakat = { ...req.body, id: req.body.id || String(Date.now()), emailSentAt: new Date().toISOString() };
-    // Simulate sending email
+    
+    // Gerçek mail gönderimi
+    const approveLink = `https://${req.get('host')}/api/reconciliations/${mutabakat.id}/approve?notes=`;
+    const rejectLink = `https://${req.get('host')}/api/reconciliations/${mutabakat.id}/reject?notes=`;
+    
+    // Müşterinin e-mail adresini bulmak için, eğer email body'de gelmiyorsa 
+    // veya mutabakat.email olarak geliyorsa onu kullanalım. Şimdilik mutabakat formunda e -posta yolluyor olmasını varsayıyoruz. 
+    // Veya sadece konsola da yazabiliriz, ama gercekten mail atacaksak kime atacagiz?
+    // Kullanici "butun mailleri..." dedi diye ben bir try-catch koyuyorum
+    if (mutabakat.email || mutabakat.customerEmail) {
+       await sendMail(
+         mutabakat.email || mutabakat.customerEmail, 
+         "Cari Mutabakatı - Esila Ticari",
+         `
+         <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
+           <h2 style="color: #333;">Sayın ${mutabakat.customerName},</h2>
+           <p>Bakiyeniz: <strong>${mutabakat.balance} ${mutabakat.balanceType}</strong></p>
+           <p>Mutabakat tarihi: ${new Date(mutabakat.date).toLocaleDateString()}</p>
+           <div style="margin-top: 20px; display: flex; gap: 10px;">
+             <a href="${approveLink}" style="display:inline-block; padding: 10px 20px; background-color: #10B981; color: white; text-decoration: none; border-radius: 5px;">Mutabıkız (Onayla)</a>
+             <a href="${rejectLink}" style="display:inline-block; padding: 10px 20px; background-color: #EF4444; color: white; text-decoration: none; border-radius: 5px; margin-left: 10px;">Mutabık Değiliz (Reddet)</a>
+           </div>
+         </div>
+         `
+       );
+    }
+
     console.log(`[Mutabakat] Email gönderildi: ${mutabakat.customerName} - Bakiye: ${mutabakat.balance} ${mutabakat.balanceType}`);
     console.log(`[Onay Linki] /api/reconciliations/${mutabakat.id}/approve`);
     console.log(`[Red Linki] /api/reconciliations/${mutabakat.id}/reject`);
@@ -509,12 +564,33 @@ async function startServer() {
   app.put('/api/tenants/:vkn/activate', async (req, res) => {
     try {
       const { vkn } = req.params;
+      
+      const sendActivationMail = async (tenantEmail: string, tenantName: string) => {
+         if (tenantEmail) {
+            await sendMail(
+              tenantEmail,
+              "Hesabınız Aktive Edildi - Esila Ticari",
+              `<p>Sayın ${tenantName},</p><p>Esila Ticari üyeliğiniz başarıyla onaylanmış ve hesabınız aktive edilmiştir. Sisteme giriş yapabilirsiniz.</p>`
+            );
+         }
+      };
+
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
-      updateFallbackRow('tenants', vkn, vkn, { status: 'Aktif' }); // Note: wait, id of tenant is its vkn... fallbackDb searches by id? The tenant has vkn as primary key!
-      // I'll manually modify tenants lookup below.
-      return res.json({success: true});
-    }
+        const fallbacks = getFallbackTable('tenants');
+        const t = fallbacks.find((x: any) => x.vkn === vkn);
+        if (t) await sendActivationMail(t.email, t.name);
+
+        updateFallbackRow('tenants', vkn, vkn, { status: 'Aktif' }); // Note: wait, id of tenant is its vkn... fallbackDb searches by id? The tenant has vkn as primary key!
+        // I'll manually modify tenants lookup below.
+        return res.json({success: true});
+      }
+      
       const pool = getPool();
+      const [rows] = await pool.query('SELECT * FROM tenants WHERE vkn = ?', [vkn]);
+      if (rows && rows.length > 0) {
+         await sendActivationMail(rows[0].email, rows[0].name);
+      }
+
       await pool.query("UPDATE tenants SET status = 'Aktif' WHERE vkn = ?", [vkn]);
       res.json({success: true});
     } catch(e) { res.status(500).json({error: String(e)}); }

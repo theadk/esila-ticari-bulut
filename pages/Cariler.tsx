@@ -198,10 +198,32 @@ export const Cariler: React.FC = () => {
     XLSX.writeFile(wb, `${customer.name.replace(/\s+/g, '_')}_Hareketler.xlsx`);
   };
 
-  const sendHistoryEmail = (customer: Customer) => {
-    const subject = encodeURIComponent(`Cari Hesap Ekstresi - ${customer.companyName || customer.name}`);
-    const body = encodeURIComponent(`Merhaba ${customer.name},\n\nGüncel bakiyeniz: ${customer.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}\n\nİyi çalışmalar.`);
-    window.location.href = `mailto:${customer.email}?subject=${subject}&body=${body}`;
+  const sendHistoryEmail = async (customer: Customer) => {
+    if (!customer.email) return alert("Bu carinin e-posta adresi kayıtlı değil.");
+    const subject = `Cari Hesap Ekstresi - ${customer.companyName || customer.name}`;
+    const body = `
+      <div style="font-family: sans-serif; padding: 20px;">
+        <h2>Merhaba ${customer.name},</h2>
+        <p>Güncel bakiyeniz: <strong>${customer.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</strong></p>
+        <p>Hesap ekstresi hakkında detaylı bilgi almak isterseniz bizimle iletişime geçebilirsiniz.</p>
+        <p>İyi çalışmalar.</p>
+      </div>
+    `;
+    
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: customer.email, subject, html: body })
+      });
+      if (res.ok) {
+        alert("E-posta başarıyla gönderildi.");
+      } else {
+        alert("E-posta gönderilemedi.");
+      }
+    } catch (e) {
+      alert("Mail gönderimi sırasında hata oluştu.");
+    }
   };
 
   useEffect(() => {

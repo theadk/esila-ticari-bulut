@@ -237,6 +237,39 @@ export const Ayarlar: React.FC = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
                 </div>
+                <div className="mt-4 pt-4 border-t">
+                  <h4 className="text-md font-medium text-gray-800 mb-2">Mail Sınama</h4>
+                  <div className="flex gap-2">
+                    <input 
+                      type="email" 
+                      id="testEmailAddress"
+                      placeholder="Sınama maili alacak e-posta"
+                      defaultValue={settings.email || ""}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 flex-1"
+                    />
+                    <button 
+                      type="button"
+                      onClick={async () => {
+                         const email = (document.getElementById('testEmailAddress') as HTMLInputElement).value;
+                         if (!email) return alert("Lütfen bir e-posta adresi girin.");
+                         try {
+                           const res = await fetch('/api/test-email', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ email })
+                           });
+                           if (res.ok) alert("Sınama maili başarıyla gönderildi.");
+                           else alert("Mail gönderimi başarısız oldu. Lütfen ayarları kontrol edin.");
+                         } catch (e) {
+                           alert("Mail gönderimi sırasında bir hata oluştu.");
+                         }
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    >
+                      Test Maili Gönder
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

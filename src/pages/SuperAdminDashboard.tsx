@@ -68,7 +68,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         });
         setIsModalOpen(false);
         fetchTenants();
-        alert(`Firma eklendi. ${formData.email} adresine mail gönderimi simüle edildi.\nYönetici Şifresi: ${formData.vkn}123`);
+        alert(`Firma eklendi. Yönetici Şifresi: ${formData.vkn}123\nFirma aktif edildiğinde e-posta ile bilgilendirilecektir.`);
       }
     } catch(e) {
       alert("Hata oluştu.");

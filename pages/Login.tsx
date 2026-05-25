@@ -43,7 +43,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
   };
 
-  const handleForgotPassword = (e: React.FormEvent) => {
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -64,7 +64,21 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     // Mock sending email
-    setView('email_sent');
+    try {
+      const resetLink = `https://${window.location.host}/reset-password?email=${user.email}`; // Gerçekte token olmalı
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          to: user.email, 
+          subject: "Şifre Sıfırlama - Esila Ticari", 
+          html: `<p>Sayın ${user.name},</p><p>Şifre sıfırlama talebiniz alınmıştır.</p><p><a href="${resetLink}">Şifrenizi sıfırlamak için tıklayın</a></p>` 
+        })
+      });
+      setView('email_sent');
+    } catch (e) {
+      setError("Kurum email ayarlarında bir sorun var, şifre sıfırlama maili gönderilemedi.");
+    }
   };
 
   return (

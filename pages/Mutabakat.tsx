@@ -58,6 +58,7 @@ export const Mutabakat: React.FC = () => {
         body: JSON.stringify({
           ...formData,
           customerName: customer?.companyName || customer?.name || 'Bilinmiyor',
+          customerEmail: customer?.email || '',
         }),
       });
       if (res.ok) {
@@ -93,6 +94,7 @@ export const Mutabakat: React.FC = () => {
           body: JSON.stringify({
             customerId: customer.id,
             customerName: customer.companyName || customer.name || 'Bilinmiyor',
+            customerEmail: customer.email || '',
             date: bulkFormData.date,
             balance: Math.abs(customer.balance),
             balanceType: bType,
