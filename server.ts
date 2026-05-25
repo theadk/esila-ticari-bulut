@@ -719,7 +719,7 @@ async function startServer() {
   
   // Generic CRUD API for all tables
 
-  const tables = ["users","settings","customers","customer_transactions","cash_transactions","personnel","personnel_records","orders","proposals"];
+  const tables = ["users","settings","customers","customer_transactions","cash_transactions","personnel","personnel_records","orders","proposals","service_tickets"];
   for (const table of tables) {
     app.get(`/api/${table}`, async (req, res) => {
       try {

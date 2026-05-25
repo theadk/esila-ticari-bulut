@@ -244,3 +244,36 @@ export interface Settings {
   prefix_personnel?: string;
   next_personnel_id?: number;
 }
+
+export enum ServiceTicketStatus {
+  PENDING = 'Bekliyor',
+  IN_PROGRESS = 'İşlemde',
+  COMPLETED = 'Tamamlandı',
+  CANCELLED = 'İptal'
+}
+
+export interface ServiceMaterial {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface ServiceTicket {
+  id: string;
+  customerId: string;
+  customerName: string;
+  personnelId?: string;
+  personnelName?: string;
+  deviceType: string;
+  serialNumber?: string;
+  issueDescription: string;
+  status: ServiceTicketStatus;
+  dateCreated: string;
+  dateCompleted?: string;
+  materialsUsed: ServiceMaterial[];
+  laborFee: number;
+  taxRate: number;
+  totalCost: number;
+  resolutionNotes?: string;
+}

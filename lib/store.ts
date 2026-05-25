@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MOCK_CUSTOMERS, MOCK_TRANSACTIONS, MOCK_CASH_TRANSACTIONS, MOCK_PERSONNEL, MOCK_PRODUCTS, MOCK_USERS } from '../mockData';
-import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User } from '../types';
+import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket } from '../types';
 
 let globalSettings: Settings = {
   companyName: 'Esila Örnek Şirket Ltd. Şti.',
@@ -37,6 +37,7 @@ let globalProducts = [...MOCK_PRODUCTS];
 let globalTransactions = [...MOCK_TRANSACTIONS];
 let globalCashTransactions = [...MOCK_CASH_TRANSACTIONS];
 let globalPersonnel = [...MOCK_PERSONNEL];
+let globalServiceTickets: ServiceTicket[] = [];
 let globalProposals: Proposal[] = [
   {
     id: 'TEK-2023-001',
@@ -172,6 +173,12 @@ export async function initializeStore() {
            }));
            return { ...d, items: fixedItems, total: d.total !== undefined ? d.total : (d.totalAmount || 0) };
         }); 
+      } },
+      { name: 'service_tickets', ref: (data: any) => {
+        globalServiceTickets = data.map((d:any) => ({
+            ...d,
+            materialsUsed: typeof d.materialsUsed === 'string' ? JSON.parse(d.materialsUsed) : (d.materialsUsed || [])
+        }));
       } }
     ];
     
@@ -261,6 +268,13 @@ export const useAppStore = () => {
     get settings() { return globalSettings; },
     setSettings(updater: Settings | ((prev: Settings) => Settings)) {
       globalSettings = typeof updater === 'function' ? updater(globalSettings) : updater;
+      emit();
+    },
+    get serviceTickets() { return globalServiceTickets; },
+    setServiceTickets(updater: any) {
+      const old = globalServiceTickets;
+      globalServiceTickets = typeof updater === 'function' ? updater(globalServiceTickets) : updater;
+      syncArray('service_tickets', old, globalServiceTickets);
       emit();
     }
   };

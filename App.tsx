@@ -14,6 +14,7 @@ import { Personel } from './pages/Personel';
 import { Teklifler } from './pages/Teklifler';
 import { Mutabakat } from './pages/Mutabakat';
 import { Raporlar } from './pages/Raporlar';
+import { Ariza } from './pages/Ariza';
 import { SuperAdminLogin } from './src/pages/SuperAdminLogin';
 import { SuperAdminDashboard } from './src/pages/SuperAdminDashboard';
 import { FileText } from 'lucide-react';
@@ -67,6 +68,7 @@ const App: React.FC = () => {
       case 'siparisler': return <Siparisler />;
       case 'hizlisatis': return <HizliSatis />;
       case 'ayarlar': return <Ayarlar />;
+      case 'ariza': return <Ariza />;
       case 'kasa': return <Kasa />;
       case 'personel': return <Personel />;
       case 'mutabakat': return <Mutabakat />;

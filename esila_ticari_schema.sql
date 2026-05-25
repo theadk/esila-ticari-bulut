@@ -206,6 +206,26 @@ CREATE TABLE IF NOT EXISTS reconciliations (
     FOREIGN KEY (customerId) REFERENCES customers(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS service_tickets (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    customerId VARCHAR(255),
+    customerName VARCHAR(255),
+    personnelId VARCHAR(255),
+    personnelName VARCHAR(255),
+    deviceType VARCHAR(255),
+    serialNumber VARCHAR(255),
+    issueDescription TEXT,
+    status VARCHAR(50),
+    dateCreated DATETIME,
+    dateCompleted DATETIME,
+    materialsUsed JSON,
+    laborFee DECIMAL(15,2),
+    taxRate DECIMAL(5,2),
+    totalCost DECIMAL(15,2),
+    resolutionNotes TEXT
+);
+
 -- Örnek Veriler (Opsiyonel)
 
 INSERT IGNORE INTO tenants (vkn, name, email, modules, status) VALUES ('1111111111', 'Esila Master', 'admin@firma.com', '["all"]', 'Aktif');

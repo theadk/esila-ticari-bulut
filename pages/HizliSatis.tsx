@@ -106,24 +106,31 @@ export const HizliSatis: React.FC = () => {
     printWindow.document.close();
   };
 
-  const handleCheckout = (paymentMethod: 'Nakit' | 'Kredi Kartı') => {
+  const handleCheckout = (paymentMethod: 'Nakit' | 'Kredi Kartı' | 'Cari') => {
     if (cart.length === 0) return;
+
+    if (paymentMethod === 'Cari' && (!selectedCustomerId || selectedCustomerId === 'RETAIL')) {
+      alert("Cari (Veresiye) satışı yapabilmek için lütfen listeden bir cari seçin.");
+      return;
+    }
 
     const currentCustomer = customers.find(c => String(c.id) === String(selectedCustomerId)) || { id: 'RETAIL', name: 'Perakende Müşteri' };
     const totalAmount = calculateTotal();
 
-    // 1. Create Cash Transaction
-    const txId = `TX-${Date.now()}`;
-    const newTx = {
-      id: txId,
-      date: new Date().toISOString().split('T')[0],
-      type: 'Gelir' as const,
-      category: 'Satış',
-      amount: totalAmount,
-      description: `Hızlı Satış - ${currentCustomer.name}`,
-      paymentMethod
-    };
-    store.setCashTransactions([...store.cashTransactions, newTx]);
+    // 1. Create Cash Transaction only if not Cari
+    if (paymentMethod !== 'Cari') {
+      const txId = `TX-${Date.now()}`;
+      const newTx = {
+        id: txId,
+        date: new Date().toISOString().split('T')[0],
+        type: 'Gelir' as const,
+        category: 'Satış',
+        amount: totalAmount,
+        description: `Hızlı Satış - ${currentCustomer.name}`,
+        paymentMethod
+      };
+      store.setCashTransactions([...store.cashTransactions, newTx]);
+    }
 
     // 2. Reduce Stock
     let newProducts = [...products];
@@ -167,18 +174,10 @@ export const HizliSatis: React.FC = () => {
        })),
        total: totalAmount
     };
-    store.setOrders([...(store.orders || []), newOrder]);
+    store.setOrders([...(store.orders || []), newOrder as any]);
 
     // 3. Optional: If a real customer is selected, add to customer transactions
     if (selectedCustomerId && selectedCustomerId !== 'RETAIL' && currentCustomer.id !== 'RETAIL') {
-      const tx1 = {
-        id: `CTX-${Date.now()}`,
-        customerId: currentCustomer.id,
-        date: new Date().toISOString().split('T')[0],
-        type: 'Alacak' as const,
-        amount: totalAmount,
-        description: `Hızlı Satış (${paymentMethod})`
-      };
       const tx2 = {
         id: `CTX-INV-${Date.now()}`,
         customerId: currentCustomer.id,
@@ -187,7 +186,19 @@ export const HizliSatis: React.FC = () => {
         amount: totalAmount,
         description: `Hızlı Satış Faturası`
       };
-      store.setTransactions([...store.transactions, tx1, tx2]);
+      if (paymentMethod !== 'Cari') {
+        const tx1 = {
+          id: `CTX-${Date.now()}`,
+          customerId: currentCustomer.id,
+          date: new Date().toISOString().split('T')[0],
+          type: 'Alacak' as const,
+          amount: totalAmount,
+          description: `Hızlı Satış (${paymentMethod})`
+        };
+        store.setTransactions([...store.transactions, tx1, tx2]);
+      } else {
+        store.setTransactions([...store.transactions, tx2]);
+      }
     }
 
     setCart([]);
@@ -214,6 +225,9 @@ export const HizliSatis: React.FC = () => {
       } else if (e.key === 'F4') {
         e.preventDefault();
         handleCheckout('Kredi Kartı');
+      } else if (e.key === 'F5') {
+        e.preventDefault();
+        handleCheckout('Cari');
       }
     };
     
@@ -363,22 +377,30 @@ export const HizliSatis: React.FC = () => {
              </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
              <button 
                onClick={() => handleCheckout('Nakit')}
                disabled={cart.length === 0}
-               className="flex flex-col items-center justify-center p-4 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm"
+               className="flex flex-col items-center justify-center p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm"
              >
-                <Banknote size={24} className="mb-2" />
-                <span className="font-bold">Nakit (F1)</span>
+                <Banknote size={24} className="mb-1" />
+                <span className="font-bold text-sm text-center">Nakit<br/>(F1)</span>
              </button>
              <button 
                onClick={() => handleCheckout('Kredi Kartı')}
                disabled={cart.length === 0}
-               className="flex flex-col items-center justify-center p-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
+               className="flex flex-col items-center justify-center p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
              >
-                <CreditCard size={24} className="mb-2" />
-                <span className="font-bold">Kredi Kartı (F4)</span>
+                <CreditCard size={24} className="mb-1" />
+                <span className="font-bold text-sm text-center">Kredi Kartı<br/>(F4)</span>
+             </button>
+             <button 
+               onClick={() => handleCheckout('Cari')}
+               disabled={cart.length === 0}
+               className="flex flex-col items-center justify-center p-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-colors shadow-sm"
+             >
+                <User size={24} className="mb-1" />
+                <span className="font-bold text-sm text-center">Cari<br/>(F5)</span>
              </button>
           </div>
         </div>

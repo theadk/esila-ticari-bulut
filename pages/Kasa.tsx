@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../lib/store';
-import { Plus, Search, TrendingUp, TrendingDown, Wallet, X, Save, Printer } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Wallet, X, Save, Printer, FileText, Filter, Calendar } from 'lucide-react';
 import { CashTransaction } from '../types';
 
 export const Kasa: React.FC = () => {
   const { settings, cashTransactions, setCashTransactions, customers, setCustomers, transactions, setTransactions, personnel, setPersonnel } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'this_week' | 'this_month'>('all');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [reportPrintModalOpen, setReportPrintModalOpen] = useState(false);
   const [selectedTxForPrint, setSelectedTxForPrint] = useState<CashTransaction | null>(null);
   const [formData, setFormData] = useState<{
     date: string;
@@ -32,10 +34,44 @@ export const Kasa: React.FC = () => {
   const totalExpense = cashTransactions.filter(t => t.type === 'Gider').reduce((sum, t) => sum + t.amount, 0);
   const totalBalance = totalIncome - totalExpense;
 
-  const filteredData = cashTransactions.filter(t => 
-    t.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    t.category.toLowerCase().includes(searchTerm.toLowerCase())
-  ).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const filteredData = useMemo(() => {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    return cashTransactions.filter(t => {
+      const searchMatch = t.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
+             t.category.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const tDate = new Date(t.date);
+      tDate.setHours(0,0,0,0);
+      let dateMatch = true;
+      if (dateFilter === 'today') {
+          dateMatch = tDate.getTime() === today.getTime();
+      } else if (dateFilter === 'this_week') {
+          dateMatch = tDate >= startOfWeek;
+      } else if (dateFilter === 'this_month') {
+          dateMatch = tDate >= startOfMonth;
+      }
+      return searchMatch && dateMatch;
+    }).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [cashTransactions, searchTerm, dateFilter]);
+
+  // Breakdown metrics for the filtered report
+  const reportIncomeTotal = filteredData.filter(t => t.type === 'Gelir').reduce((a,b)=>a+b.amount,0);
+  const reportExpenseTotal = filteredData.filter(t => t.type === 'Gider').reduce((a,b)=>a+b.amount,0);
+  const reportBalance = reportIncomeTotal - reportExpenseTotal;
+
+  const salesIncome = filteredData.filter(t => t.category === 'Satış').reduce((a,b)=>a+b.amount,0);
+  const customerIncome = filteredData.filter(t => t.category === 'Cari Tahsilat').reduce((a,b)=>a+b.amount,0);
+  const otherIncome = reportIncomeTotal - salesIncome - customerIncome;
+
+  const purchaseExpense = filteredData.filter(t => t.category === 'Alış').reduce((a,b)=>a+b.amount,0);
+  const customerExpense = filteredData.filter(t => t.category === 'Cari Ödeme').reduce((a,b)=>a+b.amount,0);
+  const personnelExpense = filteredData.filter(t => ['Personel Maaşı', 'Personel Avans'].includes(t.category)).reduce((a,b)=>a+b.amount,0);
+  const otherExpense = reportExpenseTotal - purchaseExpense - customerExpense - personnelExpense;
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,38 +165,75 @@ export const Kasa: React.FC = () => {
           </h3>
         </div>
         
-        <div className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 sm:p-6 flex items-center gap-4">
-          <div className="h-14 w-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
-             <TrendingUp size={32} />
+        <div className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 flex flex-col justify-center">
+          <div className="flex items-center gap-4 mb-2">
+            <div className="h-10 w-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
+               <TrendingUp size={20} />
+            </div>
+            <div>
+              <p className="text-gray-500 font-medium text-xs">Genel Toplam Gelir</p>
+              <h4 className="text-lg font-bold text-gray-800">{totalIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</h4>
+            </div>
           </div>
-          <div>
-            <p className="text-gray-500 font-medium text-sm">Toplam Gelir</p>
-            <h4 className="text-2xl font-bold text-gray-800">{totalIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</h4>
+          <div className="text-xs text-gray-500 space-y-1 pl-14">
+            <div className="flex justify-between"><span>Satışlar:</span> <span className="font-medium text-gray-800">{salesIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+            <div className="flex justify-between"><span>Cari Tahsilat:</span> <span className="font-medium text-gray-800">{customerIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+            <div className="flex justify-between"><span>Diğer Gelirler:</span> <span className="font-medium text-gray-800">{otherIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-red-100 p-4 sm:p-6 flex items-center gap-4">
-          <div className="h-14 w-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0">
-             <TrendingDown size={32} />
+        <div className="bg-white rounded-xl shadow-sm border border-red-100 p-4 flex flex-col justify-center">
+          <div className="flex items-center gap-4 mb-2">
+            <div className="h-10 w-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0">
+               <TrendingDown size={20} />
+            </div>
+            <div>
+              <p className="text-gray-500 font-medium text-xs">Genel Toplam Gider</p>
+              <h4 className="text-lg font-bold text-gray-800">{totalExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</h4>
+            </div>
           </div>
-          <div>
-            <p className="text-gray-500 font-medium text-sm">Toplam Gider</p>
-            <h4 className="text-2xl font-bold text-gray-800">{totalExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</h4>
+          <div className="text-xs text-gray-500 space-y-1 pl-14">
+            <div className="flex justify-between"><span>Ürün Alış:</span> <span className="font-medium text-gray-800">{purchaseExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+            <div className="flex justify-between"><span>Cari Ödeme:</span> <span className="font-medium text-gray-800">{customerExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+            <div className="flex justify-between"><span>Personel:</span> <span className="font-medium text-gray-800">{personnelExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+            <div className="flex justify-between"><span>Diğer Giderler:</span> <span className="font-medium text-gray-800">{otherExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
-        <div className="p-4 border-b border-gray-100">
-          <div className="relative max-w-full sm:max-w-md">
+        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center bg-gray-50/50">
+          <div className="relative w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input 
               type="text" 
               placeholder="İşlem ara..." 
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+             <div className="relative flex-1 sm:w-48">
+               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+               <select
+                 value={dateFilter}
+                 onChange={e => setDateFilter(e.target.value as any)}
+                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm appearance-none bg-white font-medium text-gray-700"
+               >
+                 <option value="all">Tüm Zamanlar</option>
+                 <option value="today">Bugün</option>
+                 <option value="this_week">Bu Hafta</option>
+                 <option value="this_month">Bu Ay</option>
+               </select>
+             </div>
+             <button
+               onClick={() => setReportPrintModalOpen(true)}
+               className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors shadow-sm font-medium shrink-0"
+             >
+               <FileText size={18} className="text-emerald-600" />
+               <span className="hidden sm:inline">A4 Rapor</span>
+             </button>
           </div>
         </div>
 
@@ -456,6 +529,180 @@ export const Kasa: React.FC = () => {
                  <Printer size={18} />
                  Yazdır (80mm)
                </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* A4 Report Print Modal */}
+      {reportPrintModalOpen && (
+        <div className="fixed inset-0 bg-gray-500/75 z-50 flex items-start justify-center p-4 sm:p-4 sm:p-6 shadow-2xl backdrop-blur-sm overflow-y-auto print:bg-white print:p-0 print:m-0 animate-fade-in print:block">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-4xl mb-8 print:shadow-none print:max-w-full print:m-0 print:rounded-none">
+            {/* Modal Header */}
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl no-print">
+              <div className="flex items-center gap-3">
+                <FileText className="text-gray-400" />
+                <h3 className="text-lg font-bold text-gray-800">Kasa Raporu Yazdır (A4)</h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => {
+                    setTimeout(() => window.print(), 100);
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+                >
+                  <Printer size={18} />
+                  Yazdır / PDF İndir
+                </button>
+                <button onClick={() => setReportPrintModalOpen(false)} className="text-gray-500 hover:text-gray-700 transition-colors p-2">
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            {/* Print Content - A4 Document Format */}
+            <div className="p-8 md:p-12 print:p-4 print:text-black font-sans bg-white">
+              <div className="flex justify-between items-start mb-8 border-b-2 border-gray-800 pb-6 print:border-black">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 print:text-black mb-2">KASA RAPORU</h1>
+                  <p className="text-gray-600 print:text-black">
+                    Tarih Aralığı: {
+                      dateFilter === 'all' ? 'Tüm Zamanlar' : 
+                      dateFilter === 'today' ? 'Bugün' : 
+                      dateFilter === 'this_week' ? 'Bu Hafta' : 'Bu Ay'
+                    }
+                  </p>
+                  <p className="text-gray-500 text-sm print:text-black mt-1">
+                    Çıktı Tarihi: {new Date().toLocaleString('tr-TR')}
+                  </p>
+                </div>
+                <div className="text-right">
+                  {settings.companyLogo ? (
+                    <img src={settings.companyLogo} alt="Logo" className="max-h-20 object-contain ml-auto mb-2" />
+                  ) : (
+                    <h2 className="font-logo text-3xl font-bold text-emerald-900 print:text-black mb-2">{settings.printer_header_text || 'esila'}</h2>
+                  )}
+                  <p className="text-sm text-gray-600 print:text-black font-medium">{settings.companyName}</p>
+                </div>
+              </div>
+
+              {/* Summary Metrics */}
+              <div className="grid grid-cols-3 gap-6 mb-8">
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 print:border-gray-400 print:bg-transparent">
+                  <p className="text-sm text-gray-500 print:text-black font-medium mb-1">Toplam Gelir</p>
+                  <p className="text-2xl font-bold text-emerald-600 print:text-black">
+                    {reportIncomeTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                  </p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 print:border-gray-400 print:bg-transparent">
+                  <p className="text-sm text-gray-500 print:text-black font-medium mb-1">Toplam Gider</p>
+                  <p className="text-2xl font-bold text-red-600 print:text-black">
+                    {reportExpenseTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                  </p>
+                </div>
+                <div className="p-4 bg-gray-100 rounded-lg border border-gray-300 print:border-gray-500 print:bg-transparent">
+                  <p className="text-sm text-gray-600 print:text-black font-bold mb-1">Net Bakiye</p>
+                  <p className={`text-2xl font-bold ${reportBalance >= 0 ? 'text-emerald-700' : 'text-red-700'} print:text-black`}>
+                    {reportBalance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Detail Breakdown */}
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                <div>
+                  <h3 className="font-bold text-gray-800 print:text-black mb-3 border-b pb-2">Gelir Kırılımı</h3>
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y divide-gray-100 print:divide-gray-300">
+                      <tr>
+                        <td className="py-2 text-gray-600 print:text-black">Satış Gelirleri</td>
+                        <td className="py-2 text-right font-medium">{salesIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600 print:text-black">Cari Tahsilatlar</td>
+                        <td className="py-2 text-right font-medium">{customerIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600 print:text-black">Diğer Gelirler</td>
+                        <td className="py-2 text-right font-medium">{otherIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 print:text-black mb-3 border-b pb-2">Gider Kırılımı</h3>
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y divide-gray-100 print:divide-gray-300">
+                      <tr>
+                        <td className="py-2 text-gray-600 print:text-black">Ürün Alışları</td>
+                        <td className="py-2 text-right font-medium">{purchaseExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600 print:text-black">Cari Ödemeler</td>
+                        <td className="py-2 text-right font-medium">{customerExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600 print:text-black">Personel Giderleri</td>
+                        <td className="py-2 text-right font-medium">{personnelExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600 print:text-black">Diğer Giderler</td>
+                        <td className="py-2 text-right font-medium">{otherExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Transactions List */}
+              <div className="mb-4">
+                <h3 className="font-bold text-gray-800 print:text-black mb-4">İşlem Detayları ({filteredData.length} İşlem)</h3>
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100 print:bg-gray-200 text-gray-800 print:text-black font-semibold">
+                      <th className="p-3 border border-gray-200 print:border-gray-400">Tarih</th>
+                      <th className="p-3 border border-gray-200 print:border-gray-400">Tür</th>
+                      <th className="p-3 border border-gray-200 print:border-gray-400">Kategori</th>
+                      <th className="p-3 border border-gray-200 print:border-gray-400 w-1/3">Açıklama</th>
+                      <th className="p-3 border border-gray-200 print:border-gray-400 text-right">Tutar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredData.map(tx => (
+                      <tr key={tx.id} className="border-b border-gray-200 print:border-gray-300">
+                        <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-600 print:text-black whitespace-nowrap">
+                          {new Date(tx.date).toLocaleDateString('tr-TR')}
+                        </td>
+                        <td className="p-3 border-x border-gray-200 print:border-gray-300">
+                          <span className={`font-medium ${tx.type === 'Gelir' ? 'text-emerald-700 print:text-black' : 'text-red-700 print:text-black'}`}>
+                            {tx.type}
+                          </span>
+                        </td>
+                        <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-800 print:text-black">
+                          {tx.category}
+                        </td>
+                        <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-800 print:text-black text-xs">
+                          {tx.description}
+                        </td>
+                        <td className={`p-3 border-x border-gray-200 print:border-gray-300 text-right font-bold whitespace-nowrap ${tx.type === 'Gelir' ? 'text-emerald-700 print:text-black' : 'text-red-700 print:text-black'}`}>
+                          {tx.type === 'Gelir' ? '+' : '-'}{tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredData.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="p-6 text-center text-gray-500 border border-gray-200">
+                          Seçilen kriterlere uygun işlem bulunamadı.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-12 text-center text-xs text-gray-400 print:text-gray-500 border-t pt-4">
+                Bu rapor otomatik olarak oluşturulmuştur.
+              </div>
             </div>
           </div>
         </div>

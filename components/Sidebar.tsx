@@ -13,7 +13,8 @@ import {
   Globe,
   FileBadge,
   Handshake,
-  Zap
+  Zap,
+  Wrench
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 
@@ -35,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
     { id: 'kasa', label: 'Kasa', icon: Wallet },
     { id: 'personel', label: 'Personel', icon: UserCheck },
     { id: 'mutabakat', label: 'Mutabakat', icon: Handshake },
+    { id: 'ariza', label: 'Arıza Formları', icon: Wrench },
     { id: 'raporlar', label: 'Raporlar', icon: FileText },
     { id: 'efatura', label: 'E-Fatura', icon: FileText },
     { id: 'teklif', label: 'Teklifler', icon: FileBadge },

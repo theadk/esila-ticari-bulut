@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Customer, CustomerTransaction, CashTransaction } from '../types';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { useAppStore } from '../lib/store';
 
 const INITIAL_FORM: Customer = {
@@ -108,54 +106,10 @@ export const Cariler: React.FC = () => {
     setIsPaymentModalOpen(false);
   };
 
-  const downloadHistoryPDF = async (customer: Customer) => {
-    const doc = new jsPDF();
+  const [printEkstreModalOpen, setPrintEkstreModalOpen] = useState(false);
 
-    try {
-      const response = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf');
-      const buffer = await response.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const base64 = btoa(binary);
-      
-      doc.addFileToVFS('Roboto-Regular.ttf', base64);
-      doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
-      doc.setFont('Roboto');
-    } catch (error) {
-      console.warn('Failed to load Turkish font, falling back to default', error);
-      doc.setFont('helvetica');
-    }
-
-    const customerTransactions = transactions.filter(t => t.customerId === customer.id);
-    
-    doc.setFontSize(16);
-    doc.text(`Cari Hesap Ekstresi: ${customer.companyName || customer.name}`, 14, 20);
-    
-    doc.setFontSize(10);
-    doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`, 14, 28);
-    doc.text(`Güncel Bakiye: ${customer.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}`, 14, 34);
-
-    const tableColumn = ["Tarih", "İşlem Tipi", "Açıklama", "Tutar"];
-    const tableRows = customerTransactions.map(t => [
-      t.date,
-      t.type,
-      t.description,
-      t.amount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })
-    ]);
-
-    autoTable(doc, {
-      startY: 40,
-      head: [tableColumn],
-      body: tableRows,
-      theme: 'grid',
-      styles: { font: 'Roboto', fontSize: 9 }, // Use Roboto here for table content!
-      headStyles: { fillColor: [16, 185, 129] } // emerald-500
-    });
-
-    doc.save(`${customer.name.replace(/\s+/g, '_')}_Ekstre.pdf`);
+  const printCustomerHistory = (customer: Customer) => {
+    setPrintEkstreModalOpen(true);
   };
 
   const downloadHistoryExcel = (customer: Customer) => {
@@ -803,11 +757,11 @@ export const Cariler: React.FC = () => {
                   <span>Excel İndir</span>
                 </button>
                 <button 
-                  onClick={() => downloadHistoryPDF(selectedCustomerForHistory)} 
+                  onClick={() => printCustomerHistory(selectedCustomerForHistory)} 
                   className="bg-emerald-600 text-white px-3 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
                 >
-                  <Download size={18} />
-                  <span>PDF Yap</span>
+                  <Printer size={18} />
+                  <span>Yazdır / PDF (A4)</span>
                 </button>
                 <button 
                   onClick={() => sendHistoryEmail(selectedCustomerForHistory)} 
@@ -937,6 +891,144 @@ export const Cariler: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* A4 Ekstre Print Modal */}
+      {printEkstreModalOpen && selectedCustomerForHistory && (
+        <div className="fixed inset-0 bg-gray-500/75 z-50 flex items-start justify-center p-4 sm:p-6 shadow-2xl backdrop-blur-sm overflow-y-auto print:bg-white print:p-0 print:m-0 animate-fade-in print:block">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-4xl mb-8 print:shadow-none print:max-w-full print:m-0 print:rounded-none">
+            {/* Modal Header */}
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl no-print">
+              <div className="flex items-center gap-3">
+                <FileText className="text-gray-400" />
+                <h3 className="text-lg font-bold text-gray-800">Cari Ekstre Yazdır (A4)</h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => {
+                    setTimeout(() => window.print(), 100);
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+                >
+                  <Printer size={18} />
+                  Yazdır / PDF İndir
+                </button>
+                <button onClick={() => setPrintEkstreModalOpen(false)} className="text-gray-500 hover:text-gray-700 transition-colors p-2">
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            {/* Print Content - A4 Document Format */}
+            <div className="p-8 md:p-12 print:p-4 print:text-black font-sans bg-white">
+              <div className="flex justify-between items-start mb-8 border-b-2 border-gray-800 pb-6 print:border-black">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 print:text-black mb-2">CARİ HESAP EKSTRESİ</h1>
+                  <p className="text-gray-600 print:text-black mt-2 font-bold text-xl">
+                    {selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}
+                  </p>
+                  <p className="text-gray-500 print:text-black">
+                    Vergi D., No: {selectedCustomerForHistory.taxOffice || '-'} / {selectedCustomerForHistory.taxNumber || '-'}
+                  </p>
+                  <p className="text-gray-500 print:text-black mt-2">
+                    Çıktı Tarihi: {new Date().toLocaleString('tr-TR')}
+                  </p>
+                </div>
+                <div className="text-right">
+                  {settings.companyLogo ? (
+                    <img src={settings.companyLogo} alt="Logo" className="max-h-20 object-contain ml-auto mb-2" />
+                  ) : (
+                    <h2 className="font-logo text-3xl font-bold text-blue-900 print:text-black mb-2">{settings.printer_header_text || 'esila'}</h2>
+                  )}
+                  <p className="text-sm text-gray-600 print:text-black font-medium">{settings.companyName}</p>
+                </div>
+              </div>
+
+              {/* Summary Metrics */}
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 print:border-gray-400 print:bg-transparent">
+                  <p className="text-sm text-gray-500 print:text-black font-medium mb-1">Müşteri/Firma Yetkilisi</p>
+                  <p className="text-lg font-bold text-gray-800 print:text-black">
+                    {selectedCustomerForHistory.name}
+                  </p>
+                  <p className="text-gray-600 print:text-black">{selectedCustomerForHistory.phone}</p>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 print:border-gray-500 print:bg-transparent">
+                  <p className="text-sm text-blue-600 print:text-black font-bold mb-1">Güncel Bakiye</p>
+                  <p className={`text-2xl font-bold ${selectedCustomerForHistory.balance >= 0 ? 'text-emerald-700' : 'text-red-700'} print:text-black`}>
+                    {selectedCustomerForHistory.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                  </p>
+                  <p className="text-xs text-blue-700 print:text-black opacity-80 mt-1">
+                    {selectedCustomerForHistory.balance >= 0 ? 'Müşteri Borçludur' : 'Firmamız Borçludur (Fazla Tahsilat)'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Transactions List */}
+              <div className="mb-4">
+                <h3 className="font-bold text-gray-800 print:text-black mb-4 border-b pb-2">Hesap Hareketleri</h3>
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100 print:bg-gray-200 text-gray-800 print:text-black font-semibold">
+                      <th className="p-3 border border-gray-200 print:border-gray-400 w-32">Tarih</th>
+                      <th className="p-3 border border-gray-200 print:border-gray-400 w-32">İşlem Tipi</th>
+                      <th className="p-3 border border-gray-200 print:border-gray-400">Açıklama</th>
+                      <th className="p-3 border border-gray-200 print:border-gray-400 text-right w-36">Tutar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.filter(t => t.customerId === selectedCustomerForHistory.id).map(tx => (
+                      <tr key={tx.id} className="border-b border-gray-200 print:border-gray-300">
+                        <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-600 print:text-black whitespace-nowrap">
+                          {new Date(tx.date).toLocaleDateString('tr-TR')}
+                        </td>
+                        <td className="p-3 border-x border-gray-200 print:border-gray-300">
+                          <span className={`font-medium ${tx.type === 'Alacak' ? 'text-red-700 print:text-black' : 'text-emerald-700 print:text-black'}`}>
+                            {tx.type}
+                          </span>
+                        </td>
+                        <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-800 print:text-black text-xs">
+                          {tx.description}
+                        </td>
+                        <td className={`p-3 border-x border-gray-200 print:border-gray-300 text-right font-bold whitespace-nowrap ${tx.type === 'Alacak' ? 'text-red-700 print:text-black' : 'text-emerald-700 print:text-black'}`}>
+                          {tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                        </td>
+                      </tr>
+                    ))}
+                    {transactions.filter(t => t.customerId === selectedCustomerForHistory.id).length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="p-6 text-center text-gray-500 border border-gray-200">
+                          Kayıtlı hesap hareketi bulunmuyor.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-12 flex justify-between px-8 no-print">
+                <div className="text-center">
+                  <div className="w-48 h-px bg-gray-300 mb-2"></div>
+                  <p className="text-gray-500">Müşteri Kaşe/İmza</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-48 h-px bg-gray-300 mb-2"></div>
+                  <p className="text-gray-500">Firma Yetkilisi İmza</p>
+                </div>
+              </div>
+              <div className="mt-20 print:flex justify-between px-8 hidden text-black">
+                <div className="text-center">
+                  <div className="w-48 h-px bg-black mb-2"></div>
+                  <p>Müşteri Kaşe/İmza</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-48 h-px bg-black mb-2"></div>
+                  <p>Firma Yetkilisi İmza</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

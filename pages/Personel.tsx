@@ -1,8 +1,6 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download, Printer } from 'lucide-react';
 import { Personnel, PersonnelRecord, Payroll } from '../types';
 
 const INITIAL_FORM: Personnel = {
@@ -246,57 +244,12 @@ export const Personel: React.FC = () => {
     }
   };
 
+  const [printBordroModalOpen, setPrintBordroModalOpen] = useState(false);
+  const [selectedBordroToPrint, setSelectedBordroToPrint] = useState<Payroll | null>(null);
+
   const downloadPayrollPDF = (payroll: Payroll) => {
-    if (!selectedPersonnel) return;
-    const doc = new jsPDF();
-    
-    const sanitize = (text: string) => {
-      if (!text) return '';
-      const trMap: Record<string, string> = {
-          'ç': 'c', 'Ç': 'C',
-          'ğ': 'g', 'Ğ': 'G',
-          'ı': 'i', 'İ': 'I',
-          'ö': 'o', 'Ö': 'O',
-          'ş': 's', 'Ş': 'S',
-          'ü': 'u', 'Ü': 'U'
-      };
-      return String(text).replace(/[çÇğĞıİöÖşŞüÜ]/g, (match) => trMap[match] || match);
-    };
-
-    // Header
-    doc.setFontSize(20);
-    doc.text('E-Bordro', 15, 20);
-    
-    doc.setFontSize(12);
-    doc.text(`Firma: Erp Sistemi A.S.`, 15, 30);
-    doc.text(`Donem: ${payroll.date}`, 15, 38);
-    
-    doc.text(`Personel Adi: ${sanitize(selectedPersonnel.firstName)} ${sanitize(selectedPersonnel.lastName)}`, 15, 52);
-    doc.text(`TC Kimlik No: ${selectedPersonnel.tcNo}`, 15, 60);
-    doc.text(`Departman: ${sanitize(selectedPersonnel.department)}`, 15, 68);
-    doc.text(`Gorev: ${sanitize(selectedPersonnel.position)}`, 15, 76);
-    
-    const tableData = [
-      ['Calisilan Gun', `${payroll.workedDays} gun`],
-      ['Temel Maas', `${payroll.basicSalary.toLocaleString('tr-TR')} TL`],
-      ['Mesai Saati', `${payroll.overtimeHours} saat`],
-      ['Mesai Ucreti', `${payroll.overtimePay.toLocaleString('tr-TR')} TL`],
-      ['Prim / Ikramiye', `${payroll.bonus.toLocaleString('tr-TR')} TL`],
-      ['Kesintiler', `-${payroll.deductions.toLocaleString('tr-TR')} TL`],
-      ['', ''],
-      ['NET HAKEDIS', `${payroll.netSalary.toLocaleString('tr-TR')} TL`],
-    ];
-
-    autoTable(doc, {
-      startY: 85,
-      head: [['Aciklama', 'Tutar / Deger']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: { fillColor: [52, 211, 153] }, // Emerald 400
-      footStyles: { fillColor: [243, 244, 246] },
-    });
-    
-    doc.save(`Bordro_${sanitize(selectedPersonnel.firstName)}_${sanitize(selectedPersonnel.lastName)}_${payroll.date}.pdf`);
+    setSelectedBordroToPrint(payroll);
+    setPrintBordroModalOpen(true);
   };
 
 
@@ -875,6 +828,157 @@ export const Personel: React.FC = () => {
                 </div>
             </div>
          </div>
+      )}
+
+      {/* A4 Bordro Print Modal */}
+      {printBordroModalOpen && selectedBordroToPrint && selectedPersonnel && (
+        <div className="fixed inset-0 bg-gray-500/75 z-50 flex items-start justify-center p-4 sm:p-6 shadow-2xl backdrop-blur-sm overflow-y-auto print:bg-white print:p-0 print:m-0 animate-fade-in print:block">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-2xl mb-8 print:shadow-none print:max-w-full print:m-0 print:rounded-none">
+            {/* Modal Header */}
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl no-print">
+              <div className="flex items-center gap-3">
+                <FileText className="text-gray-400" />
+                <h3 className="text-lg font-bold text-gray-800">Bordro Yazdır (A4)</h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => {
+                    setTimeout(() => window.print(), 100);
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+                >
+                  <Printer size={18} />
+                  Yazdır / PDF İndir
+                </button>
+                <button onClick={() => setPrintBordroModalOpen(false)} className="text-gray-500 hover:text-gray-700 transition-colors p-2">
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            {/* Print Content - A4 Document Format */}
+            <div className="p-8 md:p-12 print:p-4 print:text-black font-sans bg-white">
+              <div className="flex justify-between items-start mb-8 border-b-2 border-gray-800 pb-6 print:border-black">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 print:text-black mb-2">PERSONEL MAAŞ BORDROSU</h1>
+                  <p className="text-gray-600 print:text-black mt-2 font-bold text-xl">
+                    Kayıt Dönemi: {selectedBordroToPrint.date}
+                  </p>
+                  <p className="text-gray-500 print:text-black mt-2">
+                    Çıktı Tarihi: {new Date().toLocaleString('tr-TR')}
+                  </p>
+                </div>
+                <div className="text-right">
+                  {settings.companyLogo ? (
+                    <img src={settings.companyLogo} alt="Logo" className="max-h-20 object-contain ml-auto mb-2" />
+                  ) : (
+                    <h2 className="font-logo text-3xl font-bold text-emerald-900 print:text-black mb-2">{settings.printer_header_text || 'esila'}</h2>
+                  )}
+                  <p className="text-sm text-gray-600 print:text-black font-medium">{settings.companyName}</p>
+                </div>
+              </div>
+
+              {/* Personnel Information */}
+              <div className="mb-8">
+                <h3 className="font-bold text-gray-800 print:text-black mb-3 border-b pb-2">Personel Bilgileri</h3>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm text-gray-700 print:text-black">
+                  <div className="flex justify-between border-b border-dashed border-gray-200 pb-1">
+                    <span className="font-medium text-gray-600">Ad Soyad:</span>
+                    <span className="font-bold">{selectedPersonnel.firstName} {selectedPersonnel.lastName}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-dashed border-gray-200 pb-1">
+                    <span className="font-medium text-gray-600">TC Kimlik / Pasaport:</span>
+                    <span className="font-bold">{selectedPersonnel.tcNo}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-dashed border-gray-200 pb-1">
+                    <span className="font-medium text-gray-600">Departman:</span>
+                    <span className="font-bold">{selectedPersonnel.department}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-dashed border-gray-200 pb-1">
+                    <span className="font-medium text-gray-600">Görev:</span>
+                    <span className="font-bold">{selectedPersonnel.position}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payroll Details */}
+              <div className="mb-12">
+                <h3 className="font-bold text-gray-800 print:text-black mb-3 border-b pb-2">Tahakkuk Bilgileri</h3>
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100 print:bg-gray-200 text-gray-800 print:text-black font-semibold">
+                      <th className="p-3 border border-gray-200 print:border-gray-400">Açıklama</th>
+                      <th className="p-3 border border-gray-200 print:border-gray-400 text-right w-40">Tutar / Değer</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-gray-200 print:border-gray-300">
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-700 print:text-black">Çalışılan Gün</td>
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-right font-medium">{selectedBordroToPrint.workedDays} gün</td>
+                    </tr>
+                    <tr className="border-b border-gray-200 print:border-gray-300">
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-700 print:text-black">Temel Maaş Hakedişi</td>
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-right font-medium">{selectedBordroToPrint.basicSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                    </tr>
+                    <tr className="border-b border-gray-200 print:border-gray-300">
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-700 print:text-black">Mesai Saati</td>
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-right font-medium">{selectedBordroToPrint.overtimeHours} saat</td>
+                    </tr>
+                    <tr className="border-b border-gray-200 print:border-gray-300 bg-emerald-50/30">
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-700 print:text-black text-emerald-800">+ Mesai Ücreti Tutarı</td>
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-right font-medium text-emerald-700">{selectedBordroToPrint.overtimePay.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                    </tr>
+                    <tr className="border-b border-gray-200 print:border-gray-300 bg-emerald-50/30">
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-700 print:text-black text-emerald-800">+ Prim / İkramiye / Diğer Kazançlar</td>
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-right font-medium text-emerald-700">{selectedBordroToPrint.bonus.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                    </tr>
+                    <tr className="border-b border-gray-200 print:border-gray-300 bg-red-50/30">
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-700 print:text-black text-red-800">- Avans / Kesintiler</td>
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-right font-medium text-red-700">{selectedBordroToPrint.deductions.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-100 print:bg-gray-200 font-bold text-gray-900 print:text-black">
+                      <td className="p-3 border border-gray-200 print:border-gray-400 text-right text-lg">NET ÖDENECEK TUTAR:</td>
+                      <td className="p-3 border border-gray-200 print:border-gray-400 text-right text-lg text-emerald-700 print:text-black">
+                        {calculateNetSalary(selectedBordroToPrint).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <div className="mt-16 flex justify-between px-8 no-print">
+                <div className="text-center">
+                  <div className="w-48 h-px bg-gray-300 mb-2"></div>
+                  <p className="text-gray-500 text-sm font-medium">Personel İmzası</p>
+                  <p className="text-xs text-gray-400 mt-1">Okudum, anladım ve<br/>eksiksiz teslim aldım.</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-48 h-px bg-gray-300 mb-2"></div>
+                  <p className="text-gray-500 text-sm font-medium">Firma Yetkilisi / Kaşe / İmza</p>
+                </div>
+              </div>
+
+              {/* Print-only CSS layout fixes for signature blocks */}
+              <div className="mt-20 print:flex justify-between px-12 hidden text-black">
+                <div className="text-center">
+                  <div className="w-48 h-px bg-black mb-2"></div>
+                  <p className="font-semibold text-sm">Personel İmzası</p>
+                  <p className="text-xs mt-1">Okudum, anladım ve<br/>eksiksiz teslim aldım.</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-48 h-px bg-black mb-2"></div>
+                  <p className="font-semibold text-sm">Firma Yetkilisi / Kaşe / İmza</p>
+                </div>
+              </div>
+              
+              <div className="mt-12 text-center text-xs text-gray-400 print:text-gray-500 border-t pt-4">
+                Bu belge bilgilendirme amaçlıdır.
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
