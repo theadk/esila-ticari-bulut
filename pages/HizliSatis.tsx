@@ -268,15 +268,15 @@ export const HizliSatis: React.FC = () => {
         {/* Hızlı Kategori/Ürünler (Eğer arama yoksa hızlı satışta gösterilenleri listele) */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex-1 overflow-hidden flex flex-col">
           <h3 className="font-semibold text-gray-700 pb-2 border-b mb-4">Hızlı Satış Ürünleri</h3>
-          <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-             {(searchTerm ? filteredProducts : products.filter(p => p.showInQuickSale)).map(product => (
+          <div className="flex-1 overflow-y-auto pr-2 flex flex-wrap gap-2 content-start">
+             {(searchTerm ? filteredProducts : products).map(product => (
                 <div 
                   key={product.id} 
                   onClick={() => handleAddToCart(product)}
-                  className="border border-gray-200 rounded-xl p-2 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-400 hover:shadow-sm cursor-pointer transition-colors flex flex-col items-center text-center justify-center min-h-[80px]"
+                  className="border border-gray-200 rounded-xl p-2 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-400 hover:shadow-sm cursor-pointer transition-colors flex flex-col items-center text-center justify-between w-[100px] h-[100px] shrink-0"
                 >
-                   <div className="text-xs font-semibold text-emerald-900 line-clamp-2 mb-1">{product.name}</div>
-                   <div className="text-emerald-700 font-bold text-sm">{(product.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</div>
+                   <div className="text-[11px] font-semibold text-emerald-900 line-clamp-3 leading-tight pt-1">{product.name}</div>
+                   <div className="text-emerald-700 font-bold text-xs pb-1">{(product.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</div>
                 </div>
              ))}
           </div>

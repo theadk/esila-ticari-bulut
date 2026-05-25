@@ -52,32 +52,33 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
-    const user = store.users.find(u => u.email === resetEmail);
-    if (!user) {
-      setError('Bu e-posta adresi sistemde kayıtlı değil.');
-      return;
-    }
-
-    if (user.status === 'Pasif') {
-      setError('Hesabınız pasif durumdadır. Yöneticinize başvurun.');
-      return;
-    }
-
-    // Mock sending email
     try {
-      const resetLink = `https://${window.location.host}/reset-password?email=${user.email}`; // Gerçekte token olmalı
+      const response = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Şifre sıfırlama işlemi başarısız oldu.');
+        return;
+      }
+
+      const resetLink = `https://${window.location.host}/reset-password?email=${resetEmail}`; // Gerçekte token olmalı
       await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          to: user.email, 
+          to: resetEmail, 
           subject: "Şifre Sıfırlama - Esila Ticari", 
-          html: `<p>Sayın ${user.name},</p><p>Şifre sıfırlama talebiniz alınmıştır.</p><p><a href="${resetLink}">Şifrenizi sıfırlamak için tıklayın</a></p>` 
+          html: `<p>Sayın ${data.name},</p><p>Şifre sıfırlama talebiniz alınmıştır.</p><p><a href="${resetLink}">Şifrenizi sıfırlamak için tıklayın</a></p>` 
         })
       });
       setView('email_sent');
     } catch (e) {
-      setError("Kurum email ayarlarında bir sorun var, şifre sıfırlama maili gönderilemedi.");
+      setError("Bağlantı hatası veya email gönderilemedi.");
     }
   };
 

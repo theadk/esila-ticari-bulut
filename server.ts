@@ -58,6 +58,39 @@ async function startServer() {
     }
   });
 
+  app.post('/api/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    try {
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const fallbacks = getFallbackTable('users');
+        const user = fallbacks.find((u: any) => u.email === email);
+        
+        if (!user) {
+          return res.status(404).json({ error: 'Bu e-posta adresi sistemde kayıtlı değil.' });
+        }
+        if (user.status === 'Pasif') {
+           return res.status(403).json({ error: 'Hesabınız pasif durumdadır. Yöneticinize başvurun.' });
+        }
+        return res.json({ success: true, name: user.name });
+      }
+
+      const pool = getPool();
+      const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ error: 'Bu e-posta adresi sistemde kayıtlı değil.' });
+      }
+      
+      const user = rows[0];
+      if (user.status === 'Pasif') {
+        return res.status(403).json({ error: 'Hesabınız pasif durumdadır. Yöneticinize başvurun.' });
+      }
+      return res.json({ success: true, name: user.name });
+      
+    } catch(e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
   app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -532,6 +565,16 @@ async function startServer() {
       if (data.package === 'Aylık') expInterval = '1 MONTH';
       if (data.package === 'Sınırsız') expInterval = '100 YEAR';
 
+      const sendRegistrationMail = async (tenantEmail: string, tenantName: string) => {
+         if (tenantEmail) {
+            await sendMail(
+              tenantEmail,
+              "Yeni Kayıt Talebi - Esila Ticari",
+              `<p>Sayın ${tenantName},</p><p>Esila Ticari'ye kayıt talebiniz alınmıştır. Hesabınız yöneticilerimiz tarafından incelendikten sonra aktive edilecek ve tarafınıza tekrar bilgi verilecektir.</p>`
+            );
+         }
+      };
+
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
         const dDate = new Date();
         dDate.setFullYear(dDate.getFullYear() + (data.package === 'Aylık' ? 0 : data.package === 'Sınırsız' ? 100 : 1));
@@ -540,6 +583,8 @@ async function startServer() {
         insertFallbackRow('tenants', { ...data, status: 'Bekliyor', expirationDate: dDate.toISOString() });
         insertFallbackRow('users', { id: "admin-" + data.vkn, vkn: data.vkn, name: data.name + ' Admin', username: data.vkn, email: data.email, passwordHash: data.vkn + '123', role: 'Admin', status: 'Aktif' });
    insertFallbackRow('settings', { vkn: data.vkn, id: 1, companyName: data.name, email: data.email });
+        
+        await sendRegistrationMail(data.email, data.name);
         return res.json({success: true});
       }
 
@@ -557,6 +602,7 @@ async function startServer() {
         [data.vkn, data.name, data.email]
       );
 
+      await sendRegistrationMail(data.email, data.name);
       res.json({success: true});
     } catch(e) { res.status(500).json({error: String(e)}); }
   });
