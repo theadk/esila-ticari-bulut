@@ -869,12 +869,12 @@ export const Personel: React.FC = () => {
                   </p>
                 </div>
                 <div className="text-right">
-                  {settings.companyLogo ? (
-                    <img src={settings.companyLogo} alt="Logo" className="max-h-20 object-contain ml-auto mb-2" />
+                  {store.settings.companyLogo ? (
+                    <img src={store.settings.companyLogo} alt="Logo" className="max-h-20 object-contain ml-auto mb-2" />
                   ) : (
-                    <h2 className="font-logo text-3xl font-bold text-emerald-900 print:text-black mb-2">{settings.printer_header_text || 'esila'}</h2>
+                    <h2 className="font-logo text-3xl font-bold text-emerald-900 print:text-black mb-2">{store.settings.printer_header_text || 'esila'}</h2>
                   )}
-                  <p className="text-sm text-gray-600 print:text-black font-medium">{settings.companyName}</p>
+                  <p className="text-sm text-gray-600 print:text-black font-medium">{store.settings.companyName}</p>
                 </div>
               </div>
 

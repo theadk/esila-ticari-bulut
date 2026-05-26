@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, CheckCircle, XCircle, Wrench, Settings, User, FileText, ChevronRight } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, CheckCircle, XCircle, Wrench, Settings, User, FileText, ChevronRight, Printer } from 'lucide-react';
 import { ServiceTicket, ServiceTicketStatus, ServiceMaterial, Customer, Product, Personnel, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
 
@@ -135,9 +135,23 @@ export const Ariza: React.FC = () => {
     for (const material of selectedTicket.materialsUsed) {
       const pIndex = newProducts.findIndex(p => p.id === material.productId);
       if (pIndex > -1) {
+        let p = newProducts[pIndex];
+        let remainingQuantity = material.quantity;
+        let newWarehouseStocks = [...(p.warehouseStocks || [])];
+        
+        for (let i = 0; i < newWarehouseStocks.length; i++) {
+            if (remainingQuantity <= 0) break;
+            if (newWarehouseStocks[i].stock > 0) {
+                const deduct = Math.min(newWarehouseStocks[i].stock, remainingQuantity);
+                newWarehouseStocks[i] = { ...newWarehouseStocks[i], stock: newWarehouseStocks[i].stock - deduct };
+                remainingQuantity -= deduct;
+            }
+        }
+
         newProducts[pIndex] = {
-           ...newProducts[pIndex],
-           stock: newProducts[pIndex].stock - material.quantity
+           ...p,
+           stock: Math.max(0, p.stock - material.quantity),
+           warehouseStocks: newWarehouseStocks
         };
       }
     }
@@ -189,6 +203,124 @@ export const Ariza: React.FC = () => {
     store.setServiceTickets(serviceTickets.map(t => t.id === selectedTicket.id ? updatedTicket : t));
     setSelectedTicket(updatedTicket);
     setIsDetailModalOpen(false);
+  };
+
+  const handlePrint = (format: 'a4' | 'thermal') => {
+    if (!selectedTicket) return;
+    const isA4 = format === 'a4';
+    
+    const materialsHtml = selectedTicket.materialsUsed.map(m => `
+      <tr>
+        <td style="padding: 4px 0">${m.productName}</td>
+        <td style="padding: 4px 0; text-align: center;">${m.quantity}</td>
+        <td style="padding: 4px 0; text-align: right;">${m.unitPrice.toLocaleString('tr-TR')} ₺</td>
+        <td style="padding: 4px 0; text-align: right;">${(m.quantity * m.unitPrice).toLocaleString('tr-TR')} ₺</td>
+      </tr>
+    `).join('');
+
+    const laborHtml = selectedTicket.laborFee > 0 ? `
+      <tr>
+        <td colspan="3" style="padding: 4px 0; border-top: 1px dashed #ccc; font-weight: bold;">İşçilik Ücreti</td>
+        <td style="padding: 4px 0; text-align: right; border-top: 1px dashed #ccc; font-weight: bold;">${selectedTicket.laborFee.toLocaleString('tr-TR')} ₺</td>
+      </tr>
+    ` : '';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Servis Formu - ${selectedTicket.id}</title>
+          <style>
+            @page { size: ${isA4 ? 'A4' : '80mm auto'}; margin: ${isA4 ? '20mm' : '0'}; }
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+              margin: 0; 
+              padding: ${isA4 ? '0' : '15px'}; 
+              width: ${isA4 ? 'auto' : '100%'};
+              box-sizing: border-box;
+              color: #000;
+              font-size: ${isA4 ? '14px' : '12px'};
+            }
+            .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px; }
+            .title { font-weight: bold; font-size: ${isA4 ? '24px' : '18px'}; margin: 0 0 5px 0; text-transform: uppercase; }
+            .info { margin-bottom: 20px; line-height: 1.6; }
+            .info div { display: flex; justify-content: space-between; }
+            .info strong { display: inline-block; text-align: left; }
+            .info span { text-align: right; }
+            .desc { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc; }
+            .desc-title { font-weight: bold; margin-bottom: 5px; }
+            .desc-text { white-space: pre-wrap; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px; }
+            th { text-align: left; border-bottom: 2px solid #000; padding-bottom: 5px; font-weight: bold; }
+            .total-section { text-align: right; font-weight: bold; font-size: ${isA4 ? '18px' : '16px'}; border-top: 2px solid #000; padding-top: 10px; }
+            .footer { text-align: center; margin-top: 40px; font-size: 10px; color: #555; border-top: 1px dashed #ccc; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="title">ARIZA / SERVİS FORMU</h1>
+            <div style="font-size: ${isA4 ? '12px' : '10px'}">Kayıt No: ${selectedTicket.id.split('-')[0]}</div>
+            <div>Tarih: ${new Date(selectedTicket.dateCreated).toLocaleDateString('tr-TR')}</div>
+          </div>
+          <div class="info">
+            <div><strong>Müşteri:</strong> <span>${selectedTicket.customerName}</span></div>
+            <div><strong>Cihaz:</strong> <span>${selectedTicket.deviceType}</span></div>
+            <div><strong>Seri No:</strong> <span>${selectedTicket.serialNumber || '-'}</span></div>
+            <div><strong>Personel:</strong> <span>${selectedTicket.personnelName || '-'}</span></div>
+            <div><strong>Durum:</strong> <span>${selectedTicket.status}</span></div>
+          </div>
+          <div class="desc">
+            <div class="desc-title">Şikayet / Arıza Detayı:</div>
+            <div class="desc-text">${selectedTicket.issueDescription}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>İşlem/Parça</th>
+                <th style="text-align: center;">Ad.</th>
+                <th style="text-align: right;">Br.</th>
+                <th style="text-align: right;">Tutar</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${materialsHtml}
+              ${laborHtml}
+            </tbody>
+          </table>
+          <div class="total-section">
+            Genel Toplam: ${selectedTicket.totalCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+          </div>
+          <div class="footer">
+            Bu belge bilgilendirme amaçlıdır. Mali değeri yoktur. <br/>
+            Bizi tercih ettiğiniz için teşekkür ederiz.
+          </div>
+        </body>
+      </html>
+    `;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+    
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(html);
+      doc.close();
+    }
+    
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    }, 500);
   };
 
   return (
@@ -385,16 +517,30 @@ export const Ariza: React.FC = () => {
       {isDetailModalOpen && selectedTicket && (
         <div className="fixed inset-0 bg-gray-500/75 flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 flex-wrap gap-4">
               <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <Settings className="text-emerald-600" />
                 Arıza Formu Detayı
               </h3>
-              <div className="flex items-center gap-3">
-                 <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedTicket.status)}`}>
+              <div className="flex flex-wrap items-center gap-3">
+                 <button 
+                   onClick={() => handlePrint('thermal')}
+                   className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200"
+                 >
+                   <Printer size={16} />
+                   Fiş (80mm)
+                 </button>
+                 <button 
+                   onClick={() => handlePrint('a4')}
+                   className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200"
+                 >
+                   <Printer size={16} />
+                   A4 Yazdır
+                 </button>
+                 <span className={`px-3 py-1.5 rounded-full text-xs font-medium border ${getStatusColor(selectedTicket.status)}`}>
                    {selectedTicket.status}
                  </span>
-                 <button onClick={() => setIsDetailModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                 <button onClick={() => setIsDetailModalOpen(false)} className="text-gray-400 hover:text-gray-600 ml-2">
                     <XCircle size={28} />
                  </button>
               </div>

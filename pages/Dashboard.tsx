@@ -15,14 +15,18 @@ import {
   Tooltip, 
   ResponsiveContainer,
   LineChart,
-  Line
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
 } from 'recharts';
 import { useAppStore } from '../lib/store';
 import { api } from '../lib/api';
 import { Product } from '../types';
 
 export const Dashboard: React.FC = () => {
-  const { customers, transactions } = useAppStore();
+  const { customers, transactions, serviceTickets } = useAppStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
 
@@ -37,6 +41,28 @@ export const Dashboard: React.FC = () => {
       }
     }).then(res => res.json()).then(data => setTenantInfo(data)).catch();
   }, []);
+
+  const serviceStatsData = useMemo(() => {
+    let devamEden = 0;
+    let tamamlanan = 0;
+    let iptalEdilen = 0;
+
+    serviceTickets.forEach(ticket => {
+      if (ticket.status === 'Bekliyor' || ticket.status === 'İşlemde') {
+        devamEden++;
+      } else if (ticket.status === 'Tamamlandı') {
+        tamamlanan++;
+      } else if (ticket.status === 'İptal') {
+        iptalEdilen++;
+      }
+    });
+
+    return [
+      { name: 'Devam Eden', value: devamEden, color: '#3b82f6' },
+      { name: 'Tamamlanan', value: tamamlanan, color: '#10b981' },
+      { name: 'İptal Edilen', value: iptalEdilen, color: '#ef4444' }
+    ];
+  }, [serviceTickets]);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -140,7 +166,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:p-6">
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold mb-4">Haftalık Satış Grafiği (Son 7 Gün)</h3>
           <div className="h-80">
@@ -173,6 +199,33 @@ export const Dashboard: React.FC = () => {
                 />
                 <Line type="monotone" name="Tahsilat" dataKey="tahsilat" stroke="#059669" strokeWidth={3} dot={{ r: 4 }} />
               </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold mb-4">Servis Durumları</h3>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={serviceStatsData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {serviceStatsData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Legend />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
