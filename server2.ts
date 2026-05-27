@@ -1,4 +1,25 @@
 import express from 'express';
+
+function generateSecurePassword() {
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numbers = '0123456789';
+  const symbols = '!@#$%^&*()_+~`|}{[]:;?><,./-=';
+  const all = lowercase + uppercase + numbers + symbols;
+
+  let password = '';
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += symbols[Math.floor(Math.random() * symbols.length)];
+
+  for (let i = password.length; i < 12; i++) {
+    password += all[Math.floor(Math.random() * all.length)];
+  }
+
+  return password.split('').sort(() => 0.5 - Math.random()).join('');
+}
+
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,6 +28,9 @@ import cors from 'cors';
 import { getFallbackTable, insertFallbackRow, updateFallbackRow, deleteFallbackRow } from './server/fallbackDb.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const loginAttempts = new Map<string, { attempts: number, lockUntil: number | null }>();
+
 
 let fallbackUsers: any[] = [
   { id: 'u1', name: 'Sistem Yöneticisi', username: 'admin', email: 'admin@esila.com', passwordHash: 'admin123', role: 'Admin', status: 'Aktif' }
@@ -53,23 +77,81 @@ async function startServer() {
   app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
+      const now = Date.now();
+      const userAttempt = loginAttempts.get(username) || { attempts: 0, lockUntil: null };
+
+      if (userAttempt.lockUntil && userAttempt.lockUntil > now) {
+         const remaining = Math.ceil((userAttempt.lockUntil - now) / 60000);
+         return res.status(403).json({ error: `Çok fazla hatalı giriş yaptınız. Hesabınız ${remaining} dakika süreyle kilitlenmiştir.` });
+      }
+
+      // If lock has expired, reset it
+      if (userAttempt.lockUntil && userAttempt.lockUntil <= now) {
+         userAttempt.attempts = 0;
+         userAttempt.lockUntil = null;
+      }
+
+      const handleFailedLogin = () => {
+         userAttempt.attempts += 1;
+         if (userAttempt.attempts >= 5) {
+            userAttempt.lockUntil = now + (5 * 60 * 1000);
+            loginAttempts.set(username, userAttempt);
+            return res.status(403).json({ error: 'Çok fazla hatalı giriş yaptınız. Hesabınız 5 dakika süreyle kilitlenmiştir.' });
+         } else {
+            loginAttempts.set(username, userAttempt);
+            return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
+         }
+      };
+
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
-        const user = fallbackUsers.find(u => (u.username === username || u.email === username) && u.passwordHash === password);
-        if (user) {
-          if (user.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
-          return res.json(user);
+        const fallbackUsers = getFallbackTable('users');
+        const fallbackTenants = getFallbackTable('tenants');
+        const matchingUser = fallbackUsers.find((u: any) => (u.username === username || u.email === username));
+        
+        if (matchingUser) {
+           if (matchingUser.passwordHash === password) {
+              if (matchingUser.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
+              
+              const tenant = fallbackTenants.find((t: any) => t.vkn === matchingUser.vkn);
+              if (tenant) {
+                 if (tenant.status === 'Pasif') return res.status(401).json({ error: 'Firma hesabı pasif durumdadır.' });
+                 if (tenant.expirationDate && new Date(tenant.expirationDate) < new Date()) {
+                    return res.status(401).json({ error: 'Firma lisans süresi dolmuştur.' });
+                 }
+              }
+              
+              loginAttempts.delete(username);
+              return res.json(matchingUser);
+           } else {
+              return handleFailedLogin();
+           }
         }
-        return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
+        return handleFailedLogin();
       }
       
       const pool = getPool();
-      const [rows] = await pool.query('SELECT * FROM users WHERE (username = ? OR email = ?) AND passwordHash = ?', [username, username, password]);
+      const [rows] = await pool.query('SELECT * FROM users WHERE (username = ? OR email = ?)', [username, username]);
       const user = rows[0];
       if (user) {
-        if (user.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
-        return res.json(user);
+        if (user.passwordHash === password) {
+           if (user.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
+           
+           const [tenantRows] = await pool.query('SELECT * FROM tenants WHERE vkn = ?', [user.vkn]);
+           const tenant = tenantRows[0];
+           if (tenant) {
+              if (tenant.status === 'Pasif') return res.status(401).json({ error: 'Firma hesabı pasif durumdadır.' });
+              if (tenant.expirationDate && new Date(tenant.expirationDate) < new Date()) {
+                 return res.status(401).json({ error: 'Firma lisans süresi dolmuştur.' });
+              }
+           }
+           
+           loginAttempts.delete(username);
+           return res.json(user);
+        } else {
+           return handleFailedLogin();
+        }
       }
-      return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
+      return handleFailedLogin();
     } catch (e) {
       res.status(500).json({ error: String(e) });
     }
@@ -469,9 +551,17 @@ async function startServer() {
 
   app.get('/api/tenants', async (req, res) => {
     try {
-      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json(fallbackTenants);
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+         const tenants = getFallbackTable('tenants');
+         const users = getFallbackTable('users');
+         const resData = tenants.map((t) => {
+            const u = users.find((us) => us.vkn === t.vkn && us.role === 'Admin');
+            return { ...t, password: u ? u.passwordHash : '' };
+         });
+         return res.json(resData);
+      }
       const pool = getPool();
-      const [rows] = await pool.query("SELECT * FROM tenants");
+      const [rows] = await pool.query("SELECT t.*, u.passwordHash as password FROM tenants t LEFT JOIN users u ON t.vkn = u.vkn AND u.role = 'Admin' GROUP BY t.vkn");
       res.json(rows);
     } catch (e) { res.status(500).json({error: String(e)}); }
   });
@@ -479,6 +569,7 @@ async function startServer() {
   app.post('/api/tenants', async (req, res) => {
     try {
       const data = req.body;
+      const newAdminPass = generateSecurePassword();
       let expInterval = '1 YEAR';
       if (data.package === 'Aylık') expInterval = '1 MONTH';
       if (data.package === 'Sınırsız') expInterval = '100 YEAR';
@@ -499,7 +590,7 @@ async function startServer() {
           name: data.name + ' Admin',
           username: data.vkn,
           email: data.email,
-          passwordHash: data.vkn + '123',
+          passwordHash: newAdminPass,
           role: 'Admin',
           status: 'Aktif'
         });
@@ -512,7 +603,7 @@ async function startServer() {
       
       // Seed user for tenant
       await pool.query("INSERT INTO users (id, vkn, name, username, email, passwordHash, role, status) VALUES (?, ?, ?, ?, ?, ?, 'Admin', 'Aktif')",
-        ["admin-" + data.vkn, data.vkn, data.name + ' Admin', data.vkn, data.email, data.vkn + '123']
+        ["admin-" + data.vkn, data.vkn, data.name + ' Admin', data.vkn, data.email, newAdminPass]
       );
 
       // Seed settings

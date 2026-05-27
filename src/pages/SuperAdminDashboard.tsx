@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Power, Mail, Building, UserCheck } from 'lucide-react';
+import { Plus, Power, Mail, Building, UserCheck, XCircle } from 'lucide-react';
 
 interface Tenant {
   vkn: string;
@@ -10,6 +10,7 @@ interface Tenant {
   activationToken: string;
   package: string;
   expirationDate: string;
+  password?: string;
 }
 
 export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
@@ -62,14 +63,15 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         fetchTenants();
         alert('Firma güncellendi.');
       } else {
-        await fetch('/api/tenants', {
+        const res = await fetch('/api/tenants', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...formData, modules: formData.modules })
         });
+        const data = await res.json();
         setIsModalOpen(false);
         fetchTenants();
-        alert(`Firma eklendi. Yönetici Şifresi: ${formData.vkn}123\nFirma aktif edildiğinde e-posta ile bilgilendirilecektir.`);
+        alert(`Firma eklendi. Yönetici Şifresi: ${data.password || 'Oluşturuldu'}\nFirma aktif edildiğinde e-posta ile bilgilendirilecektir.`);
       }
     } catch(e) {
       alert("Hata oluştu.");
@@ -102,6 +104,18 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         alert('Firma silindi.');
       } catch(e) {
         alert("Hata oluştu.");
+      }
+    }
+  };
+
+  const handleReject = async (vkn: string) => {
+    if (confirm("Bu başvuruyu reddetmek ve silmek istediğinize emin misiniz? Başvuru sahibine ret maili gidecektir.")) {
+      try {
+        await fetch(`/api/tenants/${vkn}/reject`, { method: 'PUT' });
+        fetchTenants();
+        alert('Başvuru reddedildi ve mail iletildi.');
+      } catch(e) {
+        alert("Ret işlemi sırasında hata oluştu.");
       }
     }
   };
@@ -184,16 +198,16 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${t.status === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}`}>{t.status}</span>
                   </td>
                   <td className="p-4 font-mono text-xs font-bold text-gray-600">
-                    {t.vkn}123
+                    {t.password || '*****'}
                   </td>
                   <td className="p-4">
                     {t.status === 'Bekliyor' ? (
-                       <div className="flex flex-col sm:flex-row items-center gap-2 mb-2">
-                         <button className="text-blue-600 flex items-center gap-1 hover:underline text-xs bg-blue-50 px-2 py-1 rounded" onClick={() => alert('Mail yeniden gönderildi.')}>
-                           <Mail size={14} /> Mail
-                         </button>
+                       <div className="flex flex-col xl:flex-row items-center gap-2 mb-2">
                          <button className="text-emerald-600 flex items-center gap-1 hover:underline text-xs bg-emerald-50 px-2 py-1 rounded" onClick={() => handleActivate(t.vkn)}>
-                           <UserCheck size={14} /> Aktive Et
+                           <UserCheck size={14} /> Onayla
+                         </button>
+                         <button className="text-red-600 flex items-center gap-1 hover:underline text-xs bg-red-50 px-2 py-1 rounded" onClick={() => handleReject(t.vkn)}>
+                           <XCircle size={14} /> Reddet
                          </button>
                        </div>
                     ) : (

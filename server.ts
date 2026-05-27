@@ -1,4 +1,25 @@
 import express from 'express';
+
+function generateSecurePassword() {
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numbers = '0123456789';
+  const symbols = '!@#$%^&*()_+~`|}{[]:;?><,./-=';
+  const all = lowercase + uppercase + numbers + symbols;
+
+  let password = '';
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += symbols[Math.floor(Math.random() * symbols.length)];
+
+  for (let i = password.length; i < 12; i++) {
+    password += all[Math.floor(Math.random() * all.length)];
+  }
+
+  return password.split('').sort(() => 0.5 - Math.random()).join('');
+}
+
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,6 +29,9 @@ import { sendMail } from './server/mailer.js';
 import { getFallbackTable, insertFallbackRow, updateFallbackRow, deleteFallbackRow } from './server/fallbackDb.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const loginAttempts = new Map<string, { attempts: number, lockUntil: number | null }>();
+
 
 
 
@@ -94,44 +118,81 @@ async function startServer() {
   app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
+      const now = Date.now();
+      const userAttempt = loginAttempts.get(username) || { attempts: 0, lockUntil: null };
+
+      if (userAttempt.lockUntil && userAttempt.lockUntil > now) {
+         const remaining = Math.ceil((userAttempt.lockUntil - now) / 60000);
+         return res.status(403).json({ error: `Çok fazla hatalı giriş yaptınız. Hesabınız ${remaining} dakika süreyle kilitlenmiştir.` });
+      }
+
+      // If lock has expired, reset it
+      if (userAttempt.lockUntil && userAttempt.lockUntil <= now) {
+         userAttempt.attempts = 0;
+         userAttempt.lockUntil = null;
+      }
+
+      const handleFailedLogin = () => {
+         userAttempt.attempts += 1;
+         if (userAttempt.attempts >= 5) {
+            userAttempt.lockUntil = now + (5 * 60 * 1000);
+            loginAttempts.set(username, userAttempt);
+            return res.status(403).json({ error: 'Çok fazla hatalı giriş yaptınız. Hesabınız 5 dakika süreyle kilitlenmiştir.' });
+         } else {
+            loginAttempts.set(username, userAttempt);
+            return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
+         }
+      };
+
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
         const fallbackUsers = getFallbackTable('users');
         const fallbackTenants = getFallbackTable('tenants');
-        const user = fallbackUsers.find(u => (u.username === username || u.email === username) && u.passwordHash === password);
-        if (user) {
-          if (user.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
-          
-          const tenant = fallbackTenants.find((t: any) => t.vkn === user.vkn);
-          if (tenant) {
-             if (tenant.status === 'Pasif') return res.status(401).json({ error: 'Firma hesabı pasif durumdadır.' });
-             if (tenant.expirationDate && new Date(tenant.expirationDate) < new Date()) {
-                return res.status(401).json({ error: 'Firma lisans süresi dolmuştur.' });
-             }
-          }
-          
-          return res.json(user);
+        const matchingUser = fallbackUsers.find((u: any) => (u.username === username || u.email === username));
+        
+        if (matchingUser) {
+           if (matchingUser.passwordHash === password) {
+              if (matchingUser.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
+              
+              const tenant = fallbackTenants.find((t: any) => t.vkn === matchingUser.vkn);
+              if (tenant) {
+                 if (tenant.status === 'Pasif') return res.status(401).json({ error: 'Firma hesabı pasif durumdadır.' });
+                 if (tenant.expirationDate && new Date(tenant.expirationDate) < new Date()) {
+                    return res.status(401).json({ error: 'Firma lisans süresi dolmuştur.' });
+                 }
+              }
+              
+              loginAttempts.delete(username);
+              return res.json(matchingUser);
+           } else {
+              return handleFailedLogin();
+           }
         }
-        return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
+        return handleFailedLogin();
       }
       
       const pool = getPool();
-      const [rows] = await pool.query('SELECT * FROM users WHERE (username = ? OR email = ?) AND passwordHash = ?', [username, username, password]);
+      const [rows] = await pool.query('SELECT * FROM users WHERE (username = ? OR email = ?)', [username, username]);
       const user = rows[0];
       if (user) {
-        if (user.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
-        
-        const [tenantRows] = await pool.query('SELECT * FROM tenants WHERE vkn = ?', [user.vkn]);
-        const tenant = tenantRows[0];
-        if (tenant) {
-           if (tenant.status === 'Pasif') return res.status(401).json({ error: 'Firma hesabı pasif durumdadır.' });
-           if (tenant.expirationDate && new Date(tenant.expirationDate) < new Date()) {
-              return res.status(401).json({ error: 'Firma lisans süresi dolmuştur.' });
+        if (user.passwordHash === password) {
+           if (user.status === 'Pasif') return res.status(401).json({ error: 'Hesabınız pasif durumdadır.' });
+           
+           const [tenantRows] = await pool.query('SELECT * FROM tenants WHERE vkn = ?', [user.vkn]);
+           const tenant = tenantRows[0];
+           if (tenant) {
+              if (tenant.status === 'Pasif') return res.status(401).json({ error: 'Firma hesabı pasif durumdadır.' });
+              if (tenant.expirationDate && new Date(tenant.expirationDate) < new Date()) {
+                 return res.status(401).json({ error: 'Firma lisans süresi dolmuştur.' });
+              }
            }
+           
+           loginAttempts.delete(username);
+           return res.json(user);
+        } else {
+           return handleFailedLogin();
         }
-        
-        return res.json(user);
       }
-      return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
+      return handleFailedLogin();
     } catch (e) {
       res.status(500).json({ error: String(e) });
     }
@@ -551,9 +612,17 @@ async function startServer() {
 
   app.get('/api/tenants', async (req, res) => {
     try {
-      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) return res.json(getFallbackTable('tenants'));
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+         const tenants = getFallbackTable('tenants');
+         const users = getFallbackTable('users');
+         const resData = tenants.map((t) => {
+            const u = users.find((us) => us.vkn === t.vkn && us.role === 'Admin');
+            return { ...t, password: u ? u.passwordHash : '' };
+         });
+         return res.json(resData);
+      }
       const pool = getPool();
-      const [rows] = await pool.query("SELECT * FROM tenants");
+      const [rows] = await pool.query("SELECT t.*, u.passwordHash as password FROM tenants t LEFT JOIN users u ON t.vkn = u.vkn AND u.role = 'Admin' GROUP BY t.vkn");
       res.json(rows);
     } catch (e) { res.status(500).json({error: String(e)}); }
   });
@@ -561,6 +630,7 @@ async function startServer() {
   app.post('/api/tenants', async (req, res) => {
     try {
       const data = req.body;
+      const newAdminPass = generateSecurePassword();
       let expInterval = '1 YEAR';
       if (data.package === 'Aylık') expInterval = '1 MONTH';
       if (data.package === 'Sınırsız') expInterval = '100 YEAR';
@@ -581,11 +651,11 @@ async function startServer() {
         if (data.package === 'Aylık') dDate.setMonth(dDate.getMonth() + 1);
 
         insertFallbackRow('tenants', { ...data, status: 'Bekliyor', expirationDate: dDate.toISOString() });
-        insertFallbackRow('users', { id: "admin-" + data.vkn, vkn: data.vkn, name: data.name + ' Admin', username: data.vkn, email: data.email, passwordHash: data.vkn + '123', role: 'Admin', status: 'Aktif' });
+        insertFallbackRow('users', { id: "admin-" + data.vkn, vkn: data.vkn, name: data.name + ' Admin', username: data.vkn, email: data.email, passwordHash: newAdminPass, role: 'Admin', status: 'Aktif' });
    insertFallbackRow('settings', { vkn: data.vkn, id: 1, companyName: data.name, email: data.email });
         
         await sendRegistrationMail(data.email, data.name);
-        return res.json({success: true});
+        return res.json({success: true, password: newAdminPass});
       }
 
       const pool = getPool();
@@ -594,7 +664,7 @@ async function startServer() {
       
       // Seed user for tenant
       await pool.query("INSERT INTO users (id, vkn, name, username, email, passwordHash, role, status) VALUES (?, ?, ?, ?, ?, ?, 'Admin', 'Aktif')",
-        ["admin-" + data.vkn, data.vkn, data.name + ' Admin', data.vkn, data.email, data.vkn + '123']
+        ["admin-" + data.vkn, data.vkn, data.name + ' Admin', data.vkn, data.email, newAdminPass]
       );
 
       // Seed settings
@@ -604,7 +674,7 @@ async function startServer() {
       );
 
       await sendRegistrationMail(data.email, data.name);
-      res.json({success: true});
+      res.json({success: true, password: newAdminPass});
     } catch(e) { res.status(500).json({error: String(e)}); }
   });
 
@@ -612,12 +682,13 @@ async function startServer() {
     try {
       const { vkn } = req.params;
       
-      const sendActivationMail = async (tenantEmail: string, tenantName: string) => {
+      const sendActivationMail = async (tenantEmail: string, tenantName: string, adminPassword?: string) => {
+         const passInfo = adminPassword ? (`<p>Sisteme giriş yapabilirsiniz.</p><p><b>Kullanıcı Adı:</b> ${req.params.vkn}<br><b>Şifre:</b> ${adminPassword}</p>`) : '<p>Sisteme giriş yapabilirsiniz.</p>';
          if (tenantEmail) {
             await sendMail(
               tenantEmail,
               "Hesabınız Aktive Edildi - Esila Ticari",
-              `<p>Sayın ${tenantName},</p><p>Esila Ticari üyeliğiniz başarıyla onaylanmış ve hesabınız aktive edilmiştir. Sisteme giriş yapabilirsiniz.</p>`
+              `<p>Sayın ${tenantName},</p><p>Esila Ticari üyeliğiniz başarıyla onaylanmış ve hesabınız aktive edilmiştir.</p>${passInfo}`
             );
          }
       };
@@ -625,7 +696,11 @@ async function startServer() {
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
         const fallbacks = getFallbackTable('tenants');
         const t = fallbacks.find((x: any) => x.vkn === vkn);
-        if (t) await sendActivationMail(t.email, t.name);
+        if (t) {
+           const fallbacksU = getFallbackTable('users');
+           const au = fallbacksU.find((u) => u.vkn === vkn && u.role === 'Admin');
+           await sendActivationMail(t.email, t.name, au ? au.passwordHash : '');
+        }
 
         updateFallbackRow('tenants', vkn, vkn, { status: 'Aktif' }); // Note: wait, id of tenant is its vkn... fallbackDb searches by id? The tenant has vkn as primary key!
         // I'll manually modify tenants lookup below.
@@ -635,10 +710,48 @@ async function startServer() {
       const pool = getPool();
       const [rows] = await pool.query('SELECT * FROM tenants WHERE vkn = ?', [vkn]);
       if (rows && rows.length > 0) {
-         await sendActivationMail(rows[0].email, rows[0].name);
+         const [uRows] = await pool.query("SELECT passwordHash FROM users WHERE vkn = ? AND role = 'Admin'", [vkn]);
+         const adminPass = uRows && uRows.length > 0 ? uRows[0].passwordHash : '';
+         await sendActivationMail(rows[0].email, rows[0].name, adminPass);
       }
 
       await pool.query("UPDATE tenants SET status = 'Aktif' WHERE vkn = ?", [vkn]);
+      res.json({success: true});
+    } catch(e) { res.status(500).json({error: String(e)}); }
+  });
+
+  app.put('/api/tenants/:vkn/reject', async (req, res) => {
+    try {
+      const { vkn } = req.params;
+      
+      const sendRejectionMail = async (tenantEmail: string, tenantName: string) => {
+         if (tenantEmail) {
+            await sendMail(
+              tenantEmail,
+              "Başvurunuz Reddedildi - Esila Ticari",
+              `<p>Sayın ${tenantName},</p><p>Esila Ticari lisans başvurunuz onaylanmamıştır ve reddedilmiştir. İlginiz için teşekkür ederiz.</p>`
+            );
+         }
+      };
+
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const fallbacks = getFallbackTable('tenants');
+        const t = fallbacks.find((x: any) => x.vkn === vkn);
+        if (t) await sendRejectionMail(t.email, t.name);
+
+        deleteFallbackRow('tenants', vkn, vkn);
+        return res.json({success: true});
+      }
+      
+      const pool = getPool();
+      const [rows] = await pool.query('SELECT * FROM tenants WHERE vkn = ?', [vkn]);
+      if (rows && rows.length > 0) {
+         await sendRejectionMail(rows[0].email, rows[0].name);
+      }
+
+      await pool.query("DELETE FROM tenants WHERE vkn = ?", [vkn]);
+      await pool.query("DELETE FROM users WHERE vkn = ?", [vkn]);
+      await pool.query("DELETE FROM settings WHERE vkn = ?", [vkn]);
       res.json({success: true});
     } catch(e) { res.status(500).json({error: String(e)}); }
   });

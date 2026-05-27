@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lock, User, ArrowRight } from 'lucide-react';
 
 export const SuperAdminLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
@@ -6,12 +6,51 @@ export const SuperAdminLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) 
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  // Rate limiting states
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+
+  useEffect(() => {
+    const attempts = localStorage.getItem('esila_sa_attempts');
+    const lockout = localStorage.getItem('esila_sa_lockout');
+    if (attempts) setFailedAttempts(parseInt(attempts, 10));
+    if (lockout) setLockoutUntil(parseInt(lockout, 10));
+  }, []);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const remaining = Math.ceil((lockoutUntil - Date.now()) / 60000);
+      setError(`Çok fazla hatalı giriş yaptınız. Lütfen ${remaining} dakika bekleyin.`);
+      return;
+    } else if (lockoutUntil && Date.now() >= lockoutUntil) {
+      // Lockout expired
+      setLockoutUntil(null);
+      setFailedAttempts(0);
+      localStorage.removeItem('esila_sa_lockout');
+      localStorage.removeItem('esila_sa_attempts');
+    }
+
     if (username === 'superadmin' && password === 'esila2026') {
+      setFailedAttempts(0);
+      setLockoutUntil(null);
+      localStorage.removeItem('esila_sa_lockout');
+      localStorage.removeItem('esila_sa_attempts');
       onLogin();
     } else {
-      setError('Hatalı kullanıcı adı veya şifre.');
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+      localStorage.setItem('esila_sa_attempts', newAttempts.toString());
+      
+      if (newAttempts >= 5) {
+        const until = Date.now() + 5 * 60 * 1000;
+        setLockoutUntil(until);
+        localStorage.setItem('esila_sa_lockout', until.toString());
+        setError('Çok fazla hatalı giriş yaptınız. Hesabınız 5 dakika kilitlendi.');
+      } else {
+        setError('Hatalı kullanıcı adı veya şifre.');
+      }
     }
   };
 
