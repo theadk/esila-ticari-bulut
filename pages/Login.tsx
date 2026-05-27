@@ -172,7 +172,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                    placeholder="admin"
+                    placeholder="Kullanıcı adınız"
                   />
                 </div>
               </div>
@@ -467,10 +467,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
             <h2 className="text-2xl font-bold text-gray-800">Başvurunuz Alındı</h2>
             <p className="text-gray-600 text-sm">
-              Lisans başvurunuz başarıyla alınmıştır. Sistem yöneticilerimiz (Süper Admin) başvurunuzu inceledikten sonra onaylayacaktır. 
+              Lisans başvurunuz başarıyla alınmıştır. Sistem yöneticilerimiz başvurunuzu inceledikten sonra onaylayacaktır. 
             </p>
             <p className="text-gray-600 text-sm">
-              Onaylandığında e-posta adresinize bilgilendirme yapılacaktır. Şifreniz VKN numaranızın sonuna <strong>123</strong> eklenerek oluşturulur (Örn: {registerForm.vkn}123).
+              Onaylandığında e-posta adresinize bilgilendirme yapılacaktır. Şifreniz VKN numaranızın eklenerek oluşturulur (Örn: {registerForm.vkn}123).
             </p>
 
             <button 
@@ -484,7 +484,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         )}
         
         <div className="bg-gray-50 p-4 text-center text-xs text-gray-400 border-t border-gray-100">
-          &copy; 2024 Esila Yazılım. Tüm hakları saklıdır.
+          &copy; 2022-2026 Esila Yazılım. Tüm hakları saklıdır.
         </div>
       </div>
     </div>
