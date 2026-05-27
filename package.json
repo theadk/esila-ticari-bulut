@@ -19,10 +19,13 @@
     "mysql2": "^3.22.3",
     "nodemailer": "^8.0.8",
     "pg": "^8.20.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.4",
     "react-barcode": "^1.6.1",
     "react-dom": "^19.2.4",
+    "react-hot-toast": "^2.6.0",
     "recharts": "^3.7.0",
+    "turkey-neighbourhoods": "^4.0.3",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

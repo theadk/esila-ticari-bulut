@@ -3,6 +3,8 @@ import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock, Users } fr
 import { useAppStore } from '../lib/store';
 import { Reconciliation, ReconciliationStatus, Customer } from '../types';
 import { apiFetch } from '../lib/api';
+import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
+import toast from 'react-hot-toast';
 
 export const Mutabakat: React.FC = () => {
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>([]);
@@ -42,6 +44,48 @@ export const Mutabakat: React.FC = () => {
     fetchReconciliations();
   }, []);
 
+  const sendEmailAlert = async (reconciliation: any, customer: Customer) => {
+    if (!customer.email) return;
+    const templateRaw = store.settings.email_template_reconciliation || defaultTemplates.reconciliation;
+    const body = parseEmailTemplate(templateRaw, {
+      MUSTERI_ADI: customer.companyName || customer.name || '',
+      BAKIYE: reconciliation.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }),
+      BAKIYE_TIPI: reconciliation.balanceType,
+      FIRMA_ADI: store.settings.companyName || '',
+      FIRMA_TELEFON: store.settings.phone || '',
+      FIRMA_MAIL: store.settings.email || '',
+      FIRMA_ADRES: store.settings.address || '',
+      FIRMA_VERGI_DAIRESI: store.settings.taxOffice || '',
+      FIRMA_VKN: store.settings.taxNumber || '',
+      TARIH: new Date(reconciliation.date).toLocaleDateString('tr-TR'),
+      MUTABAKAT_LINKI: `${window.location.origin}/mutabakat-onay/${reconciliation.id}?vkn=${store.settings.vkn || localStorage.getItem('esila_tenant_id')}`
+    });
+
+    const promise = fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+         to: customer.email, 
+         subject: `Bakiye Mutabakatı - ${store.settings.companyName}`, 
+         html: body 
+      })
+    }).then(async res => {
+      if (!res.ok) throw new Error("Gönderim başarısız");
+      return res.json();
+    });
+
+    toast.promise(promise, {
+      loading: `${customer.companyName || customer.name} için mutabakat maili gönderiliyor...`,
+      success: `${customer.companyName || customer.name} adresine gönderildi.`,
+      error: `Mail gönderilemedi.`
+    });
+    
+    // We await for the promise slightly so that if called in loop it blocks
+    try {
+      await promise;
+    } catch(e) {}
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.customerId) {
@@ -50,7 +94,6 @@ export const Mutabakat: React.FC = () => {
     }
     const customer = store.customers.find(c => c.id === formData.customerId);
     
-    // Simulate API Call
     try {
       const res = await apiFetch('/api/reconciliations', {
         method: 'POST',
@@ -62,6 +105,9 @@ export const Mutabakat: React.FC = () => {
         }),
       });
       if (res.ok) {
+        const newlyCreated = await res.json();
+        if (customer) await sendEmailAlert(newlyCreated, customer);
+        
         setIsModalOpen(false);
         fetchReconciliations();
         // Reset form
@@ -84,11 +130,13 @@ export const Mutabakat: React.FC = () => {
     let sentCount = 0;
 
     for (const customer of store.customers) {
+      if (!customer.email && customer.balance === 0) continue; // skip if no email or 0 balance ? lets just do what was originally there
+
       const isDebt = customer.balance >= 0;
       const bType = customer.balance === 0 ? 'Yok' : (isDebt ? 'Borç' : 'Alacak');
       
       try {
-        await apiFetch('/api/reconciliations', {
+        const res = await apiFetch('/api/reconciliations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -102,6 +150,10 @@ export const Mutabakat: React.FC = () => {
             notes: bulkFormData.notes
           }),
         });
+        if (res.ok) {
+          const newlyCreated = await res.json();
+          await sendEmailAlert(newlyCreated, customer);
+        }
         sentCount++;
       } catch (err) {
         console.error(err);

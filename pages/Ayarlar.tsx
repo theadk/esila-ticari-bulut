@@ -3,6 +3,7 @@ import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X
 import { Settings } from '../types';
 import { useAppStore } from '../lib/store';
 import { UsersSettings } from '../components/UsersSettings';
+import toast from 'react-hot-toast';
 
 export const Ayarlar: React.FC = () => {
   const store = useAppStore();
@@ -43,6 +44,7 @@ export const Ayarlar: React.FC = () => {
   const tabs = [
     { id: 'genel', label: 'Genel', icon: SettingsIcon },
     { id: 'eposta', label: 'E-Posta (SMTP)', icon: Mail },
+    { id: 'sablonlar', label: 'E-Posta Şablonları', icon: Mail },
     { id: 'sms', label: 'SMS', icon: MessageSquare },
     { id: 'yazici', label: 'Yazıcı & Çıktı', icon: Printer },
     { id: 'numaralandirma', label: 'Numaralandırma', icon: Hash },
@@ -251,24 +253,80 @@ export const Ayarlar: React.FC = () => {
                       type="button"
                       onClick={async () => {
                          const email = (document.getElementById('testEmailAddress') as HTMLInputElement).value;
-                         if (!email) return alert("Lütfen bir e-posta adresi girin.");
-                         try {
-                           const res = await fetch('/api/test-email', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ email })
-                           });
-                           if (res.ok) alert("Sınama maili başarıyla gönderildi.");
-                           else alert("Mail gönderimi başarısız oldu. Lütfen ayarları kontrol edin.");
-                         } catch (e) {
-                           alert("Mail gönderimi sırasında bir hata oluştu.");
+                         if (!email) {
+                           toast.error("Lütfen bir e-posta adresi girin.");
+                           return;
                          }
+                         
+                         const promise = fetch('/api/test-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email })
+                         }).then(async res => {
+                            if (!res.ok) throw new Error();
+                            return res.json();
+                         });
+
+                         toast.promise(promise, {
+                            loading: 'Sınama maili gönderiliyor...',
+                            success: 'Sınama maili başarıyla gönderildi.',
+                            error: 'Mail gönderimi başarısız oldu. Lütfen ayarları kontrol edin.'
+                         });
                       }}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                     >
                       Test Maili Gönder
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'sablonlar' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="flex justify-between items-center border-b pb-2 mb-4">
+                 <h3 className="text-xl font-semibold text-gray-800">E-Posta Şablonları</h3>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">
+                Gönderilen maillerin tasarımlarını (HTML formatında) buradan özelleştirebilirsiniz. Desteklenen değişkenleri (örn: <code className="bg-gray-100 px-1 rounded">{'{MUSTERI_ADI}'}</code>) ilgili yerlerde kullanabilirsiniz. 
+              </p>
+              
+              <div className="grid grid-cols-1 gap-6">
+                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                  <h4 className="font-semibold text-gray-800 mb-2">Cari Ekstre Şablonu</h4>
+                  <p className="text-xs text-gray-500 mb-3">Değişkenler: {'{MUSTERI_ADI}'}, {'{BAKIYE}'}, {'{FIRMA_ADI}'}, {'{TARIH}'}</p>
+                  <textarea 
+                    rows={6}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
+                    value={settings.email_template_customer || ''}
+                    onChange={(e) => handleChange('email_template_customer', e.target.value)}
+                    placeholder="<div style='font-family: Arial...'>"
+                  ></textarea>
+                </div>
+
+                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                  <h4 className="font-semibold text-gray-800 mb-2">Mutabakat Şablonu</h4>
+                  <p className="text-xs text-gray-500 mb-3">Değişkenler: {'{MUSTERI_ADI}'}, {'{BAKIYE}'}, {'{BAKIYE_TIPI}'}, {'{TARIH}'}, {'{FIRMA_ADI}'}</p>
+                  <textarea 
+                    rows={6}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
+                    value={settings.email_template_reconciliation || ''}
+                    onChange={(e) => handleChange('email_template_reconciliation', e.target.value)}
+                    placeholder="<div style='font-family: Arial...'>"
+                  ></textarea>
+                </div>
+
+                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                  <h4 className="font-semibold text-gray-800 mb-2">Personel Bordro Şablonu</h4>
+                  <p className="text-xs text-gray-500 mb-3">Değişkenler: {'{PERSONEL_ADI}'}, {'{AY_YIL}'}, {'{NET_ODENEN}'}, {'{FIRMA_ADI}'}</p>
+                  <textarea 
+                    rows={6}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
+                    value={settings.email_template_personnel || ''}
+                    onChange={(e) => handleChange('email_template_personnel', e.target.value)}
+                    placeholder="<div style='font-family: Arial...'>"
+                  ></textarea>
                 </div>
               </div>
             </div>

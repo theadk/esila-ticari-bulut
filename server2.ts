@@ -516,8 +516,9 @@ async function startServer() {
       );
 
       // Seed settings
-      await pool.query("INSERT INTO settings (vkn, id, companyName, email) VALUES (?, 1, ?, ?)",
-        [data.vkn, data.name, data.email]
+      const fullAddress = [data.address, data.district, data.city].filter(Boolean).join(' - ');
+      await pool.query("INSERT INTO settings (vkn, id, companyName, email, phone, address) VALUES (?, 1, ?, ?, ?, ?)",
+        [data.vkn, data.name, data.email, data.phone || '', fullAddress]
       );
 
       res.json({success: true});

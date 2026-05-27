@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
 import { api } from '../lib/api';
@@ -799,9 +800,15 @@ export const Siparisler: React.FC = () => {
                            </div>
                         </div>
 
-                        <div className="mt-8">
-                           <h3 className="font-bold mb-2">Notlar :</h3>
-                           <p className="text-sm whitespace-pre-line">{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</p>
+                        <div className="mt-8 flex justify-between items-start">
+                           <div>
+                             <h3 className="font-bold mb-2">Notlar :</h3>
+                             <p className="text-sm whitespace-pre-line">{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</p>
+                           </div>
+                           <div className="text-center">
+                             <QRCodeSVG value={`${window.location.origin}/siparisler?id=${selectedOrder.id}`} size={80} level="M" />
+                             <p className="text-[10px] mt-1 text-gray-500">Siparişi Doğrula</p>
+                           </div>
                         </div>
 
                         <div className="flex justify-between px-10 text-center mt-16">
@@ -885,7 +892,9 @@ export const Siparisler: React.FC = () => {
                        </div>
                      </div>
 
-                     <div className="text-center text-xs text-gray-500 mt-8">
+                     <div className="text-center text-xs text-gray-500 mt-8 flex flex-col items-center">
+                       <QRCodeSVG value={`${window.location.origin}/siparisler?id=${selectedOrder.id}`} size={64} level="M" className="mb-2" />
+                       <p className="mb-2">Siparişi Doğrula</p>
                        <p className="whitespace-pre-line">{store.settings.printer_footer_text}</p>
                      </div>
                    </div>
@@ -1010,9 +1019,15 @@ export const Siparisler: React.FC = () => {
                        </div>
                     </div>
 
-                    <div className="mt-8">
-                       <h3 className="font-bold mb-2">Notlar :</h3>
-                       <p className="text-sm whitespace-pre-line">{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</p>
+                    <div className="mt-8 flex justify-between items-start">
+                       <div>
+                         <h3 className="font-bold mb-2">Notlar :</h3>
+                         <p className="text-sm whitespace-pre-line">{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</p>
+                       </div>
+                       <div className="text-center">
+                         <QRCodeSVG value={`${window.location.origin}/siparisler?id=${selectedOrder.id}`} size={80} level="M" />
+                         <p className="text-[10px] mt-1 text-gray-500">Siparişi Doğrula</p>
+                       </div>
                     </div>
 
                     <div className="flex justify-between px-10 text-center mt-16">
@@ -1094,7 +1109,9 @@ export const Siparisler: React.FC = () => {
                    </div>
                  </div>
                  
-                 <div className="text-center text-xs mt-8">
+                 <div className="text-center text-xs mt-8 flex flex-col items-center">
+                   <QRCodeSVG value={`${window.location.origin}/siparisler?id=${selectedOrder.id}`} size={64} level="M" className="mb-2" />
+                   <p className="mb-2">Siparişi Doğrula</p>
                    <p className="whitespace-pre-line">{store.settings.printer_footer_text || 'Teşekkür Ederiz'}</p>
                  </div>
                </div>

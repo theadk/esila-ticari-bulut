@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, CheckCircle, XCircle, Wrench, Settings, User, FileText, ChevronRight, Printer } from 'lucide-react';
 import { ServiceTicket, ServiceTicketStatus, ServiceMaterial, Customer, Product, Personnel, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
+import toast from 'react-hot-toast';
+import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 
 const INITIAL_FORM: Partial<ServiceTicket> = {
   customerId: '',
@@ -24,6 +26,7 @@ export const Ariza: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'maintenance'>('all');
   
   const [formData, setFormData] = useState<Partial<ServiceTicket>>(INITIAL_FORM);
   const [selectedTicket, setSelectedTicket] = useState<ServiceTicket | null>(null);
@@ -32,12 +35,84 @@ export const Ariza: React.FC = () => {
   const [selectedProductToAdd, setSelectedProductToAdd] = useState('');
   const [quantityToAdd, setQuantityToAdd] = useState(1);
   const [isPaid, setIsPaid] = useState(true);
+  const [maintenancePeriod, setMaintenancePeriod] = useState<number | ''>('');
 
-  const filteredTickets = serviceTickets.filter(ticket => 
-    ticket.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  useEffect(() => {
+    // Automatically schedule and send follow-up maintenance notifications
+    const dueMaintenance = serviceTickets.filter(ticket => {
+      if (ticket.status === 'Tamamlandı' && ticket.nextMaintenanceDate && !ticket.maintenanceReminderSent) {
+        const nextDate = new Date(ticket.nextMaintenanceDate).getTime();
+        const now = Date.now();
+        return nextDate <= now; // if due or past due
+      }
+      return false;
+    });
+
+    if (dueMaintenance.length > 0) {
+      let updatedTickets = [...serviceTickets];
+      let hasUpdates = false;
+
+      const templateRaw = store.settings.email_template_maintenance || defaultTemplates.maintenance_reminder;
+
+      Promise.all(dueMaintenance.map(async (ticket) => {
+        const customer = customers.find(c => String(c.id) === String(ticket.customerId));
+        if (!customer || !customer.email) return;
+
+        const body = parseEmailTemplate(templateRaw, {
+          MUSTERI_ADI: customer.companyName || customer.name || '',
+          CIHAZ: ticket.deviceType,
+          FIRMA_ADI: store.settings.companyName || '',
+          FIRMA_TELEFON: store.settings.phone || '',
+          FIRMA_MAIL: store.settings.email || '',
+          FIRMA_ADRES: store.settings.address || '',
+          FIRMA_VERGI_DAIRESI: store.settings.taxOffice || '',
+          FIRMA_VKN: store.settings.taxNumber || '',
+          TARIH: new Date(ticket.dateCompleted || ticket.dateCreated).toLocaleDateString('tr-TR')
+        });
+
+        try {
+          const res = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: customer.email,
+              subject: `Periyodik Bakım Hatırlatması - ${ticket.deviceType}`,
+              html: body
+            })
+          });
+
+          if (res.ok) {
+            const idx = updatedTickets.findIndex(t => t.id === ticket.id);
+            if (idx > -1) {
+              updatedTickets[idx] = { ...updatedTickets[idx], maintenanceReminderSent: true };
+              hasUpdates = true;
+            }
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      })).then(() => {
+        if (hasUpdates) {
+          store.setServiceTickets(updatedTickets);
+          toast.success(`${dueMaintenance.length} adet otomatik bakım hatırlatma e-postası gönderildi`);
+        }
+      });
+    }
+  }, [serviceTickets, customers, store]);
+
+  const filteredTickets = serviceTickets.filter(ticket => {
+    const searchMatch = ticket.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     ticket.deviceType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ticket.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    ticket.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (!searchMatch) return false;
+
+    if (activeTab === 'maintenance') {
+      return !!ticket.maintenancePeriodMonths;
+    }
+    
+    return true;
+  });
 
   const handleSaveTicket = () => {
     if (!formData.customerId || !formData.deviceType || !formData.issueDescription) return;
@@ -79,6 +154,7 @@ export const Ariza: React.FC = () => {
   const openDetail = (ticket: ServiceTicket) => {
     setSelectedTicket(ticket);
     setIsDetailModalOpen(true);
+    setMaintenancePeriod(ticket.maintenancePeriodMonths || '');
   };
 
   const addMaterialToTicket = () => {
@@ -194,10 +270,19 @@ export const Ariza: React.FC = () => {
       }
     }
 
+    let nextMaintenanceDate: string | undefined = undefined;
+    if (maintenancePeriod && maintenancePeriod > 0) {
+      const d = new Date();
+      d.setMonth(d.getMonth() + maintenancePeriod);
+      nextMaintenanceDate = d.toISOString();
+    }
+
     const updatedTicket = {
       ...selectedTicket,
       status: ServiceTicketStatus.COMPLETED,
-      dateCompleted: new Date().toISOString()
+      dateCompleted: new Date().toISOString(),
+      maintenancePeriodMonths: maintenancePeriod || undefined,
+      nextMaintenanceDate
     };
     
     store.setServiceTickets(serviceTickets.map(t => t.id === selectedTicket.id ? updatedTicket : t));
@@ -344,8 +429,24 @@ export const Ariza: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <div className="relative w-full max-w-md">
+        <div className="border-b border-gray-200">
+           <nav className="flex space-x-8 px-4" aria-label="Tabs">
+              <button
+                 onClick={() => setActiveTab('all')}
+                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'all' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+              >
+                Tüm Arızalar
+              </button>
+              <button
+                 onClick={() => setActiveTab('maintenance')}
+                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'maintenance' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+              >
+                Periyodik Bakımlar
+              </button>
+           </nav>
+        </div>
+        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center">
+          <div className="relative w-full max-w-md flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
@@ -364,6 +465,9 @@ export const Ariza: React.FC = () => {
                 <th className="p-4 font-semibold text-gray-600">Tarih</th>
                 <th className="p-4 font-semibold text-gray-600">Müşteri</th>
                 <th className="p-4 font-semibold text-gray-600">Cihaz / Seri No</th>
+                {activeTab === 'maintenance' && (
+                  <th className="p-4 font-semibold text-gray-600">Sonraki Bakım</th>
+                )}
                 <th className="p-4 font-semibold text-gray-600">Atanan Personel</th>
                 <th className="p-4 font-semibold text-gray-600">Durum</th>
                 <th className="p-4 font-semibold text-gray-600">Tutar</th>
@@ -373,7 +477,7 @@ export const Ariza: React.FC = () => {
             <tbody>
               {filteredTickets.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-500">
+                  <td colSpan={activeTab === 'maintenance' ? 8 : 7} className="p-8 text-center text-gray-500">
                     Henüz kayıtlı arıza formu bulunmuyor.
                   </td>
                 </tr>
@@ -390,6 +494,11 @@ export const Ariza: React.FC = () => {
                       <div>{ticket.deviceType}</div>
                       {ticket.serialNumber && <div className="text-xs text-gray-400 uppercase tracking-wider">{ticket.serialNumber}</div>}
                     </td>
+                    {activeTab === 'maintenance' && (
+                      <td className="p-4 text-gray-600 font-medium">
+                        {ticket.nextMaintenanceDate ? new Date(ticket.nextMaintenanceDate).toLocaleDateString('tr-TR') : '-'}
+                      </td>
+                    )}
                     <td className="p-4 text-gray-600">
                       {ticket.personnelName || <span className="text-gray-400 italic">Atanmamış</span>}
                     </td>
@@ -688,7 +797,7 @@ export const Ariza: React.FC = () => {
             </div>
 
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-              <div>
+              <div className="flex items-center gap-4">
                 {selectedTicket.status !== ServiceTicketStatus.COMPLETED && selectedTicket.status !== ServiceTicketStatus.CANCELLED && (
                     <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-700 bg-white p-2 px-3 border border-gray-200 rounded-lg shadow-sm">
                       <input 
@@ -697,9 +806,27 @@ export const Ariza: React.FC = () => {
                          onChange={e => setIsPaid(e.target.checked)}
                          className="rounded text-emerald-600 focus:ring-emerald-500"
                       />
-                      Peşin Tahsil Edildi (Kasaya İşle)
+                      Peşin Tahsil Edildi
                     </label>
                 )}
+                {selectedTicket.status !== ServiceTicketStatus.COMPLETED && selectedTicket.status !== ServiceTicketStatus.CANCELLED ? (
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700">Periyodik Bakım (Ay):</label>
+                    <input 
+                      type="number" 
+                      min="1"
+                      className="w-20 p-2 text-sm rounded-lg border border-gray-200 outline-none focus:border-emerald-500" 
+                      placeholder="Örn: 6"
+                      value={maintenancePeriod}
+                      onChange={e => setMaintenancePeriod(Number(e.target.value) || '')}
+                    />
+                  </div>
+                ) : selectedTicket.maintenancePeriodMonths ? (
+                  <div className="text-sm text-gray-600">
+                    <span className="font-semibold">Sonraki Bakım: </span>
+                    {new Date(selectedTicket.nextMaintenanceDate!).toLocaleDateString('tr-TR')} ({selectedTicket.maintenancePeriodMonths} Ay Sonra)
+                  </div>
+                ) : null}
               </div>
               <div className="flex gap-3">
                  <button

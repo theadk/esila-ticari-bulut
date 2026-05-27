@@ -3,6 +3,8 @@ import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, Us
 import * as XLSX from 'xlsx';
 import { Customer, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
+import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
+import toast from 'react-hot-toast';
 
 const INITIAL_FORM: Customer = {
   id: '',
@@ -153,31 +155,40 @@ export const Cariler: React.FC = () => {
   };
 
   const sendHistoryEmail = async (customer: Customer) => {
-    if (!customer.email) return alert("Bu carinin e-posta adresi kayıtlı değil.");
-    const subject = `Cari Hesap Ekstresi - ${customer.companyName || customer.name}`;
-    const body = `
-      <div style="font-family: sans-serif; padding: 20px;">
-        <h2>Merhaba ${customer.name},</h2>
-        <p>Güncel bakiyeniz: <strong>${customer.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</strong></p>
-        <p>Hesap ekstresi hakkında detaylı bilgi almak isterseniz bizimle iletişime geçebilirsiniz.</p>
-        <p>İyi çalışmalar.</p>
-      </div>
-    `;
-    
-    try {
-      const res = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: customer.email, subject, html: body })
-      });
-      if (res.ok) {
-        alert("E-posta başarıyla gönderildi.");
-      } else {
-        alert("E-posta gönderilemedi.");
-      }
-    } catch (e) {
-      alert("Mail gönderimi sırasında hata oluştu.");
+    if (!customer.email) {
+      toast.error("Bu carinin e-posta adresi kayıtlı değil.");
+      return;
     }
+    const subject = `Cari Hesap Ekstresi - ${store.settings.companyName || customer.companyName || customer.name}`;
+    
+    // Şablon yükleme veya varsayılan
+    const templateRaw = store.settings.email_template_customer || defaultTemplates.customer_statement;
+    const body = parseEmailTemplate(templateRaw, {
+      MUSTERI_ADI: customer.companyName || customer.name || '',
+      BAKIYE: customer.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }),
+      FIRMA_ADI: store.settings.companyName || '',
+      FIRMA_TELEFON: store.settings.phone || '',
+      FIRMA_MAIL: store.settings.email || '',
+      FIRMA_ADRES: store.settings.address || '',
+      FIRMA_VERGI_DAIRESI: store.settings.taxOffice || '',
+      FIRMA_VKN: store.settings.taxNumber || '',
+      TARIH: new Date().toLocaleDateString('tr-TR')
+    });
+    
+    const promise = fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: customer.email, subject, html: body })
+    }).then(async res => {
+      if (!res.ok) throw new Error('Mail gönderilemedi.');
+      return res.json();
+    });
+
+    toast.promise(promise, {
+      loading: 'E-posta gönderiliyor...',
+      success: 'E-posta başarıyla gönderildi.',
+      error: 'Mail gönderimi sırasında hata oluştu.'
+    });
   };
 
   useEffect(() => {

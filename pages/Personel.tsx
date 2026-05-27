@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
+import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
+import toast from 'react-hot-toast';
 import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download, Printer } from 'lucide-react';
 import { Personnel, PersonnelRecord, Payroll } from '../types';
 
@@ -196,52 +198,50 @@ export const Personel: React.FC = () => {
   };
 
   const sendEPayroll = async (payroll: Payroll) => {
-    if (!selectedPersonnel?.email) return alert("Personelin e-posta adresi bulunmamaktadır.");
+    if (!selectedPersonnel?.email) {
+      toast.error("Personelin e-posta adresi bulunmamaktadır.");
+      return;
+    }
 
-    const body = `
-      <div style="font-family: sans-serif; padding: 20px;">
-        <h2>Sayın ${selectedPersonnel.firstName} ${selectedPersonnel.lastName},</h2>
-        <p><strong>${payroll.date}</strong> dönemi e-bordronuz ektedir.</p>
-        <ul>
-          <li><strong>Temel Maaş:</strong> ${payroll.basicSalary.toLocaleString('tr-TR')} TL</li>
-          <li><strong>Toplam Kesintiler:</strong> ${payroll.totalDeductions.toLocaleString('tr-TR')} TL</li>
-          <li><strong>Net Ödenen:</strong> ${payroll.netSalary.toLocaleString('tr-TR')} TL</li>
-        </ul>
-        <p>İyi çalışmalar dileriz.</p>
-      </div>
-    `;
+    const templateRaw = store.settings.email_template_personnel || defaultTemplates.personnel;
+    const body = parseEmailTemplate(templateRaw, {
+      PERSONEL_ADI: `${selectedPersonnel.firstName} ${selectedPersonnel.lastName}`,
+      AY_YIL: payroll.date,
+      NET_ODENEN: payroll.netSalary.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }),
+      FIRMA_ADI: store.settings.companyName || ''
+    });
 
-    try {
-      const res = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-           to: selectedPersonnel.email, 
-           subject: `${payroll.date} Dönemi Maaş Bordrosu`, 
-           html: body 
-        })
+    const promise = fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+         to: selectedPersonnel.email, 
+         subject: `${payroll.date} Dönemi Maaş Bordrosu`, 
+         html: body 
+      })
+    }).then(async res => {
+      if (!res.ok) throw new Error("E-Bordro gönderilemedi.");
+      
+      const updatedPayroll = {...payroll, emailSentAt: new Date().toISOString()};
+      setPersonnel(personnel.map(p => {
+          if(p.id === selectedPersonnel.id) {
+              return {...p, payrolls: p.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || [] };
+          }
+          return p;
+      }));
+      setSelectedPersonnel({
+          ...selectedPersonnel,
+          payrolls: selectedPersonnel.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || []
       });
 
-      if (res.ok) {
-        alert(`E-Bordro ${selectedPersonnel.email} adresine mail olarak gönderildi.`);
-        // update sent at
-        const updatedPayroll = {...payroll, emailSentAt: new Date().toISOString()};
-        setPersonnel(personnel.map(p => {
-            if(p.id === selectedPersonnel.id) {
-                return {...p, payrolls: p.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || [] };
-            }
-            return p;
-        }));
-        setSelectedPersonnel({
-            ...selectedPersonnel,
-            payrolls: selectedPersonnel.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || []
-        });
-      } else {
-        alert("E-Bordro gönderilemedi.");
-      }
-    } catch (e) {
-      alert("Mail gönderimi sırasında hata oluştu.");
-    }
+      return res.json();
+    });
+
+    toast.promise(promise, {
+      loading: 'E-Bordro gönderiliyor...',
+      success: `E-Bordro ${selectedPersonnel.email} adresine gönderildi.`,
+      error: 'Mail gönderimi sırasında hata oluştu.'
+    });
   };
 
   const [printBordroModalOpen, setPrintBordroModalOpen] = useState(false);

@@ -243,6 +243,11 @@ export interface Settings {
   next_product_id?: number;
   prefix_personnel?: string;
   next_personnel_id?: number;
+  
+  // Mail Şablonları
+  email_template_customer?: string;
+  email_template_reconciliation?: string;
+  email_template_personnel?: string;
 }
 
 export enum ServiceTicketStatus {
@@ -276,4 +281,7 @@ export interface ServiceTicket {
   taxRate: number;
   totalCost: number;
   resolutionNotes?: string;
+  nextMaintenanceDate?: string;
+  maintenancePeriodMonths?: number;
+  maintenanceReminderSent?: boolean;
 }
