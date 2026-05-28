@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X, Hash, Users, Clock } from 'lucide-react';
+import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X, Hash, Users, Clock, FileText, Database, Download } from 'lucide-react';
 import { Settings } from '../types';
 import { useAppStore } from '../lib/store';
 import { UsersSettings } from '../components/UsersSettings';
@@ -22,6 +22,68 @@ export const Ayarlar: React.FC = () => {
 
   const handleChange = (key: keyof Settings, value: string) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleExportBackup = () => {
+    const backupData = {
+      users: store.users,
+      settings: store.settings,
+      customers: store.customers,
+      products: store.products,
+      transactions: store.transactions,
+      cashTransactions: store.cashTransactions,
+      personnel: store.personnel,
+      orders: store.orders,
+      proposals: store.proposals,
+      eInvoices: store.eInvoices,
+      serviceTickets: store.serviceTickets,
+    };
+    
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `esila-yedek-${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    toast.success('Yedek başarıyla indirildi.');
+  };
+
+  const handleImportBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!window.confirm('DİKKAT: Bu işlem mevcut tüm verilerinizi silecek ve seçtiğiniz yedeği yükleyecektir. Emin misiniz?')) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const result = e.target?.result as string;
+        const data = JSON.parse(result);
+        
+        if (data.users && Array.isArray(data.users)) store.setUsers(data.users);
+        if (data.settings) store.setSettings(data.settings);
+        if (data.customers && Array.isArray(data.customers)) store.setCustomers(data.customers);
+        if (data.products && Array.isArray(data.products)) store.setProducts(data.products);
+        if (data.transactions && Array.isArray(data.transactions)) store.setTransactions(data.transactions);
+        if (data.cashTransactions && Array.isArray(data.cashTransactions)) store.setCashTransactions(data.cashTransactions);
+        if (data.personnel && Array.isArray(data.personnel)) store.setPersonnel(data.personnel);
+        if (data.orders && Array.isArray(data.orders)) store.setOrders(data.orders);
+        if (data.proposals && Array.isArray(data.proposals)) store.setProposals(data.proposals);
+        if (data.eInvoices && Array.isArray(data.eInvoices)) store.setEInvoices(data.eInvoices);
+        if (data.serviceTickets && Array.isArray(data.serviceTickets)) store.setServiceTickets(data.serviceTickets);
+        
+        toast.success('Veriler kurtarıldı. Sisteme başarıyla yedek yüklendi.');
+        // Refresh page to clean UI state
+        setTimeout(() => window.location.reload(), 1500);
+      } catch (err) {
+        toast.error('Geçersiz yedek dosyası.');
+      }
+    };
+    reader.readAsText(file);
+    if(event.target) event.target.value = '';
   };
 
   const handleSave = () => {
@@ -49,6 +111,8 @@ export const Ayarlar: React.FC = () => {
     { id: 'yazici', label: 'Yazıcı & Çıktı', icon: Printer },
     { id: 'numaralandirma', label: 'Numaralandırma', icon: Hash },
     { id: 'kullanicilar', label: 'Kullanıcılar', icon: Users },
+    { id: 'efatura', label: 'E-Fatura', icon: FileText },
+    { id: 'yedekleme', label: 'Yedekleme & Kurtarma', icon: Database },
   ];
 
   return (
@@ -568,6 +632,94 @@ export const Ayarlar: React.FC = () => {
           )}
 
           {activeTab === 'kullanicilar' && <UsersSettings />}
+
+          {activeTab === 'efatura' && (
+            <div className="space-y-6 animate-fade-in md:p-8">
+              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">E-Fatura Entegrasyon Ayarları</h3>
+              <p className="text-sm text-gray-600 mb-6">Esila E-Dönüşüm entegratör veya GİB portalı bağlantı ayarlarınız. Kayıt olmak için www.e-esial.com</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kullanıcı Adı</label>
+                  <input 
+                    type="text" 
+                    value={settings.efatura_username || ''}
+                    onChange={(e) => handleChange('efatura_username', e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Esila Portal Kullanıcı Adı"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
+                  <input 
+                    type="password" 
+                    value={settings.efatura_password || ''}
+                    onChange={(e) => handleChange('efatura_password', e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Portal Şifresi"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">API Anahtarı (API Key)</label>
+                  <input 
+                    type="text" 
+                    value={settings.efatura_apikey || ''}
+                    onChange={(e) => handleChange('efatura_apikey', e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Entegratör API Key"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Esila E-Fatura API üzerinden belge gönderimi için entegratörünüzden alacağınız API şifresi veya anahtarı.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'yedekleme' && (
+            <div className="space-y-6 animate-fade-in md:p-8">
+              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Veri Yedekleme ve Kurtarma</h3>
+              <p className="text-sm text-gray-600 mb-6">Uygulama çökmelerinde veya veri kayıplarında kullanılmak üzere sisteminizin yedeğini alabilir veya mevcut yedeğinizi geri yükleyebilirsiniz.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
+                <div className="border rounded-xl p-6 bg-blue-50/50">
+                  <div className="flex items-center gap-3 mb-4 text-blue-800">
+                    <Database size={24} />
+                    <h4 className="font-semibold text-lg">Yedek Al</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-6">Sistemdeki tüm müşteriler, ürünler, faturalar, teklifler ve kasa hareketlerini JSON formatında bilgisayarınıza indirir.</p>
+                  <button 
+                    onClick={handleExportBackup}
+                    className="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                  >
+                    <Download size={18} />
+                    <span>Tüm Veriyi İndir (.json)</span>
+                  </button>
+                </div>
+
+                <div className="border rounded-xl p-6 bg-rose-50/50">
+                  <div className="flex items-center gap-3 mb-4 text-rose-800">
+                    <Upload size={24} />
+                    <h4 className="font-semibold text-lg">Veri Kurtar (Yedek Yükle)</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-6">Daha önce indirdiğiniz yedek dosyasını yükleyerek sistemi o anki duruma geri döndürebilirsiniz. <strong className="text-red-600">Bu işlem geri alınamaz!</strong></p>
+                  
+                  <input 
+                    type="file" 
+                    accept=".json" 
+                    className="hidden" 
+                    id="import-backup" 
+                    onChange={handleImportBackup} 
+                  />
+                  <label 
+                    htmlFor="import-backup"
+                    className="w-full justify-center bg-rose-600 hover:bg-rose-700 cursor-pointer text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                  >
+                    <Upload size={18} />
+                    <span>Yedekten Geri Yükle</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="pt-6 mt-6 border-t flex justify-end">
             <button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">

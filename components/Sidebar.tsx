@@ -32,13 +32,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
     { id: 'cariler', label: 'Cariler', icon: Users },
     { id: 'urunler', label: 'Ürünler', icon: Package },
     { id: 'siparisler', label: 'Siparişler', icon: ShoppingCart },
+    { id: 'efatura', label: 'E-Fatura', icon: FileText },
     { id: 'depo', label: 'Depo', icon: Warehouse },
     { id: 'kasa', label: 'Kasa', icon: Wallet },
     { id: 'personel', label: 'Personel', icon: UserCheck },
     { id: 'mutabakat', label: 'Mutabakat', icon: Handshake },
     { id: 'ariza', label: 'Arıza Formları', icon: Wrench },
     { id: 'raporlar', label: 'Raporlar', icon: FileText },
-    { id: 'efatura', label: 'E-Fatura', icon: FileText },
     { id: 'teklif', label: 'Teklifler', icon: FileBadge },
     { id: 'ayarlar', label: 'Ayarlar', icon: SettingsIcon },
   ];
@@ -69,13 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => {
-                    if (item.id === 'efatura') {
-                      window.open('https://eportal.e-esila.com.tr', '_blank');
-                    } else {
-                      setActivePage(item.id);
-                    }
-                  }}
+                  onClick={() => setActivePage(item.id)}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive 
                       ? 'bg-emerald-700 text-white shadow-lg translate-x-1' 

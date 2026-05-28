@@ -232,6 +232,13 @@ export interface Settings {
   printer_header_text: string;
   printer_footer_text: string;
   
+  // Fatura Şablon Ayarları
+  invoiceTemplate_color?: string;
+  invoiceTemplate_showQR?: boolean;
+  invoiceTemplate_showLogo?: boolean;
+  invoiceTemplate_notes?: string;
+  invoiceTemplate_bankInfo?: string;
+  
   // Numaralandırma / Ön Ekler
   prefix_customer?: string;
   next_customer_id?: number;
@@ -248,6 +255,11 @@ export interface Settings {
   email_template_customer?: string;
   email_template_reconciliation?: string;
   email_template_personnel?: string;
+  
+  // E-Fatura Entegrasyon
+  efatura_username?: string;
+  efatura_password?: string;
+  efatura_apikey?: string;
 }
 
 export enum ServiceTicketStatus {

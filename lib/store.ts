@@ -56,6 +56,17 @@ let globalProposals: Proposal[] = [
     notes: 'Ürün garanti kapsamındadır.'
   }
 ];
+export interface EInvoice {
+  id: string;
+  orderId: string;
+  customerName: string;
+  amount: number;
+  type: string;
+  scenario: string;
+  date: string;
+  status: 'Taslak' | 'Gönderildi' | 'Hatalı';
+}
+let globalEInvoices: EInvoice[] = [];
 let globalOrders: Order[] = [
   {
     id: 'SIP-2023-001',
@@ -174,6 +185,9 @@ export async function initializeStore() {
            return { ...d, items: fixedItems, total: d.total !== undefined ? d.total : (d.totalAmount || 0) };
         }); 
       } },
+      { name: 'e_invoices', ref: (data: any) => {
+        globalEInvoices = data;
+      } },
       { name: 'service_tickets', ref: (data: any) => {
         globalServiceTickets = data.map((d:any) => ({
             ...d,
@@ -263,6 +277,13 @@ export const useAppStore = () => {
       const old = globalProposals;
       globalProposals = typeof updater === 'function' ? updater(globalProposals) : updater;
       syncArray('proposals', old, globalProposals);
+      emit();
+    },
+    get eInvoices() { return globalEInvoices; },
+    setEInvoices(updater: any) {
+      const old = globalEInvoices;
+      globalEInvoices = typeof updater === 'function' ? updater(globalEInvoices) : updater;
+      syncArray('e_invoices', old, globalEInvoices);
       emit();
     },
     get settings() { return globalSettings; },

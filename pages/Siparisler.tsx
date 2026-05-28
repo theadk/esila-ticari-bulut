@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User } from 'lucide-react';
+import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
@@ -25,6 +25,11 @@ export const Siparisler: React.FC = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [printType, setPrintType] = useState<'80mm' | 'A4'>('80mm');
+  const [eFaturaModalOpen, setEFaturaModalOpen] = useState(false);
+  const [eFaturaOrder, setEFaturaOrder] = useState<Order | null>(null);
+  const [eFaturaType, setEFaturaType] = useState('E-Fatura');
+  const [eFaturaScenario, setEFaturaScenario] = useState('Ticari Fatura');
+  const [eFaturaLoading, setEFaturaLoading] = useState(false);
 
   // New Order Form State
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -350,6 +355,13 @@ export const Siparisler: React.FC = () => {
                     >
                       <Printer size={18} />
                     </button>
+                    <button 
+                      onClick={() => { setEFaturaOrder(order); setEFaturaModalOpen(true); }}
+                      className="text-blue-500 hover:text-blue-700 transition-colors p-2 hover:bg-blue-50 rounded-lg"
+                      title="E-Faturaya Dönüştür"
+                    >
+                      <FileDigit size={18} />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -445,6 +457,17 @@ export const Siparisler: React.FC = () => {
                  )}
                </div>
                <div className="flex gap-3">
+                 <button 
+                   onClick={() => {
+                     setIsDetailsModalOpen(false);
+                     setEFaturaOrder(selectedOrder);
+                     setEFaturaModalOpen(true);
+                   }}
+                   className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium flex items-center gap-2"
+                 >
+                   <FileDigit size={18} />
+                   E-Fatura Kes
+                 </button>
                  <button 
                    onClick={() => {
                      setPrintType('80mm');
@@ -1116,6 +1139,119 @@ export const Siparisler: React.FC = () => {
                  </div>
                </div>
              )}
+          </div>
+        </div>
+      )}
+      {/* E-Fatura Modal */}
+      {eFaturaModalOpen && eFaturaOrder && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 animate-fade-in no-print">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b bg-blue-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-blue-900 flex items-center gap-2">
+                <FileDigit className="text-blue-600" />
+                E-Fatura Kes
+              </h3>
+              <button 
+                onClick={() => setEFaturaModalOpen(false)} 
+                className="text-gray-500 hover:text-red-500 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                 <p className="text-sm font-medium text-gray-500">Sipariş Bilgileri</p>
+                 <div className="flex justify-between items-start mt-1">
+                   <div>
+                     <p className="text-sm font-bold text-gray-800">{eFaturaOrder.id}</p>
+                     <p className="text-sm text-gray-700">{eFaturaOrder.customerName}</p>
+                   </div>
+                   <p className="text-sm font-bold text-gray-800">Tutar: {(eFaturaOrder.total || (eFaturaOrder as any).totalAmount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
+                 </div>
+              </div>
+
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Fatura Türü</label>
+                 <select 
+                   value={eFaturaType} 
+                   onChange={(e) => setEFaturaType(e.target.value)}
+                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                 >
+                   <option value="E-Fatura">E-Fatura (Mükellef)</option>
+                   <option value="E-Arşiv">E-Arşiv (Son Tüketici)</option>
+                 </select>
+              </div>
+
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Senaryo Türü</label>
+                 <select 
+                   value={eFaturaScenario} 
+                   onChange={(e) => setEFaturaScenario(e.target.value)}
+                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                 >
+                   <option value="Ticari Fatura">Ticari Fatura</option>
+                   <option value="Temel Fatura">Temel Fatura</option>
+                   <option value="Yolcu Beraberi">Yolcu Beraberi Fatura</option>
+                 </select>
+              </div>
+
+              <div className="text-xs text-gray-600 bg-blue-50/50 p-3 rounded-lg border border-blue-100 flex items-start gap-2">
+                 <Cloud className="text-blue-500 shrink-0" size={16} />
+                 <p>
+                   Bu işlem siparişteki kalemleri ve cari bilgilerini sisteminizdeki e-Dönüşüm portalına (Taslak Fatura olarak) aktaracaktır.
+                 </p>
+              </div>
+            </div>
+            
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
+              <button 
+                onClick={() => setEFaturaModalOpen(false)} 
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
+                disabled={eFaturaLoading}
+              >
+                İptal
+              </button>
+              <button 
+                onClick={async () => {
+                  setEFaturaLoading(true);
+                  try {
+                    const invoiceData: any = {
+                        id: 'INV-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                        orderId: eFaturaOrder.id,
+                        customerName: eFaturaOrder.customerName,
+                        amount: eFaturaOrder.total || (eFaturaOrder as any).totalAmount || 0,
+                        type: eFaturaType,
+                        scenario: eFaturaScenario,
+                        date: new Date().toISOString(),
+                        status: 'Taslak'
+                    };
+                    
+                    if (store.setEInvoices) {
+                        store.setEInvoices([...(store.eInvoices || []), invoiceData]);
+                    }
+                    
+                    // Demo için gecikme ekliyoruz
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    setEFaturaModalOpen(false);
+                    alert("E-Fatura taslağı başarıyla oluşturuldu.");
+                  } catch (error) {
+                    alert("E-Fatura gönderimi sırasında bir hata oluştu.");
+                  } finally {
+                    setEFaturaLoading(false);
+                  }
+                }}
+                disabled={eFaturaLoading}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg shadow-blue-600/20 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {eFaturaLoading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  <Send size={16} />
+                )}
+                Taslağı Gönder
+              </button>
+            </div>
           </div>
         </div>
       )}

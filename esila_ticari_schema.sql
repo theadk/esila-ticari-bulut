@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS settings (
     next_product_id INT,
     prefix_personnel VARCHAR(50),
     next_personnel_id INT,
+    efatura_username VARCHAR(255),
+    efatura_password VARCHAR(255),
+    efatura_apikey VARCHAR(255),
     PRIMARY KEY (vkn, id)
 );
 
@@ -235,3 +238,15 @@ VALUES ('admin-1', '1111111111', 'Sistem Yöneticisi', 'admin', 'admin@firma.com
 
 INSERT IGNORE INTO settings (vkn, id, companyName, email)
 VALUES ('1111111111', 1, 'Esila Master', 'admin@firma.com');
+
+CREATE TABLE IF NOT EXISTS e_invoices (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    orderId VARCHAR(255),
+    customerName VARCHAR(255),
+    amount DECIMAL(15,2),
+    type VARCHAR(255),
+    scenario VARCHAR(255),
+    date DATETIME,
+    status ENUM('Taslak', 'Gönderildi', 'Hatalı')
+);
