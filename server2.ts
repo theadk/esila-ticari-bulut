@@ -566,6 +566,55 @@ async function startServer() {
     } catch (e) { res.status(500).json({error: String(e)}); }
   });
 
+  
+  app.post('/api/tenants/:vkn/reset-password', async (req, res) => {
+    try {
+      const { vkn } = req.params;
+      const newAdminPass = generateSecurePassword();
+
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const fallbacksU = getFallbackTable('users');
+        const adminUser = fallbacksU.find(u => u.vkn === vkn && u.role === 'Admin');
+        if (adminUser) {
+           adminUser.passwordHash = newAdminPass;
+           
+           const fallbacksT = getFallbackTable('tenants');
+           const tenant = fallbacksT.find(t => t.vkn === vkn);
+           
+           if (tenant && tenant.email) {
+             await sendMail(
+                tenant.email,
+                "Şifreniz Sıfırlandı - Esila Ticari",
+                `<p>Sayın ${tenant.name},</p><p>Sistem yöneticiniz tarafından şifreniz sıfırlanmıştır.</p><p><b>Yeni Şifreniz:</b> ${newAdminPass}</p>`
+             );
+           }
+           
+           return res.json({success: true, password: newAdminPass});
+        }
+        return res.status(404).json({error: "Yönetici hesabı bulunamadı."});
+      }
+
+      const pool = getPool();
+      const [rows] = await pool.query("SELECT * FROM users WHERE vkn = ? AND role = 'Admin'", [vkn]);
+      if (rows.length === 0) return res.status(404).json({error: "Admin kullanıcı bulunamadı."});
+      
+      const adminUser = rows[0];
+      await pool.query("UPDATE users SET passwordHash = ? WHERE id = ?", [newAdminPass, adminUser.id]);
+      
+      const [tenantRows] = await pool.query("SELECT * FROM tenants WHERE vkn = ?", [vkn]);
+      const tenant = tenantRows[0];
+      if (tenant && tenant.email) {
+         await sendMail(
+            tenant.email,
+            "Şifreniz Sıfırlandı - Esila Ticari",
+            `<p>Sayın ${tenant.name},</p><p>Sistem yöneticiniz tarafından şifreniz sıfırlanmıştır.</p><p><b>Yeni Şifreniz:</b> ${newAdminPass}</p>`
+         );
+      }
+      
+      res.json({success: true, password: newAdminPass});
+    } catch(e) { res.status(500).json({error: String(e)}); }
+  });
+
   app.post('/api/tenants', async (req, res) => {
     try {
       const data = req.body;
@@ -598,8 +647,8 @@ async function startServer() {
       }
 
       const pool = getPool();
-      const q = `INSERT INTO tenants (vkn, name, email, modules, status, package, expirationDate) VALUES (?, ?, ?, ?, 'Bekliyor', ?, DATE_ADD(NOW(), INTERVAL ${expInterval}))`;
-      await pool.query(q, [data.vkn, data.name, data.email, JSON.stringify(data.modules), data.package || 'Yıllık']);
+      const q = `INSERT INTO tenants (vkn, name, email, modules, status, package, expirationDate, sector) VALUES (?, ?, ?, ?, 'Bekliyor', ?, DATE_ADD(NOW(), INTERVAL ${expInterval}), ?)`;
+      await pool.query(q, [data.vkn, data.name, data.email, JSON.stringify(data.modules), data.package || 'Yıllık', data.sector || '']);
       
       // Seed user for tenant
       await pool.query("INSERT INTO users (id, vkn, name, username, email, passwordHash, role, status) VALUES (?, ?, ?, ?, ?, ?, 'Admin', 'Aktif')",
@@ -616,6 +665,39 @@ async function startServer() {
     } catch(e) { res.status(500).json({error: String(e)}); }
   });
 
+  
+  app.put('/api/tenants/:vkn/toggle-status', async (req, res) => {
+    try {
+      const { vkn } = req.params;
+      
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const fallbacks = getFallbackTable('tenants');
+        const t = fallbacks.find((x) => x.vkn === vkn);
+        if (t) {
+           t.status = t.status === 'Aktif' ? 'Pasif' : 'Aktif';
+           
+           const fallbacksU = getFallbackTable('users');
+           fallbacksU.forEach(u => {
+              if (u.vkn === vkn) u.status = t.status;
+           });
+           
+           return res.json({success: true, status: t.status});
+        }
+        return res.status(404).json({error: 'Firma bulunamadı'});
+      }
+      
+      const pool = getPool();
+      const [rows] = await pool.query("SELECT status FROM tenants WHERE vkn = ?", [vkn]);
+      if (rows.length === 0) return res.status(404).json({error: "Firma bulunamadı"});
+      
+      const newStatus = rows[0].status === 'Aktif' ? 'Pasif' : 'Aktif';
+      await pool.query("UPDATE tenants SET status = ? WHERE vkn = ?", [newStatus, vkn]);
+      await pool.query("UPDATE users SET status = ? WHERE vkn = ?", [newStatus, vkn]);
+      
+      res.json({success: true, status: newStatus});
+    } catch(e) { res.status(500).json({error: String(e)}); }
+  });
+  
   app.put('/api/tenants/:vkn/activate', async (req, res) => {
     try {
       const { vkn } = req.params;

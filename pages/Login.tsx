@@ -367,13 +367,23 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <label className="text-sm font-medium text-gray-700 ml-1">Sektörünüz</label>
                 <div className="relative">
                   <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
+                  <select
                     value={registerForm.sector}
                     onChange={(e) => setRegisterForm({ ...registerForm, sector: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                    placeholder="Örn: Bilişim, Perakende"
-                  />
+                    className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none bg-white"
+                  >
+                    <option value="">Sektör Seçiniz</option>
+                    <option value="Bilişim & Teknoloji">Bilişim & Teknoloji</option>
+                    <option value="Perakende & Mağazacılık">Perakende & Mağazacılık</option>
+                    <option value="Toptan Ticaret">Toptan Ticaret</option>
+                    <option value="Üretim & İmalat">Üretim & İmalat</option>
+                    <option value="Gıda & Tarım">Gıda & Tarım</option>
+                    <option value="İnşaat & Yapı">İnşaat & Yapı</option>
+                    <option value="Eğitim & Danışmanlık">Eğitim & Danışmanlık</option>
+                    <option value="Sağlık & Medikal">Sağlık & Medikal</option>
+                    <option value="Otomotiv & Lojistik">Otomotiv & Lojistik</option>
+                    <option value="Hizmet & Diğer">Hizmet & Diğer</option>
+                  </select>
                 </div>
               </div>
 
