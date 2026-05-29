@@ -236,8 +236,11 @@ export interface Settings {
   invoiceTemplate_color?: string;
   invoiceTemplate_showQR?: boolean;
   invoiceTemplate_showLogo?: boolean;
+  invoiceTemplate_logoUrl?: string;
   invoiceTemplate_notes?: string;
   invoiceTemplate_bankInfo?: string;
+  invoiceTemplate_banks?: { id: string; bankName: string; iban: string; accountName: string; }[];
+  invoiceTemplate_layoutOrder?: string[]; // e.g. ['info', 'gib', 'logo']
   
   // Numaralandırma / Ön Ekler
   prefix_customer?: string;

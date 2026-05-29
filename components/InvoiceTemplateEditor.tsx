@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAppStore } from "../lib/store";
-import { Save, Image as ImageIcon, Settings } from "lucide-react";
+import { Save, Image as ImageIcon, Settings, Trash2, ArrowLeft, ArrowRight, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 
 export const InvoiceTemplateEditor: React.FC = () => {
@@ -9,27 +9,60 @@ export const InvoiceTemplateEditor: React.FC = () => {
     invoiceTemplate_color: "#059669",
     invoiceTemplate_showQR: true,
     invoiceTemplate_showLogo: true,
-    invoiceTemplate_notes:
-      "Bu fatura, düzenleme tarihinden itibaren 7 gün içerisinde ödenmelidir. Süresinde ödenmeyen tutarlar için yasal faiz işletilecektir.\nBanka Bilgileri:\nTR50 0021 0000 0013 4303 2000 01",
+    invoiceTemplate_logoUrl: "",
+    invoiceTemplate_notes: "Bu fatura, düzenleme tarihinden itibaren 7 gün içerisinde ödenmelidir. Süresinde ödenmeyen tutarlar için yasal faiz işletilecektir.",
+    invoiceTemplate_banks: [] as { id: string; bankName: string; iban: string; accountName: string; }[],
+    invoiceTemplate_layoutOrder: ['info', 'gib', 'logo']
   });
 
   useEffect(() => {
     if (store.settings) {
       setFormData({
-        invoiceTemplate_color:
-          store.settings.invoiceTemplate_color || "#059669",
+        invoiceTemplate_color: store.settings.invoiceTemplate_color || "#059669",
         invoiceTemplate_showQR: store.settings.invoiceTemplate_showQR !== false,
-        invoiceTemplate_showLogo:
-          store.settings.invoiceTemplate_showLogo !== false,
-        invoiceTemplate_notes:
-          store.settings.invoiceTemplate_notes ||
-          "Bu fatura, düzenleme tarihinden itibaren 7 gün içerisinde ödenmelidir. Süresinde ödenmeyen tutarlar için yasal faiz işletilecektir.\nBanka Bilgileri:\nTR50 0021 0000 0013 4303 2000 01",
+        invoiceTemplate_showLogo: store.settings.invoiceTemplate_showLogo !== false,
+        invoiceTemplate_logoUrl: store.settings.invoiceTemplate_logoUrl || "",
+        invoiceTemplate_notes: store.settings.invoiceTemplate_notes || "Bu fatura, düzenleme tarihinden itibaren 7 gün içerisinde ödenmelidir. Süresinde ödenmeyen tutarlar için yasal faiz işletilecektir.",
+        invoiceTemplate_banks: store.settings.invoiceTemplate_banks || [],
+        invoiceTemplate_layoutOrder: store.settings.invoiceTemplate_layoutOrder || ['info', 'gib', 'logo']
       });
     }
   }, [store.settings]);
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => handleChange("invoiceTemplate_logoUrl", e.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const addBank = () => {
+    const newBank = { id: Date.now().toString(), bankName: '', iban: '', accountName: '' };
+    handleChange('invoiceTemplate_banks', [...(formData.invoiceTemplate_banks || []), newBank]);
+  };
+
+  const updateBank = (id: string, field: string, value: string) => {
+    handleChange('invoiceTemplate_banks', formData.invoiceTemplate_banks.map(b => b.id === id ? { ...b, [field]: value } : b));
+  };
+
+  const removeBank = (id: string) => {
+    handleChange('invoiceTemplate_banks', formData.invoiceTemplate_banks.filter(b => b.id !== id));
+  };
+
+  const moveLayoutSection = (index: number, direction: number) => {
+    const arr = [...formData.invoiceTemplate_layoutOrder];
+    if (index + direction >= 0 && index + direction < arr.length) {
+      const temp = arr[index];
+      arr[index] = arr[index + direction];
+      arr[index + direction] = temp;
+      handleChange('invoiceTemplate_layoutOrder', arr);
+    }
   };
 
   const handleSave = () => {
@@ -101,9 +134,66 @@ export const InvoiceTemplateEditor: React.FC = () => {
             </label>
           </div>
 
+          {/* Layout Organizer */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Başlık Yerleşimi (Hizalama)</label>
+            <div className="flex bg-gray-50 border border-gray-200 rounded-lg p-2 gap-2">
+              {formData.invoiceTemplate_layoutOrder.map((key, i) => (
+                <div key={key} className="flex-1 bg-white border border-gray-300 rounded p-2 text-center text-[11px] font-medium text-gray-700 flex items-center justify-between">
+                  <button onClick={() => moveLayoutSection(i, -1)} disabled={i === 0} className="p-1 hover:bg-gray-100 disabled:opacity-30 rounded"><ArrowLeft size={14}/></button>
+                  {key === 'info' ? 'Firma B.' : key === 'gib' ? 'GİB Logo' : 'Amblem & QR'}
+                  <button onClick={() => moveLayoutSection(i, 1)} disabled={i === formData.invoiceTemplate_layoutOrder.length - 1} className="p-1 hover:bg-gray-100 disabled:opacity-30 rounded"><ArrowRight size={14}/></button>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-gray-500 mt-1">Önizlemedeki blokları sağa/sola kaydırın.</p>
+          </div>
+
+          {/* Logo Upload */}
+          <div>
+             <label className="block text-sm font-medium text-gray-700 mb-1">Şablon Özel Logosu</label>
+             <div className="flex items-center gap-4">
+                {formData.invoiceTemplate_logoUrl ? (
+                   <img src={formData.invoiceTemplate_logoUrl} alt="Logo" className="h-12 border rounded bg-white object-contain" />
+                ) : (
+                   <div className="h-12 w-24 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 bg-gray-50 text-[10px] text-center"><ImageIcon size={14} className="mb-0.5 mx-auto" /><br/>Logo Yok</div>
+                )}
+                <div>
+                   <input type="file" accept="image/*" id="template-logo-upload" className="hidden" onChange={handleLogoUpload} />
+                   <label htmlFor="template-logo-upload" className="bg-white border shadow-sm px-3 py-1.5 rounded text-sm font-medium cursor-pointer hover:bg-gray-50 flex items-center gap-2">
+                      <ImageIcon size={14} /> Logo Yükle
+                   </label>
+                   {formData.invoiceTemplate_logoUrl && (
+                      <button onClick={() => handleChange('invoiceTemplate_logoUrl', '')} className="text-xs text-red-600 mt-1 hover:underline block">Kaldır</button>
+                   )}
+                </div>
+             </div>
+          </div>
+
+          {/* Banks */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+               <label className="block text-sm font-medium text-gray-700">Ayrı Banka Bilgileri</label>
+               <button onClick={addBank} className="text-xs text-emerald-600 font-medium flex items-center gap-1 hover:text-emerald-700"><Plus size={14}/> Ekle</button>
+            </div>
+            <div className="space-y-2">
+               {formData.invoiceTemplate_banks?.map(bank => (
+                  <div key={bank.id} className="border border-gray-200 p-2 rounded-lg bg-gray-50 shadow-sm relative pr-8 text-sm">
+                     <button onClick={() => removeBank(bank.id)} className="absolute top-2 right-2 text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
+                     <input type="text" placeholder="Banka Adı" value={bank.bankName} onChange={e => updateBank(bank.id, 'bankName', e.target.value)} className="w-full mb-2 bg-white border border-gray-300 rounded px-2 py-1 text-xs" />
+                     <input type="text" placeholder="Hesap Sahibi" value={bank.accountName} onChange={e => updateBank(bank.id, 'accountName', e.target.value)} className="w-full mb-2 bg-white border border-gray-300 rounded px-2 py-1 text-xs" />
+                     <input type="text" placeholder="IBAN" value={bank.iban} onChange={e => updateBank(bank.id, 'iban', e.target.value)} className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-mono" />
+                  </div>
+               ))}
+               {(!formData.invoiceTemplate_banks || formData.invoiceTemplate_banks.length === 0) && (
+                 <p className="text-xs text-gray-500 italic">Hiç banka bilgisi eklenmedi.</p>
+               )}
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Alt Notlar & Banka Bilgileri
+              Alt Notlar
             </label>
             <textarea
               rows={4}
@@ -137,81 +227,64 @@ export const InvoiceTemplateEditor: React.FC = () => {
           }}
         >
           {/* Header Row */}
-          <div className="flex justify-between items-start mb-4">
-            {/* Company Info */}
-            <div className="w-[35%]">
-              <div
-                className="font-bold mb-1"
-                style={{ color: formData.invoiceTemplate_color }}
-              >
-                {store.settings?.companyName ||
-                  "ESİLA YAZILIM TEKNOLOJİLERİ LİMİTED ŞİRKETİ"}
-              </div>
-              <div className="mb-1">
-                {store.settings?.address ||
-                  "YENİŞEHİR MAHALLESİ KARDEŞLER CADDE DIŞ KAPI NO: TEKNO KENT ARGE 7 /2 İÇ KAPI NO: B06 MERKEZ / SİVAS"}
-              </div>
-              <div className="mb-1">58100 Sivas Merkez/ Sivas</div>
-              <div className="mb-1">
-                Tel: {store.settings?.phone || "+908506060724"}
-              </div>
-              <div className="mb-1">Web Sitesi: www.esilateknoloji.com.tr</div>
-              <div className="mb-1">
-                E-Posta: {store.settings?.email || "bilgi@e-esila.com"}
-              </div>
-              <div className="mb-1">
-                Vergi Dairesi: SİTE VERGİ DAİRESİ MÜDÜRLÜĞÜ
-              </div>
-              <div>VKN: 3790894905</div>
-            </div>
-
-            {/* GİB Logo */}
-            <div className="w-[30%] flex flex-col items-center justify-center">
-              <div className="w-24 border text-center p-1 rounded-full aspect-square flex flex-col justify-center items-center font-bold text-red-600 border-red-600 text-[10px]">
-                <div>T.C. Hazine ve Maliye Bakanlığı</div>
-                <div className="text-3xl font-serif mt-1 mb-1">G</div>
-                <div>Gelir İdaresi Başkanlığı</div>
-              </div>
-              <div className="font-bold text-base mt-2">e-FATURA</div>
-            </div>
-
-            {/* QR & Logo */}
-            <div className="w-[35%] flex flex-col items-end">
-              {formData.invoiceTemplate_showQR && (
-                <div className="w-24 h-24 bg-gray-200 mb-2 flex items-center justify-center text-[10px] text-gray-500 border border-gray-300">
-                  [QR CODE]
-                </div>
-              )}
-              {formData.invoiceTemplate_showLogo && (
-                <div className="text-right">
-                  {store.settings?.companyLogo ? (
-                    <img
-                      src={store.settings?.companyLogo}
-                      alt="Logo"
-                      className="h-10 ml-auto mb-1"
-                    />
-                  ) : (
-                    <div
-                      className="font-serif italic text-2xl font-bold mb-1 text-right"
-                      style={{ color: formData.invoiceTemplate_color }}
-                    >
-                      esila
+          <div className="flex justify-between items-start mb-4 gap-2">
+            {formData.invoiceTemplate_layoutOrder.map((blockKey, idx) => {
+              const alignmentClass = idx === 0 ? 'items-start text-left' : idx === 1 ? 'items-center text-center justify-center' : 'items-end text-right';
+              
+              if (blockKey === 'info') {
+                return (
+                  <div key="info" className={`w-[33%] flex flex-col ${alignmentClass}`}>
+                    <div className="font-bold mb-1" style={{ color: formData.invoiceTemplate_color }}>{store.settings?.companyName || "ESİLA YAZILIM TEKNOLOJİLERİ LİMİTED ŞİRKETİ"}</div>
+                    <div className="mb-1">{store.settings?.address || "YENİŞEHİR MAHALLESİ KARDEŞLER CADDE DIŞ KAPI NO: TEKNO KENT ARGE 7 /2 İÇ KAPI NO: B06 MERKEZ / SİVAS"}</div>
+                    <div className="mb-1">58100 Sivas Merkez/ Sivas</div>
+                    <div className="mb-1">Tel: {store.settings?.phone || "+908506060724"}</div>
+                    <div className="mb-1">Web Sitesi: www.esilateknoloji.com.tr</div>
+                    <div className="mb-1">E-Posta: {store.settings?.email || "bilgi@e-esila.com"}</div>
+                    <div className="mb-1">Vergi Dairesi: SİTE VERGİ DAİRESİ MÜDÜRLÜĞÜ</div>
+                    <div>VKN: 3790894905</div>
+                  </div>
+                );
+              }
+              if (blockKey === 'gib') {
+                return (
+                  <div key="gib" className={`w-[33%] flex flex-col ${alignmentClass}`}>
+                    <div className="w-24 border text-center p-1 rounded-full aspect-square flex flex-col justify-center items-center font-bold text-red-600 border-red-600 text-[10px]">
+                      <div>T.C. Hazine ve Maliye Bakanlığı</div>
+                      <div className="text-3xl font-serif mt-1 mb-1">G</div>
+                      <div>Gelir İdaresi Başkanlığı</div>
                     </div>
-                  )}
-                </div>
-              )}
-              <div
-                className="text-right"
-                style={{ color: formData.invoiceTemplate_color }}
-              >
-                <div className="mb-1">&quot;Ticaretin Bulut Hali&quot;</div>
-                <div className="font-bold">www.esila.tr</div>
-                <div>+90 850 606 0724</div>
-                <div className="font-bold text-[9px]">
-                  WhatsApp Destek Hattı : +90 542 66 37452
-                </div>
-              </div>
-            </div>
+                    <div className="font-bold text-base mt-2 flex justify-center w-full">e-FATURA</div>
+                  </div>
+                );
+              }
+              if (blockKey === 'logo') {
+                return (
+                  <div key="logo" className={`w-[33%] flex flex-col ${alignmentClass}`}>
+                    {formData.invoiceTemplate_showQR && (
+                      <div className="w-24 h-24 bg-gray-200 mb-2 flex items-center justify-center text-[10px] text-gray-500 border border-gray-300">
+                        [QR CODE]
+                      </div>
+                    )}
+                    {formData.invoiceTemplate_showLogo && (
+                      <div className={`w-full ${idx === 0 ? 'border-t pt-2 mt-2 text-left' : idx === 1 ? 'border-t pt-2 mt-2 text-center' : 'border-t pt-2 mt-2 text-right'}`} style={{ borderColor: formData.invoiceTemplate_color + "40" }}>
+                        {formData.invoiceTemplate_logoUrl ? (
+                           <img src={formData.invoiceTemplate_logoUrl} alt="Logo" className={`h-10 mb-1 ${idx === 0 ? 'mr-auto' : idx === 1 ? 'mx-auto' : 'ml-auto'}`} />
+                        ) : store.settings?.companyLogo ? (
+                          <img src={store.settings?.companyLogo} alt="Logo" className={`h-10 mb-1 ${idx === 0 ? 'mr-auto' : idx === 1 ? 'mx-auto' : 'ml-auto'}`} />
+                        ) : (
+                          <div className={`font-serif italic text-2xl font-bold mb-1 ${idx === 0 ? 'text-left' : idx === 1 ? 'text-center' : 'text-right'}`} style={{ color: formData.invoiceTemplate_color }}>esila</div>
+                        )}
+                        <div className="mb-1" style={{ color: formData.invoiceTemplate_color }}>&quot;Ticaretin Bulut Hali&quot;</div>
+                        <div className="font-bold" style={{ color: formData.invoiceTemplate_color }}>www.esila.tr</div>
+                        <div style={{ color: formData.invoiceTemplate_color }}>+90 850 606 0724</div>
+                        <div className="font-bold text-[9px]" style={{ color: formData.invoiceTemplate_color }}>WhatsApp Destek Hattı : +90 542 66 37452</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })}
           </div>
 
           {/* Customer & Invoice Details Row */}
@@ -423,6 +496,16 @@ export const InvoiceTemplateEditor: React.FC = () => {
                 {line ? `Not: ${line}` : ""}
               </div>
             ))}
+            {formData.invoiceTemplate_banks && formData.invoiceTemplate_banks.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-black border-dashed">
+                <div className="font-bold mb-1 underline mt-1">BANKA HESAP BİLGİLERİMİZ</div>
+                {formData.invoiceTemplate_banks.map((b, i) => (
+                   <div key={i} className="font-bold">
+                     Banka: {b.bankName} | Alıcı: {b.accountName} | IBAN: {b.iban}
+                   </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Footer */}

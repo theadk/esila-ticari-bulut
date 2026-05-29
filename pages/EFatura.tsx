@@ -62,6 +62,17 @@ export const EFatura: React.FC = () => {
     }, 500);
   };
 
+  const invoiceOrder = previewInvoice
+    ? store.orders?.find((o) => o.id === previewInvoice.orderId)
+    : null;
+  const invoiceCustomer = previewInvoice
+    ? store.customers?.find(
+        (c) =>
+          c.name === previewInvoice.customerName ||
+          (invoiceOrder && c.id === invoiceOrder.customerId),
+      )
+    : null;
+
   return (
     <div className="h-full flex flex-col space-y-4">
       <div className="flex justify-between items-center sm:flex-row flex-col">
@@ -286,127 +297,171 @@ export const EFatura: React.FC = () => {
                 id="invoice-preview"
               >
                 {/* Header Row */}
-                <div className="flex justify-between items-start mb-4">
-                  {/* Company Info */}
-                  <div className="w-[35%]">
-                    <div
-                      className="font-bold mb-1"
-                      style={{
-                        color:
-                          store.settings?.invoiceTemplate_color || "#059669",
-                      }}
-                    >
-                      {store.settings?.companyName ||
-                        "ESİLA YAZILIM TEKNOLOJİLERİ LİMİTED ŞİRKETİ"}
-                    </div>
-                    <div className="mb-1">
-                      {store.settings?.address ||
-                        "YENİŞEHİR MAHALLESİ KARDEŞLER CADDE DIŞ KAPI NO: TEKNO KENT ARGE 7 /2 İÇ KAPI NO: B06 MERKEZ / SİVAS"}
-                    </div>
-                    <div className="mb-1">58100 Sivas Merkez/ Sivas</div>
-                    <div className="mb-1">
-                      Tel: {store.settings?.phone || "+908506060724"}
-                    </div>
-                    <div className="mb-1">
-                      Web Sitesi: www.esilateknoloji.com.tr
-                    </div>
-                    <div className="mb-1">
-                      E-Posta: {store.settings?.email || "bilgi@e-esila.com"}
-                    </div>
-                    <div className="mb-1">
-                      Vergi Dairesi: SİTE VERGİ DAİRESİ MÜDÜRLÜĞÜ
-                    </div>
-                    <div>VKN: 3790894905</div>
-                  </div>
+                <div className="flex justify-between items-start mb-4 gap-2">
+                  {(
+                    store.settings?.invoiceTemplate_layoutOrder || [
+                      "info",
+                      "gib",
+                      "logo",
+                    ]
+                  ).map((blockKey, idx) => {
+                    const alignmentClass =
+                      idx === 0
+                        ? "items-start text-left"
+                        : idx === 1
+                          ? "items-center text-center justify-center"
+                          : "items-end text-right";
 
-                  {/* GİB Logo */}
-                  <div className="w-[30%] flex flex-col items-center justify-center">
-                    <div className="w-24 border text-center p-1 rounded-full aspect-square flex flex-col justify-center items-center font-bold text-red-600 border-red-600 text-[10px]">
-                      <div>T.C. Hazine ve Maliye Bakanlığı</div>
-                      <div className="text-3xl font-serif mt-1 mb-1">G</div>
-                      <div>Gelir İdaresi Başkanlığı</div>
-                    </div>
-                    <div className="font-bold text-base mt-2">e-FATURA</div>
-                  </div>
-
-                  {/* QR & Logo */}
-                  <div className="w-[35%] flex flex-col items-end">
-                    {store.settings?.invoiceTemplate_showQR !== false && (
-                      <div className="w-24 h-24 bg-gray-200 mb-2 flex items-center justify-center text-[10px] text-gray-500 border border-gray-300">
-                        [QR CODE]
-                      </div>
-                    )}
-                    {store.settings?.invoiceTemplate_showLogo !== false && (
-                      <div
-                        className="text-right border-t pt-2 w-full mt-2"
-                        style={{
-                          borderColor:
-                            store.settings?.invoiceTemplate_color + "40" ||
-                            "#05966940",
-                        }}
-                      >
-                        {store.settings?.companyLogo ? (
-                          <img
-                            src={store.settings?.companyLogo}
-                            alt="Logo"
-                            className="h-10 ml-auto mb-1"
-                          />
-                        ) : (
+                    if (blockKey === "info") {
+                      return (
+                        <div
+                          key="info"
+                          className={`w-[33%] flex flex-col ${alignmentClass}`}
+                        >
                           <div
-                            className="font-serif italic text-2xl font-bold mb-1 text-right"
+                            className="font-bold mb-1"
                             style={{
                               color:
                                 store.settings?.invoiceTemplate_color ||
                                 "#059669",
                             }}
                           >
-                            esila
+                            {store.settings?.companyName ||
+                              "ESİLA YAZILIM TEKNOLOJİLERİ LİMİTED ŞİRKETİ"}
                           </div>
-                        )}
-                        <div
-                          className="mb-1"
-                          style={{
-                            color:
-                              store.settings?.invoiceTemplate_color ||
-                              "#059669",
-                          }}
-                        >
-                          &quot;Ticaretin Bulut Hali&quot;
+                          <div className="mb-1">
+                            {store.settings?.address ||
+                              "YENİŞEHİR MAHALLESİ KARDEŞLER CADDE DIŞ KAPI NO: TEKNO KENT ARGE 7 /2 İÇ KAPI NO: B06 MERKEZ / SİVAS"}
+                          </div>
+                          <div className="mb-1">58100 Sivas Merkez/ Sivas</div>
+                          <div className="mb-1">
+                            Tel: {store.settings?.phone || "+908506060724"}
+                          </div>
+                          <div className="mb-1">
+                            Web Sitesi: www.esilateknoloji.com.tr
+                          </div>
+                          <div className="mb-1">
+                            E-Posta:{" "}
+                            {store.settings?.email || "bilgi@e-esila.com"}
+                          </div>
+                          <div className="mb-1">
+                            Vergi Dairesi: SİTE VERGİ DAİRESİ MÜDÜRLÜĞÜ
+                          </div>
+                          <div>VKN: 3790894905</div>
                         </div>
+                      );
+                    }
+                    if (blockKey === "gib") {
+                      return (
                         <div
-                          className="font-bold"
-                          style={{
-                            color:
-                              store.settings?.invoiceTemplate_color ||
-                              "#059669",
-                          }}
+                          key="gib"
+                          className={`w-[33%] flex flex-col ${alignmentClass}`}
                         >
-                          www.esila.tr
+                          <div className="w-24 border text-center p-1 rounded-full aspect-square flex flex-col justify-center items-center font-bold text-red-600 border-red-600 text-[10px]">
+                            <div>T.C. Hazine ve Maliye Bakanlığı</div>
+                            <div className="text-3xl font-serif mt-1 mb-1">
+                              G
+                            </div>
+                            <div>Gelir İdaresi Başkanlığı</div>
+                          </div>
+                          <div className="font-bold text-base mt-2 flex justify-center w-full">
+                            e-FATURA
+                          </div>
                         </div>
+                      );
+                    }
+                    if (blockKey === "logo") {
+                      return (
                         <div
-                          style={{
-                            color:
-                              store.settings?.invoiceTemplate_color ||
-                              "#059669",
-                          }}
+                          key="logo"
+                          className={`w-[33%] flex flex-col ${alignmentClass}`}
                         >
-                          +90 850 606 0724
+                          {store.settings?.invoiceTemplate_showQR !== false && (
+                            <div className="w-24 h-24 bg-gray-200 mb-2 flex items-center justify-center text-[10px] text-gray-500 border border-gray-300">
+                              [QR CODE]
+                            </div>
+                          )}
+                          {store.settings?.invoiceTemplate_showLogo !==
+                            false && (
+                            <div
+                              className={`w-full ${idx === 0 ? "border-t pt-2 mt-2 text-left" : idx === 1 ? "border-t pt-2 mt-2 text-center" : "border-t pt-2 mt-2 text-right"}`}
+                              style={{
+                                borderColor:
+                                  (store.settings?.invoiceTemplate_color ||
+                                    "#059669") + "40",
+                              }}
+                            >
+                              {store.settings?.invoiceTemplate_logoUrl ? (
+                                <img
+                                  src={store.settings?.invoiceTemplate_logoUrl}
+                                  alt="Logo"
+                                  className={`h-10 mb-1 ${idx === 0 ? "mr-auto" : idx === 1 ? "mx-auto" : "ml-auto"}`}
+                                />
+                              ) : store.settings?.companyLogo ? (
+                                <img
+                                  src={store.settings?.companyLogo}
+                                  alt="Logo"
+                                  className={`h-10 mb-1 ${idx === 0 ? "mr-auto" : idx === 1 ? "mx-auto" : "ml-auto"}`}
+                                />
+                              ) : (
+                                <div
+                                  className={`font-serif italic text-2xl font-bold mb-1 ${idx === 0 ? "text-left" : idx === 1 ? "text-center" : "text-right"}`}
+                                  style={{
+                                    color:
+                                      store.settings?.invoiceTemplate_color ||
+                                      "#059669",
+                                  }}
+                                >
+                                  esila
+                                </div>
+                              )}
+                              <div
+                                className="mb-1"
+                                style={{
+                                  color:
+                                    store.settings?.invoiceTemplate_color ||
+                                    "#059669",
+                                }}
+                              >
+                                &quot;Ticaretin Bulut Hali&quot;
+                              </div>
+                              <div
+                                className="font-bold"
+                                style={{
+                                  color:
+                                    store.settings?.invoiceTemplate_color ||
+                                    "#059669",
+                                }}
+                              >
+                                www.esila.tr
+                              </div>
+                              <div
+                                style={{
+                                  color:
+                                    store.settings?.invoiceTemplate_color ||
+                                    "#059669",
+                                }}
+                              >
+                                +90 850 606 0724
+                              </div>
+                              <div
+                                className="font-bold text-[9px]"
+                                style={{
+                                  color:
+                                    store.settings?.invoiceTemplate_color ||
+                                    "#059669",
+                                }}
+                              >
+                                WhatsApp Destek Hattı : +90 542 66 37452
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div
-                          className="font-bold text-[9px]"
-                          style={{
-                            color:
-                              store.settings?.invoiceTemplate_color ||
-                              "#059669",
-                          }}
-                        >
-                          WhatsApp Destek Hattı : +90 542 66 37452
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                      );
+                    }
+                    return null;
+                  })}
                 </div>
-
                 {/* Customer & Invoice Details Row */}
                 <div className="flex justify-between items-start mb-2">
                   {/* Customer Info Box */}
@@ -417,12 +472,23 @@ export const EFatura: React.FC = () => {
                     <div className="font-bold mb-2">
                       {previewInvoice.customerName}
                     </div>
-                    <div className="mb-1">Yozgat Merkez/ Yozgat</div>
+                    <div className="mb-1">
+                      {invoiceCustomer?.city
+                        ? `${invoiceCustomer.district || ""} / ${invoiceCustomer.city}`
+                        : "Merkez / Yozgat"}
+                    </div>
                     <div className="mb-1">Türkiye</div>
                     <div className="mb-1">
-                      Vergi Dairesi: YOZGAT VERGİ DAİRESİ MÜD.
+                      Vergi Dairesi:{" "}
+                      {invoiceCustomer?.taxOffice ||
+                        "YOZGAT VERGİ DAİRESİ MÜD."}
                     </div>
-                    <div>TCKN/VKN: 11111111111</div>
+                    <div>
+                      TCKN/VKN:{" "}
+                      {invoiceCustomer?.taxNumber ||
+                        invoiceCustomer?.tcNo ||
+                        "11111111111"}
+                    </div>
                   </div>
 
                   {/* Invoice Details Box */}
@@ -475,7 +541,6 @@ export const EFatura: React.FC = () => {
                     </table>
                   </div>
                 </div>
-
                 {/* ETTN Row */}
                 <div className="font-bold mb-2">
                   ETTN:{" "}
@@ -483,7 +548,6 @@ export const EFatura: React.FC = () => {
                     {previewInvoice.id.toLowerCase()}-e-fatura-ettn
                   </span>
                 </div>
-
                 {/* Items Table */}
                 <table className="w-full text-left border-collapse border border-black mb-4">
                   <thead>
@@ -522,47 +586,107 @@ export const EFatura: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-black">
-                      <td className="p-1 border-r border-black text-center">
-                        1
-                      </td>
-                      <td className="p-1 border-r border-black">1K</td>
-                      <td className="p-1 border-r border-black">
-                        Muhtelif Ürün / Hizmet Satışı
-                      </td>
-                      <td className="p-1 border-r border-black text-right">
-                        1 Adet
-                      </td>
-                      <td className="p-1 border-r border-black text-right">
-                        {(previewInvoice.amount / 1.2).toLocaleString("tr-TR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 8,
-                        })}{" "}
-                        TL
-                      </td>
-                      <td className="p-1 border-r border-black text-right">
-                        %20,00
-                      </td>
-                      <td className="p-1 border-r border-black text-right">
-                        {(
-                          previewInvoice.amount -
-                          previewInvoice.amount / 1.2
-                        ).toLocaleString("tr-TR", {
-                          minimumFractionDigits: 2,
-                        })}{" "}
-                        TL
-                      </td>
-                      <td className="p-1 border-r border-black text-right"></td>
-                      <td className="p-1 text-right">
-                        {(previewInvoice.amount / 1.2).toLocaleString("tr-TR", {
-                          minimumFractionDigits: 2,
-                        })}{" "}
-                        TL
-                      </td>
-                    </tr>
+                    {invoiceOrder &&
+                    invoiceOrder.items &&
+                    invoiceOrder.items.length > 0 ? (
+                      invoiceOrder.items.map((item: any, idx: number) => {
+                        const taxRate = item.taxRate || 20;
+                        const priceWithoutTax =
+                          item.price / (1 + taxRate / 100);
+                        const taxAmount = item.price - priceWithoutTax;
+                        const totalItemWithoutTax =
+                          priceWithoutTax * item.quantity;
+
+                        return (
+                          <tr
+                            key={idx}
+                            className="border-b border-black last:border-b-0"
+                          >
+                            <td className="p-1 border-r border-black text-center">
+                              {idx + 1}
+                            </td>
+                            <td className="p-1 border-r border-black">
+                              {item.productId || "1K"}
+                            </td>
+                            <td className="p-1 border-r border-black">
+                              {item.productName}
+                            </td>
+                            <td className="p-1 border-r border-black text-right">
+                              {item.quantity} {item.unit || "Adet"}
+                            </td>
+                            <td className="p-1 border-r border-black text-right">
+                              {priceWithoutTax.toLocaleString("tr-TR", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 4,
+                              })}{" "}
+                              TL
+                            </td>
+                            <td className="p-1 border-r border-black text-right">
+                              %{taxRate}
+                            </td>
+                            <td className="p-1 border-r border-black text-right">
+                              {(taxAmount * item.quantity).toLocaleString(
+                                "tr-TR",
+                                { minimumFractionDigits: 2 },
+                              )}{" "}
+                              TL
+                            </td>
+                            <td className="p-1 border-r border-black text-right"></td>
+                            <td className="p-1 text-right">
+                              {totalItemWithoutTax.toLocaleString("tr-TR", {
+                                minimumFractionDigits: 2,
+                              })}{" "}
+                              TL
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr className="border-b border-black">
+                        <td className="p-1 border-r border-black text-center">
+                          1
+                        </td>
+                        <td className="p-1 border-r border-black">1K</td>
+                        <td className="p-1 border-r border-black">
+                          Muhtelif Ürün / Hizmet Satışı
+                        </td>
+                        <td className="p-1 border-r border-black text-right">
+                          1 Adet
+                        </td>
+                        <td className="p-1 border-r border-black text-right">
+                          {(previewInvoice.amount / 1.2).toLocaleString(
+                            "tr-TR",
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 8,
+                            },
+                          )}{" "}
+                          TL
+                        </td>
+                        <td className="p-1 border-r border-black text-right">
+                          %20,00
+                        </td>
+                        <td className="p-1 border-r border-black text-right">
+                          {(
+                            previewInvoice.amount -
+                            previewInvoice.amount / 1.2
+                          ).toLocaleString("tr-TR", {
+                            minimumFractionDigits: 2,
+                          })}{" "}
+                          TL
+                        </td>
+                        <td className="p-1 border-r border-black text-right"></td>
+                        <td className="p-1 text-right">
+                          {(previewInvoice.amount / 1.2).toLocaleString(
+                            "tr-TR",
+                            { minimumFractionDigits: 2 },
+                          )}{" "}
+                          TL
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
-
                 {/* Totals Box */}
                 <div className="flex justify-end mb-4">
                   <div className="w-[45%]">
@@ -573,10 +697,12 @@ export const EFatura: React.FC = () => {
                             Mal Hizmet Toplam Tutarı
                           </td>
                           <td className="p-1 w-32 border-l-2 border-black border-l-gray-300">
-                            {(previewInvoice.amount / 1.2).toLocaleString(
-                              "tr-TR",
-                              { minimumFractionDigits: 2 },
-                            )}{" "}
+                            {(
+                              invoiceOrder?.subTotal ||
+                              previewInvoice.amount / 1.2
+                            ).toLocaleString("tr-TR", {
+                              minimumFractionDigits: 2,
+                            })}{" "}
                             TL
                           </td>
                         </tr>
@@ -585,19 +711,23 @@ export const EFatura: React.FC = () => {
                             Toplam İskonto
                           </td>
                           <td className="p-1 border-l-2 border-black border-l-gray-300">
-                            0,00 TL
+                            {(
+                              (invoiceOrder as any)?.discountTotal || 0
+                            ).toLocaleString("tr-TR", {
+                              minimumFractionDigits: 2,
+                            })}{" "}
+                            TL
                           </td>
                         </tr>
                         <tr className="border-b border-black">
                           <td className="p-1 font-bold border-r border-black">
-                            Hesaplanan GERÇEK USULDE KATMA
-                            <br />
-                            DEĞER VERGİSİ(%20)
+                            Hesaplanan KDV Toplamı
                           </td>
                           <td className="p-1 border-l-2 border-black border-l-gray-300">
                             {(
+                              invoiceOrder?.taxTotal ||
                               previewInvoice.amount -
-                              previewInvoice.amount / 1.2
+                                previewInvoice.amount / 1.2
                             ).toLocaleString("tr-TR", {
                               minimumFractionDigits: 2,
                             })}{" "}
@@ -609,7 +739,9 @@ export const EFatura: React.FC = () => {
                             Vergiler Dahil Toplam Tutar
                           </td>
                           <td className="p-1 border-l-2 border-black border-l-gray-300">
-                            {previewInvoice.amount.toLocaleString("tr-TR", {
+                            {(
+                              invoiceOrder?.total || previewInvoice.amount
+                            ).toLocaleString("tr-TR", {
                               minimumFractionDigits: 2,
                             })}{" "}
                             TL
@@ -620,7 +752,9 @@ export const EFatura: React.FC = () => {
                             Ödenecek Tutar
                           </td>
                           <td className="p-1 border-l-2 border-black border-l-gray-300">
-                            {previewInvoice.amount.toLocaleString("tr-TR", {
+                            {(
+                              invoiceOrder?.total || previewInvoice.amount
+                            ).toLocaleString("tr-TR", {
                               minimumFractionDigits: 2,
                             })}{" "}
                             TL
@@ -630,7 +764,6 @@ export const EFatura: React.FC = () => {
                     </table>
                   </div>
                 </div>
-
                 {/* Notes */}
                 <div className="border border-black p-2 mb-4 text-[10px] whitespace-pre-wrap">
                   {store.settings?.invoiceTemplate_notes ? (
@@ -644,10 +777,10 @@ export const EFatura: React.FC = () => {
                   ) : (
                     <>
                       <div className="font-bold">
-                        Not: &quot;Bu fatura, düzenleme tarihinden itibaren 7
-                        gün içerisinde ödenmelidir. Süresinde ödenmeyen tutarlar
+                        Not: "Bu fatura, düzenleme tarihinden itibaren 7 gün
+                        içerisinde ödenmelidir. Süresinde ödenmeyen tutarlar
                         için 6102 sayılı TTK ve 6098 sayılı TBK kapsamında yasal
-                        faiz işletilecektir.&quot;
+                        faiz işletilecektir."
                       </div>
                       <div className="font-bold">
                         Not: 4000 TL HAVALE YAPILMIŞTIR. KALAN BAKİYE 2940TL'DİR
@@ -655,9 +788,22 @@ export const EFatura: React.FC = () => {
                       <div className="font-bold">Not: Yalnız #--- TL#</div>
                     </>
                   )}
+                  {store.settings?.invoiceTemplate_banks &&
+                    store.settings.invoiceTemplate_banks.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-black border-dashed">
+                        <div className="font-bold mb-1 underline mt-1">
+                          BANKA HESAP BİLGİLERİMİZ
+                        </div>
+                        {store.settings.invoiceTemplate_banks.map((b, i) => (
+                          <div key={i} className="font-bold">
+                            Banka: {b.bankName} | Alıcı: {b.accountName} | IBAN:{" "}
+                            {b.iban}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                 </div>
-
-                {/* Footer */}
+                \n\n {/* Footer */}
                 <div className="border border-black p-2 flex font-bold text-[10px]">
                   <div
                     className="w-1/2 border-r border-black pr-2"
