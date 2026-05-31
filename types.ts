@@ -157,6 +157,19 @@ export interface Payroll {
   emailSentAt?: string;
 }
 
+export interface JobApplication {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  positionApplied: string;
+  applicationDate: string;
+  status: 'Yeni' | 'İnceleniyor' | 'Mülakat' | 'Teklif' | 'Kabul Edildi' | 'Reddedildi';
+  resumeUrl?: string;
+  notes?: string;
+}
+
 export interface Personnel {
   id: string;
   firstName: string;

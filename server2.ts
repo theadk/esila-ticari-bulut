@@ -67,6 +67,7 @@ let fallbackProducts = [
 
 async function startServer() {
   await initDb();
+  startMailScheduler();
   
   const app = express();
   const PORT = process.env.PORT || 3000;
@@ -585,7 +586,19 @@ async function startServer() {
              await sendMail(
                 tenant.email,
                 "Şifreniz Sıfırlandı - Esila Ticari",
-                `<p>Sayın ${tenant.name},</p><p>Sistem yöneticiniz tarafından şifreniz sıfırlanmıştır.</p><p><b>Yeni Şifreniz:</b> ${newAdminPass}</p>`
+                `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 16px;">Sayın ${tenant.name},</h2>
+<p style="margin-bottom: 16px;">Sistem yöneticiniz tarafından hesabınızın şifresi güvenlik amacıyla sıfırlanmıştır. Oluşturulan yeni şifreniz ile sisteme giriş yapabilirsiniz.</p>
+
+<div style="background-color: #f3f4f6; border-left: 4px solid #059669; padding: 16px; margin-bottom: 24px;">
+<p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Yeni Şifreniz</p>
+<p style="margin: 8px 0 0 0; font-size: 24px; font-family: monospace; font-weight: 700; color: #111827;">${newAdminPass}</p>
+</div>
+
+<p style="color: #dc2626; font-size: 14px; margin-bottom: 8px; font-weight: 500;">⚠️ Güvenlik Uyarısı:</p>
+<ul style="color: #4b5563; font-size: 14px; padding-left: 20px; margin-top: 0;">
+<li>Sisteme giriş yaptıktan sonra şifrenizi ayarlar menüsünden lütfen değiştiriniz.</li>
+<li>Bu şifreyi kimseyle paylaşmayınız.</li>
+</ul>`
              );
            }
            
@@ -607,7 +620,19 @@ async function startServer() {
          await sendMail(
             tenant.email,
             "Şifreniz Sıfırlandı - Esila Ticari",
-            `<p>Sayın ${tenant.name},</p><p>Sistem yöneticiniz tarafından şifreniz sıfırlanmıştır.</p><p><b>Yeni Şifreniz:</b> ${newAdminPass}</p>`
+            `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 16px;">Sayın ${tenant.name},</h2>
+<p style="margin-bottom: 16px;">Sistem yöneticiniz tarafından hesabınızın şifresi güvenlik amacıyla sıfırlanmıştır. Oluşturulan yeni şifreniz ile sisteme giriş yapabilirsiniz.</p>
+
+<div style="background-color: #f3f4f6; border-left: 4px solid #059669; padding: 16px; margin-bottom: 24px;">
+<p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Yeni Şifreniz</p>
+<p style="margin: 8px 0 0 0; font-size: 24px; font-family: monospace; font-weight: 700; color: #111827;">${newAdminPass}</p>
+</div>
+
+<p style="color: #dc2626; font-size: 14px; margin-bottom: 8px; font-weight: 500;">⚠️ Güvenlik Uyarısı:</p>
+<ul style="color: #4b5563; font-size: 14px; padding-left: 20px; margin-top: 0;">
+<li>Sisteme giriş yaptıktan sonra şifrenizi ayarlar menüsünden lütfen değiştiriniz.</li>
+<li>Bu şifreyi kimseyle paylaşmayınız.</li>
+</ul>`
          );
       }
       
@@ -718,7 +743,7 @@ async function startServer() {
   
   // Generic CRUD API for all tables
 
-  const tables = ["users","settings","customers","customer_transactions","cash_transactions","personnel","personnel_records","orders","proposals","service_tickets","e_invoices"];
+  const tables = ["users","settings","customers","customer_transactions","cash_transactions","personnel","personnel_records","orders","proposals","service_tickets","e_invoices","job_applications"];
   for (const table of tables) {
     app.get(`/api/${table}`, async (req, res) => {
       try {

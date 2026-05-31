@@ -14,13 +14,31 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-export const sendMail = async (to: string, subject: string, html: string) => {
+export const wrapEmail = (content: string) => {
+  return `
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+  <div style="background-color: #059669; padding: 24px; text-align: center;">
+    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: 0.5px;">Esila Ticari</h1>
+  </div>
+  <div style="padding: 32px 24px; color: #374151; line-height: 1.6; font-size: 15px;">
+    ${content}
+  </div>
+  <div style="background-color: #f9fafb; padding: 20px 24px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;">
+    <p style="margin: 0; margin-bottom: 8px;">Bu e-posta otomatik olarak Esila Ticari sistemi tarafından gönderilmiştir. Lütfen bu mesajı yanıtlamayınız.</p>
+    <p style="margin: 0;">&copy; ${new Date().getFullYear()} Esila Ticari. Tüm hakları saklıdır.</p>
+  </div>
+</div>
+  `;
+}
+
+export const sendMail = async (to: string, subject: string, html: string, wrapped: boolean = true) => {
   try {
+    const finalHtml = wrapped ? wrapEmail(html) : html;
     const info = await transporter.sendMail({
       from: '"Esila Ticari" <bilgilendirme@esilaticari.com>',
       to,
       subject,
-      html,
+      html: finalHtml,
     });
     console.log("Message sent: %s", info.messageId);
     return { success: true, messageId: info.messageId };
@@ -29,3 +47,4 @@ export const sendMail = async (to: string, subject: string, html: string) => {
     return { success: false, error };
   }
 };
+

@@ -247,6 +247,8 @@ export const Personel: React.FC = () => {
   const [printBordroModalOpen, setPrintBordroModalOpen] = useState(false);
   const [selectedBordroToPrint, setSelectedBordroToPrint] = useState<Payroll | null>(null);
 
+  const [activeTab, setActiveTab] = useState<'Personeller' | 'İşe Alım'>('Personeller');
+
   const downloadPayrollPDF = (payroll: Payroll) => {
     setSelectedBordroToPrint(payroll);
     setPrintBordroModalOpen(true);
@@ -255,19 +257,38 @@ export const Personel: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center sm:flex-row flex-col gap-4">
         <h2 className="text-2xl font-bold text-gray-800">Personel Yönetimi</h2>
-        <button 
-          onClick={handleAddNew}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-        >
-          <Plus size={20} />
-          <span>Yeni Personel</span>
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setActiveTab('Personeller')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'Personeller' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            Personel Listesi
+          </button>
+          <button 
+            onClick={() => setActiveTab('İşe Alım')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'İşe Alım' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            İşe Alım Süreçleri
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
-        <div className="p-4 border-b border-gray-100">
+      {activeTab === 'Personeller' && (
+        <>
+          <div className="flex justify-end">
+            <button 
+              onClick={handleAddNew}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <Plus size={20} />
+              <span>Yeni Personel</span>
+            </button>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+            <div className="p-4 border-b border-gray-100">
           <div className="relative max-w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input 
@@ -980,6 +1001,228 @@ export const Personel: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Since we want to close the fragment, let's close it right before the wrapper </div> */}
+      </>)}
+
+      {activeTab === 'İşe Alım' && (
+        <RecruitmentView />
+      )}
+    </div>
+  );
+};
+
+const RecruitmentView: React.FC = () => {
+  const store = useAppStore();
+  const { jobApplications, setJobApplications } = store;
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingApplication, setEditingApplication] = useState<any>(null);
+
+  const initialForm = {
+    id: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    positionApplied: '',
+    applicationDate: new Date().toISOString().split('T')[0],
+    status: 'Yeni',
+    notes: ''
+  };
+  const [formData, setFormData] = useState<any>(initialForm);
+
+  const filtered = (jobApplications || []).filter(a => 
+    `${a.firstName} ${a.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    a.positionApplied.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingApplication) {
+      setJobApplications((jobApplications || []).map(a => a.id === formData.id ? formData : a));
+    } else {
+      setJobApplications([...(jobApplications || []), { ...formData, id: Math.random().toString(36).substr(2, 9) }]);
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm('Bu başvuruyu silmek istediğinize emin misiniz?')) {
+      setJobApplications((jobApplications || []).filter(a => a.id !== id));
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Yeni': return 'bg-blue-100 text-blue-700';
+      case 'İnceleniyor': return 'bg-yellow-100 text-yellow-700';
+      case 'Mülakat': return 'bg-purple-100 text-purple-700';
+      case 'Teklif': return 'bg-indigo-100 text-indigo-700';
+      case 'Kabul Edildi': return 'bg-emerald-100 text-emerald-700';
+      case 'Reddedildi': return 'bg-red-100 text-red-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+       <div className="flex justify-between items-center sm:flex-row flex-col gap-4">
+          <div className="relative max-w-full sm:max-w-md w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input 
+              type="text" 
+              placeholder="İsim veya Pozisyon ara..." 
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <button 
+            onClick={() => { setFormData(initialForm); setEditingApplication(null); setIsModalOpen(true); }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm whitespace-nowrap"
+          >
+            <Plus size={20} />
+            <span>Yeni Başvuru</span>
+          </button>
+       </div>
+
+       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-gray-50 text-gray-600 font-medium text-sm">
+                <tr>
+                  <th className="px-6 py-4">Aday</th>
+                  <th className="px-6 py-4">Başvurulan Pozisyon</th>
+                  <th className="px-6 py-4">Başvuru Tarihi</th>
+                  <th className="px-6 py-4">İletişim</th>
+                  <th className="px-6 py-4">Durum</th>
+                  <th className="px-6 py-4 text-right">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-gray-500">
+                      Hiç başvuru bulunmuyor. Yeni ekleyebilirsiniz.
+                    </td>
+                  </tr>
+                ) : filtered.map(app => (
+                  <tr key={app.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-gray-900">{app.firstName} {app.lastName}</div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                       {app.positionApplied}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                       {new Date(app.applicationDate).toLocaleDateString('tr-TR')}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1 text-sm">
+                        <div className="flex items-center gap-2 text-gray-600">
+                           <Phone size={14} /> {app.phone}
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-600">
+                           <Mail size={14} /> {app.email}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                       <span className={`px-3 py-1 rounded-full text-xs font-medium \${getStatusColor(app.status)}`}>
+                         {app.status}
+                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => { setFormData(app); setEditingApplication(app); setIsModalOpen(true); }}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Düzenle"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button 
+                          onClick={(e) => handleDelete(app.id, e)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Sil"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+       </div>
+
+       {isModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h3 className="text-xl font-bold rounded text-gray-800">
+                {editingApplication ? 'Başvuruyu Düzenle' : 'Yeni İşe Alım Başvurusu'}
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2"><X size={20}/></button>
+            </div>
+            
+            <form onSubmit={handleSave} className="overflow-y-auto">
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ad <span className="text-red-500">*</span></label>
+                    <input type="text" required value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Soyad <span className="text-red-500">*</span></label>
+                    <input type="text" required value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
+                    <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefon <span className="text-red-500">*</span></label>
+                    <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Başvurulan Pozisyon <span className="text-red-500">*</span></label>
+                    <input type="text" required value={formData.positionApplied} onChange={e => setFormData({...formData, positionApplied: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Başvuru Tarihi <span className="text-red-500">*</span></label>
+                    <input type="date" required value={formData.applicationDate} onChange={e => setFormData({...formData, applicationDate: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Süreç Durumu</label>
+                    <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-4 py-2 border rounded-lg">
+                      <option value="Yeni">Yeni</option>
+                      <option value="İnceleniyor">İnceleniyor</option>
+                      <option value="Mülakat">Mülakat</option>
+                      <option value="Teklif">Teklif</option>
+                      <option value="Kabul Edildi">Kabul Edildi</option>
+                      <option value="Reddedildi">Reddedildi</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Notlar / Mülakat Kararı</label>
+                   <textarea rows={4} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full px-4 py-2 border rounded-lg placeholder-gray-300" placeholder="Adayın mülakat performansını veya özgeçmiş notlarını buraya alın..."></textarea>
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 mt-auto rounded-b-xl">
+                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">İptal</button>
+                 <button type="submit" className="px-5 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-2 font-medium">
+                   <Save size={20} /> Kaydet
+                 </button>
+              </div>
+            </form>
+          </div>
+          </div>
+       )}
     </div>
   );
 };

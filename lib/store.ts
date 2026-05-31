@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MOCK_CUSTOMERS, MOCK_TRANSACTIONS, MOCK_CASH_TRANSACTIONS, MOCK_PERSONNEL, MOCK_PRODUCTS, MOCK_USERS } from '../mockData';
-import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket } from '../types';
+import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication } from '../types';
 
 let globalSettings: Settings = {
   companyName: 'Esila Örnek Şirket Ltd. Şti.',
@@ -37,6 +37,7 @@ let globalProducts = [...MOCK_PRODUCTS];
 let globalTransactions = [...MOCK_TRANSACTIONS];
 let globalCashTransactions = [...MOCK_CASH_TRANSACTIONS];
 let globalPersonnel = [...MOCK_PERSONNEL];
+let globalJobApplications: JobApplication[] = [];
 let globalServiceTickets: ServiceTicket[] = [];
 let globalProposals: Proposal[] = [
   {
@@ -165,6 +166,7 @@ export async function initializeStore() {
       { name: 'customer_transactions', ref: (data: any) => { globalTransactions = data; } },
       { name: 'cash_transactions', ref: (data: any) => { globalCashTransactions = data; } },
       { name: 'personnel', ref: (data: any) => { globalPersonnel = data; } },
+      { name: 'job_applications', ref: (data: any) => { globalJobApplications = data; } },
       { name: 'orders', ref: (data: any) => { 
         globalOrders = data.map((d:any)=>{
            const parsedItems = typeof d.items === 'string' ? JSON.parse(d.items): (d.items||[]);
@@ -263,6 +265,13 @@ export const useAppStore = () => {
       const old = globalPersonnel;
       globalPersonnel = typeof updater === 'function' ? updater(globalPersonnel) : updater;
       syncArray('personnel', old, globalPersonnel);
+      emit();
+    },
+    get jobApplications() { return globalJobApplications; },
+    setJobApplications(updater: any) {
+      const old = globalJobApplications;
+      globalJobApplications = typeof updater === 'function' ? updater(globalJobApplications) : updater;
+      syncArray('job_applications', old, globalJobApplications);
       emit();
     },
     get orders() { return globalOrders; },

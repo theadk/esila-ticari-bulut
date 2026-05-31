@@ -122,7 +122,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         body: JSON.stringify({ 
           to: resetEmail, 
           subject: "Şifre Sıfırlama - Esila Ticari", 
-          html: `<p>Sayın ${data.name},</p><p>Şifre sıfırlama talebiniz alınmıştır.</p><p><a href="${resetLink}">Şifrenizi sıfırlamak için tıklayın</a></p>` 
+          wrapped: true,
+          html: `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 24px;">Sayın ${data.name},</h2>
+<p style="margin-bottom: 24px;">Esila Ticari Ön Muhasebe Sistemi kullanıcı hesabınız için şifre sıfırlama talebiniz başarıyla alınmıştır. Şifrenizi sıfırlamak için aşağıdaki bağlantıyı kullanabilirsiniz.</p>
+<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
+  <p style="margin-bottom: 16px; color: #475569; font-size: 14px;">Bu bağlantı güvenliğiniz için yalnızca belirli bir süre geçerli olacaktır.</p>
+  <a href="${resetLink}" style="display: inline-block; background-color: #0ea5e9; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">Şifremi Sıfırla</a>
+</div>
+<p style="margin-bottom: 0; color: #64748b; font-size: 14px;">Eğer bu yetkilendirme isteği size ait değilse lütfen bu mesajı dikkate almayınız.</p>` 
         })
       }).then(res => {
          if(!res.ok) throw new Error();

@@ -26,6 +26,7 @@ import { fileURLToPath } from 'url';
 import { getPool, initDb } from './server/db.js';
 import cors from 'cors';
 import { sendMail } from './server/mailer.js';
+import { startMailScheduler } from './server/mailScheduler.js';
 import { getFallbackTable, insertFallbackRow, updateFallbackRow, deleteFallbackRow } from './server/fallbackDb.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -47,6 +48,7 @@ const loginAttempts = new Map<string, { attempts: number, lockUntil: number | nu
 
 async function startServer() {
   await initDb();
+  startMailScheduler();
   
   const app = express();
   const PORT = process.env.PORT || 3000;
@@ -57,7 +59,12 @@ async function startServer() {
   app.post('/api/test-email', async (req, res) => {
     try {
       const { email } = req.body;
-      const result = await sendMail(email, "Esila Ticari Test Maili", "<p>Sınama maili başarıyla alındı. Mail ayarlarınız doğru bir biçimde çalışmaktadır.</p>");
+      const result = await sendMail(email, "Esila Ticari Test Maili", `
+        <h2 style="color: #059669; font-size: 20px; font-weight: 600; margin-top: 0;">Test E-Postası Başarılı</h2>
+        <p>Merhaba, bu e-posta sistemden otomatik olarak gönderilen bir test mesajıdır.</p>
+        <p>E-posta gönderim altyapınızın <b>sorunsuz bir şekilde çalıştığını</b> teyit ederiz.</p>
+        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 6px; color: #166534; font-weight: 500; margin-top: 16px;">✅ Sistem şu an e-posta göndermeye hazırdır.</div>
+        `);
       if (result.success) {
         res.json({ success: true, messageId: result.messageId });
       } else {
@@ -70,8 +77,8 @@ async function startServer() {
 
   app.post('/api/send-email', async (req, res) => {
     try {
-      const { to, subject, html } = req.body;
-      const result = await sendMail(to, subject, html);
+      const { to, subject, html, wrapped } = req.body;
+      const result = await sendMail(to, subject, html, wrapped ?? false);
       if (result.success) {
         res.json({ success: true, messageId: result.messageId });
       } else {
@@ -476,14 +483,36 @@ async function startServer() {
          mutabakat.email || mutabakat.customerEmail, 
          "Cari Mutabakatı - Esila Ticari",
          `
-         <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
-           <h2 style="color: #333;">Sayın ${mutabakat.customerName},</h2>
-           <p>Bakiyeniz: <strong>${mutabakat.balance} ${mutabakat.balanceType}</strong></p>
-           <p>Mutabakat tarihi: ${new Date(mutabakat.date).toLocaleDateString()}</p>
-           <div style="margin-top: 20px; display: flex; gap: 10px;">
-             <a href="${approveLink}" style="display:inline-block; padding: 10px 20px; background-color: #10B981; color: white; text-decoration: none; border-radius: 5px;">Mutabıkız (Onayla)</a>
-             <a href="${rejectLink}" style="display:inline-block; padding: 10px 20px; background-color: #EF4444; color: white; text-decoration: none; border-radius: 5px; margin-left: 10px;">Mutabık Değiliz (Reddet)</a>
-           </div>
+         <h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 24px;">Sayın ${mutabakat.customerName},</h2>
+<p style="margin-bottom: 16px;">Firmanız ile olan cari hesap mutabakatımıza göre, kayıtlarımızda bulunan bakiye bilginiz aşağıdaki gibidir:</p>
+
+<div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+    <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="padding-bottom: 8px; color: #6b7280; font-weight: 500;">Tarih:</td>
+                <td style="padding-bottom: 8px; font-weight: 600; text-align: right;">${new Date().toLocaleDateString('tr-TR')}</td>
+            </tr>
+            <tr>
+                <td style="padding-bottom: 8px; color: #6b7280; font-weight: 500;">Bakiye Tipi:</td>
+                <td style="padding-bottom: 8px; font-weight: 600; text-align: right;">${mutabakat.balance > 0 ? "Alacaklıyız" : (mutabakat.balance < 0 ? "Borçluyuz" : "Bakiye Yok")}</td>
+            </tr>
+            <tr>
+                <td style="border-top: 1px solid #d1d5db; padding-top: 12px; color: #374151; font-weight: 600; font-size: 16px;">Mutabakat Bakiyesi:</td>
+                <td style="border-top: 1px solid #d1d5db; padding-top: 12px; font-weight: 700; text-align: right; font-size: 18px; color: #059669;">${Math.abs(mutabakat.balance).toLocaleString('tr-TR')} TL</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<p style="margin-bottom: 24px;">Lütfen bakiyeyi kendi kayıtlarınızla kontrol ederek mutabakat durumunuzu bize bildiriniz.</p>
+
+<div style="display: block; width: 100%; gap: 16px; margin-bottom: 32px;">
+    <a href="${mutabakatLink}/approve" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 15px; margin-right: 12px; margin-bottom: 8px; text-align: center;">Kabul Et ve Onayla</a>
+    <a href="${mutabakatLink}/reject" style="display: inline-block; background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 15px; margin-bottom: 8px; text-align: center;">Reddet ve İtiraz İlet</a>
+</div>
+
+<p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">Mutabakat konusunda sorularınız varsa veya bakiye ile ilgili itirazınız bulunuyorsa yukarıdaki bağlantıları kullanabilirsiniz.</p>
          </div>
          `
        );
@@ -646,7 +675,19 @@ async function startServer() {
              await sendMail(
                 tenant.email,
                 "Şifreniz Sıfırlandı - Esila Ticari",
-                `<p>Sayın ${tenant.name},</p><p>Sistem yöneticiniz tarafından şifreniz sıfırlanmıştır.</p><p><b>Yeni Şifreniz:</b> ${newAdminPass}</p>`
+                `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 16px;">Sayın ${tenant.name},</h2>
+<p style="margin-bottom: 16px;">Sistem yöneticiniz tarafından hesabınızın şifresi güvenlik amacıyla sıfırlanmıştır. Oluşturulan yeni şifreniz ile sisteme giriş yapabilirsiniz.</p>
+
+<div style="background-color: #f3f4f6; border-left: 4px solid #059669; padding: 16px; margin-bottom: 24px;">
+<p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Yeni Şifreniz</p>
+<p style="margin: 8px 0 0 0; font-size: 24px; font-family: monospace; font-weight: 700; color: #111827;">${newAdminPass}</p>
+</div>
+
+<p style="color: #dc2626; font-size: 14px; margin-bottom: 8px; font-weight: 500;">⚠️ Güvenlik Uyarısı:</p>
+<ul style="color: #4b5563; font-size: 14px; padding-left: 20px; margin-top: 0;">
+<li>Sisteme giriş yaptıktan sonra şifrenizi ayarlar menüsünden lütfen değiştiriniz.</li>
+<li>Bu şifreyi kimseyle paylaşmayınız.</li>
+</ul>`
              );
            }
            
@@ -668,7 +709,19 @@ async function startServer() {
          await sendMail(
             tenant.email,
             "Şifreniz Sıfırlandı - Esila Ticari",
-            `<p>Sayın ${tenant.name},</p><p>Sistem yöneticiniz tarafından şifreniz sıfırlanmıştır.</p><p><b>Yeni Şifreniz:</b> ${newAdminPass}</p>`
+            `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 16px;">Sayın ${tenant.name},</h2>
+<p style="margin-bottom: 16px;">Sistem yöneticiniz tarafından hesabınızın şifresi güvenlik amacıyla sıfırlanmıştır. Oluşturulan yeni şifreniz ile sisteme giriş yapabilirsiniz.</p>
+
+<div style="background-color: #f3f4f6; border-left: 4px solid #059669; padding: 16px; margin-bottom: 24px;">
+<p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Yeni Şifreniz</p>
+<p style="margin: 8px 0 0 0; font-size: 24px; font-family: monospace; font-weight: 700; color: #111827;">${newAdminPass}</p>
+</div>
+
+<p style="color: #dc2626; font-size: 14px; margin-bottom: 8px; font-weight: 500;">⚠️ Güvenlik Uyarısı:</p>
+<ul style="color: #4b5563; font-size: 14px; padding-left: 20px; margin-top: 0;">
+<li>Sisteme giriş yaptıktan sonra şifrenizi ayarlar menüsünden lütfen değiştiriniz.</li>
+<li>Bu şifreyi kimseyle paylaşmayınız.</li>
+</ul>`
          );
       }
       
@@ -689,7 +742,15 @@ async function startServer() {
             await sendMail(
               tenantEmail,
               "Yeni Kayıt Talebi - Esila Ticari",
-              `<p>Sayın ${tenantName},</p><p>Esila Ticari'ye kayıt talebiniz alınmıştır. Hesabınız yöneticilerimiz tarafından incelendikten sonra aktive edilecek ve tarafınıza tekrar bilgi verilecektir.</p>`
+              `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 16px;">Sayın ${tenantName},</h2>
+<p style="margin-bottom: 16px;">Esila Ticari Yönetim Sistemi'ne kayıt talebiniz başarıyla bize ulaşmıştır. Bizi tercih ettiğiniz için teşekkür ederiz.</p>
+
+<div style="background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+    <h3 style="color: #1e40af; margin-top: 0; font-size: 16px;">Sırada Ne Var?</h3>
+    <p style="color: #1e3a8a; margin-bottom: 0;">Müşteri temsilcilerimiz şu anda firma bilgilerinizi inceliyor. İnceleme işlemi tamamlandığında, hesabınız aktive edilecek ve size <b>yeni bir bilgilendirme e-postası</b> gönderilecektir.</p>
+</div>
+
+<p style="margin-bottom: 8px;">Hesabınızın onay süreci tamamlandığında göndereceğimiz e-posta içerisinde sisteme giriş yapabilmeniz için gereken yönetici şifreniz bulunacaktır.</p>`
             );
          }
       };
@@ -765,12 +826,36 @@ async function startServer() {
       const { vkn } = req.params;
       
       const sendActivationMail = async (tenantEmail: string, tenantName: string, adminPassword?: string) => {
-         const passInfo = adminPassword ? (`<p>Sisteme giriş yapabilirsiniz.</p><p><b>Kullanıcı Adı:</b> ${req.params.vkn}<br><b>Şifre:</b> ${adminPassword}</p>`) : '<p>Sisteme giriş yapabilirsiniz.</p>';
+         let passInfoHTML = '';
+         if (adminPassword) {
+            passInfoHTML = `
+              <p style="margin-top: 24px; margin-bottom: 8px; font-weight: 500; color: #374151;">Aşağıdaki yönetici bilgileri ile sisteme güvenle giriş yapabilirsiniz:</p>
+              <div style="background-color: #f3f4f6; border-left: 4px solid #059669; padding: 16px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 12px;">
+                 <div>
+                    <p style="margin: 0; font-size: 13px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Kullanıcı Adı (T.C./VKN)</p>
+                    <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 600; color: #111827;">${req.params.vkn}</p>
+                 </div>
+                 <div>
+                    <p style="margin: 0; font-size: 13px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Şifre</p>
+                    <p style="margin: 4px 0 0 0; font-size: 18px; font-family: monospace; font-weight: 700; color: #111827;">${adminPassword}</p>
+                 </div>
+              </div>
+            `;
+         } else {
+             passInfoHTML = '<p style="margin-top: 24px; margin-bottom: 24px;">Sisteme giriş yapabilirsiniz.</p>';
+         }
+         
          if (tenantEmail) {
             await sendMail(
               tenantEmail,
               "Hesabınız Aktive Edildi - Esila Ticari",
-              `<p>Sayın ${tenantName},</p><p>Esila Ticari üyeliğiniz başarıyla onaylanmış ve hesabınız aktive edilmiştir.</p>${passInfo}`
+              `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 16px;">Tebrikler Sayın ${tenantName},</h2>
+              <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                <p style="color: #166534; font-weight: 500; margin: 0;">Esila Ticari üyeliğiniz yönetimimiz tarafından incelenmiş ve <b>başarıyla onaylanarak aktive edilmiştir.</b></p>
+              </div>
+              <p>Firmamızın dijital ürün ailesine hoş geldiniz. Bütün ön muhasebe ihtiyaçlarınızı hızlı, güvenli ve bulut üzerinden kesintisiz yürütebilirsiniz.</p>
+              ${passInfoHTML}
+              <p style="color: #6b7280; font-size: 14px;">Güvenliğiniz için ilk girişten sonra şifrenizi sağ üst köşedeki profil veya ayarlar menüsünden değiştirmenizi öneririz.</p>`
             );
          }
       };
@@ -811,7 +896,14 @@ async function startServer() {
             await sendMail(
               tenantEmail,
               "Başvurunuz Reddedildi - Esila Ticari",
-              `<p>Sayın ${tenantName},</p><p>Esila Ticari lisans başvurunuz onaylanmamıştır ve reddedilmiştir. İlginiz için teşekkür ederiz.</p>`
+              `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 16px;">Sayın ${tenantName},</h2>
+<p style="margin-bottom: 16px;">Esila Ticari lisans başvurunuz ekiplerimiz tarafından değerlendirilmiş, ancak maalesef şu aşamada <b>onaylanamamıştır</b>.</p>
+
+<p style="margin-bottom: 24px;">Lisans ve kullanım koşulları politikalarımız gereği başvurunuz uygun görülmemiş veya sisteme giriş kapasitelerimiz dolmuş olabilir.</p>
+
+<div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+    <p style="color: #991b1b; margin: 0; font-size: 14px;">Sistemimize göstermiş olduğunuz ilgiden dolayı teşekkür ederiz. İlerleyen tarihlerde dilediğiniz zaman tekrar kayıt başvurusunda bulunabilirsiniz.</p>
+</div>`
             );
          }
       };
@@ -915,7 +1007,7 @@ async function startServer() {
   
   // Generic CRUD API for all tables
 
-  const tables = ["users","settings","customers","customer_transactions","cash_transactions","personnel","personnel_records","orders","proposals","service_tickets","e_invoices"];
+  const tables = ["users","settings","customers","customer_transactions","cash_transactions","personnel","personnel_records","orders","proposals","service_tickets","e_invoices","job_applications"];
   for (const table of tables) {
     app.get(`/api/${table}`, async (req, res) => {
       try {
