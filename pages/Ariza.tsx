@@ -377,7 +377,6 @@ export const Ariza: React.FC = () => {
     
     store.setServiceTickets(serviceTickets.map(t => t.id === selectedTicket.id ? updatedTicket : t));
     setSelectedTicket(updatedTicket);
-    setIsDetailModalOpen(false);
   };
 
   const handlePrint = (format: 'a4' | 'thermal') => {
@@ -419,6 +418,14 @@ export const Ariza: React.FC = () => {
         <div class="desc-text">${selectedTicket.resolutionNotes}</div>
       </div>
     ` : '';
+
+    const qrUrl = encodeURIComponent(`${window.location.origin}/ticket/${selectedTicket.id}`);
+    const qrCodeHtml = `
+      <div style="text-align: center; margin-top: 20px;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=${isA4 ? '150x150' : '100x100'}&data=${qrUrl}" alt="QR Kod" style="width: ${isA4 ? '150px' : '100px'}; height: ${isA4 ? '150px' : '100px'};" />
+        <div style="font-size: 10px; margin-top: 5px;">Formu Görüntüle</div>
+      </div>
+    `;
 
     const html = `
       <!DOCTYPE html>
@@ -487,6 +494,7 @@ export const Ariza: React.FC = () => {
           <div class="total-section">
             Genel Toplam: ${selectedTicket.totalCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
           </div>
+          ${qrCodeHtml}
           <div class="footer">
             Bu belge bilgilendirme amaçlıdır. Mali değeri yoktur. <br/>
             Bizi tercih ettiğiniz için teşekkür ederiz.
@@ -1128,8 +1136,8 @@ export const Ariza: React.FC = () => {
                      </button>
                      <button
                        onClick={completeTicket}
-                       disabled={!!selectedTicket.maintenancePeriodMonths && selectedTicket.plumbingChecklist?.some(item => !item.isChecked) || false}
-                       title={!!selectedTicket.maintenancePeriodMonths && selectedTicket.plumbingChecklist?.some(item => !item.isChecked) ? "Lütfen tüm bakım maddelerini kontrol edip işaretleyin." : ""}
+                       disabled={selectedTicket.maintenancePeriodMonths ? (!maintenancePeriod || selectedTicket.plumbingChecklist?.some(item => !item.isChecked) || false) : false}
+                       title={selectedTicket.maintenancePeriodMonths && (!maintenancePeriod || selectedTicket.plumbingChecklist?.some(item => !item.isChecked)) ? "Lütfen tüm bakım maddelerini işaretleyin ve Periyodik Bakım Süresi'ni giriniz." : ""}
                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
                      >
                        <CheckCircle size={20} />
