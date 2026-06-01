@@ -9,6 +9,39 @@ export const parseEmailTemplate = (template: string, variables: Record<string, s
 };
 
 export const defaultTemplates = {
+  service_ticket: `
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+  <div style="background-color: #10b981; padding: 24px; text-align: center;">
+    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: 0.5px;">{FIRMA_ADI}</h1>
+  </div>
+  
+  <div style="padding: 32px 24px;">
+    <h2 style="color: #1e293b; font-size: 20px; margin-top: 0; margin-bottom: 20px;">Sayın {MUSTERI_ADI},</h2>
+    
+    <p style="color: #475569; line-height: 1.6; margin-bottom: 24px;">
+      <b>{TARIH}</b> tarihli ve <b>{KAYIT_NO}</b> numaralı servis kayıt formunuz aşağıda bilgilerinize sunulmuştur.
+    </p>
+    
+    <div style="background-color: #f8fafc; border: 1px solid #e5e7eb; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+      <p style="margin: 0 0 8px 0; font-size: 14px; color: #475569;"><strong>Cihaz:</strong> {CIHAZ}</p>
+      <p style="margin: 0 0 8px 0; font-size: 14px; color: #475569;"><strong>Durum:</strong> {DURUM}</p>
+      <p style="margin: 0 0 8px 0; font-size: 14px; color: #475569;"><strong>Şikayet:</strong> {SIKAYET}</p>
+      <p style="margin: 0; font-size: 14px; color: #475569;"><strong>Genel Toplam:</strong> {TUTAR}</p>
+    </div>
+    
+    <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+      Bizi tercih ettiğiniz için teşekkür ederiz.
+    </p>
+    
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 32px 0;">
+    
+    <div style="font-size: 14px; color: #64748b; text-align: center;">
+      <p style="margin: 0;">Saygılarımızla,</p>
+      <p style="margin: 8px 0 0 0; font-weight: 600; color: #0f172a; font-size: 16px;">{FIRMA_ADI}</p>
+    </div>
+  </div>
+</div>
+  `,
   customer_statement: `
 <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
   <div style="background-color: #0c4a6e; padding: 24px; text-align: center;">

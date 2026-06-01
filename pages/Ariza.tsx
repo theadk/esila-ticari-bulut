@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, CheckCircle, XCircle, Wrench, Settings, User, FileText, ChevronRight, Printer, QrCode } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, CheckCircle, XCircle, Wrench, Settings, User, FileText, ChevronRight, Printer, QrCode, Mail, Download, Send } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ServiceTicket, ServiceTicketStatus, ServiceMaterial, Customer, Product, Personnel, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
 import toast from 'react-hot-toast';
-import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
+import html2pdf from 'html2pdf.js';
+import { defaultTemplates, parseEmailTemplate } from '../lib/emailUtils';
 
 const INITIAL_FORM: Partial<ServiceTicket> = {
   customerId: '',
@@ -379,9 +380,14 @@ export const Ariza: React.FC = () => {
     setSelectedTicket(updatedTicket);
   };
 
-  const handlePrint = (format: 'a4' | 'thermal') => {
-    if (!selectedTicket) return;
+  const generateHTML = (format: 'a4' | 'thermal') => {
+    if (!selectedTicket) return '';
     const isA4 = format === 'a4';
+
+    const taxRate = selectedTicket.taxRate || 20;
+    const materialsTotal = selectedTicket.materialsUsed.reduce((acc, m) => acc + (m.quantity * m.unitPrice), 0);
+    const subtotal = materialsTotal + (selectedTicket.laborFee || 0);
+    const vatAmount = subtotal * (taxRate / 100);
     
     const materialsHtml = selectedTicket.materialsUsed.map(m => `
       <tr>
@@ -427,7 +433,7 @@ export const Ariza: React.FC = () => {
       </div>
     `;
 
-    const html = `
+    return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -521,7 +527,18 @@ export const Ariza: React.FC = () => {
             </tbody>
           </table>
           <div class="total-section">
-            Genel Toplam: ${selectedTicket.totalCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+            <div style="display: flex; justify-content: flex-end; gap: 15px; font-size: ${isA4 ? '14px' : '12px'}; font-weight: normal; margin-bottom: 5px;">
+              <span style="color: #4b5563;">Ara Toplam:</span>
+              <span>${subtotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 15px; font-size: ${isA4 ? '14px' : '12px'}; font-weight: normal; margin-bottom: 8px;">
+              <span style="color: #4b5563;">KDV (%${taxRate}):</span>
+              <span>${vatAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 5px; border-top: 1px dotted #ccc; padding-top: 8px;">
+              <span style="color: #111827;">Genel Toplam:</span>
+              <span style="color: #111827;">${selectedTicket.totalCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+            </div>
           </div>
           ` : ''}
           
@@ -548,8 +565,111 @@ export const Ariza: React.FC = () => {
         </body>
       </html>
     `;
+  };
 
-    const iframe = document.createElement('iframe');
+  const handlePrint = (format: 'a4' | 'thermal') => {
+    if (!selectedTicket) return;
+    const html = generateHTML(format);
+
+  const handleDownloadPdf = () => {
+    if (!selectedTicket) return;
+    const html = generateHTML('a4');
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    
+    const opt = {
+      margin:       10,
+      filename:     `Servis_Formu_${selectedTicket.id.split('-')[0]}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(wrapper).save();
+    toast.success('PDF indirme başladı.');
+  };
+
+  const handleSendEmail = () => {
+    if (!selectedTicket) return;
+    const customer = customers.find(c => c.id === selectedTicket.customerId);
+    if (!customer?.email) {
+      toast.error('Müşterinin e-posta adresi bulunmuyor.');
+      return;
+    }
+
+    const templateRaw = store.settings.email_template_service_ticket || defaultTemplates.service_ticket;
+
+    const emailContent = parseEmailTemplate(templateRaw, {
+      FIRMA_ADI: store.settings.company_name || 'Şirket Adı',
+      MUSTERI_ADI: selectedTicket.customerName,
+      TARIH: new Date().toLocaleDateString('tr-TR'),
+      KAYIT_NO: selectedTicket.id.split('-')[0],
+      CIHAZ: selectedTicket.deviceType,
+      DURUM: selectedTicket.status,
+      SIKAYET: selectedTicket.issueDescription || '-',
+      TUTAR: selectedTicket.totalCost ? selectedTicket.totalCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }) : '0,00 ₺',
+      FIRMA_ADRES: store.settings.company_address || '-',
+      FIRMA_TELEFON: store.settings.company_phone || '-',
+      FIRMA_MAIL: store.settings.company_email || '-',
+    });
+
+    store.addEmailLog({
+      to: customer.email,
+      subject: `Servis Kayıt Formu - ${selectedTicket.id.split('-')[0]}`,
+      content: emailContent,
+      type: 'ServiceTicket',
+      relatedId: selectedTicket.id
+    });
+
+    toast.success(`${customer.email} adresine servis formu başarıyla gönderildi.`);
+  };
+
+  const handleBulkEmail = () => {
+    if (filteredTickets.length === 0) {
+      toast.error('Toplu mail gönderilecek kayıt bulunamadı.');
+      return;
+    }
+
+    const templateRaw = store.settings.email_template_service_ticket || defaultTemplates.service_ticket;
+
+    let successCount = 0;
+    
+    filteredTickets.forEach(ticket => {
+      const customer = customers.find(c => c.id === ticket.customerId);
+      if (customer?.email) {
+        const emailContent = parseEmailTemplate(templateRaw, {
+          FIRMA_ADI: store.settings.company_name || 'Şirket Adı',
+          MUSTERI_ADI: ticket.customerName,
+          TARIH: new Date().toLocaleDateString('tr-TR'),
+          KAYIT_NO: ticket.id.split('-')[0],
+          CIHAZ: ticket.deviceType,
+          DURUM: ticket.status,
+          SIKAYET: ticket.issueDescription || '-',
+          TUTAR: ticket.totalCost ? ticket.totalCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }) : '0,00 ₺',
+          FIRMA_ADRES: store.settings.company_address || '-',
+          FIRMA_TELEFON: store.settings.company_phone || '-',
+          FIRMA_MAIL: store.settings.company_email || '-',
+        });
+
+        store.addEmailLog({
+          to: customer.email,
+          subject: `Servis Bilgilendirmesi - ${ticket.id.split('-')[0]}`,
+          content: emailContent,
+          type: 'ServiceTicket',
+          relatedId: ticket.id
+        });
+        successCount++;
+      }
+    });
+
+    if (successCount > 0) {
+      toast.success(`${successCount} müşteriye toplu mail gönderildi.`);
+    } else {
+      toast.error('Geçerli e-posta adresine sahip müşteri bulunamadı.');
+    }
+  };
+
+  const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
     iframe.style.bottom = '0';
@@ -640,6 +760,14 @@ export const Ariza: React.FC = () => {
                     title="Aylık Bakım Filtresi"
                   />
                 )}
+                <button
+                  onClick={handleBulkEmail}
+                  className="flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-lg font-medium transition-colors"
+                  title="Filtrelenmiş Listeye Toplu Mail Gönder"
+                >
+                  <Send size={18} />
+                  <span className="hidden sm:inline">Toplu Mail</span>
+                </button>
               </div>
             </div>
 
@@ -921,6 +1049,21 @@ export const Ariza: React.FC = () => {
                    QR Kod
                  </button>
                  <button 
+                   onClick={handleSendEmail}
+                   className="flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-emerald-200"
+                   title="Müşteriye E-Posta Gönder"
+                 >
+                   <Mail size={16} />
+                   Mail Gönder
+                 </button>
+                 <button 
+                   onClick={handleDownloadPdf}
+                   className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-blue-200"
+                 >
+                   <Download size={16} />
+                   PDF İndir
+                 </button>
+                 <button 
                    onClick={() => handlePrint('thermal')}
                    className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200"
                  >
@@ -1118,11 +1261,32 @@ export const Ariza: React.FC = () => {
                       )}
                     </div>
                     
-                    <div className="bg-emerald-50 rounded-lg p-4 text-right">
-                       <p className="text-sm text-emerald-800 font-medium mb-1">TOPLAM MALİYET</p>
-                       <p className="text-2xl font-bold text-emerald-900">
-                         {selectedTicket.totalCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                       </p>
+                    <div className="bg-emerald-50 rounded-lg p-4">
+                       <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm text-emerald-800 font-medium">Ara Toplam:</span>
+                          <span className="text-sm font-medium text-emerald-900">
+                             {(() => {
+                                const sub = selectedTicket.materialsUsed.reduce((acc, m) => acc + (m.quantity * m.unitPrice), 0) + (selectedTicket.laborFee || 0);
+                                return sub.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺';
+                             })()}
+                          </span>
+                       </div>
+                       <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm text-emerald-800 font-medium">KDV (%{selectedTicket.taxRate || 20}):</span>
+                          <span className="text-sm font-medium text-emerald-900">
+                             {(() => {
+                                const sub = selectedTicket.materialsUsed.reduce((acc, m) => acc + (m.quantity * m.unitPrice), 0) + (selectedTicket.laborFee || 0);
+                                const tax = sub * ((selectedTicket.taxRate || 20) / 100);
+                                return tax.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺';
+                             })()}
+                          </span>
+                       </div>
+                       <div className="flex justify-between items-center pt-2 border-t border-emerald-200/60">
+                          <span className="text-sm font-bold text-emerald-900 uppercase tracking-wide">Genel Toplam</span>
+                          <span className="text-2xl font-bold text-emerald-900">
+                            {selectedTicket.totalCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                          </span>
+                       </div>
                     </div>
                  </div>
 
