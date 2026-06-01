@@ -387,14 +387,14 @@ export const Ariza: React.FC = () => {
       <tr>
         <td style="padding: 4px 0">${m.productName}</td>
         <td style="padding: 4px 0; text-align: center;">${m.quantity}</td>
-        <td style="padding: 4px 0; text-align: right;">${m.unitPrice.toLocaleString('tr-TR')} ₺</td>
+        ${isA4 ? `<td style="padding: 4px 0; text-align: right;">${m.unitPrice.toLocaleString('tr-TR')} ₺</td>` : ''}
         <td style="padding: 4px 0; text-align: right;">${(m.quantity * m.unitPrice).toLocaleString('tr-TR')} ₺</td>
       </tr>
     `).join('');
 
     const laborHtml = selectedTicket.laborFee > 0 ? `
       <tr>
-        <td colspan="3" style="padding: 4px 0; border-top: 1px dashed #ccc; font-weight: bold;">İşçilik Ücreti</td>
+        <td colspan="${isA4 ? '3' : '2'}" style="padding: 4px 0; border-top: 1px dashed #ccc; font-weight: bold;">İşçilik Ücreti</td>
         <td style="padding: 4px 0; text-align: right; border-top: 1px dashed #ccc; font-weight: bold;">${selectedTicket.laborFee.toLocaleString('tr-TR')} ₺</td>
       </tr>
     ` : '';
@@ -405,7 +405,7 @@ export const Ariza: React.FC = () => {
         <div style="margin-top: 5px;">
           ${selectedTicket.plumbingChecklist.map(item => `
             <div style="margin-bottom: 3px;">
-              <span style="font-family: monospace;">${item.isChecked ? '[ X ]' : '[   ]'}</span> ${item.itemName}
+              <span style="font-family: monospace; font-size: ${isA4 ? '14px' : '12px'};">${item.isChecked ? '[ X ]' : '[   ]'}</span> ${item.itemName}
             </div>
           `).join('')}
         </div>
@@ -433,43 +433,47 @@ export const Ariza: React.FC = () => {
         <head>
           <title>Servis Formu - ${selectedTicket.id}</title>
           <style>
-            @page { size: ${isA4 ? 'A4' : '80mm auto'}; margin: ${isA4 ? '20mm' : '0'}; }
+            @page { size: ${isA4 ? 'A4 portrait' : '80mm auto'}; margin: ${isA4 ? '20mm' : '0'}; }
             body { 
               font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-              margin: 0; 
-              padding: ${isA4 ? '0' : '15px'}; 
-              width: ${isA4 ? 'auto' : '100%'};
+              margin: 0 auto; 
+              padding: ${isA4 ? '0' : '4mm'}; 
+              width: ${isA4 ? 'auto' : '72mm'};
               box-sizing: border-box;
               color: #000;
               font-size: ${isA4 ? '14px' : '12px'};
             }
             .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px; }
-            .title { font-weight: bold; font-size: ${isA4 ? '24px' : '18px'}; margin: 0 0 5px 0; text-transform: uppercase; }
-            .info { margin-bottom: 20px; line-height: 1.6; }
-            .info div { display: flex; justify-content: space-between; }
-            .info strong { display: inline-block; text-align: left; }
-            .info span { text-align: right; }
+            .header h1 { margin: 0; padding: 0; font-size: ${isA4 ? '24px' : '18px'}; font-weight: bold; }
+            .info { margin-bottom: 15px; line-height: 1.5; }
+            .info-row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: 2px 0; }
+            .info-row strong { text-align: left; }
+            .info-row span { text-align: right; }
             .desc { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc; }
-            .desc-title { font-weight: bold; margin-bottom: 5px; }
-            .desc-text { white-space: pre-wrap; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px; }
-            th { text-align: left; border-bottom: 2px solid #000; padding-bottom: 5px; font-weight: bold; }
-            .total-section { text-align: right; font-weight: bold; font-size: ${isA4 ? '18px' : '16px'}; border-top: 2px solid #000; padding-top: 10px; }
-            .footer { text-align: center; margin-top: 40px; font-size: 10px; color: #555; border-top: 1px dashed #ccc; padding-top: 10px; }
+            .desc-title { font-weight: bold; margin-bottom: 5px; text-transform: uppercase; font-size: ${isA4 ? '14px' : '11px'}; }
+            .desc-text { white-space: pre-wrap; font-size: ${isA4 ? '14px' : '12px'}; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px; font-size: ${isA4 ? '14px' : '11px'}; }
+            th { text-align: left; border-bottom: 2px solid #000; padding-bottom: 4px; font-weight: bold; }
+            .total-section { text-align: right; font-weight: bold; font-size: ${isA4 ? '18px' : '14px'}; border-top: 2px solid #000; padding-top: 8px; margin-top: 10px; }
+            .footer { text-align: center; margin-top: 30px; font-size: 10px; color: #333; border-top: 1px dashed #ccc; padding-top: 10px; }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1 class="title">ARIZA / SERVİS FORMU</h1>
-            <div style="font-size: ${isA4 ? '12px' : '10px'}">Kayıt No: ${selectedTicket.id.split('-')[0]}</div>
-            <div>Tarih: ${new Date(selectedTicket.dateCreated).toLocaleDateString('tr-TR')}</div>
+            <h1>ARIZA / SERVİS FORMU</h1>
+            <div style="font-size: ${isA4 ? '12px' : '10px'}; margin-top: 5px;">Kayıt No: ${selectedTicket.id.split('-')[0]}</div>
+            <div style="font-size: ${isA4 ? '12px' : '10px'}">Tarih: ${new Date(selectedTicket.dateCreated).toLocaleDateString('tr-TR')}</div>
           </div>
           <div class="info">
-            <div><strong>Müşteri:</strong> <span>${selectedTicket.customerName}</span></div>
-            <div><strong>Cihaz:</strong> <span>${selectedTicket.deviceType}</span></div>
-            <div><strong>Seri No:</strong> <span>${selectedTicket.serialNumber || '-'}</span></div>
-            <div><strong>Personel:</strong> <span>${selectedTicket.personnelName || '-'}</span></div>
-            <div><strong>Durum:</strong> <span>${selectedTicket.status}</span></div>
+            <div class="info-row"><strong>Müşteri:</strong> <span>${selectedTicket.customerName}</span></div>
+            <div class="info-row"><strong>Cihaz:</strong> <span>${selectedTicket.deviceType}</span></div>
+            ${selectedTicket.serialNumber ? `<div class="info-row"><strong>Seri No:</strong> <span>${selectedTicket.serialNumber}</span></div>` : ''}
+            <div class="info-row"><strong>Personel:</strong> <span>${selectedTicket.personnelName || '-'}</span></div>
+            <div class="info-row"><strong>Durum:</strong> <span>${selectedTicket.status}</span></div>
+            ${selectedTicket.maintenancePeriodMonths ? `
+               <div class="info-row"><strong>Pr. Bakım:</strong> <span>${selectedTicket.maintenancePeriodMonths} Ay</span></div>
+               ${selectedTicket.nextMaintenanceDate ? `<div class="info-row"><strong>Snr. Bakım:</strong> <span>${new Date(selectedTicket.nextMaintenanceDate).toLocaleDateString('tr-TR')}</span></div>` : ''}
+            ` : ''}
           </div>
           <div class="desc">
             <div class="desc-title">Şikayet / Arıza Detayı:</div>
@@ -482,7 +486,7 @@ export const Ariza: React.FC = () => {
               <tr>
                 <th>İşlem/Parça</th>
                 <th style="text-align: center;">Ad.</th>
-                <th style="text-align: right;">Br.</th>
+                ${isA4 ? `<th style="text-align: right;">Br.</th>` : ''}
                 <th style="text-align: right;">Tutar</th>
               </tr>
             </thead>
