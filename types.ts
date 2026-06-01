@@ -276,6 +276,9 @@ export interface Settings {
   efatura_username?: string;
   efatura_password?: string;
   efatura_apikey?: string;
+  
+  // Arıza/Bakım Formu Tesisat Kontrol Listesi Şablonu
+  plumbingChecklistTemplate?: string[];
 }
 
 export enum ServiceTicketStatus {
@@ -312,4 +315,5 @@ export interface ServiceTicket {
   nextMaintenanceDate?: string;
   maintenancePeriodMonths?: number;
   maintenanceReminderSent?: boolean;
+  plumbingChecklist?: { itemName: string; isChecked: boolean }[];
 }

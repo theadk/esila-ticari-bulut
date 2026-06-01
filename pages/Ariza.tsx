@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, CheckCircle, XCircle, Wrench, Settings, User, FileText, ChevronRight, Printer } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, CheckCircle, XCircle, Wrench, Settings, User, FileText, ChevronRight, Printer, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { ServiceTicket, ServiceTicketStatus, ServiceMaterial, Customer, Product, Personnel, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
 import toast from 'react-hot-toast';
@@ -13,7 +14,8 @@ const INITIAL_FORM: Partial<ServiceTicket> = {
   personnelId: '',
   materialsUsed: [],
   laborFee: 0,
-  taxRate: 20
+  taxRate: 20,
+  maintenancePeriodMonths: undefined,
 };
 
 export const Ariza: React.FC = () => {
@@ -26,7 +28,8 @@ export const Ariza: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'maintenance'>('all');
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'maintenance' | 'checklist'>('all');
   
   const [formData, setFormData] = useState<Partial<ServiceTicket>>(INITIAL_FORM);
   const [selectedTicket, setSelectedTicket] = useState<ServiceTicket | null>(null);
@@ -100,6 +103,8 @@ export const Ariza: React.FC = () => {
     }
   }, [serviceTickets, customers, store]);
 
+  const [maintenanceMonthStr, setMaintenanceMonthStr] = useState<string>(''); // e.g., '2023-10'
+
   const filteredTickets = serviceTickets.filter(ticket => {
     const searchMatch = ticket.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     ticket.deviceType.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -108,10 +113,23 @@ export const Ariza: React.FC = () => {
     if (!searchMatch) return false;
 
     if (activeTab === 'maintenance') {
-      return !!ticket.maintenancePeriodMonths;
+      if (!ticket.maintenancePeriodMonths) return false;
+      if (maintenanceMonthStr && ticket.nextMaintenanceDate) {
+        const d = new Date(ticket.nextMaintenanceDate);
+        const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (mStr !== maintenanceMonthStr) return false;
+      }
+      return true;
     }
     
     return true;
+  }).sort((a, b) => {
+    if (activeTab === 'maintenance') {
+      if (!a.nextMaintenanceDate) return 1;
+      if (!b.nextMaintenanceDate) return -1;
+      return new Date(a.nextMaintenanceDate).getTime() - new Date(b.nextMaintenanceDate).getTime();
+    }
+    return new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime();
   });
 
   const handleSaveTicket = () => {
@@ -120,24 +138,69 @@ export const Ariza: React.FC = () => {
     const customer = customers.find(c => String(c.id) === String(formData.customerId));
     const assignedPersonnel = personnel.find(p => String(p.id) === String(formData.personnelId));
 
-    const newTicket: ServiceTicket = {
-      id: crypto.randomUUID(),
-      customerId: customer!.id,
-      customerName: customer!.name,
-      personnelId: formData.personnelId,
-      personnelName: assignedPersonnel ? `${assignedPersonnel.firstName} ${assignedPersonnel.lastName}` : '',
-      deviceType: formData.deviceType,
-      serialNumber: formData.serialNumber,
-      issueDescription: formData.issueDescription,
-      status: ServiceTicketStatus.PENDING,
-      dateCreated: new Date().toISOString(),
-      materialsUsed: [],
-      laborFee: 0,
-      taxRate: 20,
-      totalCost: 0
-    };
+    if (formData.id) {
+       const updatedTickets = serviceTickets.map(t => {
+          if (t.id === formData.id) {
+             let nextMaintenanceDate = t.nextMaintenanceDate;
+             if (formData.maintenancePeriodMonths && formData.maintenancePeriodMonths > 0) {
+                 const d = t.dateCompleted ? new Date(t.dateCompleted) : new Date(t.dateCreated);
+                 d.setMonth(d.getMonth() + formData.maintenancePeriodMonths);
+                 nextMaintenanceDate = d.toISOString();
+             } else {
+                 nextMaintenanceDate = undefined;
+             }
 
-    store.setServiceTickets([...serviceTickets, newTicket]);
+             return {
+                ...t,
+                customerId: customer!.id,
+                customerName: customer!.name,
+                personnelId: formData.personnelId || '',
+                personnelName: assignedPersonnel ? `${assignedPersonnel.firstName} ${assignedPersonnel.lastName}` : '',
+                deviceType: formData.deviceType || '',
+                serialNumber: formData.serialNumber,
+                issueDescription: formData.issueDescription || '',
+                maintenancePeriodMonths: formData.maintenancePeriodMonths,
+                nextMaintenanceDate
+             };
+          }
+          return t;
+       });
+       store.setServiceTickets(updatedTickets);
+       toast.success('Kayıt başarıyla güncellendi.');
+    } else {
+       const dateCreated = new Date();
+       let nextMaintenanceDate: string | undefined = undefined;
+       if (formData.maintenancePeriodMonths && formData.maintenancePeriodMonths > 0) {
+         const d = new Date(dateCreated);
+         d.setMonth(d.getMonth() + formData.maintenancePeriodMonths);
+         nextMaintenanceDate = d.toISOString();
+       }
+
+       const newTicket: ServiceTicket = {
+         id: crypto.randomUUID(),
+         customerId: customer!.id,
+         customerName: customer!.name,
+         personnelId: formData.personnelId,
+         personnelName: assignedPersonnel ? `${assignedPersonnel.firstName} ${assignedPersonnel.lastName}` : '',
+         deviceType: formData.deviceType,
+         serialNumber: formData.serialNumber,
+         issueDescription: formData.issueDescription,
+         maintenancePeriodMonths: formData.maintenancePeriodMonths,
+         nextMaintenanceDate,
+         status: ServiceTicketStatus.PENDING,
+         dateCreated: dateCreated.toISOString(),
+         materialsUsed: [],
+         laborFee: 0,
+         taxRate: 20,
+         totalCost: 0,
+         plumbingChecklist: (store.settings.plumbingChecklistTemplate || []).map(item => ({
+           itemName: item,
+           isChecked: false
+         }))
+       };
+       store.setServiceTickets([...serviceTickets, newTicket]);
+       toast.success('Yeni kayıt oluşturuldu.');
+    }
     setIsModalOpen(false);
   };
 
@@ -155,6 +218,24 @@ export const Ariza: React.FC = () => {
     setSelectedTicket(ticket);
     setIsDetailModalOpen(true);
     setMaintenancePeriod(ticket.maintenancePeriodMonths || '');
+  };
+
+  const openEditTicket = (ticket: ServiceTicket) => {
+    setFormData({
+      id: ticket.id,
+      customerId: ticket.customerId,
+      deviceType: ticket.deviceType,
+      serialNumber: ticket.serialNumber || '',
+      issueDescription: ticket.issueDescription,
+      personnelId: ticket.personnelId || '',
+      maintenancePeriodMonths: ticket.maintenancePeriodMonths,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteTicket = (ticketId: string) => {
+     store.setServiceTickets(serviceTickets.filter(t => t.id !== ticketId));
+     toast.success('Kayıt başarıyla silindi.');
   };
 
   const addMaterialToTicket = () => {
@@ -199,6 +280,15 @@ export const Ariza: React.FC = () => {
     const subtotal = materialsTotal + (updatedTicket.laborFee || 0);
     updatedTicket.totalCost = subtotal + (subtotal * (updatedTicket.taxRate / 100));
 
+    store.setServiceTickets(serviceTickets.map(t => t.id === selectedTicket.id ? updatedTicket : t));
+    setSelectedTicket(updatedTicket);
+  };
+
+  const toggleChecklistItem = (index: number) => {
+    if (!selectedTicket || !selectedTicket.plumbingChecklist) return;
+    const newList = [...selectedTicket.plumbingChecklist];
+    newList[index].isChecked = !newList[index].isChecked;
+    const updatedTicket = { ...selectedTicket, plumbingChecklist: newList };
     store.setServiceTickets(serviceTickets.map(t => t.id === selectedTicket.id ? updatedTicket : t));
     setSelectedTicket(updatedTicket);
   };
@@ -310,6 +400,26 @@ export const Ariza: React.FC = () => {
       </tr>
     ` : '';
 
+    const checklistHtml = selectedTicket.plumbingChecklist && selectedTicket.plumbingChecklist.length > 0 ? `
+      <div class="desc">
+        <div class="desc-title">Bakım / Kontrol Listesi:</div>
+        <div style="margin-top: 5px;">
+          ${selectedTicket.plumbingChecklist.map(item => `
+            <div style="margin-bottom: 3px;">
+              <span style="font-family: monospace;">${item.isChecked ? '[ X ]' : '[   ]'}</span> ${item.itemName}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : '';
+
+    const resolutionHtml = selectedTicket.resolutionNotes ? `
+      <div class="desc">
+        <div class="desc-title">Yapılan İşlemler / Çözüm Detayı:</div>
+        <div class="desc-text">${selectedTicket.resolutionNotes}</div>
+      </div>
+    ` : '';
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -358,6 +468,8 @@ export const Ariza: React.FC = () => {
             <div class="desc-title">Şikayet / Arıza Detayı:</div>
             <div class="desc-text">${selectedTicket.issueDescription}</div>
           </div>
+          ${checklistHtml}
+          ${resolutionHtml}
           <table>
             <thead>
               <tr>
@@ -443,87 +555,189 @@ export const Ariza: React.FC = () => {
               >
                 Periyodik Bakımlar
               </button>
+              <button
+                 onClick={() => setActiveTab('checklist')}
+                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'checklist' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+              >
+                Tesisat Kontrol Bakım Listesi
+              </button>
            </nav>
         </div>
-        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center">
-          <div className="relative w-full max-w-md flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Müşteri, cihaz veya seri no ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
-            />
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="p-4 font-semibold text-gray-600">Tarih</th>
-                <th className="p-4 font-semibold text-gray-600">Müşteri</th>
-                <th className="p-4 font-semibold text-gray-600">Cihaz / Seri No</th>
+        {activeTab !== 'checklist' && (
+          <>
+            <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center">
+              <div className="relative w-full max-w-lg flex flex-col sm:flex-row gap-3 flex-1">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    placeholder="Müşteri, cihaz veya seri no ara..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
+                  />
+                </div>
                 {activeTab === 'maintenance' && (
-                  <th className="p-4 font-semibold text-gray-600">Sonraki Bakım</th>
+                  <input 
+                    type="month"
+                    value={maintenanceMonthStr}
+                    onChange={(e) => setMaintenanceMonthStr(e.target.value)}
+                    className="w-full sm:w-48 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 outline-none focus:border-emerald-500"
+                    title="Aylık Bakım Filtresi"
+                  />
                 )}
-                <th className="p-4 font-semibold text-gray-600">Atanan Personel</th>
-                <th className="p-4 font-semibold text-gray-600">Durum</th>
-                <th className="p-4 font-semibold text-gray-600">Tutar</th>
-                <th className="p-4 font-semibold text-gray-600">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTickets.length === 0 ? (
-                <tr>
-                  <td colSpan={activeTab === 'maintenance' ? 8 : 7} className="p-8 text-center text-gray-500">
-                    Henüz kayıtlı arıza formu bulunmuyor.
-                  </td>
-                </tr>
-              ) : (
-                filteredTickets.map(ticket => (
-                  <tr key={ticket.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                    <td className="p-4 text-gray-600">
-                      {new Date(ticket.dateCreated).toLocaleDateString('tr-TR')}
-                    </td>
-                    <td className="p-4 font-medium text-gray-800">
-                      {ticket.customerName}
-                    </td>
-                    <td className="p-4 text-gray-600">
-                      <div>{ticket.deviceType}</div>
-                      {ticket.serialNumber && <div className="text-xs text-gray-400 uppercase tracking-wider">{ticket.serialNumber}</div>}
-                    </td>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="p-4 font-semibold text-gray-600">Tarih</th>
+                    <th className="p-4 font-semibold text-gray-600">Müşteri</th>
+                    <th className="p-4 font-semibold text-gray-600">Cihaz / Seri No</th>
                     {activeTab === 'maintenance' && (
-                      <td className="p-4 text-gray-600 font-medium">
-                        {ticket.nextMaintenanceDate ? new Date(ticket.nextMaintenanceDate).toLocaleDateString('tr-TR') : '-'}
-                      </td>
+                      <th className="p-4 font-semibold text-gray-600">Sonraki Bakım</th>
                     )}
-                    <td className="p-4 text-gray-600">
-                      {ticket.personnelName || <span className="text-gray-400 italic">Atanmamış</span>}
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
-                        {ticket.status}
-                      </span>
-                    </td>
-                    <td className="p-4 font-medium text-gray-800">
-                      {ticket.totalCost > 0 ? ticket.totalCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }) : '-'}
-                    </td>
-                    <td className="p-4">
-                      <button 
-                        onClick={() => openDetail(ticket)}
-                        className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
-                      >
-                        Yönet <ChevronRight size={16} />
-                      </button>
-                    </td>
+                    <th className="p-4 font-semibold text-gray-600">Atanan Personel</th>
+                    <th className="p-4 font-semibold text-gray-600">Durum</th>
+                    <th className="p-4 font-semibold text-gray-600">Tutar</th>
+                    <th className="p-4 font-semibold text-gray-600">İşlemler</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {filteredTickets.length === 0 ? (
+                    <tr>
+                      <td colSpan={activeTab === 'maintenance' ? 8 : 7} className="p-8 text-center text-gray-500">
+                        Henüz kayıtlı arıza formu bulunmuyor.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTickets.map(ticket => (
+                      <tr key={ticket.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                        <td className="p-4 text-gray-600">
+                          {new Date(ticket.dateCreated).toLocaleDateString('tr-TR')}
+                        </td>
+                        <td className="p-4 font-medium text-gray-800">
+                          {ticket.customerName}
+                        </td>
+                        <td className="p-4 text-gray-600">
+                          <div>{ticket.deviceType}</div>
+                          {ticket.serialNumber && <div className="text-xs text-gray-400 uppercase tracking-wider">{ticket.serialNumber}</div>}
+                        </td>
+                        {activeTab === 'maintenance' && (
+                          <td className="p-4 text-gray-600 font-medium">
+                            {ticket.nextMaintenanceDate ? new Date(ticket.nextMaintenanceDate).toLocaleDateString('tr-TR') : '-'}
+                          </td>
+                        )}
+                        <td className="p-4 text-gray-600">
+                          {ticket.personnelName || <span className="text-gray-400 italic">Atanmamış</span>}
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
+                            {ticket.status}
+                          </span>
+                        </td>
+                        <td className="p-4 font-medium text-gray-800">
+                          {ticket.totalCost > 0 ? ticket.totalCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }) : '-'}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                             <button 
+                               onClick={() => openDetail(ticket)}
+                               className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
+                             >
+                               Yönet <ChevronRight size={16} />
+                             </button>
+                             <div className="w-px h-4 bg-gray-200 mx-1"></div>
+                             <button
+                               onClick={() => openEditTicket(ticket)}
+                               className="text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
+                               title="Düzenle"
+                             >
+                               <Edit2 size={16} />
+                             </button>
+                             <button
+                               onClick={() => handleDeleteTicket(ticket.id)}
+                               className="text-gray-500 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                               title="Sil"
+                             >
+                               <Trash2 size={16} />
+                             </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'checklist' && (
+          <div className="p-6 md:p-8 animate-fade-in">
+            <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Tesisat Bakım & Kontrol Listesi Şablonu</h3>
+            <p className="text-sm text-gray-600 mb-6">Burada eklediğiniz maddeler, yeni oluşturduğunuz Arıza/Bakım formlarında kontrol listesi olarak yer alacaktır. Teknisyenler onarım sırasında bu maddeleri form üzerinden kontrol edebilir.</p>
+            
+            <div className="max-w-2xl bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="p-4 bg-gray-50 flex gap-2 border-b border-gray-200">
+                 <input 
+                   type="text" 
+                   id="new-checklist-item"
+                   placeholder="Yeni kontrol maddesi ekle..." 
+                   className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                   onKeyPress={(e) => {
+                     if (e.key === 'Enter') {
+                       const val = e.currentTarget.value.trim();
+                       if (val) {
+                         const currentTemplate = store.settings?.plumbingChecklistTemplate || [];
+                         store.setSettings({ ...store.settings, plumbingChecklistTemplate: [...currentTemplate, val] });
+                         e.currentTarget.value = '';
+                       }
+                     }
+                   }}
+                 />
+                 <button 
+                   onClick={() => {
+                     const input = document.getElementById('new-checklist-item') as HTMLInputElement;
+                     if (input && input.value.trim()) {
+                       const val = input.value.trim();
+                       const currentTemplate = store.settings?.plumbingChecklistTemplate || [];
+                       store.setSettings({ ...store.settings, plumbingChecklistTemplate: [...currentTemplate, val] });
+                       input.value = '';
+                     }
+                   }}
+                   className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium transition-colors"
+                 >
+                   Madde Ekle
+                 </button>
+              </div>
+              <ul className="divide-y divide-gray-100">
+                 {(!store.settings?.plumbingChecklistTemplate || store.settings.plumbingChecklistTemplate.length === 0) ? (
+                    <li className="p-8 text-center text-sm text-gray-500">Henüz madde eklenmemiş.</li>
+                 ) : (
+                    store.settings.plumbingChecklistTemplate.map((item, index) => (
+                      <li key={index} className="flex justify-between items-center p-4 hover:bg-gray-50 group">
+                         <span className="text-sm text-gray-700 font-medium">{item}</span>
+                         <button 
+                           onClick={() => {
+                             const newList = [...(store.settings?.plumbingChecklistTemplate || [])];
+                             newList.splice(index, 1);
+                             store.setSettings({ ...store.settings, plumbingChecklistTemplate: newList });
+                           }}
+                           className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                           title="Listeden Kaldır"
+                         >
+                           <XCircle size={20} />
+                         </button>
+                      </li>
+                    ))
+                 )}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
 
       {isModalOpen && (
@@ -532,7 +746,7 @@ export const Ariza: React.FC = () => {
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <Wrench className="text-emerald-600" size={24} />
-                Yeni Arıza Kaydı
+                {formData.id ? 'Arıza Kaydını Düzenle' : 'Yeni Arıza Kaydı'}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <XCircle size={24} />
@@ -602,6 +816,18 @@ export const Ariza: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Periyodik Bakım Süresi (Ay)</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="w-full p-2.5 rounded-lg border border-gray-200 focus:border-emerald-500 outline-none"
+                  value={formData.maintenancePeriodMonths || ''}
+                  onChange={e => setFormData({ ...formData, maintenancePeriodMonths: Number(e.target.value) || undefined })}
+                  placeholder="Bakım Yok"
+                />
+              </div>
+
             </div>
             
             <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
@@ -616,7 +842,7 @@ export const Ariza: React.FC = () => {
                 disabled={!formData.customerId || !formData.deviceType || !formData.issueDescription}
                 className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium disabled:opacity-50"
               >
-                Kaydı Oluştur
+                {formData.id ? 'Güncelle' : 'Kaydı Oluştur'}
               </button>
             </div>
           </div>
@@ -632,6 +858,14 @@ export const Ariza: React.FC = () => {
                 Arıza Formu Detayı
               </h3>
               <div className="flex flex-wrap items-center gap-3">
+                 <button 
+                   onClick={() => setIsQRModalOpen(true)}
+                   className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200"
+                   title="QR Kod oluştur"
+                 >
+                   <QrCode size={16} />
+                   QR Kod
+                 </button>
                  <button 
                    onClick={() => handlePrint('thermal')}
                    className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200"
@@ -682,6 +916,30 @@ export const Ariza: React.FC = () => {
                  <div>
                     <h4 className="font-semibold text-gray-700 border-b pb-2 mb-3">Şikayet Açıklaması</h4>
                     <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedTicket.issueDescription}</p>
+                 </div>
+
+                 <div>
+                    <h4 className="font-semibold text-gray-700 border-b pb-2 mb-3">Tesisat Kontrol Bakım Listesi</h4>
+
+                    <div className="space-y-2">
+                       {(!selectedTicket.plumbingChecklist || selectedTicket.plumbingChecklist.length === 0) && (
+                          <p className="text-sm text-gray-500 italic">Maddeler ayarlardan eklenebilir. Bu arızada kontrol maddesi yok.</p>
+                       )}
+                       {selectedTicket.plumbingChecklist?.map((item, i) => (
+                          <label key={i} className="flex items-start gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-100 transition-colors group">
+                            <input 
+                              type="checkbox"
+                              checked={item.isChecked}
+                              onChange={() => toggleChecklistItem(i)}
+                              disabled={selectedTicket.status === ServiceTicketStatus.COMPLETED || selectedTicket.status === ServiceTicketStatus.CANCELLED}
+                              className="mt-1 flex-shrink-0 w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 disabled:opacity-50"
+                            />
+                            <span className={`text-sm flex-1 ${item.isChecked ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                              {item.itemName}
+                            </span>
+                          </label>
+                       ))}
+                    </div>
                  </div>
                </div>
 
@@ -753,6 +1011,27 @@ export const Ariza: React.FC = () => {
                           </tbody>
                        </table>
                     </div>
+                 </div>
+
+                 {/* Resolution Notes */}
+                 <div className="mt-2 flex-1">
+                    <h4 className="font-semibold text-gray-700 border-b pb-2 mb-3">Yapılan İşlemler / Çözüm Detayları</h4>
+                    {selectedTicket.status !== ServiceTicketStatus.COMPLETED && selectedTicket.status !== ServiceTicketStatus.CANCELLED ? (
+                      <textarea 
+                        className="w-full h-full min-h-[120px] p-3 rounded-lg border border-gray-200 outline-none focus:border-emerald-500 text-sm resize-y"
+                        placeholder="Yapılan işlemleri, kullanılan yöntemleri detaylıca açıklayınız..."
+                        value={selectedTicket.resolutionNotes || ''}
+                        onChange={e => {
+                           const updated = { ...selectedTicket, resolutionNotes: e.target.value };
+                           store.setServiceTickets(serviceTickets.map(t => t.id === selectedTicket.id ? updated : t));
+                           setSelectedTicket(updated);
+                        }}
+                      />
+                    ) : (
+                      <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap min-h-[100px]">
+                        {selectedTicket.resolutionNotes || <span className="text-gray-400 italic">Açıklama girilmemiş.</span>}
+                      </div>
+                    )}
                  </div>
 
                  {/* Labor and Totals */}
@@ -849,7 +1128,9 @@ export const Ariza: React.FC = () => {
                      </button>
                      <button
                        onClick={completeTicket}
-                       className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium flex items-center gap-2"
+                       disabled={!!selectedTicket.maintenancePeriodMonths && selectedTicket.plumbingChecklist?.some(item => !item.isChecked) || false}
+                       title={!!selectedTicket.maintenancePeriodMonths && selectedTicket.plumbingChecklist?.some(item => !item.isChecked) ? "Lütfen tüm bakım maddelerini kontrol edip işaretleyin." : ""}
+                       className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
                      >
                        <CheckCircle size={20} />
                        Formu Tamamla
@@ -857,6 +1138,35 @@ export const Ariza: React.FC = () => {
                    </>
                  )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isQRModalOpen && selectedTicket && (
+        <div className="fixed inset-0 bg-gray-500/75 flex items-center justify-center p-4 z-[60] animate-fade-in" onClick={() => setIsQRModalOpen(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <QrCode className="text-emerald-600" />
+                Bakım Formu QR Code
+              </h3>
+              <button onClick={() => setIsQRModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                 <XCircle size={24} />
+              </button>
+            </div>
+            <div className="p-8 flex flex-col items-center justify-center bg-white">
+              <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm mb-4">
+                 <QRCodeSVG 
+                   value={`${window.location.origin}/ticket/${selectedTicket.id}`}
+                   size={200}
+                   level="M"
+                   includeMargin={false}
+                 />
+              </div>
+              <p className="text-sm text-gray-500 text-center font-medium">
+                 Müşteri bu kodu taratarak <br/> bakım formuna erişebilir.
+              </p>
             </div>
           </div>
         </div>

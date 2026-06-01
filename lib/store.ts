@@ -29,6 +29,7 @@ let globalSettings: Settings = {
   next_product_id: 1001,
   prefix_personnel: 'PER',
   next_personnel_id: 1001,
+  plumbingChecklistTemplate: ['Filtre Kontrolü', 'Boru Sızıntı Kontrolü', 'Su Basıncı Testi', 'Vana Kontrolü', 'Ekipman Temizliği'],
 };
 
 let globalCustomers = [...MOCK_CUSTOMERS];
