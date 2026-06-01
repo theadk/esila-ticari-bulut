@@ -422,8 +422,8 @@ export const Ariza: React.FC = () => {
     const qrUrl = encodeURIComponent(`${window.location.origin}/ticket/${selectedTicket.id}`);
     const qrCodeHtml = `
       <div style="text-align: center; margin-top: 20px;">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=${isA4 ? '150x150' : '100x100'}&data=${qrUrl}" alt="QR Kod" style="width: ${isA4 ? '150px' : '100px'}; height: ${isA4 ? '150px' : '100px'};" />
-        <div style="font-size: 10px; margin-top: 5px;">Formu Görüntüle</div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${qrUrl}" alt="QR Kod" style="width: 100px; height: 100px;" />
+        <div style="font-size: 10px; margin-top: 5px; color: #6b7280;">Formu Görüntüle</div>
       </div>
     `;
 
@@ -433,54 +433,79 @@ export const Ariza: React.FC = () => {
         <head>
           <title>Servis Formu - ${selectedTicket.id}</title>
           <style>
-            @page { size: ${isA4 ? 'A4 portrait' : '80mm auto'}; margin: ${isA4 ? '20mm' : '0'}; }
+            @page { size: ${isA4 ? 'A4 portrait' : '80mm auto'}; margin: ${isA4 ? '15mm' : '0'}; }
             body { 
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+              font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
               margin: 0 auto; 
               padding: ${isA4 ? '0' : '4mm'}; 
               width: ${isA4 ? 'auto' : '72mm'};
               box-sizing: border-box;
-              color: #000;
+              color: #111827;
               font-size: ${isA4 ? '14px' : '12px'};
+              line-height: 1.5;
             }
-            .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px; }
-            .header h1 { margin: 0; padding: 0; font-size: ${isA4 ? '24px' : '18px'}; font-weight: bold; }
-            .info { margin-bottom: 15px; line-height: 1.5; }
-            .info-row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: 2px 0; }
-            .info-row strong { text-align: left; }
-            .info-row span { text-align: right; }
-            .desc { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc; }
-            .desc-title { font-weight: bold; margin-bottom: 5px; text-transform: uppercase; font-size: ${isA4 ? '14px' : '11px'}; }
-            .desc-text { white-space: pre-wrap; font-size: ${isA4 ? '14px' : '12px'}; }
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px; font-size: ${isA4 ? '14px' : '11px'}; }
-            th { text-align: left; border-bottom: 2px solid #000; padding-bottom: 4px; font-weight: bold; }
-            .total-section { text-align: right; font-weight: bold; font-size: ${isA4 ? '18px' : '14px'}; border-top: 2px solid #000; padding-top: 8px; margin-top: 10px; }
-            .footer { text-align: center; margin-top: 30px; font-size: 10px; color: #333; border-top: 1px dashed #ccc; padding-top: 10px; }
+            .header { text-align: center; margin-bottom: ${isA4 ? '30px' : '15px'}; border-bottom: ${isA4 ? '2px solid #10b981' : '1px solid #000'}; padding-bottom: ${isA4 ? '20px' : '10px'}; }
+            .header h1 { margin: 0; padding: 0; font-size: ${isA4 ? '28px' : '18px'}; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: ${isA4 ? '#065f46' : '#000'}; }
+            .header-info { font-size: ${isA4 ? '13px' : '10px'}; margin-top: 5px; color: #4b5563; }
+            
+            .info-grid { display: ${isA4 ? 'grid' : 'block'}; grid-template-columns: 1fr 1fr; gap: ${isA4 ? '20px' : '0'}; margin-bottom: ${isA4 ? '20px' : '15px'}; }
+            .info-card { background: ${isA4 ? '#f9fafb' : 'transparent'}; padding: ${isA4 ? '15px' : '0'}; border-radius: ${isA4 ? '8px' : '0'}; border: ${isA4 ? '1px solid #e5e7eb' : 'none'}; margin-bottom: ${isA4 ? '0' : '10px'}; }
+            
+            .info-row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: ${isA4 ? '6px 0' : '2px 0'}; }
+            .info-row:last-child { border-bottom: none; }
+            .info-row strong { text-align: left; color: #374151; }
+            .info-row span { text-align: right; font-weight: 500; }
+            
+            .desc { margin-top: 15px; background: ${isA4 ? '#f9fafb' : 'transparent'}; padding: ${isA4 ? '15px' : '10px 0'}; border-radius: ${isA4 ? '8px' : '0'}; border: ${isA4 ? '1px solid #e5e7eb' : 'none'}; border-top: ${isA4 ? '1px solid #e5e7eb' : '1px dashed #ccc'}; }
+            .desc-title { font-weight: bold; margin-bottom: 8px; text-transform: uppercase; font-size: ${isA4 ? '12px' : '11px'}; color: #4b5563; letter-spacing: 0.5px; }
+            .desc-text { white-space: pre-wrap; font-size: ${isA4 ? '14px' : '12px'}; color: #111827; }
+            
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px; font-size: ${isA4 ? '14px' : '11px'}; }
+            th { text-align: left; border-bottom: 2px solid #000; padding: ${isA4 ? '8px' : '4px'} 4px; font-weight: bold; color: #374151; }
+            td { padding: ${isA4 ? '8px' : '4px'} 4px; border-bottom: 1px solid #e5e7eb; }
+            
+            .total-section { text-align: right; font-weight: bold; font-size: ${isA4 ? '20px' : '14px'}; padding-top: 15px; margin-top: 15px; border-top: 2px solid #000; color: #111827; }
+            
+            .signatures { display: ${isA4 ? 'flex' : 'block'}; justify-content: space-between; margin-top: ${isA4 ? '40px' : '20px'}; padding: ${isA4 ? '0 20px' : '0'}; font-size: ${isA4 ? '14px' : '12px'}; page-break-inside: avoid; }
+            .signature-box { text-align: center; color: #374151; margin-bottom: ${isA4 ? '0' : '20px'}; width: ${isA4 ? '45%' : '100%'}; }
+            .signature-line { margin-top: ${isA4 ? '50px' : '40px'}; border-bottom: 1px solid #000; width: ${isA4 ? '100%' : '100%'}; margin-bottom: 8px; display: inline-block; }
+            
+            .footer { text-align: center; margin-top: ${isA4 ? '40px' : '20px'}; font-size: ${isA4 ? '11px' : '10px'}; color: #6b7280; border-top: 1px dashed #ccc; padding-top: 15px; page-break-inside: avoid; }
           </style>
         </head>
         <body>
           <div class="header">
             <h1>ARIZA / SERVİS FORMU</h1>
-            <div style="font-size: ${isA4 ? '12px' : '10px'}; margin-top: 5px;">Kayıt No: ${selectedTicket.id.split('-')[0]}</div>
-            <div style="font-size: ${isA4 ? '12px' : '10px'}">Tarih: ${new Date(selectedTicket.dateCreated).toLocaleDateString('tr-TR')}</div>
+            <div class="header-info">Kayıt No: ${selectedTicket.id.split('-')[0]} &nbsp;|&nbsp; Tarih: ${new Date(selectedTicket.dateCreated).toLocaleDateString('tr-TR')}</div>
           </div>
-          <div class="info">
-            <div class="info-row"><strong>Müşteri:</strong> <span>${selectedTicket.customerName}</span></div>
-            <div class="info-row"><strong>Cihaz:</strong> <span>${selectedTicket.deviceType}</span></div>
-            ${selectedTicket.serialNumber ? `<div class="info-row"><strong>Seri No:</strong> <span>${selectedTicket.serialNumber}</span></div>` : ''}
-            <div class="info-row"><strong>Personel:</strong> <span>${selectedTicket.personnelName || '-'}</span></div>
-            <div class="info-row"><strong>Durum:</strong> <span>${selectedTicket.status}</span></div>
-            ${selectedTicket.maintenancePeriodMonths ? `
-               <div class="info-row"><strong>Pr. Bakım:</strong> <span>${selectedTicket.maintenancePeriodMonths} Ay</span></div>
-               ${selectedTicket.nextMaintenanceDate ? `<div class="info-row"><strong>Snr. Bakım:</strong> <span>${new Date(selectedTicket.nextMaintenanceDate).toLocaleDateString('tr-TR')}</span></div>` : ''}
-            ` : ''}
+          
+          <div class="info-grid">
+            <div class="info-card">
+              <div class="desc-title" style="margin-bottom: 10px; ${isA4 ? '' : 'display:none;'}">Müşteri Bilgileri</div>
+              <div class="info-row"><strong>Müşteri:</strong> <span>${selectedTicket.customerName}</span></div>
+              <div class="info-row"><strong>Personel:</strong> <span>${selectedTicket.personnelName || '-'}</span></div>
+              <div class="info-row"><strong>Durum:</strong> <span>${selectedTicket.status}</span></div>
+            </div>
+            
+            <div class="info-card">
+              <div class="desc-title" style="margin-bottom: 10px; ${isA4 ? '' : 'display:none;'}">Cihaz Bilgileri</div>
+              <div class="info-row"><strong>Cihaz:</strong> <span>${selectedTicket.deviceType}</span></div>
+              ${selectedTicket.serialNumber ? `<div class="info-row"><strong>Seri No:</strong> <span>${selectedTicket.serialNumber}</span></div>` : ''}
+              ${selectedTicket.maintenancePeriodMonths ? `
+                 <div class="info-row"><strong>Pr. Bakım:</strong> <span>${selectedTicket.maintenancePeriodMonths} Ay</span></div>
+                 ${selectedTicket.nextMaintenanceDate ? `<div class="info-row"><strong>Snr. Bakım:</strong> <span>${new Date(selectedTicket.nextMaintenanceDate).toLocaleDateString('tr-TR')}</span></div>` : ''}
+              ` : ''}
+            </div>
           </div>
+
           <div class="desc">
             <div class="desc-title">Şikayet / Arıza Detayı:</div>
             <div class="desc-text">${selectedTicket.issueDescription}</div>
           </div>
           ${checklistHtml}
           ${resolutionHtml}
+          
+          ${selectedTicket.materialsUsed.length > 0 || selectedTicket.laborFee > 0 ? `
           <table>
             <thead>
               <tr>
@@ -498,7 +523,24 @@ export const Ariza: React.FC = () => {
           <div class="total-section">
             Genel Toplam: ${selectedTicket.totalCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
           </div>
-          ${qrCodeHtml}
+          ` : ''}
+          
+          <div class="signatures">
+            <div class="signature-box">
+              <strong>Müşteri</strong>
+              <div class="signature-line"></div>
+              <span>Ad Soyad / İmza</span>
+            </div>
+            ${isA4 ? qrCodeHtml : ''}
+            <div class="signature-box">
+              <strong>Firma Yetkilisi</strong>
+              <div class="signature-line"></div>
+              <span>Ad Soyad / İmza</span>
+            </div>
+          </div>
+          
+          ${!isA4 ? qrCodeHtml : ''}
+          
           <div class="footer">
             Bu belge bilgilendirme amaçlıdır. Mali değeri yoktur. <br/>
             Bizi tercih ettiğiniz için teşekkür ederiz.
