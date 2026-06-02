@@ -158,7 +158,15 @@ export async function initializeStore() {
   try {
     const tables = [
       { name: 'users', ref: (data: any) => { globalUsers = data; } },
-      { name: 'settings', ref: (data: any) => { if(data.length > 0) globalSettings = data[0]; } },
+      { name: 'settings', ref: (data: any) => { 
+        if(data.length > 0) {
+          const setting = data[0];
+          globalSettings = {
+            ...setting,
+            plumbingChecklistTemplate: typeof setting.plumbingChecklistTemplate === 'string' ? JSON.parse(setting.plumbingChecklistTemplate) : (setting.plumbingChecklistTemplate || ['Filtre Kontrolü', 'Boru Sızıntı Kontrolü', 'Su Basıncı Testi', 'Vana Kontrolü', 'Ekipman Temizliği'])
+          };
+        } 
+      } },
       { name: 'customers', ref: (data: any) => { globalCustomers = data; } },
       { name: 'products', ref: (data: any) => { globalProducts = data.map((d:any)=>({...d, showInQuickSale: !!d.showInQuickSale, warehouseStocks: typeof d.warehouseStocks === 'string' ? JSON.parse(d.warehouseStocks): (d.warehouseStocks||[])})); } },
       { name: 'categories', ref: (data: any) => { /* already in another branch but if we migrate.. */ } },
@@ -194,7 +202,8 @@ export async function initializeStore() {
       { name: 'service_tickets', ref: (data: any) => {
         globalServiceTickets = data.map((d:any) => ({
             ...d,
-            materialsUsed: typeof d.materialsUsed === 'string' ? JSON.parse(d.materialsUsed) : (d.materialsUsed || [])
+            materialsUsed: typeof d.materialsUsed === 'string' ? JSON.parse(d.materialsUsed) : (d.materialsUsed || []),
+            plumbingChecklist: typeof d.plumbingChecklist === 'string' ? JSON.parse(d.plumbingChecklist) : (d.plumbingChecklist || [])
         }));
       } }
     ];
@@ -298,7 +307,9 @@ export const useAppStore = () => {
     },
     get settings() { return globalSettings; },
     setSettings(updater: Settings | ((prev: Settings) => Settings)) {
+      const old = globalSettings;
       globalSettings = typeof updater === 'function' ? updater(globalSettings) : updater;
+      syncObject('settings', old, globalSettings);
       emit();
     },
     get serviceTickets() { return globalServiceTickets; },

@@ -998,7 +998,7 @@ export const Ariza: React.FC = () => {
             .outputPdf("datauristring");
           const base64Content = pdfBase64DataUri.split(",")[1];
 
-          await fetch("/api/send-email", {
+          const res = await fetch("/api/send-email", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1019,7 +1019,10 @@ export const Ariza: React.FC = () => {
               ],
             }),
           });
-          successCount++;
+          
+          if (res.ok) {
+            successCount++;
+          }
         } catch (e) {
           console.error("Mail gönderim hatası:", e);
         }

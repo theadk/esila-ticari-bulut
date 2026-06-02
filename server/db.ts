@@ -31,6 +31,36 @@ export async function initDb() {
       await client.query(stmt);
     }
 
+    try {
+      await client.query('ALTER TABLE settings ADD COLUMN plumbingChecklistTemplate JSON;');
+    } catch (e: any) {
+      if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER settings:', e.message);
+    }
+
+    try {
+      await client.query('ALTER TABLE service_tickets ADD COLUMN plumbingChecklist JSON;');
+    } catch (e: any) {
+      if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER service_tickets:', e.message);
+    }
+
+    try {
+      await client.query('ALTER TABLE service_tickets ADD COLUMN nextMaintenanceDate DATETIME;');
+    } catch (e: any) {
+      if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER NEXT MAINTENANCE:', e.message);
+    }
+    
+    try {
+      await client.query('ALTER TABLE service_tickets ADD COLUMN maintenancePeriodMonths INT;');
+    } catch (e: any) {
+      if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER PERIOD:', e.message);
+    }
+    
+    try {
+      await client.query('ALTER TABLE service_tickets ADD COLUMN maintenanceReminderSent BOOLEAN DEFAULT FALSE;');
+    } catch (e: any) {
+      if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER REMINDER:', e.message);
+    }
+
     /*
     await client.query(`
       CREATE TABLE IF NOT EXISTS warehouses (

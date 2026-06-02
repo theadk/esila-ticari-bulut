@@ -53,7 +53,9 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT || 3000;
 
-  app.use(express.json());
+  // 50mb is a lot, but handles large payload images and PDFs
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use(cors());
 
   app.post('/api/test-email', async (req, res) => {

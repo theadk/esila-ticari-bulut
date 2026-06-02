@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS settings (
     efatura_username VARCHAR(255),
     efatura_password VARCHAR(255),
     efatura_apikey VARCHAR(255),
+    plumbingChecklistTemplate JSON,
     PRIMARY KEY (vkn, id)
 );
 
@@ -226,7 +227,11 @@ CREATE TABLE IF NOT EXISTS service_tickets (
     laborFee DECIMAL(15,2),
     taxRate DECIMAL(5,2),
     totalCost DECIMAL(15,2),
-    resolutionNotes TEXT
+    resolutionNotes TEXT,
+    plumbingChecklist JSON,
+    nextMaintenanceDate DATETIME,
+    maintenancePeriodMonths INT,
+    maintenanceReminderSent BOOLEAN DEFAULT FALSE
 );
 
 -- Örnek Veriler (Opsiyonel)
