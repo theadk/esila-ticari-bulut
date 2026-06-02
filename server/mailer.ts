@@ -31,7 +31,7 @@ export const wrapEmail = (content: string) => {
   `;
 }
 
-export const sendMail = async (to: string, subject: string, html: string, wrapped: boolean = true) => {
+export const sendMail = async (to: string, subject: string, html: string, wrapped: boolean = true, attachments?: any[]) => {
   try {
     const finalHtml = wrapped ? wrapEmail(html) : html;
     const info = await transporter.sendMail({
@@ -39,6 +39,7 @@ export const sendMail = async (to: string, subject: string, html: string, wrappe
       to,
       subject,
       html: finalHtml,
+      attachments
     });
     console.log("Message sent: %s", info.messageId);
     return { success: true, messageId: info.messageId };

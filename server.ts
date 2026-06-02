@@ -77,8 +77,8 @@ async function startServer() {
 
   app.post('/api/send-email', async (req, res) => {
     try {
-      const { to, subject, html, wrapped } = req.body;
-      const result = await sendMail(to, subject, html, wrapped ?? false);
+      const { to, subject, html, wrapped, attachments } = req.body;
+      const result = await sendMail(to, subject, html, wrapped ?? false, attachments);
       if (result.success) {
         res.json({ success: true, messageId: result.messageId });
       } else {
