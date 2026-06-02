@@ -153,7 +153,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       <div className="bg-white w-full max-w-full sm:max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         <div className="p-4 md:p-8 bg-emerald-50 border-b border-emerald-100 flex flex-col items-center">
           <h1 className="text-4xl font-sans font-bold tracking-tight text-emerald-700 drop-shadow-sm mb-2 cursor-default">Esila Ticari</h1>
-          <p className="text-emerald-600 font-medium tracking-wide text-sm">TİCARİ YÖNETİM SİSTEMİ</p>
+          <p className="text-emerald-600 font-medium tracking-wide text-sm">"Ticaretin Bulut Hali"</p>
         </div>
 
         {view === 'login' && (
