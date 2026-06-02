@@ -53,6 +53,9 @@ export const Ariza: React.FC = () => {
   const personnel = store.personnel;
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTicketIds, setSelectedTicketIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
@@ -188,6 +191,27 @@ export const Ariza: React.FC = () => {
         new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
       );
     });
+
+  const toggleTicketSelection = (id: string) => {
+    const newSelection = new Set(selectedTicketIds);
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+    setSelectedTicketIds(newSelection);
+  };
+
+  const toggleAllSelection = () => {
+    if (
+      selectedTicketIds.size === filteredTickets.length &&
+      filteredTickets.length > 0
+    ) {
+      setSelectedTicketIds(new Set());
+    } else {
+      setSelectedTicketIds(new Set(filteredTickets.map((t) => t.id)));
+    }
+  };
 
   const handleSaveTicket = () => {
     if (
@@ -856,7 +880,16 @@ export const Ariza: React.FC = () => {
   };
 
   const handleBulkEmail = async () => {
-    if (filteredTickets.length === 0) {
+    if (selectedTicketIds.size === 0) {
+      toast.error("Lütfen mail gönderilecek kayıtları seçin.");
+      return;
+    }
+
+    const ticketsToSend = filteredTickets.filter((t) =>
+      selectedTicketIds.has(t.id),
+    );
+
+    if (ticketsToSend.length === 0) {
       toast.error("Toplu mail gönderilecek kayıt bulunamadı.");
       return;
     }
@@ -868,7 +901,7 @@ export const Ariza: React.FC = () => {
     const loadingToast = toast.loading("Toplu e-posta gönderimi başlatıldı...");
     let successCount = 0;
 
-    for (const ticket of filteredTickets) {
+    for (const ticket of ticketsToSend) {
       const customer = customers.find((c) => c.id === ticket.customerId);
       if (customer?.email) {
         const emailContent = parseEmailTemplate(templateRaw, {
@@ -997,6 +1030,7 @@ export const Ariza: React.FC = () => {
       toast.success(`${successCount} müşteriye toplu mail gönderildi.`, {
         id: loadingToast,
       });
+      setSelectedTicketIds(new Set());
     } else {
       toast.error("Geçerli e-posta adresine sahip müşteri bulunamadı.", {
         id: loadingToast,
@@ -1092,6 +1126,17 @@ export const Ariza: React.FC = () => {
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="p-4 w-12">
+                      <input
+                        type="checkbox"
+                        checked={
+                          filteredTickets.length > 0 &&
+                          selectedTicketIds.size === filteredTickets.length
+                        }
+                        onChange={toggleAllSelection}
+                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+                    </th>
                     <th className="p-4 font-semibold text-gray-600">Tarih</th>
                     <th className="p-4 font-semibold text-gray-600">Müşteri</th>
                     <th className="p-4 font-semibold text-gray-600">
@@ -1116,7 +1161,7 @@ export const Ariza: React.FC = () => {
                   {filteredTickets.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={activeTab === "maintenance" ? 8 : 7}
+                        colSpan={activeTab === "maintenance" ? 9 : 8}
                         className="p-8 text-center text-gray-500"
                       >
                         Henüz kayıtlı arıza formu bulunmuyor.
@@ -1128,6 +1173,14 @@ export const Ariza: React.FC = () => {
                         key={ticket.id}
                         className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
                       >
+                        <td className="p-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedTicketIds.has(ticket.id)}
+                            onChange={() => toggleTicketSelection(ticket.id)}
+                            className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                          />
+                        </td>
                         <td className="p-4 text-gray-600">
                           {new Date(ticket.dateCreated).toLocaleDateString(
                             "tr-TR",
