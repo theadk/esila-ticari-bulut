@@ -603,44 +603,44 @@ export const Ariza: React.FC = () => {
         <head>
           <title>Servis Formu - ${selectedTicket.id}</title>
           <style>
-            @page { size: ${isA4 ? "A4 portrait" : "80mm auto"}; margin: ${isA4 ? "15mm" : "0"}; }
+            @page { size: ${isA4 ? "A4 portrait" : "80mm auto"}; margin: ${isA4 ? "10mm" : "0"}; }
             body { 
               font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
               margin: 0 auto; 
               padding: ${isA4 ? "0" : "4mm"}; 
-              width: ${isA4 ? "auto" : "72mm"};
+              width: ${isA4 ? "190mm" : "72mm"};
               box-sizing: border-box;
               color: #111827;
-              font-size: ${isA4 ? "14px" : "12px"};
-              line-height: 1.5;
+              font-size: ${isA4 ? "12px" : "12px"};
+              line-height: 1.4;
             }
-            .header { text-align: center; margin-bottom: ${isA4 ? "30px" : "15px"}; border-bottom: ${isA4 ? "2px solid #10b981" : "1px solid #000"}; padding-bottom: ${isA4 ? "20px" : "10px"}; }
-            .header h1 { margin: 0; padding: 0; font-size: ${isA4 ? "28px" : "18px"}; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: ${isA4 ? "#065f46" : "#000"}; }
-            .header-info { font-size: ${isA4 ? "13px" : "10px"}; margin-top: 5px; color: #4b5563; }
+            .header { text-align: center; margin-bottom: ${isA4 ? "20px" : "15px"}; border-bottom: ${isA4 ? "2px solid #10b981" : "1px solid #000"}; padding-bottom: ${isA4 ? "10px" : "10px"}; }
+            .header h1 { margin: 0; padding: 0; font-size: ${isA4 ? "24px" : "18px"}; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: ${isA4 ? "#065f46" : "#000"}; }
+            .header-info { font-size: ${isA4 ? "11px" : "10px"}; margin-top: 5px; color: #4b5563; }
             
-            .info-grid { display: ${isA4 ? "grid" : "block"}; grid-template-columns: 1fr 1fr; gap: ${isA4 ? "20px" : "0"}; margin-bottom: ${isA4 ? "20px" : "15px"}; }
-            .info-card { background: ${isA4 ? "#f9fafb" : "transparent"}; padding: ${isA4 ? "15px" : "0"}; border-radius: ${isA4 ? "8px" : "0"}; border: ${isA4 ? "1px solid #e5e7eb" : "none"}; margin-bottom: ${isA4 ? "0" : "10px"}; }
+            .info-grid { display: ${isA4 ? "grid" : "block"}; grid-template-columns: 1fr 1fr; gap: ${isA4 ? "15px" : "0"}; margin-bottom: ${isA4 ? "15px" : "15px"}; }
+            .info-card { background: ${isA4 ? "#f9fafb" : "transparent"}; padding: ${isA4 ? "10px" : "0"}; border-radius: ${isA4 ? "8px" : "0"}; border: ${isA4 ? "1px solid #e5e7eb" : "none"}; margin-bottom: ${isA4 ? "0" : "10px"}; }
             
-            .info-row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: ${isA4 ? "6px 0" : "2px 0"}; }
+            .info-row { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: ${isA4 ? "4px 0" : "2px 0"}; }
             .info-row:last-child { border-bottom: none; }
-            .info-row strong { text-align: left; color: #374151; }
-            .info-row span { text-align: right; font-weight: 500; }
+            .info-row strong { text-align: left; color: #374151; font-size: 12px; }
+            .info-row span { text-align: right; font-weight: 500; font-size: 12px; }
             
-            .desc { margin-top: 15px; background: ${isA4 ? "#f9fafb" : "transparent"}; padding: ${isA4 ? "15px" : "10px 0"}; border-radius: ${isA4 ? "8px" : "0"}; border: ${isA4 ? "1px solid #e5e7eb" : "none"}; border-top: ${isA4 ? "1px solid #e5e7eb" : "1px dashed #ccc"}; }
-            .desc-title { font-weight: bold; margin-bottom: 8px; text-transform: uppercase; font-size: ${isA4 ? "12px" : "11px"}; color: #4b5563; letter-spacing: 0.5px; }
-            .desc-text { white-space: pre-wrap; font-size: ${isA4 ? "14px" : "12px"}; color: #111827; }
+            .desc { margin-top: 10px; background: ${isA4 ? "#f9fafb" : "transparent"}; padding: ${isA4 ? "10px" : "10px 0"}; border-radius: ${isA4 ? "8px" : "0"}; border: ${isA4 ? "1px solid #e5e7eb" : "none"}; border-top: ${isA4 ? "1px solid #e5e7eb" : "1px dashed #ccc"}; }
+            .desc-title { font-weight: bold; margin-bottom: 6px; text-transform: uppercase; font-size: ${isA4 ? "11px" : "11px"}; color: #4b5563; letter-spacing: 0.5px; }
+            .desc-text { white-space: pre-wrap; font-size: ${isA4 ? "12px" : "12px"}; color: #111827; }
             
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px; font-size: ${isA4 ? "14px" : "11px"}; }
-            th { text-align: left; border-bottom: 2px solid #000; padding: ${isA4 ? "8px" : "4px"} 4px; font-weight: bold; color: #374151; }
-            td { padding: ${isA4 ? "8px" : "4px"} 4px; border-bottom: 1px solid #e5e7eb; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px; font-size: ${isA4 ? "12px" : "11px"}; }
+            th { text-align: left; border-bottom: 2px solid #000; padding: ${isA4 ? "6px" : "4px"} 4px; font-weight: bold; color: #374151; }
+            td { padding: ${isA4 ? "6px" : "4px"} 4px; border-bottom: 1px solid #e5e7eb; }
             
-            .total-section { text-align: right; font-weight: bold; font-size: ${isA4 ? "20px" : "14px"}; padding-top: 15px; margin-top: 15px; border-top: 2px solid #000; color: #111827; }
+            .total-section { text-align: right; font-weight: bold; font-size: ${isA4 ? "16px" : "14px"}; padding-top: 10px; margin-top: 10px; border-top: 2px solid #000; color: #111827; }
             
-            .signatures { display: ${isA4 ? "flex" : "block"}; justify-content: space-between; margin-top: ${isA4 ? "40px" : "20px"}; padding: ${isA4 ? "0 20px" : "0"}; font-size: ${isA4 ? "14px" : "12px"}; page-break-inside: avoid; }
-            .signature-box { text-align: center; color: #374151; margin-bottom: ${isA4 ? "0" : "20px"}; width: ${isA4 ? "45%" : "100%"}; }
-            .signature-line { margin-top: ${isA4 ? "50px" : "40px"}; border-bottom: 1px solid #000; width: ${isA4 ? "100%" : "100%"}; margin-bottom: 8px; display: inline-block; }
+            .signatures { display: ${isA4 ? "flex" : "block"}; justify-content: space-between; margin-top: ${isA4 ? "20px" : "20px"}; padding: ${isA4 ? "0 20px" : "0"}; font-size: ${isA4 ? "12px" : "12px"}; page-break-inside: avoid; align-items: flex-end; }
+            .signature-box { text-align: center; color: #374151; margin-bottom: ${isA4 ? "0" : "20px"}; width: ${isA4 ? "30%" : "100%"}; }
+            .signature-line { margin-top: ${isA4 ? "40px" : "40px"}; border-bottom: 1px solid #000; width: ${isA4 ? "100%" : "100%"}; margin-bottom: 6px; display: inline-block; }
             
-            .footer { text-align: center; margin-top: ${isA4 ? "40px" : "20px"}; font-size: ${isA4 ? "11px" : "10px"}; color: #6b7280; border-top: 1px dashed #ccc; padding-top: 15px; page-break-inside: avoid; }
+            .footer { text-align: center; margin-top: ${isA4 ? "20px" : "20px"}; font-size: ${isA4 ? "10px" : "10px"}; color: #6b7280; border-top: 1px dashed #ccc; padding-top: 10px; page-break-inside: avoid; }
           </style>
         </head>
         <body>
@@ -776,11 +776,12 @@ export const Ariza: React.FC = () => {
     wrapper.innerHTML = html;
 
     const opt = {
-      margin: 10,
+      margin: [5, 5, 5, 5],
       filename: `Servis_Formu_${selectedTicket.id.split("-")[0]}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     html2pdf().set(opt).from(wrapper).save();
@@ -826,11 +827,12 @@ export const Ariza: React.FC = () => {
       wrapper.innerHTML = html;
 
       const opt = {
-        margin: 10,
+        margin: [5, 5, 5, 5],
         filename: `Servis_Formu_${selectedTicket.id.split("-")[0]}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: { scale: 2 },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
       const pdfBase64DataUri = await html2pdf()
@@ -963,10 +965,11 @@ export const Ariza: React.FC = () => {
             <html>
               <head>
                 <style>
-                  @page { size: A4 portrait; margin: 15mm; }
-                  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; }
-                  table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left;}
+                  @page { size: A4 portrait; margin: 10mm; }
+                  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; line-height: 1.4; width: 190mm; margin: 0 auto; }
+                  table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: left; font-size: 11px;}
                   th { border-bottom: 1px solid #000; padding-bottom: 5px; }
+                  td { padding: 4px 0; border-bottom: 1px solid #eee; }
                 </style>
               </head>
               <body>
@@ -990,9 +993,10 @@ export const Ariza: React.FC = () => {
           wrapper.innerHTML = html;
           const pdfBase64DataUri = await html2pdf()
             .set({
-              margin: 10,
+              margin: [5, 5, 5, 5],
               filename: "form.pdf",
               jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             })
             .from(wrapper)
             .outputPdf("datauristring");
