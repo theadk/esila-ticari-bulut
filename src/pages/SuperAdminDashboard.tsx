@@ -20,7 +20,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     vkn: '', name: '', email: '', package: 'Yıllık', sector: '',
-    modules: ['cariler', 'urunler'],
+    modules: ['dashboard', 'cariler', 'urunler', 'hizlisatis', 'kasa'],
     expirationDate: ''
   });
 
@@ -47,13 +47,15 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
 
   const MODULES = [
     { id: 'dashboard', name: 'Dashboard' },
+    { id: 'hizlisatis', name: 'Hızlı Satış' },
     { id: 'cariler', name: 'Cariler' },
     { id: 'urunler', name: 'Ürünler' },
     { id: 'depo', name: 'Depo' },
     { id: 'kasa', name: 'Kasa / Banka' },
     { id: 'personel', name: 'Personel' },
     { id: 'siparisler', name: 'Siparişler' },
-    { id: 'teklifler', name: 'Teklifler' },
+    { id: 'efatura', name: 'E-Fatura' },
+    { id: 'teklif', name: 'Teklifler' },
     { id: 'mutabakat', name: 'Mutabakat' },
     { id: 'raporlar', name: 'Raporlar' },
     { id: 'ariza', name: 'Arıza Formları' }
@@ -245,7 +247,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
             setIsEditing(false);
             setFormData({
               vkn: '', name: '', email: '', package: 'Yıllık', sector: '',
-              modules: ['cariler', 'urunler'],
+              modules: ['dashboard', 'cariler', 'urunler', 'hizlisatis', 'kasa'],
               expirationDate: ''
             });
             setIsModalOpen(true);

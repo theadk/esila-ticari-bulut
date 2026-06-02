@@ -839,7 +839,6 @@ export const Ariza: React.FC = () => {
         .set(opt)
         .from(wrapper)
         .outputPdf("datauristring");
-      const base64Content = pdfBase64DataUri.split(",")[1]; // Remove data:application/pdf;base64,
 
       const res = await fetch("/api/send-email", {
         method: "POST",
@@ -856,8 +855,7 @@ export const Ariza: React.FC = () => {
           attachments: [
             {
               filename: `Servis_Formu_${selectedTicket.id.split("-")[0]}.pdf`,
-              content: base64Content,
-              encoding: "base64",
+              path: pdfBase64DataUri,
             },
           ],
         }),
@@ -1000,7 +998,6 @@ export const Ariza: React.FC = () => {
             })
             .from(wrapper)
             .outputPdf("datauristring");
-          const base64Content = pdfBase64DataUri.split(",")[1];
 
           const res = await fetch("/api/send-email", {
             method: "POST",
@@ -1017,8 +1014,7 @@ export const Ariza: React.FC = () => {
               attachments: [
                 {
                   filename: `Servis_Formu_${ticket.id.split("-")[0]}.pdf`,
-                  content: base64Content,
-                  encoding: "base64",
+                  path: pdfBase64DataUri,
                 },
               ],
             }),

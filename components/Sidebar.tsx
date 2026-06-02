@@ -49,10 +49,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
 
   const menuItems = allMenuItems.filter(item => {
     if (allowedModules.includes('all')) return true;
-    if (item.id === 'dashboard' || item.id === 'ayarlar' || item.id === 'efatura') return true;
-    // Map some module names
-    const mappedId = item.id === 'teklif' ? 'teklifler' : item.id === 'hizlisatis' ? 'siparisler' : item.id;
-    return allowedModules.includes(mappedId);
+    if (item.id === 'ayarlar') return true;
+    return allowedModules.includes(item.id);
   });
 
   return (
