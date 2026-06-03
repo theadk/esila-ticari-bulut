@@ -16,6 +16,9 @@ interface Tenant {
 
 export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [emailLogs, setEmailLogs] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'tenants' | 'logs'>('tenants');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -70,8 +73,16 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     } catch(e) {}
   };
 
+  const fetchEmailLogs = async () => {
+    try {
+      const res = await fetch('/api/admin/email-logs');
+      if (res.ok) setEmailLogs(await res.json());
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetchTenants();
+    fetchEmailLogs();
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -205,7 +216,24 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
 
       <main className="flex-1 max-w-6xl w-full mx-auto p-6">
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="flex space-x-1 mb-6 bg-white p-1 rounded-lg shadow-sm border border-gray-200 inline-flex">
+          <button
+            onClick={() => setActiveTab('tenants')}
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${activeTab === 'tenants' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            Şirketler
+          </button>
+          <button
+            onClick={() => setActiveTab('logs')}
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${activeTab === 'logs' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            Mail Gönderim Logları
+          </button>
+        </div>
+
+        {activeTab === 'tenants' && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-4 rounded-xl shadow border border-gray-200 col-span-1 md:col-span-4 grid grid-cols-2 md:grid-cols-6 gap-4 items-center">
             <div className="col-span-2 md:col-span-2">
               <label className="text-xs text-gray-500 font-medium ml-1">Firma / VKN Ara</label>
@@ -324,6 +352,43 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
             </tbody>
           </table>
         </div>
+        </>
+        )}
+
+        {activeTab === 'logs' && (
+          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
+            <h2 className="text-xl font-bold text-gray-800 p-4 border-b">Mail Gönderim Logları</h2>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Tarih</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">VKN</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Alıcı</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Konu</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Durum</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Hata Mesajı</th>
+                </tr>
+              </thead>
+              <tbody>
+                {emailLogs.map((log) => (
+                  <tr key={log.id} className="border-b hover:bg-gray-50/50">
+                    <td className="p-4 text-sm text-gray-800">{new Date(log.date).toLocaleString('tr-TR')}</td>
+                    <td className="p-4 text-sm text-gray-600">{log.vkn}</td>
+                    <td className="p-4 text-sm text-gray-800 font-medium">{log.recipient}</td>
+                    <td className="p-4 text-sm text-gray-700">{log.subject}</td>
+                    <td className="p-4 text-sm text-gray-700">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.status === 'Başarılı' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                         {log.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-sm text-gray-500 max-w-xs truncate" title={log.errorMessage || ''}>{log.errorMessage || '-'}</td>
+                  </tr>
+                ))}
+                {emailLogs.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">Log kaydı bulunamadı.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
       </main>
 
       {isModalOpen && (

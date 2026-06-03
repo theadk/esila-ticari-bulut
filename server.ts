@@ -4,7 +4,7 @@ function generateSecurePassword() {
   const lowercase = 'abcdefghijklmnopqrstuvwxyz';
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const numbers = '0123456789';
-  const symbols = '!@#$%^&*()_+~`|}{[]:;?><,./-=';
+  const symbols = '!@#$%^*()_+=-';
   const all = lowercase + uppercase + numbers + symbols;
 
   let password = '';
@@ -79,8 +79,9 @@ async function startServer() {
 
   app.post('/api/send-email', async (req, res) => {
     try {
+      const vkn = typeof req.headers['x-tenant-id'] === 'string' ? req.headers['x-tenant-id'] : '1111111111';
       const { to, subject, html, wrapped, attachments } = req.body;
-      const result = await sendMail(to, subject, html, wrapped ?? false, attachments);
+      const result = await sendMail(to, subject, html, wrapped ?? false, attachments, vkn);
       if (result.success) {
         res.json({ success: true, messageId: result.messageId });
       } else {
@@ -988,6 +989,19 @@ async function startServer() {
       await pool.query("DELETE FROM settings WHERE vkn = ?", [vkn]);
       res.json({success: true});
     } catch(e) { res.status(500).json({error: String(e)}); }
+  });
+
+  app.get('/api/admin/email-logs', async (req, res) => {
+    try {
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        return res.json([]);
+      }
+      const pool = getPool();
+      const [rows] = await pool.query('SELECT * FROM email_logs ORDER BY date DESC LIMIT 200');
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
   });
 
   app.get('/api/tenant-info', async (req, res) => {

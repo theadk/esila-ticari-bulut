@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { getPool } from './db.js';
 
 const transporter = nodemailer.createTransport({
   host: "mail.esilaticari.com",
@@ -31,20 +32,47 @@ export const wrapEmail = (content: string) => {
   `;
 }
 
-export const sendMail = async (to: string, subject: string, html: string, wrapped: boolean = true, attachments?: any[]) => {
+export const sendMail = async (to: string, subject: string, html: string, wrapped: boolean = true, attachments?: any[], vkn: string = '1111111111') => {
   try {
     const finalHtml = wrapped ? wrapEmail(html) : html;
+    
+    // Create plain text fallback to prevent spam filters from rejecting the email
+    const plainText = finalHtml
+      .replace(/<style[^>]*>.*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
     const info = await transporter.sendMail({
       from: '"Esila Ticari" <bilgilendirme@esilaticari.com>',
       to,
       subject,
       html: finalHtml,
-      attachments
+      text: plainText,
+      attachments,
     });
     console.log("Message sent: %s", info.messageId);
+
+    // Log success
+    try {
+       const pool = getPool();
+       await pool.query("INSERT INTO email_logs (id, vkn, recipient, subject, status, errorMessage) VALUES (?, ?, ?, ?, ?, ?)",
+          [Date.now().toString() + Math.random().toString(36).substring(7), vkn, to, subject, 'Başarılı', null]
+       );
+    } catch(dbErr) { console.error("Error logging mail success:", dbErr); }
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error("Error sending email: ", error);
+
+    // Log failure
+    try {
+       const pool = getPool();
+       await pool.query("INSERT INTO email_logs (id, vkn, recipient, subject, status, errorMessage) VALUES (?, ?, ?, ?, ?, ?)",
+          [Date.now().toString() + Math.random().toString(36).substring(7), vkn, to, subject, 'Başarısız', String(error)]
+       );
+    } catch(dbErr) { console.error("Error logging mail failure:", dbErr); }
+
     return { success: false, error };
   }
 };

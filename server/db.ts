@@ -37,6 +37,30 @@ export async function initDb() {
       if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER settings:', e.message);
     }
 
+    // --- Customers alters ---
+    try { await client.query('ALTER TABLE customers ADD COLUMN customerType VARCHAR(50);'); } catch (e: any) {}
+    try { await client.query('ALTER TABLE customers MODIFY COLUMN type VARCHAR(50);'); } catch (e: any) {}
+    try { await client.query('ALTER TABLE customers ADD COLUMN city VARCHAR(255);'); } catch (e: any) {}
+    try { await client.query('ALTER TABLE customers ADD COLUMN district VARCHAR(255);'); } catch (e: any) {}
+    try { await client.query('ALTER TABLE customers ADD COLUMN iban VARCHAR(255);'); } catch (e: any) {}
+    try { await client.query('ALTER TABLE customers ADD COLUMN balance DECIMAL(15,2) DEFAULT 0;'); } catch (e: any) {}
+    try { await client.query('ALTER TABLE customers ADD COLUMN status VARCHAR(50) DEFAULT "Aktif";'); } catch (e: any) {}
+
+    // --- Orders alters ---
+    try { await client.query('ALTER TABLE orders ADD COLUMN subTotal DECIMAL(15,2);'); } catch (e: any) {}
+    try { await client.query('ALTER TABLE orders ADD COLUMN taxTotal DECIMAL(15,2);'); } catch (e: any) {}
+    try { await client.query('ALTER TABLE orders ADD COLUMN total DECIMAL(15,2);'); } catch (e: any) {}
+
+    // --- Proposals alters ---
+    try { await client.query('ALTER TABLE proposals ADD COLUMN discountTotal DECIMAL(15,2);'); } catch (e: any) {}
+    try { await client.query('ALTER TABLE proposals ADD COLUMN notes TEXT;'); } catch (e: any) {}
+    try { await client.query('ALTER TABLE proposals ADD COLUMN isConvertedToOrder BOOLEAN DEFAULT FALSE;'); } catch (e: any) {}
+    try { await client.query('ALTER TABLE proposals MODIFY COLUMN status VARCHAR(50);'); } catch (e: any) {}
+
+    // --- Cash Transactions alters ---
+    try { await client.query('ALTER TABLE cash_transactions ADD COLUMN customerId VARCHAR(255);'); } catch (e: any) {}
+
+    // --- Service Tickets alters ---
     try {
       await client.query('ALTER TABLE service_tickets ADD COLUMN plumbingChecklist JSON;');
     } catch (e: any) {
@@ -156,6 +180,25 @@ export async function initDb() {
     }
     
     */
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS job_applications (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          firstName VARCHAR(255),
+          lastName VARCHAR(255),
+          email VARCHAR(255),
+          phone VARCHAR(50),
+          positionApplied VARCHAR(255),
+          applicationDate DATETIME,
+          status VARCHAR(50) DEFAULT 'Yeni',
+          resumeUrl VARCHAR(1000),
+          notes TEXT
+        );
+      `);
+    } catch (e: any) {
+      console.error('CREATE job_applications:', e.message);
+    }
     console.log("Database initialized successfully.");
   } catch (err) {
     console.error('Error initializing database:', err);

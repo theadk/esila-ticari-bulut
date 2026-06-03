@@ -255,3 +255,13 @@ CREATE TABLE IF NOT EXISTS e_invoices (
     date DATETIME,
     status ENUM('Taslak', 'Gönderildi', 'Hatalı')
 );
+
+CREATE TABLE IF NOT EXISTS email_logs (
+    id VARCHAR(255) PRIMARY KEY,
+    vkn VARCHAR(50),
+    recipient VARCHAR(255),
+    subject VARCHAR(255),
+    status ENUM('Başarılı', 'Başarısız'),
+    errorMessage TEXT,
+    date DATETIME DEFAULT CURRENT_TIMESTAMP
+);
