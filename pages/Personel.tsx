@@ -52,6 +52,7 @@ export const Personel: React.FC = () => {
   const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [recordFormData, setRecordFormData] = useState<PersonnelRecord>(INITIAL_RECORD);
+  const [recordAmount, setRecordAmount] = useState<number>(0);
   const [isAddingRecord, setIsAddingRecord] = useState(false);
 
   // Bordro States
@@ -129,8 +130,17 @@ export const Personel: React.FC = () => {
     e.preventDefault();
     if (!selectedPersonnel) return;
 
+    if (recordFormData.type === 'Avans Ödemesi' as any) {
+        if (!window.confirm(`${recordAmount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} tutarında avansı kasadan ödemek istediğinize emin misiniz?`)) return;
+    }
+
     const newRecord = { ...recordFormData, id: Math.random().toString(36).substr(2, 9), targetId: selectedPersonnel.id };
     
+    // Add real amount to description to keep track
+    if (recordFormData.type === 'Avans Ödemesi' as any) {
+        newRecord.description = `${newRecord.description}\nTutar: ${recordAmount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}`;
+    }
+
     setPersonnel(personnel.map(p => {
         if (p.id === selectedPersonnel.id) {
             return { ...p, records: [newRecord, ...p.records] };
@@ -143,8 +153,23 @@ export const Personel: React.FC = () => {
         ...selectedPersonnel,
         records: [newRecord, ...selectedPersonnel.records]
     });
+
+    if (recordFormData.type === 'Avans Ödemesi' as any) {
+        const newCashTransaction = {
+          id: Math.random().toString(36).substr(2, 9),
+          date: recordFormData.date || new Date().toISOString().split('T')[0],
+          type: 'Gider' as const,
+          category: 'Personel Avans' as const,
+          amount: recordAmount,
+          description: `${selectedPersonnel.firstName} ${selectedPersonnel.lastName} - Avans Ödemesi (${recordFormData.title})`,
+          personnelId: selectedPersonnel.id,
+        };
+        store.setCashTransactions([newCashTransaction, ...(store.cashTransactions || [])]);
+        toast.success('Avans kasaya işlendi.');
+    }
     
     setIsAddingRecord(false);
+    setRecordAmount(0);
   };
 
   const handleDeleteRecord = (recordId: string) => {
@@ -195,6 +220,48 @@ export const Personel: React.FC = () => {
     });
     
     setIsAddingPayroll(false);
+  };
+
+  const handlePayPayroll = (payroll: Payroll) => {
+    if (!selectedPersonnel) return;
+    if (!window.confirm(`${payroll.date} dönemi maaşını (${payroll.netSalary.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}) kasadan ödemek istediğinize emin misiniz?`)) return;
+
+    const updatedPayroll = {...payroll, status: 'Ödendi' as any};
+    
+    const newCashTransaction = {
+      id: Math.random().toString(36).substr(2, 9),
+      date: new Date().toISOString(),
+      type: 'Gider' as const,
+      category: 'Personel Maaşı' as const,
+      amount: payroll.netSalary,
+      description: `${selectedPersonnel.firstName} ${selectedPersonnel.lastName} - ${payroll.date} Dönemi Maaş Ödemesi`,
+      personnelId: selectedPersonnel.id,
+    };
+
+    const newRecord = {
+        id: Math.random().toString(36).substr(2, 9),
+        targetId: selectedPersonnel.id,
+        date: new Date().toISOString(),
+        type: 'Not' as any,
+        title: 'Personel Maaşı',
+        description: `${payroll.date} Dönemi Maaş Ödemesi Tutarı: ` + payroll.netSalary.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })
+    };
+
+    const newPersonnelList = personnel.map(p => {
+        if(p.id === selectedPersonnel.id) {
+            return {
+                ...p, 
+                payrolls: p.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || [],
+                records: [newRecord, ...(p.records || [])]
+            };
+        }
+        return p;
+    });
+
+    setPersonnel(newPersonnelList);
+    setSelectedPersonnel(newPersonnelList.find(p => p.id === selectedPersonnel.id) || selectedPersonnel);
+    store.setCashTransactions([newCashTransaction, ...(store.cashTransactions || [])]);
+    toast.success('Maaş ödemesi kasaya işlendi.');
   };
 
   const sendEPayroll = async (payroll: Payroll) => {
@@ -665,8 +732,15 @@ export const Personel: React.FC = () => {
                                         <option value="Maaş Değişikliği">Maaş Değişikliği</option>
                                         <option value="İzin">İzin Formu</option>
                                         <option value="Rapor">Sağlık Raporu</option>
+                                        <option value="Avans Ödemesi">Avans Ödemesi</option>
                                     </select>
                                 </div>
+                                {recordFormData.type === 'Avans Ödemesi' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Avans Tutarı (₺) <span className="text-red-500">*</span></label>
+                                        <input required type="number" min="0" step="0.01" value={recordAmount} onChange={e => setRecordAmount(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" placeholder="0.00" />
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Başlık / Konu <span className="text-red-500">*</span></label>
                                     <input required type="text" value={recordFormData.title} onChange={e => setRecordFormData({...recordFormData, title: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" placeholder="Örn: 2024 Zammı, Yıllık İzin vb." />
@@ -765,6 +839,14 @@ export const Personel: React.FC = () => {
                                             >
                                                 <Mail size={16} /> Gönder
                                             </button>
+                                            {pr.status !== 'Ödendi' && (
+                                                <button 
+                                                    onClick={() => handlePayPayroll(pr)}
+                                                    className="px-3 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg font-medium text-sm flex items-center gap-1 transition-colors"
+                                                >
+                                                    <DollarSign size={16} /> Kasadan Öde
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))

@@ -14,7 +14,12 @@ import {
   Briefcase,
   UserCheck,
   Wallet,
-  FileText
+  FileText,
+  PlusCircle,
+  Settings,
+  X,
+  CreditCard,
+  Edit3
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -37,12 +42,95 @@ import { Product, OrderStatus } from '../types';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
 
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { SortableItem } from '../components/SortableItem';
+
+const DEFAULT_STATS_ORDER = [
+  'stat_monthlySales', 
+  'stat_dailyIncome', 
+  'stat_pendingOrders', 
+  'stat_pendingProposals',
+  'stat_activeCustomers', 
+  'stat_criticalStock', 
+  'stat_activePersonnel', 
+  'stat_newJobApps'
+];
+
+const DEFAULT_CHARTS_ORDER = [
+  'chart_weeklySales',
+  'chart_collections',
+  'chart_calendar',
+  'chart_serviceStatus'
+];
+
 export const Dashboard: React.FC = () => {
   const { customers, transactions, serviceTickets, settings, setServiceTickets, cashTransactions, personnel, jobApplications, orders, eInvoices, proposals } = useAppStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
   const [isSendingMaintenanceReminders, setIsSendingMaintenanceReminders] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
+
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [statsOrder, setStatsOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('esila_dashboard_stats');
+    return saved ? JSON.parse(saved) : DEFAULT_STATS_ORDER;
+  });
+
+  const [chartsOrder, setChartsOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('esila_dashboard_charts');
+    return saved ? JSON.parse(saved) : DEFAULT_CHARTS_ORDER;
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEndStats = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setStatsOrder((items) => {
+        const oldIndex = items.indexOf(String(active.id));
+        const newIndex = items.indexOf(String(over.id));
+        const newArray = arrayMove(items, oldIndex, newIndex);
+        localStorage.setItem('esila_dashboard_stats', JSON.stringify(newArray));
+        return newArray;
+      });
+    }
+  };
+
+  const handleDragEndCharts = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setChartsOrder((items) => {
+        const oldIndex = items.indexOf(String(active.id));
+        const newIndex = items.indexOf(String(over.id));
+        const newArray = arrayMove(items, oldIndex, newIndex);
+        localStorage.setItem('esila_dashboard_charts', JSON.stringify(newArray));
+        return newArray;
+      });
+    }
+  };
 
   useEffect(() => {
     api.getProducts()
@@ -214,10 +302,324 @@ export const Dashboard: React.FC = () => {
     return data;
   }, [transactions]);
 
+  const renderStatCard = (id: string) => {
+    switch(id) {
+      case 'stat_monthlySales': return (
+        <SortableItem key={id} id={id} isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 flex items-center space-x-4">
+            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-full">
+              <TrendingUp size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Aylık Satış (Fatura)</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">
+                {stats.monthlySales.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+              </p>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      case 'stat_dailyIncome': return (
+        <SortableItem key={id} id={id} isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 flex items-center space-x-4">
+            <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
+              <Wallet size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Bugünkü Kasa Geliri</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">
+                 {stats.dailyIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+              </p>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      case 'stat_pendingOrders': return (
+        <SortableItem key={id} id={id} isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 flex items-center space-x-4">
+            <div className="p-3 bg-amber-100 text-amber-600 rounded-full">
+              <ShoppingCart size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Bekleyen Siparişler</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.pendingOrders}</p>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      case 'stat_pendingProposals': return (
+        <SortableItem key={id} id={id} isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 flex items-center space-x-4">
+            <div className="p-3 bg-indigo-100 text-indigo-600 rounded-full">
+              <FileText size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Bekleyen Teklifler</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.pendingProposals}</p>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      case 'stat_activeCustomers': return (
+        <SortableItem key={id} id={id} isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 flex items-center space-x-4">
+            <div className="p-3 bg-pink-100 text-pink-600 rounded-full">
+              <Users size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Kayıtlı Cariler</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.activeCustomers}</p>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      case 'stat_criticalStock': return (
+        <SortableItem key={id} id={id} isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 flex items-center space-x-4">
+            <div className="p-3 bg-red-100 text-red-600 rounded-full">
+              <Package size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Kritik Stok Uyarıları</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.criticalStock}</p>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      case 'stat_activePersonnel': return (
+        <SortableItem key={id} id={id} isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 flex items-center space-x-4">
+            <div className="p-3 bg-cyan-100 text-cyan-600 rounded-full">
+              <UserCheck size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Aktif Personeller</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.activePersonnel}</p>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      case 'stat_newJobApps': return (
+        <SortableItem key={id} id={id} isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 flex items-center space-x-4">
+            <div className="p-3 bg-fuchsia-100 text-fuchsia-600 rounded-full">
+              <Briefcase size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Yeni İş Başvuruları</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.newJobApps}</p>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      default: return null;
+    }
+  };
+
+  const renderChartCard = (id: string) => {
+    switch(id) {
+      case 'chart_weeklySales': return (
+        <SortableItem key={id} id={id} className="lg:col-span-2" isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 h-full flex flex-col">
+            <h3 className="text-lg font-semibold mb-4">Haftalık Satış Grafiği (Son 7 Gün)</h3>
+            <div className="flex-1 min-h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    formatter={(value: number) => value.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                  />
+                  <Bar dataKey="satis" name="Satış" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      case 'chart_collections': return (
+        <SortableItem key={id} id={id} isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 h-full flex flex-col">
+            <h3 className="text-lg font-semibold mb-4">Tahsilat Grafiği (Son 7 Gün)</h3>
+            <div className="flex-1 min-h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip 
+                     contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                     formatter={(value: number) => value.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                  />
+                  <Line type="monotone" name="Tahsilat" dataKey="tahsilat" stroke="#059669" strokeWidth={3} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      case 'chart_calendar': return (
+        <SortableItem key={id} id={id} className="lg:col-span-2" isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 h-full flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Arıza / Servis Formları Takvimi</h3>
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}
+                  className="p-1 hover:bg-gray-100 rounded-full relative z-10"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <h4 className="font-medium text-gray-700 w-32 text-center">
+                  {calendarDate.toLocaleString('tr-TR', { month: 'long', year: 'numeric' })}
+                </h4>
+                <button 
+                  onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))}
+                  className="p-1 hover:bg-gray-100 rounded-full relative z-10"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-7 gap-1">
+              {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(day => (
+                <div key={day} className="text-center text-xs font-semibold text-gray-500 py-2">
+                  {day}
+                </div>
+              ))}
+              
+              {(() => {
+                const year = calendarDate.getFullYear();
+                const month = calendarDate.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const firstDay = new Date(year, month, 1).getDay();
+                const startingEmptySlots = firstDay === 0 ? 6 : firstDay - 1;
+                
+                const days = [];
+                for (let i = 0; i < startingEmptySlots; i++) {
+                  days.push(<div key={`empty-${i}`} className="bg-transparent rounded-lg p-2 h-20"></div>);
+                }
+                for (let i = 1; i <= daysInMonth; i++) {
+                  const currentDateObj = new Date(year, month, i);
+                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                  const dayTickets = serviceTickets.filter(t => t.dateCreated?.startsWith(dateStr));
+                  
+                  days.push(
+                    <div key={`day-${i}`} className="border border-gray-100 rounded-lg p-1 sm:p-2 h-20 md:h-24 flex flex-col items-center justify-start hover:border-emerald-300 transition-colors bg-gray-50/50">
+                      <span className={`text-xs font-medium mb-1 ${`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}` === dateStr ? 'bg-emerald-100 text-emerald-800 w-6 h-6 rounded-full flex items-center justify-center' : 'text-gray-500'}`}>
+                        {i}
+                      </span>
+                      {dayTickets.length > 0 && (
+                        <div className="flex flex-col gap-1 w-full mt-1">
+                          <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-center truncate" title={`${dayTickets.length} Servis Kaydı`}>
+                            {dayTickets.length} Servis
+                          </span>
+                          {dayTickets.some(t => t.status === 'Bekliyor') && (
+                            <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-center truncate">
+                              {dayTickets.filter(t => t.status === 'Bekliyor').length} Bekleyen
+                            </span>
+                          )}
+                          {dayTickets.some(t => t.status === 'Tamamlandı') && (
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-center truncate">
+                              {dayTickets.filter(t => t.status === 'Tamamlandı').length} Biten
+                            </span>
+                          )}
+                          {dayTickets.some(t => t.status === 'İşlemde') && (
+                            <span className="text-[10px] bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded text-center truncate">
+                              {dayTickets.filter(t => t.status === 'İşlemde').length} İşlemde
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return days;
+              })()}
+            </div>
+          </div>
+        </SortableItem>
+      );
+      case 'chart_serviceStatus': return (
+        <SortableItem key={id} id={id} isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 h-full flex flex-col">
+            <h3 className="text-lg font-semibold mb-4">Servis Durumları</h3>
+            <div className="flex-1 min-h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={serviceStatsData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {serviceStatsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      default: return null;
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800">Yönetim Paneli</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-2xl font-bold text-gray-800">Yönetim Paneli</h2>
+        <button 
+          onClick={() => setIsEditMode(!isEditMode)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isEditMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+        >
+          {isEditMode ? <><X size={18} /> Düzenlemeyi Bitir</> : <><Edit3 size={18} /> Paneli Düzenle</>}
+        </button>
+      </div>
       
+      {/* Quick Actions Widget */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <h3 className="text-sm font-semibold text-gray-500 tracking-wider uppercase mb-4">Hızlı İşlemler</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <a href="/hizlisatis" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-100 cursor-pointer">
+                <ShoppingCart size={24} className="mb-2" />
+                <span className="text-sm font-medium text-center">Hızlı Satış</span>
+            </a>
+            <a href="/urunler" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100 cursor-pointer">
+                <PlusCircle size={24} className="mb-2" />
+                <span className="text-sm font-medium text-center">Ürün Ekle</span>
+            </a>
+            <a href="/cariler" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-100 cursor-pointer">
+                <Users size={24} className="mb-2" />
+                <span className="text-sm font-medium text-center">Cari Ekle</span>
+            </a>
+            <a href="/kasa" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-100 cursor-pointer">
+                <CreditCard size={24} className="mb-2" />
+                <span className="text-sm font-medium text-center">Tahsilat Gir</span>
+            </a>
+            <a href="/efatura" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors border border-purple-100 cursor-pointer">
+                <FileText size={24} className="mb-2" />
+                <span className="text-sm font-medium text-center">Fatura Kes</span>
+            </a>
+            <a href="/ariza" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors border border-orange-100 cursor-pointer">
+                <Wrench size={24} className="mb-2" />
+                <span className="text-sm font-medium text-center">Servis Aç</span>
+            </a>
+        </div>
+      </div>
+
       {dueMaintenance.length > 0 && (
         <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3">
@@ -240,238 +642,23 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:p-6">
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-full">
-            <TrendingUp size={24} />
+      {/* Stats Cards Dashboard Context */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndStats}>
+        <SortableContext items={statsOrder} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {statsOrder.map(id => renderStatCard(id))}
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Aylık Satış (Fatura)</p>
-            <p className="text-xl sm:text-2xl font-bold text-gray-800">
-              {stats.monthlySales.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-            </p>
-          </div>
-        </div>
+        </SortableContext>
+      </DndContext>
 
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-          <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
-            <Wallet size={24} />
+      {/* Charts Context */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndCharts}>
+        <SortableContext items={chartsOrder} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {chartsOrder.map(id => renderChartCard(id))}
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Bugünkü Kasa Geliri</p>
-            <p className="text-xl sm:text-2xl font-bold text-gray-800">
-               {stats.dailyIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-          <div className="p-3 bg-amber-100 text-amber-600 rounded-full">
-            <ShoppingCart size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Bekleyen Siparişler</p>
-            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.pendingOrders}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-          <div className="p-3 bg-indigo-100 text-indigo-600 rounded-full">
-            <FileText size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Bekleyen Teklifler</p>
-            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.pendingProposals}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-          <div className="p-3 bg-pink-100 text-pink-600 rounded-full">
-            <Users size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Kayıtlı Cariler</p>
-            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.activeCustomers}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-          <div className="p-3 bg-red-100 text-red-600 rounded-full">
-            <Package size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Kritik Stok Uyarıları</p>
-            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.criticalStock}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-          <div className="p-3 bg-cyan-100 text-cyan-600 rounded-full">
-            <UserCheck size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Aktif Personeller</p>
-            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.activePersonnel}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-          <div className="p-3 bg-fuchsia-100 text-fuchsia-600 rounded-full">
-            <Briefcase size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Yeni İş Başvuruları</p>
-            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.newJobApps}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:p-6">
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 lg:col-span-2">
-          <h3 className="text-lg font-semibold mb-4">Haftalık Satış Grafiği (Son 7 Gün)</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  formatter={(value: number) => value.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                />
-                <Bar dataKey="satis" name="Satış" fill="#10b981" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold mb-4">Tahsilat Grafiği (Son 7 Gün)</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip 
-                   contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                   formatter={(value: number) => value.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                />
-                <Line type="monotone" name="Tahsilat" dataKey="tahsilat" stroke="#059669" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 lg:col-span-2">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Arıza / Servis Formları Takvimi</h3>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}
-                className="p-1 hover:bg-gray-100 rounded-full"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <h4 className="font-medium text-gray-700 w-32 text-center">
-                {calendarDate.toLocaleString('tr-TR', { month: 'long', year: 'numeric' })}
-              </h4>
-              <button 
-                onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))}
-                className="p-1 hover:bg-gray-100 rounded-full"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-7 gap-1">
-            {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(day => (
-              <div key={day} className="text-center text-xs font-semibold text-gray-500 py-2">
-                {day}
-              </div>
-            ))}
-            
-            {(() => {
-              const year = calendarDate.getFullYear();
-              const month = calendarDate.getMonth();
-              const daysInMonth = new Date(year, month + 1, 0).getDate();
-              const firstDay = new Date(year, month, 1).getDay();
-              const startingEmptySlots = firstDay === 0 ? 6 : firstDay - 1;
-              
-              const days = [];
-              for (let i = 0; i < startingEmptySlots; i++) {
-                days.push(<div key={`empty-${i}`} className="bg-transparent rounded-lg p-2 h-20"></div>);
-              }
-              for (let i = 1; i <= daysInMonth; i++) {
-                const currentDateObj = new Date(year, month, i);
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                const dayTickets = serviceTickets.filter(t => t.dateCreated?.startsWith(dateStr));
-                
-                days.push(
-                  <div key={`day-${i}`} className="border border-gray-100 rounded-lg p-1 sm:p-2 h-20 md:h-24 flex flex-col items-center justify-start hover:border-emerald-300 transition-colors bg-gray-50/50">
-                    <span className={`text-xs font-medium mb-1 ${`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}` === dateStr ? 'bg-emerald-100 text-emerald-800 w-6 h-6 rounded-full flex items-center justify-center' : 'text-gray-500'}`}>
-                      {i}
-                    </span>
-                    {dayTickets.length > 0 && (
-                      <div className="flex flex-col gap-1 w-full mt-1">
-                        <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-center truncate" title={`${dayTickets.length} Servis Kaydı`}>
-                          {dayTickets.length} Servis
-                        </span>
-                        {dayTickets.some(t => t.status === 'Bekliyor') && (
-                          <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-center truncate">
-                            {dayTickets.filter(t => t.status === 'Bekliyor').length} Bekleyen
-                          </span>
-                        )}
-                        {dayTickets.some(t => t.status === 'Tamamlandı') && (
-                          <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-center truncate">
-                            {dayTickets.filter(t => t.status === 'Tamamlandı').length} Biten
-                          </span>
-                        )}
-                        {dayTickets.some(t => t.status === 'İşlemde') && (
-                          <span className="text-[10px] bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded text-center truncate">
-                            {dayTickets.filter(t => t.status === 'İşlemde').length} İşlemde
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-              return days;
-            })()}
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold mb-4">Servis Durumları</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={serviceStatsData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {serviceStatsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+        </SortableContext>
+      </DndContext>
 
       {/* License Info Footer */}
       {tenantInfo && (
