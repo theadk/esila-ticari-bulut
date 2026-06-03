@@ -21,6 +21,7 @@ import { SuperAdminLogin } from './src/pages/SuperAdminLogin';
 import { SuperAdminDashboard } from './src/pages/SuperAdminDashboard';
 import { FileText } from 'lucide-react';
 import { initializeStore } from './lib/store';
+import { InstallPrompt } from './src/components/InstallPrompt';
 
 const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
   <div className="flex flex-col items-center justify-center h-full text-gray-400">
@@ -120,6 +121,7 @@ const App: React.FC = () => {
           body { overflow: visible !important; }
         }
       `}</style>
+      <InstallPrompt />
     </div>
   );
 };
