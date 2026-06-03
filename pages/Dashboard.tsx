@@ -8,7 +8,13 @@ import {
   Wrench,
   Send,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ShoppingCart,
+  Receipt,
+  Briefcase,
+  UserCheck,
+  Wallet,
+  FileText
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -27,12 +33,12 @@ import {
 } from 'recharts';
 import { useAppStore } from '../lib/store';
 import { api } from '../lib/api';
-import { Product } from '../types';
+import { Product, OrderStatus } from '../types';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
 
 export const Dashboard: React.FC = () => {
-  const { customers, transactions, serviceTickets, settings, setServiceTickets } = useAppStore();
+  const { customers, transactions, serviceTickets, settings, setServiceTickets, cashTransactions, personnel, jobApplications, orders, eInvoices, proposals } = useAppStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
   const [isSendingMaintenanceReminders, setIsSendingMaintenanceReminders] = useState(false);
@@ -89,8 +95,30 @@ export const Dashboard: React.FC = () => {
     const totalProducts = products.length;
     const criticalStock = products.filter(p => p.stock < 10).length;
 
-    return { monthlySales, activeCustomers, totalProducts, criticalStock };
-  }, [transactions, customers, products]);
+    const pendingOrders = orders.filter(o => o.status === OrderStatus.PENDING).length;
+    
+    // Daily Cash
+    const dateString = now.toISOString().split('T')[0];
+    const dailyIncome = cashTransactions
+      .filter(c => c.type === 'Gelir' && c.date.startsWith(dateString))
+      .reduce((sum, c) => sum + c.amount, 0);
+
+    const activePersonnel = personnel.filter(p => !p.employmentStatus || p.employmentStatus === 'Aktif').length;
+    const newJobApps = jobApplications.filter(j => j.status === 'Yeni').length;
+    const pendingProposals = proposals.filter(p => p.status === 'Bekliyor').length;
+
+    return { 
+      monthlySales, 
+      activeCustomers, 
+      totalProducts, 
+      criticalStock,
+      pendingOrders,
+      dailyIncome,
+      activePersonnel,
+      newJobApps,
+      pendingProposals
+    };
+  }, [transactions, customers, products, orders, cashTransactions, personnel, jobApplications, proposals]);
 
   const dueMaintenance = useMemo(() => {
     return serviceTickets.filter(ticket => {
@@ -214,45 +242,87 @@ export const Dashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:p-6">
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
           <div className="p-3 bg-emerald-100 text-emerald-600 rounded-full">
             <TrendingUp size={24} />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Toplam Satış (Aylık)</p>
-            <p className="text-2xl font-bold text-gray-800">
+            <p className="text-sm text-gray-500">Aylık Satış (Fatura)</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-800">
               {stats.monthlySales.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
             </p>
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
           <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
+            <Wallet size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Bugünkü Kasa Geliri</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-800">
+               {stats.dailyIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
+          <div className="p-3 bg-amber-100 text-amber-600 rounded-full">
+            <ShoppingCart size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Bekleyen Siparişler</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.pendingOrders}</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
+          <div className="p-3 bg-indigo-100 text-indigo-600 rounded-full">
+            <FileText size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Bekleyen Teklifler</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.pendingProposals}</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
+          <div className="p-3 bg-pink-100 text-pink-600 rounded-full">
             <Users size={24} />
           </div>
           <div>
             <p className="text-sm text-gray-500">Kayıtlı Cariler</p>
-            <p className="text-2xl font-bold text-gray-800">{stats.activeCustomers}</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.activeCustomers}</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
-          <div className="p-3 bg-purple-100 text-purple-600 rounded-full">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
+          <div className="p-3 bg-red-100 text-red-600 rounded-full">
             <Package size={24} />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Toplam Ürün</p>
-            <p className="text-2xl font-bold text-gray-800">{stats.totalProducts}</p>
+            <p className="text-sm text-gray-500">Kritik Stok Uyarıları</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.criticalStock}</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
-          <div className="p-3 bg-red-100 text-red-600 rounded-full">
-            <AlertCircle size={24} />
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
+          <div className="p-3 bg-cyan-100 text-cyan-600 rounded-full">
+            <UserCheck size={24} />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Kritik Stok</p>
-            <p className="text-2xl font-bold text-gray-800">{stats.criticalStock}</p>
+            <p className="text-sm text-gray-500">Aktif Personeller</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.activePersonnel}</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
+          <div className="p-3 bg-fuchsia-100 text-fuchsia-600 rounded-full">
+            <Briefcase size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Yeni İş Başvuruları</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.newJobApps}</p>
           </div>
         </div>
       </div>
