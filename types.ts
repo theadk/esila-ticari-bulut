@@ -266,6 +266,10 @@ export interface Settings {
   next_product_id?: number;
   prefix_personnel?: string;
   next_personnel_id?: number;
+  prefix_efatura?: string;
+  next_efatura_id?: number;
+  prefix_earsiv?: string;
+  next_earsiv_id?: number;
   
   // Mail Şablonları
   email_template_customer?: string;

@@ -627,6 +627,60 @@ export const Ayarlar: React.FC = () => {
                   <div className="text-xs mt-1 text-gray-500 text-right">Örnek Sonuç: <strong className="text-gray-800">{(settings.prefix_personnel || 'PER')}-{(settings.next_personnel_id || 1001)}</strong></div>
                 </div>
 
+                {/* E-Fatura Şablonu */}
+                <div className="flex flex-col gap-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                  <h4 className="font-semibold text-gray-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-teal-500"></div>E-Fatura Numarası</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Ön Ek (3 Haneli)</label>
+                      <input 
+                        type="text" 
+                        maxLength={3}
+                        value={settings.prefix_efatura || 'FAT'}
+                        onChange={(e) => handleChange('prefix_efatura', e.target.value.toUpperCase().slice(0, 3))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Sıradaki No</label>
+                      <input 
+                        type="number" 
+                        value={settings.next_efatura_id || 1}
+                        onChange={(e) => handleChange('next_efatura_id', Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs mt-1 text-gray-500 text-right">Örnek Sonuç: <strong className="text-gray-800">{(settings.prefix_efatura || 'FAT').padEnd(3, 'A').slice(0, 3)}{new Date().getFullYear()}{String(settings.next_efatura_id || 1).padStart(9, '0')}</strong></div>
+                </div>
+
+                {/* E-Arşiv Şablonu */}
+                <div className="flex flex-col gap-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                  <h4 className="font-semibold text-gray-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-rose-500"></div>E-Arşiv Numarası</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Ön Ek (3 Haneli)</label>
+                      <input 
+                        type="text" 
+                        maxLength={3}
+                        value={settings.prefix_earsiv || 'ARS'}
+                        onChange={(e) => handleChange('prefix_earsiv', e.target.value.toUpperCase().slice(0, 3))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Sıradaki No</label>
+                      <input 
+                        type="number" 
+                        value={settings.next_earsiv_id || 1}
+                        onChange={(e) => handleChange('next_earsiv_id', Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs mt-1 text-gray-500 text-right">Örnek Sonuç: <strong className="text-gray-800">{(settings.prefix_earsiv || 'ARS').padEnd(3, 'A').slice(0, 3)}{new Date().getFullYear()}{String(settings.next_earsiv_id || 1).padStart(9, '0')}</strong></div>
+                </div>
+
               </div>
             </div>
           )}

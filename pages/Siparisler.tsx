@@ -355,13 +355,19 @@ export const Siparisler: React.FC = () => {
                     >
                       <Printer size={18} />
                     </button>
-                    <button 
-                      onClick={() => { setEFaturaOrder(order); setEFaturaModalOpen(true); }}
-                      className="text-blue-500 hover:text-blue-700 transition-colors p-2 hover:bg-blue-50 rounded-lg"
-                      title="E-Faturaya Dönüştür"
-                    >
-                      <FileDigit size={18} />
-                    </button>
+                    {store.eInvoices?.some(inv => inv.orderId === order.id) ? (
+                      <span className="text-gray-400 p-2" title="Zaten Faturalandırıldı">
+                        <CheckCircle size={18} />
+                      </span>
+                    ) : (
+                      <button 
+                        onClick={() => { setEFaturaOrder(order); setEFaturaModalOpen(true); }}
+                        className="text-blue-500 hover:text-blue-700 transition-colors p-2 hover:bg-blue-50 rounded-lg"
+                        title="E-Faturaya Dönüştür"
+                      >
+                        <FileDigit size={18} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -457,17 +463,24 @@ export const Siparisler: React.FC = () => {
                  )}
                </div>
                <div className="flex gap-3">
-                 <button 
-                   onClick={() => {
-                     setIsDetailsModalOpen(false);
-                     setEFaturaOrder(selectedOrder);
-                     setEFaturaModalOpen(true);
-                   }}
-                   className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium flex items-center gap-2"
-                 >
-                   <FileDigit size={18} />
-                   E-Fatura Kes
-                 </button>
+                 {!store.eInvoices?.some(inv => inv.orderId === selectedOrder.id) ? (
+                   <button 
+                     onClick={() => {
+                       setIsDetailsModalOpen(false);
+                       setEFaturaOrder(selectedOrder);
+                       setEFaturaModalOpen(true);
+                     }}
+                     className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium flex items-center gap-2"
+                   >
+                     <FileDigit size={18} />
+                     E-Fatura Kes
+                   </button>
+                 ) : (
+                   <div className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg font-medium flex items-center gap-2 cursor-not-allowed" title="Bu sipariş zaten faturalandırılmıştır.">
+                     <CheckCircle size={18} />
+                     Faturalandı
+                   </div>
+                 )}
                  <button 
                    onClick={() => {
                      setPrintType('80mm');
@@ -1215,8 +1228,14 @@ export const Siparisler: React.FC = () => {
                 onClick={async () => {
                   setEFaturaLoading(true);
                   try {
+                    const isArsiv = eFaturaType === 'E-Arşiv';
+                    const prefix = (isArsiv ? store.settings.prefix_earsiv : store.settings.prefix_efatura) || (isArsiv ? 'ARS' : 'FAT');
+                    const nextId = (isArsiv ? store.settings.next_earsiv_id : store.settings.next_efatura_id) || 1;
+                    const year = new Date().getFullYear().toString();
+                    const formattedId = `${prefix.padEnd(3, 'A').slice(0, 3)}${year}${String(nextId).padStart(9, '0')}`;
+
                     const invoiceData: any = {
-                        id: 'INV-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                        id: formattedId,
                         orderId: eFaturaOrder.id,
                         customerName: eFaturaOrder.customerName,
                         amount: eFaturaOrder.total || (eFaturaOrder as any).totalAmount || 0,
@@ -1228,6 +1247,12 @@ export const Siparisler: React.FC = () => {
                     
                     if (store.setEInvoices) {
                         store.setEInvoices([...(store.eInvoices || []), invoiceData]);
+                    }
+                    if (store.setSettings) {
+                        store.setSettings({
+                            ...store.settings,
+                            [isArsiv ? 'next_earsiv_id' : 'next_efatura_id']: nextId + 1
+                        });
                     }
                     
                     // Demo için gecikme ekliyoruz

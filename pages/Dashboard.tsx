@@ -77,7 +77,7 @@ const DEFAULT_CHARTS_ORDER = [
   'chart_serviceStatus'
 ];
 
-export const Dashboard: React.FC = () => {
+export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = ({ setActivePage }) => {
   const { customers, transactions, serviceTickets, settings, setServiceTickets, cashTransactions, personnel, jobApplications, orders, eInvoices, proposals } = useAppStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
@@ -582,6 +582,7 @@ export const Dashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">Yönetim Paneli</h2>
         <button 
+          type="button"
           onClick={() => setIsEditMode(!isEditMode)}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isEditMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
         >
@@ -593,30 +594,30 @@ export const Dashboard: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
         <h3 className="text-sm font-semibold text-gray-500 tracking-wider uppercase mb-4">Hızlı İşlemler</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <a href="/hizlisatis" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-100 cursor-pointer">
+            <button type="button" onClick={() => setActivePage && setActivePage('hizlisatis')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-100 cursor-pointer">
                 <ShoppingCart size={24} className="mb-2" />
                 <span className="text-sm font-medium text-center">Hızlı Satış</span>
-            </a>
-            <a href="/urunler" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100 cursor-pointer">
+            </button>
+            <button type="button" onClick={() => setActivePage && setActivePage('urunler')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100 cursor-pointer">
                 <PlusCircle size={24} className="mb-2" />
                 <span className="text-sm font-medium text-center">Ürün Ekle</span>
-            </a>
-            <a href="/cariler" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-100 cursor-pointer">
+            </button>
+            <button type="button" onClick={() => setActivePage && setActivePage('cariler')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-100 cursor-pointer">
                 <Users size={24} className="mb-2" />
                 <span className="text-sm font-medium text-center">Cari Ekle</span>
-            </a>
-            <a href="/kasa" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-100 cursor-pointer">
+            </button>
+            <button type="button" onClick={() => setActivePage && setActivePage('kasa')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-100 cursor-pointer">
                 <CreditCard size={24} className="mb-2" />
                 <span className="text-sm font-medium text-center">Tahsilat Gir</span>
-            </a>
-            <a href="/efatura" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors border border-purple-100 cursor-pointer">
+            </button>
+            <button type="button" onClick={() => setActivePage && setActivePage('efatura')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors border border-purple-100 cursor-pointer">
                 <FileText size={24} className="mb-2" />
                 <span className="text-sm font-medium text-center">Fatura Kes</span>
-            </a>
-            <a href="/ariza" className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors border border-orange-100 cursor-pointer">
+            </button>
+            <button type="button" onClick={() => setActivePage && setActivePage('ariza')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors border border-orange-100 cursor-pointer">
                 <Wrench size={24} className="mb-2" />
                 <span className="text-sm font-medium text-center">Servis Aç</span>
-            </a>
+            </button>
         </div>
       </div>
 

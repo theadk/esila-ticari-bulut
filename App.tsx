@@ -64,7 +64,7 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activePage) {
-      case 'dashboard': return <Dashboard />;
+      case 'dashboard': return <Dashboard setActivePage={setActivePage} />;
       case 'cariler': return <Cariler />;
       case 'urunler': return <Urunler />;
       case 'depo': return <Depo />;
