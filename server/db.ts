@@ -36,6 +36,8 @@ export async function initDb() {
     } catch (e: any) {
       if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER settings:', e.message);
     }
+    
+    try { await client.query('ALTER TABLE tenants ADD COLUMN isEsilaCustomer BOOLEAN DEFAULT FALSE;'); } catch (e: any) {}
 
     // --- Customers alters ---
     try { await client.query('ALTER TABLE customers ADD COLUMN customerType VARCHAR(50);'); } catch (e: any) {}

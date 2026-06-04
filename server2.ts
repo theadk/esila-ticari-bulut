@@ -674,8 +674,8 @@ async function startServer() {
       }
 
       const pool = getPool();
-      const q = `INSERT INTO tenants (vkn, name, email, modules, status, package, expirationDate, sector) VALUES (?, ?, ?, ?, 'Bekliyor', ?, DATE_ADD(NOW(), INTERVAL ${expInterval}), ?)`;
-      await pool.query(q, [data.vkn, data.name, data.email, JSON.stringify(data.modules), data.package || 'Yıllık', data.sector || '']);
+      const q = `INSERT INTO tenants (vkn, name, email, modules, status, package, expirationDate, sector, isEsilaCustomer) VALUES (?, ?, ?, ?, 'Bekliyor', ?, DATE_ADD(NOW(), INTERVAL ${expInterval}), ?, ?)`;
+      await pool.query(q, [data.vkn, data.name, data.email, JSON.stringify(data.modules), data.package || 'Yıllık', data.sector || '', data.isEsilaCustomer ? true : false]);
       
       // Seed user for tenant
       await pool.query("INSERT INTO users (id, vkn, name, username, email, passwordHash, role, status) VALUES (?, ?, ?, ?, ?, ?, 'Admin', 'Aktif')",

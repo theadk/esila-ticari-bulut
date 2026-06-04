@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS tenants (
     email VARCHAR(255),
     modules JSON,
     status ENUM('Bekliyor', 'Aktif', 'Pasif') DEFAULT 'Bekliyor',
-    activationToken VARCHAR(255)
+    activationToken VARCHAR(255),
+    isEsilaCustomer BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS users (

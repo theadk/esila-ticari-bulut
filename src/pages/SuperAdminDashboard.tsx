@@ -14,6 +14,7 @@ interface Tenant {
   sector?: string;
   phone?: string;
   address?: string;
+  isEsilaCustomer?: boolean;
 }
 
 export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
@@ -313,7 +314,10 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                 <tr key={t.vkn} className="text-sm border-b hover:bg-gray-50/50">
                   <td className="p-4 font-mono font-medium text-gray-900">{t.vkn}</td>
                   <td className="p-4">
-                    <div className="font-medium text-gray-800">{t.name}</div>
+                    <div className="font-medium text-gray-800 flex items-center gap-2">
+                       {t.name}
+                       {t.isEsilaCustomer && <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider" title="Mevcut Esila Yazılım Müşterisi">Esila Müşterisi</span>}
+                    </div>
                     <div className="text-gray-500 text-xs mt-1">{t.email}</div>
                     {t.phone && <div className="text-gray-400 text-xs mt-1">{t.phone}</div>}
                     {t.address && <div className="text-gray-400 text-xs mt-1 truncate max-w-xs" title={t.address}>{t.address}</div>}
