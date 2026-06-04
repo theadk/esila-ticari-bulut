@@ -302,6 +302,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
               <tr>
                 <th className="p-4">VKN</th>
                 <th className="p-4">Firma Adı & E-Posta</th>
+                <th className="p-4">Esila Müşteri</th>
                 <th className="p-4">Paket & Modüller</th>
                 <th className="p-4">Bitiş Tarihi</th>
                 <th className="p-4">Durum</th>
@@ -314,13 +315,19 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                 <tr key={t.vkn} className="text-sm border-b hover:bg-gray-50/50">
                   <td className="p-4 font-mono font-medium text-gray-900">{t.vkn}</td>
                   <td className="p-4">
-                    <div className="font-medium text-gray-800 flex items-center gap-2">
+                    <div className="font-medium text-gray-800">
                        {t.name}
-                       {t.isEsilaCustomer && <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider" title="Mevcut Esila Yazılım Müşterisi">Esila Müşterisi</span>}
                     </div>
                     <div className="text-gray-500 text-xs mt-1">{t.email}</div>
                     {t.phone && <div className="text-gray-400 text-xs mt-1">{t.phone}</div>}
                     {t.address && <div className="text-gray-400 text-xs mt-1 truncate max-w-xs" title={t.address}>{t.address}</div>}
+                  </td>
+                  <td className="p-4">
+                     {t.isEsilaCustomer ? (
+                        <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded border border-blue-200 font-medium inline-block whitespace-nowrap">Evet</span>
+                     ) : (
+                        <span className="text-gray-400 text-xs">-</span>
+                     )}
                   </td>
                   <td className="p-4">
                     <div className="font-medium text-emerald-700">{t.package || 'Yıllık'}</div>
