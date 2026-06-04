@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Power, Mail, Building, UserCheck, XCircle } from 'lucide-react';
+import { Plus, Power, Mail, Building, UserCheck, XCircle, RefreshCcw } from 'lucide-react';
 
 interface Tenant {
   vkn: string;
@@ -12,6 +12,8 @@ interface Tenant {
   expirationDate: string;
   password?: string;
   sector?: string;
+  phone?: string;
+  address?: string;
 }
 
 export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
@@ -37,7 +39,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     if (sectorFilter && t.sector !== sectorFilter) return false;
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
-      if (!t.name.toLowerCase().includes(lower) && !t.vkn.includes(lower) && !t.email.toLowerCase().includes(lower)) return false;
+      if (!t.name.toLowerCase().includes(lower) && !t.vkn.includes(lower) && !t.email.toLowerCase().includes(lower) && !(t.phone && t.phone.toLowerCase().includes(lower)) && !(t.address && t.address.toLowerCase().includes(lower))) return false;
     }
     return true;
   });
@@ -271,17 +273,26 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Lisanslı Şirketler (Tenants)</h2>
-          <button onClick={() => {
-            setIsEditing(false);
-            setFormData({
-              vkn: '', name: '', email: '', package: 'Yıllık', sector: '',
-              modules: ['dashboard', 'cariler', 'urunler', 'hizlisatis', 'kasa'],
-              expirationDate: ''
-            });
-            setIsModalOpen(true);
-          }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-            <Plus size={18} /> Yeni Şirket Ekle
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={fetchTenants}
+              className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2"
+              title="Yenile"
+            >
+              <RefreshCcw size={18} /> Yenile
+            </button>
+            <button onClick={() => {
+              setIsEditing(false);
+              setFormData({
+                vkn: '', name: '', email: '', package: 'Yıllık', sector: '',
+                modules: ['dashboard', 'cariler', 'urunler', 'hizlisatis', 'kasa'],
+                expirationDate: ''
+              });
+              setIsModalOpen(true);
+            }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+              <Plus size={18} /> Yeni Şirket Ekle
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
@@ -299,11 +310,13 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredTenants.map(t => (
-                <tr key={t.vkn} className="text-sm">
+                <tr key={t.vkn} className="text-sm border-b hover:bg-gray-50/50">
                   <td className="p-4 font-mono font-medium text-gray-900">{t.vkn}</td>
                   <td className="p-4">
                     <div className="font-medium text-gray-800">{t.name}</div>
                     <div className="text-gray-500 text-xs mt-1">{t.email}</div>
+                    {t.phone && <div className="text-gray-400 text-xs mt-1">{t.phone}</div>}
+                    {t.address && <div className="text-gray-400 text-xs mt-1 truncate max-w-xs" title={t.address}>{t.address}</div>}
                   </td>
                   <td className="p-4">
                     <div className="font-medium text-emerald-700">{t.package || 'Yıllık'}</div>

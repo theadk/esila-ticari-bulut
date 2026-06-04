@@ -555,14 +555,16 @@ async function startServer() {
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
          const tenants = getFallbackTable('tenants');
          const users = getFallbackTable('users');
+         const settingsTable = getFallbackTable('settings');
          const resData = tenants.map((t) => {
             const u = users.find((us) => us.vkn === t.vkn && us.role === 'Admin');
-            return { ...t, password: u ? u.passwordHash : '' };
+            const sett = settingsTable.find((s) => s.vkn === t.vkn);
+            return { ...t, password: u ? u.passwordHash : '', phone: sett ? sett.phone : t.phone, address: sett ? sett.address : t.address };
          });
          return res.json(resData);
       }
       const pool = getPool();
-      const [rows] = await pool.query("SELECT t.*, u.passwordHash as password FROM tenants t LEFT JOIN users u ON t.vkn = u.vkn AND u.role = 'Admin' GROUP BY t.vkn");
+      const [rows] = await pool.query("SELECT t.*, u.passwordHash as password, s.phone, s.address FROM tenants t LEFT JOIN users u ON t.vkn = u.vkn AND u.role = 'Admin' LEFT JOIN settings s ON t.vkn = s.vkn GROUP BY t.vkn");
       res.json(rows);
     } catch (e) { res.status(500).json({error: String(e)}); }
   });
