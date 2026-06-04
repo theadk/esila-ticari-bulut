@@ -16,6 +16,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [view, setView] = useState<'login' | 'forgot_password' | 'email_sent' | 'register' | 'register_success'>('login');
   const [resetEmail, setResetEmail] = useState('');
   const [registerForm, setRegisterForm] = useState({ vkn: '', name: '', email: '', phone: '', city: '', district: '', address: '', sector: '', isEsilaCustomer: false });
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const cities = getCities();
   const districts = registerForm.city ? getDistricts(registerForm.city) : [];
@@ -29,6 +30,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
+    setIsRegistering(true);
     try {
       const promise = fetch('/api/tenants', {
         method: 'POST',
@@ -60,6 +62,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       setView('register_success');
     } catch (err) {
       setError('Bağlantı hatası veya başvuru gönderilemedi.');
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -456,10 +460,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             <button
               type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+              disabled={isRegistering}
+              className={`w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all ${isRegistering ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
             >
-              <span>Başvuru Yap</span>
-              <ArrowRight size={20} />
+              <span>{isRegistering ? 'Başvuru Yapılıyor...' : 'Başvuru Yap'}</span>
+              {!isRegistering && <ArrowRight size={20} />}
             </button>
             
             <div className="text-center">
