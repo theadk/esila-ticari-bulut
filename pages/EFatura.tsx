@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
   FileText,
+  FileJson,
+  Download,
   Send,
   MoreHorizontal,
   CheckCircle,
@@ -22,14 +24,52 @@ export const EFatura: React.FC = () => {
 
   const invoices = store.eInvoices || [];
 
+  const [isQuerying, setIsQuerying] = useState(false);
+  const [hasQueried, setHasQueried] = useState(false);
+
   useEffect(() => {
     setSelectedIds([]);
   }, [activeTab]);
 
+  useEffect(() => {
+    if (activeTab === "Giden" && !hasQueried) {
+      setHasQueried(true);
+      const needsQuery = invoices.filter((inv) => ['Gönderildi', 'Bekliyor'].includes(inv.status));
+      if (needsQuery.length > 0) {
+        handleQueryStatus(true);
+      }
+    }
+  }, [activeTab, invoices, hasQueried]);
+
+  const handleQueryStatus = (silent = false) => {
+    const needsQuery = invoices.filter((inv) => ['Gönderildi', 'Bekliyor'].includes(inv.status));
+    if (needsQuery.length === 0) {
+      if (!silent) alert("Sorgulanacak faturanız bulunmamaktadır.");
+      return;
+    }
+    setIsQuerying(true);
+    setTimeout(() => {
+      const updated = invoices.map((inv) => {
+        if (['Gönderildi', 'Bekliyor'].includes(inv.status)) {
+            // Rastgele yeni bir durum belirle
+            const random = Math.random();
+            let newStatus = 'Bekliyor';
+            if (random > 0.6) newStatus = 'Onaylandı';
+            else if (random > 0.9) newStatus = 'Reddedildi';
+            return { ...inv, status: newStatus as any };
+        }
+        return inv;
+      });
+      if (store.setEInvoices) store.setEInvoices(updated);
+      setIsQuerying(false);
+      if (!silent) alert(`${needsQuery.length} adet faturanın son durumu GİB'den güncellendi.`);
+    }, 1500);
+  };
+
+
   const filtered = invoices.filter((inv) => {
     if (activeTab === "Taslak") return inv.status === "Taslak";
-    if (activeTab === "Giden")
-      return inv.status === "Gönderildi" || inv.status === "Hatalı";
+    if (activeTab === "Giden") return inv.status !== "Taslak";
     return true;
   });
 
@@ -60,6 +100,60 @@ export const EFatura: React.FC = () => {
     setTimeout(() => {
       window.print();
     }, 500);
+  };
+
+  const handleBulkJSONDownload = () => {
+    if (selectedIds.length === 0) return;
+    const selectedInvoices = invoices.filter((i) => selectedIds.includes(i.id));
+
+    const gibJson = selectedInvoices.map((inv) => {
+        const order = store.orders?.find((o) => o.id === inv.orderId);
+        const customer = store.customers?.find((c) => c.name === inv.customerName || c.id === order?.customerId);
+        
+        return {
+            "GIB_UBL_TR": {
+                "Invoice": {
+                    "ID": inv.id,
+                    "IssueDate": new Date(inv.date).toISOString().split('T')[0],
+                    "InvoiceTypeCode": inv.type,
+                    "ProfileID": inv.scenario,
+                    "DocumentCurrencyCode": "TRY",
+                    "AccountingSupplierParty": {
+                        "Party": {
+                            "PartyName": { "Name": store.settings.companyName || "Şirket Adı" },
+                            "PartyTaxScheme": { "TaxScheme": { "Name": "VD" }, "CompanyID": store.settings.vkn || "1111111111" }
+                        }
+                    },
+                    "AccountingCustomerParty": {
+                        "Party": {
+                            "PartyName": { "Name": inv.customerName },
+                            "PartyTaxScheme": { "TaxScheme": { "Name": customer?.taxOffice || "Müşteri VD" }, "CompanyID": customer?.taxNumber || "2222222222" }
+                        }
+                    },
+                    "LegalMonetaryTotal": {
+                        "LineExtensionAmount": inv.amount,
+                        "TaxExclusiveAmount": inv.amount,
+                        "TaxInclusiveAmount": inv.amount,
+                        "PayableAmount": inv.amount
+                    },
+                    "InvoiceLine": order?.items.map((item, idx) => ({
+                        "ID": (idx + 1).toString(),
+                        "InvoicedQuantity": item.quantity,
+                        "LineExtensionAmount": item.price * item.quantity,
+                        "Item": { "Name": item.productName }
+                    })) || []
+                }
+            }
+        };
+    });
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gibJson, null, 2));
+    const downloadAnchorNode = document.createElement("a");
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `gib_efatura_export_${new Date().getTime()}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
   };
 
   const invoiceOrder = previewInvoice
@@ -105,6 +199,17 @@ export const EFatura: React.FC = () => {
             Şablon Düzenleyici
           </button>
         </div>
+        {activeTab === "Giden" && (
+            <div className="flex ml-4 mt-4 sm:mt-0 items-center justify-end">
+              <button
+                onClick={() => handleQueryStatus(false)}
+                disabled={isQuerying}
+                className="px-4 py-2 bg-orange-600 text-white hover:bg-orange-700 disabled:bg-gray-400 rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+              >
+                <Clock size={16} /> {isQuerying ? 'GİB Sorgulanıyor...' : 'GİB Durum Sorgula'}
+              </button>
+            </div>
+        )}
       </div>
 
       {activeTab === "Şablon" ? (
@@ -131,6 +236,12 @@ export const EFatura: React.FC = () => {
                   className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 shadow-sm"
                 >
                   <Printer size={14} /> Toplu PDF İndir
+                </button>
+                <button
+                  onClick={handleBulkJSONDownload}
+                  className="px-3 py-1.5 bg-white border border-teal-300 text-teal-700 hover:bg-teal-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 shadow-sm"
+                >
+                  <FileJson size={14} /> GİB JSON İndir
                 </button>
               </div>
             </div>
@@ -222,9 +333,24 @@ export const EFatura: React.FC = () => {
                             <Clock size={12} /> Taslak
                           </span>
                         )}
-                        {inv.status === "Gönderildi" && (
+                        {(inv.status === "Gönderildi" || inv.status === "Bekliyor") && (
+                          <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-700 px-2.5 py-1 rounded-full text-xs font-medium border border-orange-200">
+                            <Clock size={12} /> GİB'de Bekliyor
+                          </span>
+                        )}
+                        {inv.status === "Onaylandı" && (
                           <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium border border-green-200">
-                            <CheckCircle size={12} /> Onaylı
+                            <CheckCircle size={12} /> GİB Onaylı
+                          </span>
+                        )}
+                        {inv.status === "Reddedildi" && (
+                          <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 px-2.5 py-1 rounded-full text-xs font-medium border border-red-200">
+                            <X size={12} /> Reddedildi
+                          </span>
+                        )}
+                        {inv.status === "Hatalı" && (
+                          <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 px-2.5 py-1 rounded-full text-xs font-medium border border-red-200">
+                            <X size={12} /> Hatalı
                           </span>
                         )}
                       </td>
@@ -245,9 +371,19 @@ export const EFatura: React.FC = () => {
                               <Send size={14} /> GİB'e Gönder
                             </button>
                           ) : (
-                            <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded">
-                              <MoreHorizontal size={18} />
-                            </button>
+                            <div className="flex gap-1 items-center">
+                              <button 
+                                onClick={() => {
+                                  setSelectedIds([inv.id]);
+                                  setTimeout(handleBulkJSONDownload, 50);
+                                }}
+                                className="p-1.5 text-teal-600 hover:bg-teal-50 rounded" title="GİB JSON İndir">
+                                <FileJson size={16} />
+                              </button>
+                              <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                                <MoreHorizontal size={18} />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </td>

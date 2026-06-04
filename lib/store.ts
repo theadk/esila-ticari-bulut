@@ -66,7 +66,7 @@ export interface EInvoice {
   type: string;
   scenario: string;
   date: string;
-  status: 'Taslak' | 'Gönderildi' | 'Hatalı';
+  status: 'Taslak' | 'Gönderildi' | 'Hatalı' | 'Bekliyor' | 'Onaylandı' | 'Reddedildi';
 }
 let globalEInvoices: EInvoice[] = [];
 let globalOrders: Order[] = [
