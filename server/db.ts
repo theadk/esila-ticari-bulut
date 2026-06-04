@@ -48,6 +48,9 @@ export async function initDb() {
     try { await client.query('ALTER TABLE customers ADD COLUMN balance DECIMAL(15,2) DEFAULT 0;'); } catch (e: any) {}
     try { await client.query('ALTER TABLE customers ADD COLUMN status VARCHAR(50) DEFAULT "Aktif";'); } catch (e: any) {}
 
+    // --- Personnel alters ---
+    try { await client.query('ALTER TABLE personnel ADD COLUMN fixtures JSON;'); } catch (e: any) {}
+
     // --- Orders alters ---
     try { await client.query('ALTER TABLE orders ADD COLUMN subTotal DECIMAL(15,2);'); } catch (e: any) {}
     try { await client.query('ALTER TABLE orders ADD COLUMN taxTotal DECIMAL(15,2);'); } catch (e: any) {}

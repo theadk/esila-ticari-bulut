@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download, Printer } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download, Printer, Package } from 'lucide-react';
 import { Personnel, PersonnelRecord, Payroll } from '../types';
 
 const INITIAL_FORM: Personnel = {
@@ -62,6 +62,11 @@ export const Personel: React.FC = () => {
     id: '', date: new Date().toISOString().substring(0, 7), workedDays: 30, basicSalary: 0, overtimeHours: 0, overtimePay: 0, bonus: 0, deductions: 0, netSalary: 0, status: 'Bekliyor'
   });
 
+  // Zimmet States
+  const [isFixtureModalOpen, setIsFixtureModalOpen] = useState(false);
+  const [isAddingFixture, setIsAddingFixture] = useState(false);
+  const [fixtureFormData, setFixtureFormData] = useState({ productId: '', quantity: 1, dateGiven: new Date().toISOString().split('T')[0] });
+
   const filteredPersonnel = personnel.filter(p => 
     `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.tcNo.includes(searchTerm) ||
@@ -105,6 +110,12 @@ export const Personel: React.FC = () => {
   };
 
   // Özlük
+  const handleOpenFixtures = (p: Personnel) => {
+    setSelectedPersonnel(p);
+    setIsFixtureModalOpen(true);
+    setIsAddingFixture(false);
+  };
+
   const handleOpenRecords = (p: Personnel) => {
     setSelectedPersonnel(p);
     setIsRecordModalOpen(true);
@@ -124,6 +135,62 @@ export const Personel: React.FC = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleSaveFixture = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPersonnel) return;
+
+    const selectedProduct = store.products.find(p => p.id === fixtureFormData.productId);
+    if (!selectedProduct) return toast.error('Lütfen bir ürün seçin.');
+    if (selectedProduct.stock < fixtureFormData.quantity) return toast.error('Depoda yeterli stok yok.');
+
+    const newFixture = { 
+        id: Math.random().toString(36).substr(2, 9), 
+        productId: selectedProduct.id, 
+        productName: selectedProduct.name, 
+        quantity: Number(fixtureFormData.quantity), 
+        dateGiven: fixtureFormData.dateGiven 
+    };
+
+    const newPersonnelList = personnel.map(p => {
+        if (p.id === selectedPersonnel.id) {
+            return { ...p, fixtures: [newFixture, ...(p.fixtures || [])] };
+        }
+        return p;
+    });
+
+    setPersonnel(newPersonnelList);
+    setSelectedPersonnel(newPersonnelList.find(p => p.id === selectedPersonnel.id) || selectedPersonnel);
+
+    // Düşülen stok güncellemesi
+    const updatedProduct = { ...selectedProduct, stock: selectedProduct.stock - newFixture.quantity };
+    store.setProducts(store.products.map(p => p.id === selectedProduct.id ? updatedProduct : p));
+
+    setIsAddingFixture(false);
+    toast.success('Zimmet başarıyla eklendi ve stoktan düşüldü.');
+  };
+
+  const handleReturnFixture = (fixtureId: string, productId: string, quantity: number) => {
+    if (!selectedPersonnel) return;
+    if (!window.confirm('Bu zimmeti iade almak istediğinize emin misiniz?')) return;
+
+    const newPersonnelList = personnel.map(p => {
+        if (p.id === selectedPersonnel.id) {
+            return { ...p, fixtures: (p.fixtures || []).filter(f => f.id !== fixtureId) };
+        }
+        return p;
+    });
+
+    setPersonnel(newPersonnelList);
+    setSelectedPersonnel(newPersonnelList.find(p => p.id === selectedPersonnel.id) || selectedPersonnel);
+
+    const product = store.products.find(p => p.id === productId);
+    if (product) {
+       const updatedProduct = { ...product, stock: product.stock + quantity };
+       store.setProducts(store.products.map(p => p.id === productId ? updatedProduct : p));
+    }
+    toast.success('Zimmet iade alındı ve stoka eklendi.');
   };
 
   const handleSaveRecord = (e: React.FormEvent) => {
@@ -439,6 +506,13 @@ export const Personel: React.FC = () => {
                         <FileText size={18} />
                       </button>
                       <button 
+                        onClick={(e) => { e.stopPropagation(); handleOpenFixtures(p); }} 
+                        className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                        title="Zimmetler"
+                      >
+                        <Package size={18} />
+                      </button>
+                      <button 
                         onClick={(e) => openEditModal(p, e)} 
                         className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                         title="Düzenle"
@@ -613,6 +687,123 @@ export const Personel: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Zimmet Modal */}
+      {isFixtureModalOpen && selectedPersonnel && (
+         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-50 rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+                <div className="bg-white px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0">
+                    <div className="flex flex-wrap items-center gap-4">
+                       <div className="h-12 w-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-700 font-bold text-xl">
+                           <Package size={24} />
+                       </div>
+                       <div>
+                           <h3 className="text-xl font-bold text-gray-800">Personel Zimmetleri</h3>
+                           <p className="text-sm text-gray-500">{selectedPersonnel.firstName} {selectedPersonnel.lastName} • {selectedPersonnel.position}</p>
+                       </div>
+                    </div>
+                    <button onClick={() => setIsFixtureModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100">
+                      <X size={24} />
+                    </button>
+                </div>
+
+                <div className="flex-1 flex overflow-hidden">
+                    {/* List */}
+                    <div className={`w-full ${isAddingFixture ? 'hidden md:block md:w-1/2 lg:w-3/5' : ''} border-r border-gray-200 bg-gray-50 flex flex-col`}>
+                        <div className="p-4 border-b border-gray-200 bg-white flex justify-between items-center shrink-0">
+                            <h4 className="font-semibold text-gray-700">Zimmet Geçmişi</h4>
+                            <button 
+                                onClick={() => {
+                                    setFixtureFormData({ productId: '', quantity: 1, dateGiven: new Date().toISOString().split('T')[0] });
+                                    setIsAddingFixture(true);
+                                }}
+                                className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm"
+                            >
+                                <Plus size={16} /> Yeni Zimmet
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                            {(!selectedPersonnel.fixtures || selectedPersonnel.fixtures.length === 0) ? (
+                                <div className="text-center text-gray-500 py-8 bg-white rounded-lg border border-gray-100">
+                                    <Package size={48} className="mx-auto mb-3 text-gray-300" />
+                                    Herhangi bir zimmet kaydı bulunamadı.
+                                </div>
+                            ) : (
+                                selectedPersonnel.fixtures.map(f => (
+                                    <div key={f.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex items-center gap-2">
+                                               <span className="font-semibold text-gray-800 text-lg">{f.productName}</span>
+                                               <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-medium">{f.quantity} Adet</span>
+                                            </div>
+                                            <button onClick={() => handleReturnFixture(f.id, f.productId, f.quantity)} className="text-red-500 hover:bg-red-50 text-xs px-2 py-1 rounded font-medium border border-red-200 transition-colors">
+                                                İade Al
+                                            </button>
+                                        </div>
+                                        <div className="text-sm text-gray-500 flex gap-4">
+                                            <span>Veriliş: {new Date(f.dateGiven).toLocaleDateString('tr-TR')}</span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Add Form */}
+                    {isAddingFixture && (
+                        <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col bg-white overflow-y-auto relative">
+                             <div className="p-4 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10 shrink-0">
+                                <h4 className="font-bold text-gray-800 flex items-center gap-2">
+                                    <Package size={18} className="text-orange-600"/> Yeni Zimmet Ver
+                                </h4>
+                                <button onClick={() => setIsAddingFixture(false)} className="text-gray-400 hover:text-gray-600 p-1 md:hidden rounded-lg hover:bg-gray-100"><X size={20}/></button>
+                             </div>
+                             <form onSubmit={handleSaveFixture} className="p-4 space-y-5">
+                                 <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Stoktaki Ürün</label>
+                                    <select 
+                                        required
+                                        value={fixtureFormData.productId}
+                                        onChange={(e) => setFixtureFormData({...fixtureFormData, productId: e.target.value})}
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                    >
+                                        <option value="">Seçiniz...</option>
+                                        {store.products.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name} (Stok: {p.stock})</option>
+                                        ))}
+                                    </select>
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-4">
+                                     <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Miktar</label>
+                                        <input 
+                                            type="number" min="1" required
+                                            value={fixtureFormData.quantity}
+                                            onChange={(e) => setFixtureFormData({...fixtureFormData, quantity: Number(e.target.value)})}
+                                            className="w-full p-2 border border-gray-300 rounded-lg"
+                                        />
+                                     </div>
+                                     <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Veriliş Tarihi</label>
+                                        <input 
+                                            type="date" required
+                                            value={fixtureFormData.dateGiven}
+                                            onChange={(e) => setFixtureFormData({...fixtureFormData, dateGiven: e.target.value})}
+                                            className="w-full p-2 border border-gray-300 rounded-lg"
+                                        />
+                                     </div>
+                                 </div>
+                                 
+                                 <button type="submit" className="w-full py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition flex items-center justify-center gap-2 mt-4 font-medium">
+                                    <Plus size={18} /> Zimmeti Kaydet ve Stoktan Düş
+                                 </button>
+                             </form>
+                        </div>
+                    )}
+                </div>
+            </div>
+         </div>
       )}
 
       {/* Özlük Dosyası Modal */}

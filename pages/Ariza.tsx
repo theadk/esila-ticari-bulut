@@ -349,17 +349,43 @@ export const Ariza: React.FC = () => {
 
   const addMaterialToTicket = () => {
     if (!selectedTicket || !selectedProductToAdd || quantityToAdd <= 0) return;
-    const product = products.find(
-      (p) => String(p.id) === String(selectedProductToAdd),
-    );
-    if (!product) return;
+    const isZimmet = selectedProductToAdd.startsWith('zimmet_');
+    const id = selectedProductToAdd.replace('zimmet_', '').replace('depo_', '');
+    let material: ServiceMaterial;
 
-    const material: ServiceMaterial = {
-      productId: product.id,
-      productName: product.name,
-      quantity: quantityToAdd,
-      unitPrice: product.price,
-    };
+    if (isZimmet) {
+       const techPerson = store.personnel.find(p => p.id === selectedTicket.personnelId);
+       if (!techPerson) return;
+       const fixture = techPerson.fixtures?.find(f => String(f.id) === id);
+       if (!fixture) return;
+       if (fixture.quantity < quantityToAdd) {
+           toast.error('Zimmetinizde bu üründen yeterli miktarda yok.');
+           return;
+       }
+       const baseProduct = products.find(p => p.id === fixture.productId);
+       
+       material = {
+         productId: fixture.productId,
+         productName: fixture.productName,
+         quantity: quantityToAdd,
+         unitPrice: baseProduct?.price || 0,
+         source: 'Zimmet',
+         fixtureId: fixture.id
+       };
+    } else {
+       const product = products.find(
+         (p) => String(p.id) === String(id),
+       );
+       if (!product) return;
+
+       material = {
+         productId: product.id,
+         productName: product.name,
+         quantity: quantityToAdd,
+         unitPrice: product.price,
+         source: 'Depo'
+       };
+    }
 
     const updatedTicket = {
       ...selectedTicket,
@@ -429,36 +455,59 @@ export const Ariza: React.FC = () => {
 
     // Check stock for materials and reduce them
     const newProducts = [...products];
+    const newPersonnelList = [...store.personnel];
+    let personnelUpdated = false;
+
     for (const material of selectedTicket.materialsUsed) {
-      const pIndex = newProducts.findIndex((p) => p.id === material.productId);
-      if (pIndex > -1) {
-        let p = newProducts[pIndex];
-        let remainingQuantity = material.quantity;
-        let newWarehouseStocks = [...(p.warehouseStocks || [])];
-
-        for (let i = 0; i < newWarehouseStocks.length; i++) {
-          if (remainingQuantity <= 0) break;
-          if (newWarehouseStocks[i].stock > 0) {
-            const deduct = Math.min(
-              newWarehouseStocks[i].stock,
-              remainingQuantity,
-            );
-            newWarehouseStocks[i] = {
-              ...newWarehouseStocks[i],
-              stock: newWarehouseStocks[i].stock - deduct,
-            };
-            remainingQuantity -= deduct;
-          }
+      if (material.source === 'Zimmet') {
+        const pIndex = newPersonnelList.findIndex(p => String(p.id) === String(selectedTicket.personnelId));
+        if (pIndex > -1 && newPersonnelList[pIndex].fixtures) {
+           const fIndex = newPersonnelList[pIndex].fixtures!.findIndex(f => String(f.id) === String(material.fixtureId));
+           if (fIndex > -1) {
+              const updatedFixtures = [...newPersonnelList[pIndex].fixtures!];
+              updatedFixtures[fIndex] = {
+                 ...updatedFixtures[fIndex],
+                 quantity: Math.max(0, updatedFixtures[fIndex].quantity - material.quantity)
+              };
+              newPersonnelList[pIndex] = { ...newPersonnelList[pIndex], fixtures: updatedFixtures };
+              personnelUpdated = true;
+           }
         }
-
-        newProducts[pIndex] = {
-          ...p,
-          stock: Math.max(0, p.stock - material.quantity),
-          warehouseStocks: newWarehouseStocks,
-        };
+      } else {
+        const pIndex = newProducts.findIndex((p) => String(p.id) === String(material.productId));
+        if (pIndex > -1) {
+          let p = newProducts[pIndex];
+          let remainingQuantity = material.quantity;
+          let newWarehouseStocks = [...(p.warehouseStocks || [])];
+  
+          for (let i = 0; i < newWarehouseStocks.length; i++) {
+            if (remainingQuantity <= 0) break;
+            if (newWarehouseStocks[i].stock > 0) {
+              const deduct = Math.min(
+                newWarehouseStocks[i].stock,
+                remainingQuantity,
+              );
+              newWarehouseStocks[i] = {
+                ...newWarehouseStocks[i],
+                stock: newWarehouseStocks[i].stock - deduct,
+              };
+              remainingQuantity -= deduct;
+            }
+          }
+  
+          newProducts[pIndex] = {
+            ...p,
+            stock: Math.max(0, p.stock - material.quantity),
+            warehouseStocks: newWarehouseStocks,
+          };
+        }
       }
     }
+    
     store.setProducts(newProducts);
+    if (personnelUpdated) {
+       store.setPersonnel(newPersonnelList);
+    }
 
     // Apply financial changes
     if (selectedTicket.totalCost > 0) {
@@ -1674,11 +1723,25 @@ export const Ariza: React.FC = () => {
                           }
                         >
                           <option value="">Ürün Seçin</option>
-                          {products.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name} ({p.price} ₺) - Stok: {p.stock}
-                            </option>
-                          ))}
+                          <optgroup label="Merkez Depo (Stok)">
+                              {products.map((p) => (
+                                <option key={'depo_' + p.id} value={'depo_' + p.id}>
+                                  {p.name} ({p.price} ₺) - Stok: {p.stock}
+                                </option>
+                              ))}
+                          </optgroup>
+                          {selectedTicket.personnelId && (store.personnel.find(p => p.id === selectedTicket.personnelId)?.fixtures?.length ?? 0) > 0 && (
+                              <optgroup label="Personel Zimmeti">
+                                  {store.personnel.find(p => p.id === selectedTicket.personnelId)?.fixtures?.map(f => {
+                                      const basePrice = products.find(x => x.id === f.productId)?.price || 0;
+                                      return (
+                                          <option key={'zimmet_' + f.id} value={'zimmet_' + f.id}>
+                                            {f.productName} ({basePrice} ₺) - Zimmet: {f.quantity}
+                                          </option>
+                                      );
+                                  })}
+                              </optgroup>
+                          )}
                         </select>
                         <input
                           type="number"

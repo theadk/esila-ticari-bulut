@@ -195,6 +195,7 @@ export interface Personnel {
   socialSecurityNo: string; // SGK No
   
   records: PersonnelRecord[];
+  fixtures?: { id: string; productId: string; productName: string; quantity: number; dateGiven: string; }[];
   payrolls?: Payroll[];
 }
 
@@ -297,6 +298,8 @@ export interface ServiceMaterial {
   productName: string;
   quantity: number;
   unitPrice: number;
+  source?: 'Zimmet' | 'Depo';
+  fixtureId?: string;
 }
 
 export interface ServiceTicket {

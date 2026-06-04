@@ -152,7 +152,8 @@ CREATE TABLE IF NOT EXISTS personnel (
     bankName VARCHAR(255),
     iban VARCHAR(50),
     emergencyContactName VARCHAR(255),
-    emergencyContactPhone VARCHAR(50)
+    emergencyContactPhone VARCHAR(50),
+    fixtures JSON
 );
 
 CREATE TABLE IF NOT EXISTS personnel_records (
