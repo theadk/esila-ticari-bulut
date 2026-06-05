@@ -5,8 +5,8 @@ let pool: mysql.Pool;
 
 export function getPool() {
   if (!pool) {
-    if (!process.env.DATABASE_URL) {
-      console.warn("DATABASE_URL is not set. Database operations will fail or be unavailable.");
+    if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith('mysql')) {
+      console.warn("DATABASE_URL is not set or invalid. Database operations will fail or be unavailable.");
       // Dummy pool if no url provided, though this will throw on query
       pool = mysql.createPool({ uri: 'mysql://dummy' });
     } else {

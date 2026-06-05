@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import html2pdf from 'html2pdf.js';
 import { useAppStore } from '../lib/store';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
@@ -300,7 +301,7 @@ export const Personel: React.FC = () => {
   };
 
   const calculateNetSalary = (data: Payroll) => {
-    return (data.basicSalary / 30 * data.workedDays) + data.overtimePay + data.bonus - data.deductions;
+    return (data.basicSalary / 30 * data.workedDays) + (data.overtimeHours * data.overtimePay) + data.bonus - data.deductions;
   };
 
   const handleSavePayroll = (e: React.FormEvent) => {
@@ -1144,7 +1145,7 @@ export const Personel: React.FC = () => {
                                         <input required type="number" min="0" value={payrollFormData.overtimeHours} onChange={e => setPayrollFormData({...payrollFormData, overtimeHours: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Mesai Ücreti Miktarı</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Saatlik Mesai Ücreti</label>
                                         <input required type="number" min="0" value={payrollFormData.overtimePay} onChange={e => setPayrollFormData({...payrollFormData, overtimePay: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" />
                                     </div>
                                 </div>
@@ -1276,9 +1277,13 @@ export const Personel: React.FC = () => {
                       <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-700 print:text-black">Mesai Saati</td>
                       <td className="p-3 border-x border-gray-200 print:border-gray-300 text-right font-medium">{selectedBordroToPrint.overtimeHours} saat</td>
                     </tr>
+                    <tr className="border-b border-gray-200 print:border-gray-300">
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-700 print:text-black">Saatlik Mesai Ücreti</td>
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-right font-medium">{selectedBordroToPrint.overtimePay.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                    </tr>
                     <tr className="border-b border-gray-200 print:border-gray-300 bg-emerald-50/30">
-                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-700 print:text-black text-emerald-800">+ Mesai Ücreti Tutarı</td>
-                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-right font-medium text-emerald-700">{selectedBordroToPrint.overtimePay.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-700 print:text-black text-emerald-800">+ Toplam Mesai Hakedişi</td>
+                      <td className="p-3 border-x border-gray-200 print:border-gray-300 text-right font-medium text-emerald-700">{(selectedBordroToPrint.overtimeHours * selectedBordroToPrint.overtimePay).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
                     </tr>
                     <tr className="border-b border-gray-200 print:border-gray-300 bg-emerald-50/30">
                       <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-700 print:text-black text-emerald-800">+ Prim / İkramiye / Diğer Kazançlar</td>

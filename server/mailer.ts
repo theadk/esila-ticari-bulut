@@ -55,10 +55,12 @@ export const sendMail = async (to: string, subject: string, html: string, wrappe
 
     // Log success
     try {
-       const pool = getPool();
-       await pool.query("INSERT INTO email_logs (id, vkn, recipient, subject, status, errorMessage) VALUES (?, ?, ?, ?, ?, ?)",
-          [Date.now().toString() + Math.random().toString(36).substring(7), vkn, to, subject, 'Başarılı', null]
-       );
+       if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql')) {
+         const pool = getPool();
+         await pool.query("INSERT INTO email_logs (id, vkn, recipient, subject, status, errorMessage) VALUES (?, ?, ?, ?, ?, ?)",
+            [Date.now().toString() + Math.random().toString(36).substring(7), vkn, to, subject, 'Başarılı', null]
+         );
+       }
     } catch(dbErr) { console.error("Error logging mail success:", dbErr); }
 
     return { success: true, messageId: info.messageId };
@@ -67,10 +69,12 @@ export const sendMail = async (to: string, subject: string, html: string, wrappe
 
     // Log failure
     try {
-       const pool = getPool();
-       await pool.query("INSERT INTO email_logs (id, vkn, recipient, subject, status, errorMessage) VALUES (?, ?, ?, ?, ?, ?)",
-          [Date.now().toString() + Math.random().toString(36).substring(7), vkn, to, subject, 'Başarısız', String(error)]
-       );
+       if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql')) {
+         const pool = getPool();
+         await pool.query("INSERT INTO email_logs (id, vkn, recipient, subject, status, errorMessage) VALUES (?, ?, ?, ?, ?, ?)",
+            [Date.now().toString() + Math.random().toString(36).substring(7), vkn, to, subject, 'Başarısız', String(error)]
+         );
+       }
     } catch(dbErr) { console.error("Error logging mail failure:", dbErr); }
 
     return { success: false, error };

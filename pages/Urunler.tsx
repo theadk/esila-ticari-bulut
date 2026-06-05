@@ -688,7 +688,7 @@ export const Urunler: React.FC = () => {
         </div>
 
         {isFilterOpen && (
-          <div className="p-4 bg-gray-50 border-b border-gray-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 bg-gray-50 border-b border-gray-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="block text-sm text-gray-600 mb-1">Kategori</label>
               <select 
@@ -931,15 +931,15 @@ export const Urunler: React.FC = () => {
       {/* Ürün Detay Modal */}
       {isDetailsOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setIsDetailsOpen(false)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-lg flex flex-col max-h-[95vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-lg text-gray-800">Ürün Detayları</h3>
               <button onClick={() => setIsDetailsOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
                 <X size={24} />
               </button>
             </div>
             
-            <div className="p-4 sm:p-6 space-y-4">
+            <div className="p-3 sm:p-4 space-y-3 overflow-y-auto flex-1">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-16 h-16 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
                    <Package size={32} />
@@ -1046,16 +1046,16 @@ export const Urunler: React.FC = () => {
       {/* Ürün Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-lg overflow-hidden">
-            <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-lg flex flex-col max-h-[95vh] overflow-hidden">
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-lg text-gray-800">{isEditing ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSave} className="p-3 sm:p-4 space-y-3 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ürün Kodu</label>
                   <input 
@@ -1088,7 +1088,7 @@ export const Urunler: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                   <select
@@ -1119,7 +1119,7 @@ export const Urunler: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Varyasyonlar (Virgülle ayırın)</label>
                   <input 
@@ -1155,7 +1155,7 @@ export const Urunler: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Alış Fiyatı (₺)</label>
                   <input 
@@ -1355,15 +1355,15 @@ export const Urunler: React.FC = () => {
         {/* Kategori Modal */}
         {isCategoryModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden">
-              <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md flex flex-col max-h-[95vh] overflow-hidden">
+              <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
                 <h3 className="font-bold text-lg text-gray-800">{isCategoryEditing ? 'Kategori Düzenle' : 'Yeni Kategori Ekle'}</h3>
-                <button onClick={() => setIsCategoryModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <button type="button" onClick={() => setIsCategoryModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
                   <X size={24} />
                 </button>
               </div>
               
-              <form onSubmit={handleSaveCategory} className="p-4 sm:p-6 space-y-4">
+              <form onSubmit={handleSaveCategory} className="p-3 sm:p-4 space-y-3 overflow-y-auto flex-1">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Adı</label>
                   <input 
@@ -1496,15 +1496,15 @@ export const Urunler: React.FC = () => {
         {/* Marka Modal */}
         {isBrandModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden">
-              <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md flex flex-col max-h-[95vh] overflow-hidden">
+              <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
                 <h3 className="font-bold text-lg text-gray-800">{isBrandEditing ? 'Marka Düzenle' : 'Yeni Marka Ekle'}</h3>
-                <button onClick={() => setIsBrandModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <button type="button" onClick={() => setIsBrandModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
                   <X size={24} />
                 </button>
               </div>
               
-              <form onSubmit={handleSaveBrand} className="p-4 sm:p-6 space-y-4">
+              <form onSubmit={handleSaveBrand} className="p-3 sm:p-4 space-y-3 overflow-y-auto flex-1">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Marka Adı</label>
                   <input 
@@ -1543,7 +1543,7 @@ export const Urunler: React.FC = () => {
       {deleteData && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in text-left">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="p-4 sm:p-6">
+            <div className="p-3 sm:p-4">
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-4">
                 <Trash2 size={24} />
               </div>
@@ -1588,7 +1588,7 @@ export const Urunler: React.FC = () => {
               </button>
             </div>
             
-            <div className="p-4 sm:p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+            <div className="p-3 sm:p-4 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
               <p className="text-gray-600 mb-4 text-sm">Aşağıdaki ürünler için yazdırılacak barkod etiketi sayısını belirleyebilirsiniz.</p>
               
               <div className="space-y-3">

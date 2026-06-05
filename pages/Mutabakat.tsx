@@ -16,19 +16,21 @@ export const Mutabakat: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const store = useAppStore();
 
-  const [formData, setFormData] = useState<Partial<Reconciliation>>({
+  const [formData, setFormData] = useState<Partial<Reconciliation> & { sendSms?: boolean }>({
     date: new Date().toISOString().split('T')[0],
     balanceType: 'Borç',
     balance: 0,
     status: ReconciliationStatus.PENDING,
-    notes: ''
+    notes: '',
+    sendSms: false
   });
 
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isSendingBulk, setIsSendingBulk] = useState(false);
   const [bulkFormData, setBulkFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    notes: ''
+    notes: '',
+    sendSms: false
   });
 
   const fetchReconciliations = async () => {
@@ -109,7 +111,18 @@ export const Mutabakat: React.FC = () => {
       });
       if (res.ok) {
         const newlyCreated = await res.json();
-        if (customer) await sendEmailAlert(newlyCreated, customer);
+        if (customer) {
+            await sendEmailAlert(newlyCreated, customer);
+            if (formData.sendSms && customer.phone) {
+                const text = `Sayın ${customer.companyName || customer.name} yetkilisi, ${new Date(newlyCreated.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${newlyCreated.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${newlyCreated.balanceType}) mutabıktır. Linkten onaylayabilirsiniz: ${window.location.origin}/mutabakat-onay/${newlyCreated.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')} - ${store.settings?.companyName || ''}`;
+                try {
+                  await sendSMS(store.settings, [customer.phone], text);
+                  toast.success("SMS başarıyla gönderildi!");
+                } catch(err: any) {
+                  toast.error("SMS Gönderilemedi: " + (err.message || 'Hata'));
+                }
+            }
+        }
         
         setIsModalOpen(false);
         fetchReconciliations();
@@ -119,7 +132,8 @@ export const Mutabakat: React.FC = () => {
             balanceType: 'Borç',
             balance: 0,
             status: ReconciliationStatus.PENDING,
-            notes: ''
+            notes: '',
+            sendSms: false
         });
       }
     } catch (err) {
@@ -156,6 +170,12 @@ export const Mutabakat: React.FC = () => {
         if (res.ok) {
           const newlyCreated = await res.json();
           await sendEmailAlert(newlyCreated, customer);
+          if (bulkFormData.sendSms && customer.phone) {
+             const text = `Sayın ${customer.companyName || customer.name} yetkilisi, ${new Date(newlyCreated.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${newlyCreated.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${newlyCreated.balanceType}) mutabıktır. Linkten onaylayabilirsiniz: ${window.location.origin}/mutabakat-onay/${newlyCreated.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')} - ${store.settings?.companyName || ''}`;
+             try {
+                await sendSMS(store.settings, [customer.phone], text);
+             } catch(e) { } // Ignore errors in bulk to continue
+          }
         }
         sentCount++;
       } catch (err) {
@@ -168,7 +188,8 @@ export const Mutabakat: React.FC = () => {
     fetchReconciliations();
     setBulkFormData({
         date: new Date().toISOString().split('T')[0],
-        notes: ''
+        notes: '',
+        sendSms: false
     });
     alert(`${sentCount} adet cariye mutabakat başarıyla gönderildi.`);
   };
@@ -300,7 +321,8 @@ export const Mutabakat: React.FC = () => {
                              alert("Müşterinin telefon numarası kayıtlı değil.");
                              return;
                            }
-                           const text = `Sayın ${r.customerName} yetkilisi, güncel kayıtlarımıza göre ${new Date(r.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} (${r.balanceType}) tutarında mutabıktır. Teyit etmenizi rica ederiz. Saygılarımızla, ${store.settings?.companyName || 'Şirket'}`;
+                           const link = `${window.location.origin}/mutabakat-onay/${r.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')}`;
+                           const text = `Sayın ${r.customerName} yetkilisi, güncel kayıtlarımıza göre ${new Date(r.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} (${r.balanceType}) tutarında mutabıktır. Linkten teyit etmenizi rica ederiz: ${link} Saygılarımızla, ${store.settings?.companyName || 'Şirket'}`;
                            window.open(`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
                          }}
                          className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors title='WhatsApp ile Gönder'"
@@ -315,7 +337,8 @@ export const Mutabakat: React.FC = () => {
                              alert("Müşterinin telefon numarası kayıtlı değil.");
                              return;
                            }
-                           const text = `Sayın ${r.customerName} yetkilisi, ${new Date(r.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} (${r.balanceType}) mutabıktır. ${store.settings?.companyName || 'Şirket'}`;
+                           const link = `${window.location.origin}/mutabakat-onay/${r.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')}`;
+                           const text = `Sayın ${r.customerName} yetkilisi, ${new Date(r.date).toLocaleDateString('tr-TR')} itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${r.balanceType}) mutabıktır. Linkten onaylayabilirsiniz: ${link} ${store.settings?.companyName || 'Şirket'}`;
                            try {
                              await sendSMS(store.settings, [customer.phone], text);
                              toast.success("SMS başarıyla gönderildi!");
@@ -429,9 +452,22 @@ export const Mutabakat: React.FC = () => {
                     placeholder="Müşteriye iletilecek not..."
                   />
                 </div>
+
+                <div className="flex items-center gap-2 mt-4 text-emerald-800 bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                  <input
+                    type="checkbox"
+                    id="sendSmsSingle"
+                    checked={formData.sendSms || false}
+                    onChange={(e) => setFormData({...formData, sendSms: e.target.checked})}
+                    className="w-4 h-4 text-emerald-600 bg-white border-gray-300 rounded focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <label htmlFor="sendSmsSingle" className="text-sm font-medium cursor-pointer">
+                    Aynı zamanda SMS olarak da gönder (Sadece telefonu kayıtlı olanlara)
+                  </label>
+                </div>
                 
                 <div className="bg-emerald-50 p-3 rounded-lg text-sm text-emerald-800">
-                    <strong>Bilgi:</strong> Mutabakat kaydedildiğinde, cariye onay/red bağlantısını içeren otomatik bir e-posta gönderilecektir.
+                    <strong>Bilgi:</strong> Mutabakat kaydedildiğinde, cariye onay/red bağlantısını içeren otomatik bir iletişim gönderilecektir.
                 </div>
               </div>
               
@@ -497,6 +533,20 @@ export const Mutabakat: React.FC = () => {
                     className="w-full border border-gray-200 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     placeholder="Müşterilere iletilecek genel not..."
                   />
+                </div>
+
+                <div className="flex items-center gap-2 mt-4 text-indigo-800 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                  <input
+                    type="checkbox"
+                    id="sendSmsBulk"
+                    disabled={isSendingBulk}
+                    checked={bulkFormData.sendSms || false}
+                    onChange={(e) => setBulkFormData({...bulkFormData, sendSms: e.target.checked})}
+                    className="w-4 h-4 text-indigo-600 bg-white border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <label htmlFor="sendSmsBulk" className="text-sm font-medium cursor-pointer">
+                    Aynı zamanda SMS olarak da gönder (Sadece telefonu kayıtlı olanlara)
+                  </label>
                 </div>
               </div>
               

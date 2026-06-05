@@ -92,6 +92,29 @@ async function startServer() {
     }
   });
 
+  app.post('/api/send-sms', async (req, res) => {
+    try {
+      const payload = req.body;
+      const response = await fetch('https://api.iletimerkezi.com/v1/send-sms/json', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch(e) {
+        return res.status(500).json({ error: 'API Hatası: Geçersiz JSON yanıtı alındı.' });
+      }
+      res.json(result);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
   app.post('/api/forgot-password', async (req, res) => {
     const { email } = req.body;
     try {
@@ -511,8 +534,8 @@ async function startServer() {
 <p style="margin-bottom: 24px;">Lütfen bakiyeyi kendi kayıtlarınızla kontrol ederek mutabakat durumunuzu bize bildiriniz.</p>
 
 <div style="display: block; width: 100%; gap: 16px; margin-bottom: 32px;">
-    <a href="${mutabakatLink}/approve" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 15px; margin-right: 12px; margin-bottom: 8px; text-align: center;">Kabul Et ve Onayla</a>
-    <a href="${mutabakatLink}/reject" style="display: inline-block; background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 15px; margin-bottom: 8px; text-align: center;">Reddet ve İtiraz İlet</a>
+    <a href="${approveLink}" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 15px; margin-right: 12px; margin-bottom: 8px; text-align: center;">Kabul Et ve Onayla</a>
+    <a href="${rejectLink}" style="display: inline-block; background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 15px; margin-bottom: 8px; text-align: center;">Reddet ve İtiraz İlet</a>
 </div>
 
 <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">Mutabakat konusunda sorularınız varsa veya bakiye ile ilgili itirazınız bulunuyorsa yukarıdaki bağlantıları kullanabilirsiniz.</p>

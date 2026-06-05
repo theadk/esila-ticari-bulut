@@ -28,7 +28,7 @@ export const sendSMS = async (settings: any, receivers: string[], messageText: s
     }
   };
 
-  const response = await fetch('https://api.iletimerkezi.com/v1/send-sms/json', {
+  const response = await fetch('/api/send-sms', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -36,13 +36,12 @@ export const sendSMS = async (settings: any, receivers: string[], messageText: s
     body: JSON.stringify(payload)
   });
 
-  const text = await response.text();
-  let result;
-  try {
-    result = JSON.parse(text);
-  } catch(e) {
-    throw new Error('API Hatası: Geçersiz JSON yanıtı alındı.');
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`SMS gönderilirken bir hata oluştu: ${errorText}`);
   }
+
+  const result = await response.json();
   
   if (result?.response?.status?.code !== 200 && result?.response?.status?.code !== '200') {
      throw new Error(result?.response?.status?.message || 'SMS gönderilirken bir hata oluştu.');
