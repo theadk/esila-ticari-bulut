@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { ThermalEArsiv } from "./ThermalEArsiv";
 import { QRCodeSVG } from "qrcode.react";
 import {
   FileText,
@@ -23,6 +24,7 @@ export const EFatura: React.FC = () => {
   );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [previewInvoice, setPreviewInvoice] = useState<any>(null);
+  const [printType, setPrintType] = useState<'A4' | '80mm'>('A4');
 
   const invoices = store.eInvoices || [];
 
@@ -430,6 +432,23 @@ export const EFatura: React.FC = () => {
                   Belge No: {previewInvoice.id}
                 </p>
               </div>
+              
+              {/* Optional: Layout Type Toggle if you want to switch between A4 and 80mm */}
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setPrintType('A4')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${printType === 'A4' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  A4
+                </button>
+                <button
+                  onClick={() => setPrintType('80mm')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${printType === '80mm' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  80mm
+                </button>
+              </div>
+
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
@@ -448,11 +467,12 @@ export const EFatura: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 print:p-0 print:bg-white">
-              <div
-                className="bg-white p-8 border border-gray-200 shadow-sm mx-auto max-w-[210mm] min-h-[297mm] text-[11px] font-sans text-black print:border-none print:shadow-none print:m-0"
-                id="invoice-preview"
-              >
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 print:p-0 print:bg-white flex justify-center">
+              {printType === 'A4' ? (
+                <div
+                  className="bg-white p-8 border border-gray-200 shadow-sm mx-auto max-w-[210mm] min-h-[297mm] text-[11px] font-sans text-black print:border-none print:shadow-none print:m-0"
+                  id="invoice-preview"
+                >
                 {/* Header Row */}
                 <div className="flex justify-between items-start mb-4 gap-2">
                   {(
@@ -519,8 +539,8 @@ export const EFatura: React.FC = () => {
                             alt="GİB Logo" 
                             className="w-24 object-contain mix-blend-multiply flex-shrink-0" 
                           />
-                          <div className="font-bold text-base mt-2 flex justify-center w-full">
-                            e-FATURA
+                          <div className="font-bold text-base mt-2 flex justify-center w-full uppercase">
+                            {previewInvoice?.scenario === 'TEMELFATURA' || previewInvoice?.scenario === 'TICARIFATURA' ? 'e-Fatura' : 'e-Arşiv Fatura'}
                           </div>
                         </div>
                       );
@@ -1014,6 +1034,9 @@ export const EFatura: React.FC = () => {
                   </div>
                 </div>
               </div>
+              ) : (
+                <ThermalEArsiv previewInvoice={previewInvoice} invoiceOrder={invoiceOrder} store={store} invoiceCustomer={invoiceCustomer} />
+              )}
             </div>
           </div>
         </div>

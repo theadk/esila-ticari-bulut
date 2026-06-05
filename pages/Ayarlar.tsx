@@ -515,28 +515,49 @@ export const Ayarlar: React.FC = () => {
 
           {activeTab === 'sms' && (
             <div className="space-y-6 animate-fade-in">
-              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">SMS Ayarları</h3>
-              <div className="grid grid-cols-1 gap-4 sm:p-6">
-                <div>
+              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">SMS Ayarları (TopluSMSAPI / iletiMerkezi)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="md:col-span-2 mb-2">
+                  <p className="text-sm text-gray-600">
+                    <a href="https://www.toplusmsapi.com/" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline font-medium">toplusmsapi.com</a> alt yapısını kullanarak SMS gönderimi yapabilirsiniz. API erişim bilgilerinizi panelden alarak aşağıya girin.
+                  </p>
+                </div>
+                
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Gönderici Başlığı (Originator)</label>
                   <input 
                     type="text"
                     maxLength={11}
                     value={settings.sms_sender_id || ''}
                     onChange={(e) => handleChange('sms_sender_id', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                    placeholder="Gönderici başlığı"
                   />
                   <p className="text-xs text-gray-500 mt-1">Onaylanmış SMS gönderici başlığınız (Maks. 11 karakter).</p>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">SMS Sağlayıcı Token</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">API Public Key (API Anahtarı)</label>
+                  <input 
+                    type="text" 
+                    value={settings.sms_api_key || ''}
+                    onChange={(e) => handleChange('sms_api_key', e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                    placeholder="API anahtarınızı girin"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">toplusmsapi.com panelinden alacağınız Public Key</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">API Private Key (API Hash)</label>
                   <input 
                     type="password" 
-                    value={settings.sms_token || ''}
-                    onChange={(e) => handleChange('sms_token', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    value={settings.sms_api_hash || ''}
+                    onChange={(e) => handleChange('sms_api_hash', e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                    placeholder="API gizli anahtarınızı girin"
                   />
-                  <p className="text-xs text-gray-500 mt-1">API anahtarınızı SMS sağlayıcı panelinden alabilirsiniz.</p>
+                  <p className="text-xs text-gray-500 mt-1">toplusmsapi.com panelinden alacağınız Private Key / Hash</p>
                 </div>
               </div>
             </div>

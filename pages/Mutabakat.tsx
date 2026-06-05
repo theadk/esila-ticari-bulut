@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock, Users, MessageCircle } from 'lucide-react';
+import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock, Users, MessageCircle, MessageSquare } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Reconciliation, ReconciliationStatus, Customer } from '../types';
 import { apiFetch } from '../lib/api';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/Pagination';
+
+import { sendSMS } from '../src/utils/smsRequest';
 
 export const Mutabakat: React.FC = () => {
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>([]);
@@ -302,8 +304,29 @@ export const Mutabakat: React.FC = () => {
                            window.open(`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
                          }}
                          className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors title='WhatsApp ile Gönder'"
+                         title="WhatsApp ile Gönder"
                        >
                          <MessageCircle size={16} />
+                       </button>
+                       <button 
+                         onClick={async () => {
+                           const customer = store.customers.find(c => c.id === r.customerId);
+                           if (!customer?.phone) {
+                             alert("Müşterinin telefon numarası kayıtlı değil.");
+                             return;
+                           }
+                           const text = `Sayın ${r.customerName} yetkilisi, ${new Date(r.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} (${r.balanceType}) mutabıktır. ${store.settings?.companyName || 'Şirket'}`;
+                           try {
+                             await sendSMS(store.settings, [customer.phone], text);
+                             toast.success("SMS başarıyla gönderildi!");
+                           } catch (err: any) {
+                             toast.error(err.message || "SMS gönderilirken bir hata oluştu.");
+                           }
+                         }}
+                         className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors title='SMS ile Gönder'"
+                         title="SMS ile Gönder"
+                       >
+                         <MessageSquare size={16} />
                        </button>
                     </div>
                   </td>

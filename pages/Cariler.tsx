@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload, Printer, MessageCircle, CheckCircle, Landmark } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload, Printer, MessageCircle, MessageSquare, CheckCircle, Landmark } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Customer, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/Pagination';
+import { sendSMS } from '../src/utils/smsRequest';
 
 const INITIAL_FORM: Customer = {
   id: '',
@@ -51,9 +52,11 @@ export const Cariler: React.FC = () => {
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   
-  // Bulk WhatsApp States
+  // Bulk Actions
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
   const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
+  const [isBulkSMSOpen, setIsBulkSMSOpen] = useState(false);
+  const [bulkSMSText, setBulkSMSText] = useState('');
   
   // Payment Modal States
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -353,13 +356,22 @@ export const Cariler: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx, .xls, .csv" />
           {selectedCustomerIds.length > 0 && (
-            <button 
-              onClick={() => setIsBulkWhatsAppOpen(true)}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-            >
-              <MessageCircle size={18} />
-              <span className="hidden sm:inline">Toplu WhatsApp ({selectedCustomerIds.length})</span>
-            </button>
+            <>
+              <button 
+                onClick={() => setIsBulkWhatsAppOpen(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+              >
+                <MessageCircle size={18} />
+                <span className="hidden sm:inline">Toplu WhatsApp ({selectedCustomerIds.length})</span>
+              </button>
+              <button 
+                onClick={() => setIsBulkSMSOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+              >
+                <MessageSquare size={18} />
+                <span className="hidden sm:inline">Toplu SMS ({selectedCustomerIds.length})</span>
+              </button>
+            </>
           )}
           <button 
             onClick={() => fileInputRef.current?.click()}
@@ -908,6 +920,65 @@ export const Cariler: React.FC = () => {
                     </div>
                   </div>
                 )}
+                
+                {selectedCustomerForHistory.phone && (
+                  <div className="relative group">
+                    <button className="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-2">
+                      <MessageSquare size={18} />
+                      <span className="hidden sm:inline">SMS</span>
+                    </button>
+                    <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col overflow-hidden">
+                      <button 
+                        onClick={async () => {
+                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}, güncel bakiye durumunuz: ${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${selectedCustomerForHistory.balance > 0 ? 'Borçlu' : 'Alacaklı'}). Detaylı bilgi için bizimle iletişime geçebilirsiniz. İyi çalışmalar dileriz. - ${store.settings?.companyName || 'Şirket'}`;
+                          try {
+                             toast.loading("SMS gönderiliyor...", { id: 'singleSms' });
+                             await sendSMS(store.settings, [selectedCustomerForHistory.phone], text);
+                             toast.success("SMS başarıyla gönderildi!", { id: 'singleSms' });
+                          } catch (e: any) {
+                             toast.error(e.message || "SMS Gönderilemedi", { id: 'singleSms' });
+                          }
+                        }}
+                        className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                      >
+                        <CreditCard size={14} className="text-gray-500" />
+                        Bakiye Hatırlatma
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name} yetkilisi, ${new Date().toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL tutarında mutabıktır. ${store.settings?.companyName || 'Şirket'}`;
+                          try {
+                             toast.loading("SMS gönderiliyor...", { id: 'singleSms' });
+                             await sendSMS(store.settings, [selectedCustomerForHistory.phone], text);
+                             toast.success("SMS başarıyla gönderildi!", { id: 'singleSms' });
+                          } catch (e: any) {
+                             toast.error(e.message || "SMS Gönderilemedi", { id: 'singleSms' });
+                          }
+                        }}
+                        className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                      >
+                        <CheckCircle size={14} className="text-gray-500" />
+                        Mutabakat Mesajı
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const text = `Merhaba, ${store.settings?.companyName || 'Şirket'} ödeme hesap bilgilerimiz:\nBanka: xxxx Bankası\nIBAN: TRxx xxxx xxxx xxxx xxxx xxxx xx\nAlıcı: ${store.settings?.companyName || 'Şirket'}`;
+                          try {
+                             toast.loading("SMS gönderiliyor...", { id: 'singleSms' });
+                             await sendSMS(store.settings, [selectedCustomerForHistory.phone], text);
+                             toast.success("SMS başarıyla gönderildi!", { id: 'singleSms' });
+                          } catch (e: any) {
+                             toast.error(e.message || "SMS Gönderilemedi", { id: 'singleSms' });
+                          }
+                        }}
+                        className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Landmark size={14} className="text-gray-500" />
+                        IBAN / Ödeme Bilgileri
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <button onClick={() => setIsHistoryModalOpen(false)} className="h-10 w-10 flex items-center justify-center text-gray-500 hover:bg-gray-200 rounded-lg hover:text-red-500 transition-colors ml-2">
                   <X size={24} />
                 </button>
@@ -1242,6 +1313,75 @@ export const Cariler: React.FC = () => {
                 className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors font-medium"
               >
                 Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Bulk SMS Modal */}
+      {isBulkSMSOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center rounded-t-xl">
+              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                <MessageSquare className="text-blue-600" />
+                Toplu SMS Gönder
+              </h3>
+              <button onClick={() => setIsBulkSMSOpen(false)} className="text-gray-500 hover:text-gray-700 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-4 sm:p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Seçilen <strong>{selectedCustomerIds.length}</strong> cariye aynı anda toplu SMS gönderilecektir. (Sadece telefon numarası olan carilere gönderilir).
+              </p>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mesaj İçeriği</label>
+                <textarea 
+                  value={bulkSMSText}
+                  onChange={(e) => setBulkSMSText(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 h-32"
+                  placeholder="Gönderilecek mesajınızı yazın..."
+                />
+              </div>
+            </div>
+            
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
+              <button 
+                onClick={() => setIsBulkSMSOpen(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors font-medium"
+              >
+                İptal
+              </button>
+              <button 
+                onClick={async () => {
+                  const phones = selectedCustomerIds
+                    .map(id => customers.find(c => c.id === id)?.phone)
+                    .filter(Boolean) as string[];
+                  if (phones.length === 0) {
+                     toast.error("Seçili carilerin geçerli telefon numarası bulunmuyor.");
+                     return;
+                  }
+                  if (!bulkSMSText.trim()) {
+                     toast.error("Lütfen bir mesaj içeriği yazın.");
+                     return;
+                  }
+                  try {
+                    toast.loading("SMS'ler gönderiliyor...", { id: 'bulkSms' });
+                    await sendSMS(store.settings, phones, bulkSMSText);
+                    toast.success(`${phones.length} kişiye SMS başarıyla gönderildi!`, { id: 'bulkSms' });
+                    setBulkSMSText('');
+                    setIsBulkSMSOpen(false);
+                    setSelectedCustomerIds([]);
+                  } catch (err: any) {
+                    toast.error(err.message || "SMS gönderilirken bir hata oluştu.", { id: 'bulkSms' });
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex-1 text-center"
+              >
+                Gönder
               </button>
             </div>
           </div>

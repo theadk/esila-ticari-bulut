@@ -3,8 +3,9 @@ import { useAppStore } from '../lib/store';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/Pagination';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download, Printer, Package } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download, Printer, Package, MessageSquare } from 'lucide-react';
 import { Personnel, PersonnelRecord, Payroll } from '../types';
+import { sendSMS } from '../src/utils/smsRequest';
 
 const INITIAL_FORM: Personnel = {
   id: '',
@@ -203,6 +204,29 @@ export const Personel: React.FC = () => {
        store.setProducts(store.products.map(p => p.id === productId ? updatedProduct : p));
     }
     toast.success('Zimmet iade alındı ve stoka eklendi.');
+  };
+
+  const handleSendRecordSMS = async (record: PersonnelRecord) => {
+    if (!selectedPersonnel?.phone) {
+      toast.error('Personelin telefon numarası kayıtlı değil.');
+      return;
+    }
+    
+    let text = `Sayın ${selectedPersonnel.firstName} ${selectedPersonnel.lastName},\n`;
+    if (record.type === 'İzin') {
+      text += `İzin talebiniz / kaydınız oluşturulmuştur.\nKonu: ${record.title}\nTarih: ${new Date(record.date).toLocaleDateString('tr-TR')}\n${store.settings?.companyName || ''}`;
+    } else if (record.type === 'İhtar') {
+      text += `Tarafınıza bir uyarı/ihtar kaydedilmiştir.\nKonu: ${record.title}\nLütfen yetkilinizle görüşün.\n${store.settings?.companyName || ''}`;
+    } else {
+      text += `Sistemimizde adınıza yeni bir kayıt oluşturuldu.\nTür: ${record.type}\nKonu: ${record.title}\n${store.settings?.companyName || ''}`;
+    }
+
+    try {
+      await sendSMS(store.settings, [selectedPersonnel.phone], text);
+      toast.success('SMS başarıyla gönderildi.');
+    } catch (err: any) {
+      toast.error(err.message || 'SMS gönderilirken bir hata oluştu.');
+    }
   };
 
   const handleSaveRecord = (e: React.FormEvent) => {
@@ -874,12 +898,24 @@ export const Personel: React.FC = () => {
                             ) : (
                                 (selectedPersonnel.records || []).map((record) => (
                                     <div key={record.id} className="bg-white border text-left border-gray-200 rounded-lg p-4 hover:border-emerald-300 transition-colors group relative">
-                                        <button 
-                                            onClick={() => handleDeleteRecord(record.id)}
-                                            className="absolute top-4 right-4 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                                        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            {(record.type === 'İhtar' || record.type === 'İzin' || record.type === 'Not' || record.type === 'Ödül') && (
+                                                <button 
+                                                    onClick={() => handleSendRecordSMS(record)}
+                                                    className="text-gray-400 hover:text-blue-500"
+                                                    title="SMS İle Gönder"
+                                                >
+                                                    <MessageSquare size={16} />
+                                                </button>
+                                            )}
+                                            <button 
+                                                onClick={() => handleDeleteRecord(record.id)}
+                                                className="text-gray-400 hover:text-red-500"
+                                                title="Sil"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                         <div className="flex items-center gap-2 mb-2">
                                             <span className={`px-2 py-0.5 rounded text-xs font-medium 
                                                 ${record.type === 'Belge' ? 'bg-blue-100 text-blue-700' : 
