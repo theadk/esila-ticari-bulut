@@ -994,7 +994,7 @@ export const Siparisler: React.FC = () => {
                              <p className="text-sm whitespace-pre-line">{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</p>
                            </div>
                            <div className="text-center">
-                             <QRCodeSVG value={`${window.location.origin}/siparisler?id=${selectedOrder.id}`} size={80} level="M" />
+                             <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`} size={80} level="M" />
                              <p className="text-[10px] mt-1 text-gray-500">Siparişi Doğrula</p>
                            </div>
                         </div>
@@ -1081,7 +1081,7 @@ export const Siparisler: React.FC = () => {
                      </div>
 
                      <div className="text-center text-xs text-gray-500 mt-8 flex flex-col items-center">
-                       <QRCodeSVG value={`${window.location.origin}/siparisler?id=${selectedOrder.id}`} size={64} level="M" className="mb-2" />
+                       <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`} size={64} level="M" className="mb-2" />
                        <p className="mb-2">Siparişi Doğrula</p>
                        <p className="whitespace-pre-line">{store.settings.printer_footer_text}</p>
                      </div>
@@ -1228,7 +1228,7 @@ export const Siparisler: React.FC = () => {
                          <p className="text-sm whitespace-pre-line">{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</p>
                        </div>
                        <div className="text-center">
-                         <QRCodeSVG value={`${window.location.origin}/siparisler?id=${selectedOrder.id}`} size={80} level="M" />
+                         <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`} size={80} level="M" />
                          <p className="text-[10px] mt-1 text-gray-500">Siparişi Doğrula</p>
                        </div>
                     </div>
@@ -1314,7 +1314,7 @@ export const Siparisler: React.FC = () => {
                  </div>
                  
                  <div className="text-center text-xs mt-8 flex flex-col items-center">
-                   <QRCodeSVG value={`${window.location.origin}/siparisler?id=${selectedOrder.id}`} size={64} level="M" className="mb-2" />
+                   <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`} size={64} level="M" className="mb-2" />
                    <p className="mb-2">Siparişi Doğrula</p>
                    <p className="whitespace-pre-line">{store.settings.printer_footer_text || 'Teşekkür Ederiz'}</p>
                  </div>

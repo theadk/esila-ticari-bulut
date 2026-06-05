@@ -20,6 +20,7 @@ import { EFatura } from './pages/EFatura';
 import { Ajanda } from './pages/Ajanda';
 import { SuperAdminLogin } from './src/pages/SuperAdminLogin';
 import { SuperAdminDashboard } from './src/pages/SuperAdminDashboard';
+import { PublicFormView } from './pages/PublicFormView';
 import { FileText } from 'lucide-react';
 import { initializeStore } from './lib/store';
 import { InstallPrompt } from './src/components/InstallPrompt';
@@ -38,9 +39,13 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
 
-  // Super Admin Check via URL params
+  // Checks via URL params
   const searchParams = new URLSearchParams(window.location.search);
   const isSuperAdminRoute = searchParams.get('admin') === 'true';
+  const publicFormId = searchParams.get('public_form');
+  const publicFormType = searchParams.get('type');
+  const publicTenantId = searchParams.get('t');
+  
   const [isSuperAdminAuthenticated, setIsSuperAdminAuthenticated] = useState(false);
 
   useEffect(() => {
@@ -52,6 +57,10 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated]);
 
+  if (publicFormId && publicFormType && publicTenantId) {
+    return <PublicFormView id={publicFormId} type={publicFormType} tenantId={publicTenantId} />;
+  }
+
   if (isSuperAdminRoute) {
     if (!isSuperAdminAuthenticated) {
       return <SuperAdminLogin onLogin={() => setIsSuperAdminAuthenticated(true)} />;
@@ -62,6 +71,7 @@ const App: React.FC = () => {
   if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />;
   }
+
 
   const renderContent = () => {
     switch (activePage) {

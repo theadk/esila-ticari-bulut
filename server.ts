@@ -1021,6 +1021,113 @@ async function startServer() {
     } catch(e) { res.status(500).json({ error: String(e) }); }
   });
 
+  const publicVerificationCodes = new Map<string, { code: string, expires: number }>();
+
+  app.post('/api/public-form/request-code', async (req, res) => {
+    try {
+      const { id, type, t } = req.body;
+      if (!id || !type || !t) return res.status(400).json({ error: 'Missing params' });
+
+      let record;
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+         const records = getFallbackTable(type === 'ticket' ? 'service_tickets' : 'orders', t);
+         record = records.find((x: any) => x.id === id);
+      } else {
+         const pool = getPool();
+         const tableName = type === 'ticket' ? 'service_tickets' : 'orders';
+         const [rows] = await pool.query(`SELECT * FROM ${tableName} WHERE id = ? AND vkn = ?`, [id, t]) as any;
+         record = rows[0];
+      }
+
+      if (!record) return res.status(404).json({ error: 'Record not found' });
+      
+      let customer;
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+         const customers = getFallbackTable('customers', t);
+         customer = customers.find((x: any) => x.id === (record.customerId || record.customer_id));
+      } else {
+         const pool = getPool();
+         const [cRows] = await pool.query(`SELECT * FROM customers WHERE id = ? AND vkn = ?`, [record.customerId || record.customer_id, t]) as any;
+         customer = cRows[0];
+      }
+
+      const email = customer?.email;
+      const phone = customer?.phone || customer?.phone1;
+
+      if (!email && !phone) {
+         return res.status(400).json({ error: 'Müşteriye ait e-posta veya telefon bulunamadı.' });
+      }
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const key = `${t}_${type}_${id}`;
+      publicVerificationCodes.set(key, { code, expires: Date.now() + 10 * 60 * 1000 });
+
+      if (email) {
+          await sendMail(email, "Evrak Doğrulama Kodu", `
+            <div style="font-family: sans-serif; padding: 20px;">
+                <h2 style="color: #059669;">Evrak Görüntüleme Talebi</h2>
+                <p>Talep ettiğiniz evrağı güvenli bir şekilde görüntülemek için doğrulama kodunuz:</p>
+                <div style="font-size: 24px; font-weight: bold; padding: 12px; background: #f3f4f6; display: inline-block; border-radius: 6px; letter-spacing: 2px;">${code}</div>
+                <p style="color: #666; font-size: 12px; mt-4">Bu kod 10 dakika boyunca geçerlidir.</p>
+            </div>
+          `, false, [], t);
+      } else {
+          console.log(`[SMS SIMULASYON Müşteri:${phone}] Kodunuz: ${code}`);
+      }
+      
+      const sentTo = [];
+      if (email) sentTo.push(email.replace(/(.{2})(.*)(?=@)/, (m:string, a:string, b:string) => a + '*'.repeat(b.length)));
+      if (!email && phone) sentTo.push(phone.slice(0, 3) + '***' + phone.slice(-2));
+
+      res.json({ success: true, sentTo: sentTo.join(' ve ') });
+    } catch(e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.post('/api/public-form/verify', async (req, res) => {
+    try {
+      const { id, type, t, code } = req.body;
+      const key = `${t}_${type}_${id}`;
+      const vData = publicVerificationCodes.get(key);
+      
+      if (!vData) return res.status(400).json({ error: 'Kod bulunamadı veya süresi dolmuş.' });
+      if (vData.expires < Date.now()) {
+         publicVerificationCodes.delete(key);
+         return res.status(400).json({ error: 'Kodun süresi dolmuş.' });
+      }
+      if (vData.code !== code) return res.status(400).json({ error: 'Geçersiz kod.' });
+
+      publicVerificationCodes.delete(key);
+
+      let record;
+      let customer;
+      let settings;
+      let products;
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+         record = getFallbackTable(type === 'ticket' ? 'service_tickets' : 'orders', t).find((x: any) => x.id === id);
+         customer = getFallbackTable('customers', t).find((x: any) => x.id === (record.customerId || record.customer_id));
+         settings = getFallbackTable('settings', t)[0] || {};
+         products = getFallbackTable('products', t);
+      } else {
+         const pool = getPool();
+         const tableName = type === 'ticket' ? 'service_tickets' : 'orders';
+         const [rRows] = await pool.query(`SELECT * FROM ${tableName} WHERE id = ? AND vkn = ?`, [id, t]) as any;
+         record = rRows[0];
+         if(record && typeof record.items === 'string') record.items = JSON.parse(record.items);
+         if(record && typeof record.device === 'string') record.device = JSON.parse(record.device);
+         if(record && typeof record.materials === 'string') record.materials = JSON.parse(record.materials);
+
+         const [cRows] = await pool.query(`SELECT * FROM customers WHERE id = ? AND vkn = ?`, [record.customerId || record.customer_id, t]) as any;
+         customer = cRows[0];
+         const [sRows] = await pool.query(`SELECT * FROM settings WHERE vkn = ?`, [t]) as any;
+         settings = sRows[0] || {};
+         const [pRows] = await pool.query(`SELECT * FROM products WHERE vkn = ?`, [t]) as any;
+         products = pRows;
+      }
+
+      res.json({ success: true, record, customer, settings, products });
+    } catch(e) { res.status(500).json({ error: String(e) }); }
+  });
+
   app.get('/api/test-users', (req, res) => { res.json(getFallbackTable('users')); });
   
   // Generic CRUD API for all tables

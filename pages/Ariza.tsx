@@ -647,7 +647,7 @@ export const Ariza: React.FC = () => {
       : "";
 
     const qrUrl = encodeURIComponent(
-      `${window.location.origin}/ticket/${selectedTicket.id}`,
+      `${window.location.origin}?public_form=${selectedTicket.id}&type=ticket&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`
     );
     const qrCodeHtml = `
       <div style="text-align: center; margin-top: 20px;">
@@ -2131,11 +2131,14 @@ export const Ariza: React.FC = () => {
             <div className="p-8 flex flex-col items-center justify-center bg-white">
               <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm mb-4">
                 <QRCodeSVG
-                  value={`${window.location.origin}/ticket/${selectedTicket.id}`}
+                  value={`${window.location.origin}?public_form=${selectedTicket.id}&type=ticket&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`}
                   size={200}
                   level="M"
                   includeMargin={false}
                 />
+                <p className="text-center font-medium text-gray-500 mt-2 text-sm">
+                  Form Görüntüleme
+                </p>
               </div>
               <p className="text-sm text-gray-500 text-center font-medium">
                 Müşteri bu kodu taratarak <br /> bakım formuna erişebilir.
