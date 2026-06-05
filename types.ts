@@ -88,6 +88,7 @@ export interface Order {
   total: number;
   status: OrderStatus;
   items: OrderItem[];
+  proposalId?: string;
 }
 
 export enum ProposalStatus {

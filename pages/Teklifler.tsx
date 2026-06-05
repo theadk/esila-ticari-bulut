@@ -175,6 +175,7 @@ export const Teklifler: React.FC = () => {
       taxTotal: selectedProposal.taxTotal,
       total: selectedProposal.total,
       status: OrderStatus.PENDING,
+      proposalId: selectedProposal.id,
       items: selectedProposal.items.map(i => ({
         productId: i.productId,
         productName: i.productName,

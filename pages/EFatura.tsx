@@ -511,15 +511,13 @@ export const EFatura: React.FC = () => {
                       return (
                         <div
                           key="gib"
-                          className={`w-[33%] flex flex-col ${alignmentClass}`}
+                          className={`w-[33%] flex flex-col ${alignmentClass} items-center`}
                         >
-                          <div className="w-24 border text-center p-1 rounded-full aspect-square flex flex-col justify-center items-center font-bold text-red-600 border-red-600 text-[10px]">
-                            <div>T.C. Hazine ve Maliye Bakanlığı</div>
-                            <div className="text-3xl font-serif mt-1 mb-1">
-                              G
-                            </div>
-                            <div>Gelir İdaresi Başkanlığı</div>
-                          </div>
+                          <img 
+                            src="/gib-logo.png" 
+                            alt="GİB Logo" 
+                            className="w-24 object-contain mix-blend-multiply flex-shrink-0" 
+                          />
                           <div className="font-bold text-base mt-2 flex justify-center w-full">
                             e-FATURA
                           </div>
@@ -679,7 +677,7 @@ export const EFatura: React.FC = () => {
                           </td>
                           <td className="p-1">{previewInvoice.id}</td>
                         </tr>
-                        <tr>
+                        <tr className="border-b border-black">
                           <td className="p-1 font-bold border-r border-black">
                             Fatura Tarihi:
                           </td>
@@ -693,6 +691,22 @@ export const EFatura: React.FC = () => {
                             )}
                           </td>
                         </tr>
+                        {(previewInvoice.orderId || invoiceOrder?.id) && (
+                          <tr className="border-b border-black">
+                            <td className="p-1 font-bold border-r border-black">
+                              Sipariş No:
+                            </td>
+                            <td className="p-1">{previewInvoice.orderId || invoiceOrder?.id}</td>
+                          </tr>
+                        )}
+                        {(previewInvoice.proposalId || invoiceOrder?.proposalId) && (
+                          <tr>
+                            <td className="p-1 font-bold border-r border-black">
+                              Teklif No:
+                            </td>
+                            <td className="p-1">{previewInvoice.proposalId || invoiceOrder?.proposalId}</td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
