@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../lib/store';
 import { Plus, Search, TrendingUp, TrendingDown, Wallet, X, Save, Printer, FileText, Filter, Calendar } from 'lucide-react';
 import { CashTransaction } from '../types';
+import { Pagination } from '../components/Pagination';
 
 export const Kasa: React.FC = () => {
   const { settings, cashTransactions, setCashTransactions, customers, setCustomers, transactions, setTransactions, personnel, setPersonnel } = useAppStore();
@@ -72,6 +73,17 @@ export const Kasa: React.FC = () => {
   const customerExpense = filteredData.filter(t => t.category === 'Cari Ödeme').reduce((a,b)=>a+b.amount,0);
   const personnelExpense = filteredData.filter(t => ['Personel Maaşı', 'Personel Avans'].includes(t.category)).reduce((a,b)=>a+b.amount,0);
   const otherExpense = reportExpenseTotal - purchaseExpense - customerExpense - personnelExpense;
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(filteredData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedData = itemsPerPage === -1 ? filteredData : filteredData.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, dateFilter]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,14 +262,14 @@ export const Kasa: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredData.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                     İşlem bulunamadı.
                   </td>
                 </tr>
               ) : (
-                filteredData.map(tx => (
+                paginatedData.map(tx => (
                   <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm text-gray-600">{new Date(tx.date).toLocaleDateString('tr-TR')}</td>
                     <td className="px-6 py-4 text-sm text-gray-800">{tx.category}</td>
@@ -285,6 +297,14 @@ export const Kasa: React.FC = () => {
             </tbody>
           </table>
         </div>
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={setItemsPerPage}
+          totalItems={filteredData.length}
+        />
       </div>
 
       {isModalOpen && (

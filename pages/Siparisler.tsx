@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
 import { api } from '../lib/api';
+import { Pagination } from '../components/Pagination';
 
 export const Siparisler: React.FC = () => {
   const store = useAppStore();
@@ -282,6 +283,14 @@ export const Siparisler: React.FC = () => {
     }
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  
+  const sortedOrders = [...orders].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(sortedOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedOrders = itemsPerPage === -1 ? sortedOrders : sortedOrders.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <>
       <div className="space-y-6 no-print">
@@ -309,9 +318,16 @@ export const Siparisler: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {orders.map((order) => (
-                <tr key={order.id} className="hover:bg-emerald-50/30 transition-colors">
-                  <td className="px-6 py-4 font-mono text-sm">
+              {paginatedOrders.length === 0 ? (
+                 <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                      Sipariş bulunamadı.
+                    </td>
+                 </tr>
+              ) : (
+                paginatedOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-emerald-50/30 transition-colors">
+                    <td className="px-6 py-4 font-mono text-sm">
                     <button 
                       onClick={() => { setSelectedOrder(order); setIsDetailsModalOpen(true); }}
                       className="text-emerald-600 hover:text-emerald-800 hover:underline font-semibold"
@@ -370,10 +386,19 @@ export const Siparisler: React.FC = () => {
                     )}
                   </td>
                 </tr>
-              ))}
-            </tbody>
+              ))
+            )}
+          </tbody>
           </table>
         </div>
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={setItemsPerPage}
+          totalItems={orders.length}
+        />
       </div>
 
       {/* Order Details Modal */}

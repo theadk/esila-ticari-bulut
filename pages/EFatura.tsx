@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "../lib/store";
 import { InvoiceTemplateEditor } from "../components/InvoiceTemplateEditor";
+import { Pagination } from "../components/Pagination";
 
 export const EFatura: React.FC = () => {
   const store = useAppStore();
@@ -72,6 +73,17 @@ export const EFatura: React.FC = () => {
     if (activeTab === "Giden") return inv.status !== "Taslak";
     return true;
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginated = itemsPerPage === -1 ? filtered : filtered.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
 
   const handleSendToPortal = (invId: string) => {
     const updated = invoices.map((i) =>
@@ -275,14 +287,14 @@ export const EFatura: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {paginated.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-gray-500">
                       Bu sekmede gösterilecek bir fatura bulunamadı.
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((inv) => (
+                  paginated.map((inv) => (
                     <tr
                       key={inv.id}
                       className="border-b border-gray-100 hover:bg-gray-50/50"
@@ -393,6 +405,14 @@ export const EFatura: React.FC = () => {
               </tbody>
             </table>
           </div>
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            onItemsPerPageChange={setItemsPerPage}
+            totalItems={filtered.length}
+          />
         </div>
       )}
 

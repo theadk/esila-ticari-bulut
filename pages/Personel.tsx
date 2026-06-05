@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
+import { Pagination } from '../components/Pagination';
 import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download, Printer, Package } from 'lucide-react';
 import { Personnel, PersonnelRecord, Payroll } from '../types';
 
@@ -73,6 +74,17 @@ export const Personel: React.FC = () => {
     p.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.position.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [itemsPerPage, setItemsPerPage] = React.useState(50);
+
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(filteredPersonnel.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedPersonnel = itemsPerPage === -1 ? filteredPersonnel : filteredPersonnel.slice(startIndex, startIndex + itemsPerPage);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleAddNew = () => {
     const nextId = `${store.settings.prefix_personnel || 'PER'}-${store.settings.next_personnel_id || 1001}`;
@@ -448,7 +460,7 @@ export const Personel: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredPersonnel.map((p) => (
+              {paginatedPersonnel.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50 transition-colors cursor-pointer group" onClick={() => handleOpenRecords(p)}>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -533,6 +545,16 @@ export const Personel: React.FC = () => {
             </tbody>
           </table>
         </div>
+        {activeTab === 'Personeller' && (
+           <Pagination 
+             currentPage={currentPage}
+             totalPages={totalPages}
+             onPageChange={setCurrentPage}
+             itemsPerPage={itemsPerPage}
+             onItemsPerPageChange={setItemsPerPage}
+             totalItems={filteredPersonnel.length}
+           />
+        )}
       </div>
 
       {/* Personel Ekle/Düzenle Modal */}

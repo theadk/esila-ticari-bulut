@@ -5,6 +5,7 @@ import { Reconciliation, ReconciliationStatus, Customer } from '../types';
 import { apiFetch } from '../lib/api';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
+import { Pagination } from '../components/Pagination';
 
 export const Mutabakat: React.FC = () => {
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>([]);
@@ -186,6 +187,17 @@ export const Mutabakat: React.FC = () => {
     r.customerName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(filteredReconciliations.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedReconciliations = itemsPerPage === -1 ? filteredReconciliations : filteredReconciliations.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -248,11 +260,11 @@ export const Mutabakat: React.FC = () => {
                 <tr>
                     <td colSpan={6} className="text-center py-8 text-gray-500">Yükleniyor...</td>
                 </tr>
-              ) : filteredReconciliations.length === 0 ? (
+              ) : paginatedReconciliations.length === 0 ? (
                 <tr>
                     <td colSpan={6} className="text-center py-8 text-gray-500">Kayıtlı mutabakat bulunamadı.</td>
                 </tr>
-              ) : filteredReconciliations.map((r) => (
+              ) : paginatedReconciliations.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                   <td className="py-3 px-4">{new Date(r.date).toLocaleDateString('tr-TR')}</td>
                   <td className="py-3 px-4 font-medium text-gray-800">{r.customerName}</td>
@@ -299,6 +311,14 @@ export const Mutabakat: React.FC = () => {
             </tbody>
           </table>
         </div>
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={setItemsPerPage}
+          totalItems={filteredReconciliations.length}
+        />
       </div>
 
       {/* New Reconciliation Modal */}

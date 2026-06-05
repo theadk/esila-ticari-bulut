@@ -3,6 +3,7 @@ import { FileBadge, Plus, Search, FileText, Printer, CheckCircle, XCircle, Trash
 import { Proposal, ProposalStatus, ProposalItem, Customer, Product, Order, OrderStatus } from '../types';
 import { useAppStore } from '../lib/store';
 import { api } from '../lib/api';
+import { Pagination } from '../components/Pagination';
 
 export const Teklifler: React.FC = () => {
   const store = useAppStore();
@@ -55,6 +56,17 @@ export const Teklifler: React.FC = () => {
     p.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(filteredProposals.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProposals = itemsPerPage === -1 ? filteredProposals : filteredProposals.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const getStatusColor = (status: ProposalStatus) => {
     switch(status) {
@@ -252,13 +264,13 @@ export const Teklifler: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredProposals.length === 0 ? (
+              {paginatedProposals.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                     Kayıtlı teklif bulunmamaktadır.
                   </td>
                 </tr>
-              ) : filteredProposals.map((proposal) => (
+              ) : paginatedProposals.map((proposal) => (
                 <tr 
                   key={proposal.id} 
                   className="border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -297,6 +309,14 @@ export const Teklifler: React.FC = () => {
             </tbody>
           </table>
         </div>
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={setItemsPerPage}
+          totalItems={filteredProposals.length}
+        />
       </div>
 
       {/* Details Modal */}

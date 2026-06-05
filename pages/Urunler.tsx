@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import { Product, Warehouse, Category, Brand } from '../types';
 import { api } from '../lib/api';
 import { useAppStore } from '../lib/store';
+import { Pagination } from '../components/Pagination';
 
 const INITIAL_FORM: Product = {
   id: '',
@@ -259,6 +260,17 @@ export const Urunler: React.FC = () => {
 
     return matchesSearch && matchesCategory && matchesBrand && matchesStockStatus && matchesMinStock && matchesMaxStock && matchesMinPrice && matchesMaxPrice;
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProducts = itemsPerPage === -1 ? filteredProducts : filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterCategory, filterBrand, filterStockStatus, filterMinStock, filterMaxStock, filterMinPrice, filterMaxPrice]);
 
   const handleAddNew = () => {
     const nextId = `${store.settings.prefix_product || 'URN'}-${store.settings.next_product_id || 1001}`;
@@ -605,14 +617,14 @@ export const Urunler: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredProducts.length === 0 ? (
+            {paginatedProducts.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                     Kayıt bulunamadı.
                   </td>
                 </tr>
             ) : (
-              filteredProducts.map((product) => (
+              paginatedProducts.map((product) => (
                 <tr 
                   key={product.id} 
                   className="hover:bg-emerald-50/30 transition-colors cursor-pointer"
@@ -701,6 +713,16 @@ export const Urunler: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {activeTab === 'urunler' && (
+         <Pagination 
+           currentPage={currentPage}
+           totalPages={totalPages}
+           onPageChange={setCurrentPage}
+           itemsPerPage={itemsPerPage}
+           onItemsPerPageChange={setItemsPerPage}
+           totalItems={filteredProducts.length}
+         />
+      )}
 
       {/* Ürün Detay Modal */}
       {isDetailsOpen && selectedProduct && (

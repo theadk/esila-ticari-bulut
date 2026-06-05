@@ -51,59 +51,118 @@ export const HizliSatis: React.FC = () => {
   };
 
   const handlePrintReceipt = (currentCustomer: Customer | any, paymentMethod: string, totalAmount: number, items: typeof cart) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-        alert("Pop-up engelleyiciyi kapatıp tekrar deneyin.");
-        return;
-    }
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    const storeName = store.settings?.companyName || 'ESİLA TİCARİ';
+    const storeAddress = store.settings?.address || 'Merkez Şube';
+    const storePhone = store.settings?.phone || '';
+    const footerText = store.settings?.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.';
     
+    // 80mm pos printer receipt HTML
     const receiptHtml = `
+      <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="utf-8">
           <title>Bilgi Fişi</title>
           <style>
-            body { font-family: 'Courier New', Courier, monospace; font-size: 14px; width: 300px; margin: 0 auto; color: #000; }
-            .text-center { text-align: center; }
-            .font-bold { font-weight: bold; }
-            .border-b { border-bottom: 1px dashed #000; margin-bottom: 10px; padding-bottom: 10px; }
-            .flex { display: flex; justify-content: space-between; }
-            .mt-2 { margin-top: 10px; }
-            .mb-2 { margin-bottom: 10px; }
+             @page { margin: 0; size: 80mm auto; }
+             body { 
+               font-family: 'Courier New', Courier, monospace; 
+               font-size: 14px; /* Scaled for 80mm clarity */
+               width: 300px; /* ~80mm */
+               margin: 0 auto;
+               padding: 5px;
+               color: #000; 
+               box-sizing: border-box;
+               line-height: 1.2;
+             }
+             .text-center { text-align: center; }
+             .font-bold { font-weight: bold; }
+             .border-b { border-bottom: 1px dashed #000; margin-bottom: 5px; padding-bottom: 5px; }
+             .border-t { border-top: 1px dashed #000; margin-top: 5px; padding-top: 5px; }
+             .flex { display: flex; justify-content: space-between; }
+             .mt-2 { margin-top: 5px; }
+             .mb-2 { margin-bottom: 5px; }
+             * { margin: 0; padding: 0; }
+             .item-row { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 5px; }
+             .item-name { width: 60%; word-break: break-word; }
+             .item-qty-price { width: 40%; text-align: right; }
           </style>
         </head>
         <body>
-          <div class="text-center font-bold border-b mb-2">
-            <h3 style="margin: 5px 0;">BİLGİ FİŞİ</h3>
-            <p style="margin: 5px 0;">${new Date().toLocaleString('tr-TR')}</p>
+          <div class="text-center font-bold mb-2">
+            <h2 style="margin: 0 0 5px 0; font-size: 18px;">${storeName}</h2>
+            <p style="margin: 0; font-weight: normal; font-size: 12px;">${storeAddress}</p>
+            ${storePhone ? `<p style="margin: 0; font-weight: normal; font-size: 12px;">Tel: ${storePhone}</p>` : ''}
           </div>
-          <div class="border-b">
+          
+          <div class="text-center font-bold border-b border-t mb-2 mt-2">
+            <h3 style="margin: 5px 0 0 0; font-size: 16px;">BİLGİ FİŞİ</h3>
+            <p style="margin: 5px 0; font-weight: normal; font-size: 12px;">${new Date().toLocaleString('tr-TR')}</p>
+          </div>
+          
+          <div class="border-b" style="font-size: 13px;">
             <p style="margin: 5px 0;">Müşteri: ${currentCustomer.name}</p>
           </div>
-          <div class="border-b">
-            ${items.map(item => `
-              <div class="flex mt-2">
-                <span>${item.quantity}x ${item.product.name}</span>
-                <span>${(item.product.price * item.quantity * (1 - item.discount / 100)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
-              </div>
-              ${item.discount > 0 ? `<div class="flex" style="font-size: 12px; color: #666;"><span>İskonto:</span><span>%${item.discount}</span></div>` : ''}
-            `).join('')}
+          
+          <div class="border-b font-bold flex" style="font-size: 13px;">
+            <span style="width: 60%">Ürün</span>
+            <span style="width: 40%; text-align:right;">Fiyat</span>
           </div>
-          <div class="border-b font-bold flex">
-            <span>GENEL TOPLAM:</span>
+          
+          <div class="border-b" style="font-size: 13px;">
+            ${items.map(item => {
+              const itemTotal = item.product.price * item.quantity;
+              const discountedTotal = itemTotal * (1 - item.discount / 100);
+              return `
+              <div class="item-row">
+                <span class="item-name">${item.product.name}</span>
+                <span class="item-qty-price">${item.quantity}x ${item.product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div style="text-align: right;">
+                = ${discountedTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+              </div>
+              ${item.discount > 0 ? `<div style="font-size: 11px; color: #333; text-align: right;">(İskonto: %${item.discount})</div>` : ''}
+            `}).join('')}
+          </div>
+          
+          <div class="border-b font-bold flex" style="font-size: 16px;">
+            <span>TOPLAM:</span>
             <span>${totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
           </div>
-          <div class="text-center font-bold">
-            <p style="margin: 5px 0;">ÖDEME: ${paymentMethod}</p>
-            <p style="margin: 5px 0;">MALİ DEĞERİ YOKTUR</p>
+          
+          <div class="text-center font-bold mt-2" style="font-size: 13px;">
+            <p style="margin: 2px 0;">ÖDEME: ${paymentMethod}</p>
+            <p style="margin: 5px 0 2px 0;">MALİ DEĞERİ YOKTUR.</p>
           </div>
+          
+          <div class="text-center text-sm border-t mt-2" style="font-size: 12px; font-weight: normal;">
+            <p style="margin: 5px 0;">${footerText}</p>
+          </div>
+          
           <script>
-            window.onload = function() { window.print(); window.close(); }
+            window.onload = function() { 
+              setTimeout(function() {
+                window.print(); 
+              }, 500); 
+            }
           </script>
         </body>
       </html>
     `;
-    printWindow.document.write(receiptHtml);
-    printWindow.document.close();
+    
+    if (iframe.contentWindow) {
+        iframe.contentWindow.document.open();
+        iframe.contentWindow.document.write(receiptHtml);
+        iframe.contentWindow.document.close();
+        
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 5000); // give enough time for printing before removing iframe
+    }
   };
 
   const handleCheckout = (paymentMethod: 'Nakit' | 'Kredi Kartı' | 'Cari') => {
@@ -114,7 +173,22 @@ export const HizliSatis: React.FC = () => {
       return;
     }
 
-    const currentCustomer = customers.find(c => String(c.id) === String(selectedCustomerId)) || { id: 'RETAIL', name: 'Perakende Müşteri' };
+    let currentCustomer = customers.find(c => String(c.id) === String(selectedCustomerId));
+    
+    if (!currentCustomer) {
+      currentCustomer = customers.find(c => c.name.toLowerCase().includes('perakende'));
+      if (!currentCustomer) {
+        currentCustomer = {
+          id: `CAR-PRK-${Date.now()}`,
+          name: 'Perakende Müşteri',
+          type: 'Alıcı',
+          balance: 0,
+          status: 'Aktif'
+        } as any;
+        store.setCustomers([...customers, currentCustomer]);
+      }
+    }
+
     const totalAmount = calculateTotal();
 
     // 1. Create Cash Transaction only if not Cari
@@ -162,7 +236,7 @@ export const HizliSatis: React.FC = () => {
     // 2.5 Create Order
     const newOrder = {
        id: `SIP-HS-${Date.now()}`,
-       customerId: currentCustomer.id,
+       customerId: currentCustomer!.id,
        customerName: currentCustomer.name,
        date: new Date().toISOString(),
        status: OrderStatus.COMPLETED,
@@ -170,14 +244,16 @@ export const HizliSatis: React.FC = () => {
          productId: c.product.id,
          productName: c.product.name,
          quantity: c.quantity,
-         price: c.product.price
+         price: c.product.price,
+         taxRate: c.product.taxRate || 0,
+         discount: c.discount
        })),
        total: totalAmount
     };
     store.setOrders([...(store.orders || []), newOrder as any]);
 
     // 3. Optional: If a real customer is selected, add to customer transactions
-    if (selectedCustomerId && selectedCustomerId !== 'RETAIL' && currentCustomer.id !== 'RETAIL') {
+    if (selectedCustomerId && selectedCustomerId !== 'RETAIL' && currentCustomer.id && !currentCustomer.id.startsWith('CAR-PRK-')) {
       const tx2 = {
         id: `CTX-INV-${Date.now()}`,
         customerId: currentCustomer.id,

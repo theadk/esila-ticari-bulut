@@ -5,6 +5,7 @@ import { Customer, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
+import { Pagination } from '../components/Pagination';
 
 const INITIAL_FORM: Customer = {
   id: '',
@@ -297,6 +298,17 @@ export const Cariler: React.FC = () => {
     return matchName || matchTitle || matchEmail;
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(filteredCustomers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedCustomers = itemsPerPage === -1 ? filteredCustomers : filteredCustomers.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   const handleAddNew = () => {
     const nextId = `${store.settings.prefix_customer || 'CAR'}-${store.settings.next_customer_id || 1001}`;
     setFormData({ ...INITIAL_FORM, id: nextId });
@@ -387,14 +399,14 @@ export const Cariler: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredCustomers.length === 0 ? (
+              {paginatedCustomers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                     Kayıt bulunamadı.
                   </td>
                 </tr>
               ) : (
-                filteredCustomers.map((customer) => (
+                paginatedCustomers.map((customer) => (
                   <tr key={customer.id} className="hover:bg-emerald-50/30 transition-colors">
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -481,6 +493,14 @@ export const Cariler: React.FC = () => {
             </tbody>
           </table>
         </div>
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={setItemsPerPage}
+          totalItems={filteredCustomers.length}
+        />
       </div>
 
       {isModalOpen && (

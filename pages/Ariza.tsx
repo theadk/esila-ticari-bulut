@@ -18,6 +18,7 @@ import {
   Send,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { Pagination } from "../components/Pagination";
 import {
   ServiceTicket,
   ServiceTicketStatus,
@@ -191,6 +192,17 @@ export const Ariza: React.FC = () => {
         new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
       );
     });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(filteredTickets.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedTickets = itemsPerPage === -1 ? filteredTickets : filteredTickets.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeTab, maintenanceMonthStr]);
 
   const toggleTicketSelection = (id: string) => {
     const newSelection = new Set(selectedTicketIds);
@@ -1210,7 +1222,7 @@ export const Ariza: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTickets.length === 0 ? (
+                  {paginatedTickets.length === 0 ? (
                     <tr>
                       <td
                         colSpan={activeTab === "maintenance" ? 9 : 8}
@@ -1220,7 +1232,7 @@ export const Ariza: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredTickets.map((ticket) => (
+                    paginatedTickets.map((ticket) => (
                       <tr
                         key={ticket.id}
                         className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
@@ -1311,6 +1323,14 @@ export const Ariza: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            <Pagination 
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              onItemsPerPageChange={setItemsPerPage}
+              totalItems={filteredTickets.length}
+            />
           </>
         )}
 

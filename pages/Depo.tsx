@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Warehouse as WarehouseIcon, Package, Search, Box, ArrowRight, Plus, X, Edit2, Trash2 } from 'lucide-react';
 import { Product, Warehouse } from '../types';
 import { api } from '../lib/api';
+import { Pagination } from '../components/Pagination';
 
 export const Depo: React.FC = () => {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -113,6 +114,18 @@ export const Depo: React.FC = () => {
     return searchMatch;
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProducts = itemsPerPage === -1 ? filteredProducts : filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeWarehouse]);
+
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -201,14 +214,14 @@ export const Depo: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredProducts.length === 0 ? (
+            {paginatedProducts.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                     Bu depoda kayıtlı ürün bulunamadı.
                   </td>
                 </tr>
             ) : (
-              filteredProducts.map((product) => (
+              paginatedProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-sm font-medium text-gray-500">
                     {product.code}
@@ -245,6 +258,14 @@ export const Depo: React.FC = () => {
           </tbody>
         </table>
       </div>
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={setItemsPerPage}
+        totalItems={filteredProducts.length}
+      />
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex flex-col items-center justify-center p-4">
