@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   FileText,
   FileJson,
@@ -531,8 +532,30 @@ export const EFatura: React.FC = () => {
                           className={`w-[33%] flex flex-col ${alignmentClass}`}
                         >
                           {store.settings?.invoiceTemplate_showQR !== false && (
-                            <div className="w-24 h-24 bg-gray-200 mb-2 flex items-center justify-center text-[10px] text-gray-500 border border-gray-300">
-                              [QR CODE]
+                            <div className="mb-2">
+                              {(() => {
+                                let qrDate = "2026-01-03";
+                                try {
+                                  qrDate = new Date(previewInvoice.date).toISOString().split('T')[0];
+                                } catch(e) {}
+                                
+                                const qrDataObj = {
+                                  vkntckn: store.settings?.companyVkn || "3790894905",
+                                  avkntckn: invoiceCustomer?.taxNumber || invoiceCustomer?.tcNo || "0100359315",
+                                  senaryo: previewInvoice.scenario || "EARSIVFATURA",
+                                  tip: previewInvoice.type || "SATIS",
+                                  tarih: qrDate,
+                                  no: previewInvoice.id || "ESI2026000002001",
+                                  ettn: previewInvoice.id ? `${previewInvoice.id.toLowerCase()}-e-fatura-ettn` : "e9baec5d-f923-4f06-894b-e3de911a16c2",
+                                  parabirimi: "TRY",
+                                  "malhizmettoplam": (invoiceOrder?.subTotal || (previewInvoice.amount / 1.2)).toFixed(2),
+                                  "kdvmatrah(20)": (invoiceOrder?.subTotal || (previewInvoice.amount / 1.2)).toFixed(2),
+                                  "hesaplanankdv(20)": (invoiceOrder?.taxTotal || (previewInvoice.amount - previewInvoice.amount / 1.2)).toFixed(2),
+                                  vergidahil: (invoiceOrder?.total || previewInvoice.amount).toFixed(2),
+                                  odenecek: (invoiceOrder?.total || previewInvoice.amount).toFixed(2)
+                                };
+                                return <QRCodeSVG value={JSON.stringify(qrDataObj)} size={96} />;
+                              })()}
                             </div>
                           )}
                           {store.settings?.invoiceTemplate_showLogo !==
