@@ -1128,6 +1128,73 @@ async function startServer() {
     } catch(e) { res.status(500).json({ error: String(e) }); }
   });
 
+  const publicAccessTokens = new Map<string, { id: string, type: string, tenantId: string, expires: number, singleUse: boolean }>();
+
+  app.post('/api/public-form/generate-link', (req, res) => {
+    try {
+      const { id, type, t, expirationMinutes = 60, singleUse = false } = req.body;
+      if (!id || !type || !t) return res.status(400).json({ error: 'Missing params' });
+      
+      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      publicAccessTokens.set(token, {
+          id, type, tenantId: t,
+          expires: Date.now() + expirationMinutes * 60 * 1000,
+          singleUse
+      });
+      
+      const link = `https://${req.get('host')}/?token=${token}`;
+      res.json({ success: true, token, link });
+    } catch(e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.post('/api/public-form/verify-token', async (req, res) => {
+    try {
+      const { token } = req.body;
+      if (!token) return res.status(400).json({ error: 'Token eksik' });
+
+      const tData = publicAccessTokens.get(token);
+      if (!tData) return res.status(400).json({ error: 'Link süresi dolmuş veya geçersiz.' });
+      if (tData.expires < Date.now()) {
+          publicAccessTokens.delete(token);
+          return res.status(400).json({ error: 'Link süresi dolmuş.' });
+      }
+      
+      if (tData.singleUse) {
+          publicAccessTokens.delete(token);
+      }
+
+      const { id, type, tenantId: t } = tData;
+
+      let record;
+      let customer;
+      let settings;
+      let products;
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+         record = getFallbackTable(type === 'ticket' ? 'service_tickets' : 'orders', t).find((x: any) => x.id === id);
+         customer = getFallbackTable('customers', t).find((x: any) => x.id === (record.customerId || record.customer_id));
+         settings = getFallbackTable('settings', t)[0] || {};
+         products = getFallbackTable('products', t);
+      } else {
+         const pool = getPool();
+         const tableName = type === 'ticket' ? 'service_tickets' : 'orders';
+         const [rRows] = await pool.query(`SELECT * FROM ${tableName} WHERE id = ? AND vkn = ?`, [id, t]) as any;
+         record = rRows[0];
+         if(record && typeof record.items === 'string') record.items = JSON.parse(record.items);
+         if(record && typeof record.device === 'string') record.device = JSON.parse(record.device);
+         if(record && typeof record.materials === 'string') record.materials = JSON.parse(record.materials);
+
+         const [cRows] = await pool.query(`SELECT * FROM customers WHERE id = ? AND vkn = ?`, [record.customerId || record.customer_id, t]) as any;
+         customer = cRows[0];
+         const [sRows] = await pool.query(`SELECT * FROM settings WHERE vkn = ?`, [t]) as any;
+         settings = sRows[0] || {};
+         const [pRows] = await pool.query(`SELECT * FROM products WHERE vkn = ?`, [t]) as any;
+         products = pRows;
+      }
+
+      res.json({ success: true, record, customer, settings, products, type, id, t });
+    } catch(e) { res.status(500).json({ error: String(e) }); }
+  });
+
   app.get('/api/test-users', (req, res) => { res.json(getFallbackTable('users')); });
   
   // Generic CRUD API for all tables

@@ -16,6 +16,8 @@ import {
   Mail,
   Download,
   Send,
+  Link,
+  Copy,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Pagination } from "../components/Pagination";
@@ -813,6 +815,24 @@ export const Ariza: React.FC = () => {
     `;
   };
 
+  const handleGenerateLink = async () => {
+    if (!selectedTicket) return;
+    try {
+       const res = await fetch('/api/public-form/generate-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: selectedTicket.id, type: 'ticket', t: localStorage.getItem("esila_tenant_id") || "1111111111" })
+       });
+       const data = await res.json();
+       if (!res.ok) throw new Error(data.error);
+       
+       await navigator.clipboard.writeText(data.link);
+       toast.success('Bağlantı oluşturuldu ve panoya kopyalandı!');
+    } catch(err: any) {
+       toast.error('Bağlantı oluşturulamadı: ' + err.message);
+    }
+  };
+
   const handlePrint = (format: "a4" | "thermal") => {
     if (!selectedTicket) return;
     const html = generateHTML(format);
@@ -1605,6 +1625,14 @@ export const Ariza: React.FC = () => {
                 Arıza Formu Detayı
               </h3>
               <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={handleGenerateLink}
+                  className="flex items-center gap-2 bg-purple-50 hover:bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-purple-200"
+                  title="Bağlantı kopyala (Giriş gerektirmez)"
+                >
+                  <Link size={16} />
+                  Link Kopyala
+                </button>
                 <button
                   onClick={() => setIsQRModalOpen(true)}
                   className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200"

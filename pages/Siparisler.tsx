@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud, MessageCircle } from 'lucide-react';
+import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud, MessageCircle, Link } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
@@ -278,6 +278,24 @@ export const Siparisler: React.FC = () => {
     setSelectedOrder(order);
     setPrintType('80mm'); // Default to receipt for quick print
     setPrintModalOpen(true);
+  };
+
+  const handleGenerateLink = async () => {
+    if (!selectedOrder) return;
+    try {
+       const res = await fetch('/api/public-form/generate-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: selectedOrder.id, type: 'order', t: localStorage.getItem("esila_tenant_id") || "1111111111" })
+       });
+       const data = await res.json();
+       if (!res.ok) throw new Error(data.error);
+       
+       await navigator.clipboard.writeText(data.link);
+       toast.success('Bağlantı oluşturuldu ve panoya kopyalandı!');
+    } catch(err: any) {
+       toast.error('Bağlantı oluşturulamadı: ' + err.message);
+    }
   };
 
   const handlePrint = () => {
@@ -571,7 +589,15 @@ export const Siparisler: React.FC = () => {
                    </button>
                  )}
                </div>
-               <div className="flex gap-3">
+               <div className="flex gap-3 flex-wrap">
+                 <button 
+                   onClick={handleGenerateLink}
+                   className="px-4 py-2 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors font-medium flex items-center gap-2"
+                   title="Bağlantı kopyala (Giriş gerektirmez)"
+                 >
+                   <Link size={18} />
+                   Link
+                 </button>
                  {!store.eInvoices?.some(inv => inv.orderId === selectedOrder.id) ? (
                    <button 
                      onClick={() => {

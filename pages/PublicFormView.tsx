@@ -2,19 +2,54 @@ import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ShieldCheck, Mail, Smartphone, FileText, CheckCircle, Package, ArrowRight, Printer } from 'lucide-react';
 
 interface PublicFormProps {
-  id: string;
-  type: string;
-  tenantId: string;
+  id?: string;
+  type?: string;
+  tenantId?: string;
+  token?: string;
 }
 
-export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId }) => {
-  const [step, setStep] = useState<'initial' | 'verification' | 'success'>('initial');
+export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, token }) => {
+  const [step, setStep] = useState<'initial' | 'verification' | 'success' | 'loading_token'>('initial');
   const [loading, setLoading] = useState(false);
   const [code, setCode] = useState('');
   const [sentTo, setSentTo] = useState('');
   const [error, setError] = useState('');
 
-  const [data, setData] = useState<{ record: any, customer: any, settings: any, products: any[] } | null>(null);
+  const [data, setData] = useState<{ record: any, customer: any, settings: any, products: any[], type?: string } | null>(null);
+
+  useEffect(() => {
+    if (token) {
+       setStep('loading_token');
+       verifyToken(token);
+    }
+  }, [token]);
+
+  const verifyToken = async (tkn: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/public-form/verify-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tkn })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Token doğrulanamadı');
+      setData({
+        record: result.record,
+        customer: result.customer,
+        settings: result.settings,
+        products: result.products || [],
+        type: result.type
+      });
+      setStep('success');
+    } catch (err: any) {
+      setError(err.message);
+      setStep('initial');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const requestVerification = async () => {
     setLoading(true);
@@ -126,8 +161,19 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId }
     );
   }
 
+  if (step === 'loading_token') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full border border-gray-100 text-center flex flex-col items-center">
+            <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-600">Bağlantı kontrol ediliyor...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'success' && data) {
-    const isTicket = type === 'ticket';
+    const isTicket = (data.type || type) === 'ticket';
     
     // We render a simple clean version of the ticket or order
     return (

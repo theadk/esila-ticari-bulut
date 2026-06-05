@@ -45,6 +45,7 @@ const App: React.FC = () => {
   const publicFormId = searchParams.get('public_form');
   const publicFormType = searchParams.get('type');
   const publicTenantId = searchParams.get('t');
+  const publicFormToken = searchParams.get('token');
   
   const [isSuperAdminAuthenticated, setIsSuperAdminAuthenticated] = useState(false);
 
@@ -56,6 +57,10 @@ const App: React.FC = () => {
       }).then(res => res.json()).then(data => setTenantInfo(data)).catch(console.error);
     }
   }, [isAuthenticated]);
+
+  if (publicFormToken) {
+    return <PublicFormView token={publicFormToken} />;
+  }
 
   if (publicFormId && publicFormType && publicTenantId) {
     return <PublicFormView id={publicFormId} type={publicFormType} tenantId={publicTenantId} />;
