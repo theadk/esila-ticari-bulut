@@ -17,6 +17,7 @@ import { Mutabakat } from './pages/Mutabakat';
 import { Raporlar } from './pages/Raporlar';
 import { Ariza } from './pages/Ariza';
 import { EFatura } from './pages/EFatura';
+import { Ajanda } from './pages/Ajanda';
 import { SuperAdminLogin } from './src/pages/SuperAdminLogin';
 import { SuperAdminDashboard } from './src/pages/SuperAdminDashboard';
 import { FileText } from 'lucide-react';
@@ -78,6 +79,7 @@ const App: React.FC = () => {
       case 'raporlar': return <Raporlar />;
       case 'efatura': return <EFatura />;
       case 'teklif': return <Teklifler />;
+      case 'ajanda': return <Ajanda />;
       default: return <ComingSoon title={activePage} />;
     }
   };

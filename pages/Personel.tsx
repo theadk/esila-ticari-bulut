@@ -581,21 +581,21 @@ export const Personel: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Ad <span className="text-red-500">*</span></label>
-                      <input required type="text" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                      <input required type="text" value={formData.firstName || ''} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Soyad <span className="text-red-500">*</span></label>
-                      <input required type="text" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                      <input required type="text" value={formData.lastName || ''} onChange={e => setFormData({...formData, lastName: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">TC Kimlik No <span className="text-red-500">*</span></label>
-                      <input required type="text" maxLength={11} value={formData.tcNo} onChange={e => setFormData({...formData, tcNo: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                      <input required type="text" maxLength={11} value={formData.tcNo || ''} onChange={e => setFormData({...formData, tcNo: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Doğum Tarihi</label>
-                      <input type="date" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                      <input type="date" value={formData.birthDate || ''} onChange={e => setFormData({...formData, birthDate: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -609,34 +609,34 @@ export const Personel: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Kan Grubu</label>
-                      <input type="text" placeholder="Örn: A Rh+" value={formData.bloodType} onChange={e => setFormData({...formData, bloodType: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                      <input type="text" placeholder="Örn: A Rh+" value={formData.bloodType || ''} onChange={e => setFormData({...formData, bloodType: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Telefon <span className="text-red-500">*</span></label>
-                      <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                      <input required type="tel" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">E-Posta</label>
-                      <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                      <input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                     </div>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Adres</label>
-                    <textarea rows={2} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"></textarea>
+                    <textarea rows={2} value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"></textarea>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Acil Kişi Adı</label>
-                      <input type="text" value={formData.emergencyContactName} onChange={e => setFormData({...formData, emergencyContactName: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                      <input type="text" value={formData.emergencyContactName || ''} onChange={e => setFormData({...formData, emergencyContactName: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Acil Kişi Tel</label>
-                      <input type="tel" value={formData.emergencyContactPhone} onChange={e => setFormData({...formData, emergencyContactPhone: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                      <input type="tel" value={formData.emergencyContactPhone || ''} onChange={e => setFormData({...formData, emergencyContactPhone: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                     </div>
                   </div>
                 </div>
@@ -1174,9 +1174,9 @@ export const Personel: React.FC = () => {
 
             {/* Print Content - A4 Document Format */}
             <div className="p-8 md:p-12 print:p-4 print:text-black font-sans bg-white">
-              <div className="flex justify-between items-start mb-8 border-b-2 border-gray-800 pb-6 print:border-black">
+              <div className="flex justify-between items-start mb-8 border-b-2 pb-6 print:border-black" style={{ borderColor: store.settings?.invoiceTemplate_color || '#1f2937' }}>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 print:text-black mb-2">PERSONEL MAAŞ BORDROSU</h1>
+                  <h1 className="text-3xl font-bold mb-2" style={{ color: store.settings?.invoiceTemplate_color || '#111827' }}>PERSONEL MAAŞ BORDROSU</h1>
                   <p className="text-gray-600 print:text-black mt-2 font-bold text-xl">
                     Kayıt Dönemi: {selectedBordroToPrint.date}
                   </p>
@@ -1188,15 +1188,15 @@ export const Personel: React.FC = () => {
                   {store.settings.companyLogo ? (
                     <img src={store.settings.companyLogo} alt="Logo" className="max-h-20 object-contain ml-auto mb-2" />
                   ) : (
-                    <h2 className="font-logo text-3xl font-bold text-emerald-900 print:text-black mb-2">{store.settings.printer_header_text || 'esila'}</h2>
+                    <h2 className="font-logo text-3xl font-bold mb-2" style={{ color: store.settings?.invoiceTemplate_color || '#065f46' }}>{store.settings.printer_header_text || 'esila'}</h2>
                   )}
-                  <p className="text-sm text-gray-600 print:text-black font-medium">{store.settings.companyName}</p>
+                  <p className="text-sm font-medium" style={{ color: store.settings?.invoiceTemplate_color || '#374151' }}>{store.settings.companyName}</p>
                 </div>
               </div>
 
               {/* Personnel Information */}
               <div className="mb-8">
-                <h3 className="font-bold text-gray-800 print:text-black mb-3 border-b pb-2">Personel Bilgileri</h3>
+                <h3 className="font-bold mb-3 border-b pb-2" style={{ borderBottomColor: store.settings?.invoiceTemplate_color || '#e5e7eb', color: store.settings?.invoiceTemplate_color || '#1f2937' }}>Personel Bilgileri</h3>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm text-gray-700 print:text-black">
                   <div className="flex justify-between border-b border-dashed border-gray-200 pb-1">
                     <span className="font-medium text-gray-600">Ad Soyad:</span>

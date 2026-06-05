@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MOCK_CUSTOMERS, MOCK_TRANSACTIONS, MOCK_CASH_TRANSACTIONS, MOCK_PERSONNEL, MOCK_PRODUCTS, MOCK_USERS } from '../mockData';
-import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication } from '../types';
+import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote } from '../types';
 
 let globalSettings: Settings = {
   companyName: 'Esila Örnek Şirket Ltd. Şti.',
@@ -40,6 +40,15 @@ let globalCashTransactions = [...MOCK_CASH_TRANSACTIONS];
 let globalPersonnel = [...MOCK_PERSONNEL];
 let globalJobApplications: JobApplication[] = [];
 let globalServiceTickets: ServiceTicket[] = [];
+let globalReminderNotes: ReminderNote[] = [];
+export interface SuspendedCart {
+  id: string;
+  name: string;
+  date: string;
+  items: { product: Product; quantity: number; discount: number }[];
+  customerId: string;
+}
+let globalSuspendedCarts: SuspendedCart[] = [];
 let globalProposals: Proposal[] = [
   {
     id: 'TEK-2023-001',
@@ -205,6 +214,12 @@ export async function initializeStore() {
             materialsUsed: typeof d.materialsUsed === 'string' ? JSON.parse(d.materialsUsed) : (d.materialsUsed || []),
             plumbingChecklist: typeof d.plumbingChecklist === 'string' ? JSON.parse(d.plumbingChecklist) : (d.plumbingChecklist || [])
         }));
+      } },
+      { name: 'reminder_notes', ref: (data: any) => {
+        globalReminderNotes = data.map((d:any) => ({
+            ...d,
+            isCompleted: d.isCompleted == 1 || d.isCompleted === true
+        }));
       } }
     ];
     
@@ -317,6 +332,18 @@ export const useAppStore = () => {
       const old = globalServiceTickets;
       globalServiceTickets = typeof updater === 'function' ? updater(globalServiceTickets) : updater;
       syncArray('service_tickets', old, globalServiceTickets);
+      emit();
+    },
+    get reminderNotes() { return globalReminderNotes; },
+    setReminderNotes(updater: any) {
+      const old = globalReminderNotes;
+      globalReminderNotes = typeof updater === 'function' ? updater(globalReminderNotes) : updater;
+      syncArray('reminder_notes', old, globalReminderNotes);
+      emit();
+    },
+    get suspendedCarts() { return globalSuspendedCarts; },
+    setSuspendedCarts(updater: any) {
+      globalSuspendedCarts = typeof updater === 'function' ? updater(globalSuspendedCarts) : updater;
       emit();
     }
   };

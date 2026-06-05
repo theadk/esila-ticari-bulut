@@ -202,10 +202,22 @@ export const Ayarlar: React.FC = () => {
                   </div>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dışa Aktarma (PDF/Fiş) Kurumsal Renk</label>
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="color" 
+                      value={settings.invoiceTemplate_color || '#10b981'}
+                      onChange={(e) => handleChange('invoiceTemplate_color', e.target.value)}
+                      className="w-10 h-10 border border-gray-300 rounded cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-600">{settings.invoiceTemplate_color || '#10b981'} (Belge tabloları ve başlıklarında kullanılır)</span>
+                  </div>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Firma Ünvanı</label>
                   <input 
                     type="text" 
-                    value={settings.companyName}
+                    value={settings.companyName || ''}
                     onChange={(e) => handleChange('companyName', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -230,11 +242,32 @@ export const Ayarlar: React.FC = () => {
                     />
                   </div>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Banka Adı</label>
+                    <input 
+                      type="text" 
+                      value={settings.bankName || ''}
+                      onChange={(e) => handleChange('bankName', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
+                    <input 
+                      type="text" 
+                      value={settings.iban || ''}
+                      onChange={(e) => handleChange('iban', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="TR00 0000 0000 0000 0000 0000 00"
+                    />
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Adres</label>
                   <textarea 
                     rows={3}
-                    value={settings.address}
+                    value={settings.address || ''}
                     onChange={(e) => handleChange('address', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -244,7 +277,7 @@ export const Ayarlar: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
                     <input 
                       type="text" 
-                      value={settings.phone}
+                      value={settings.phone || ''}
                       onChange={(e) => handleChange('phone', e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     />
@@ -253,11 +286,23 @@ export const Ayarlar: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">E-Posta</label>
                     <input 
                       type="email" 
-                      value={settings.email}
+                      value={settings.email || ''}
                       onChange={(e) => handleChange('email', e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     />
                   </div>
+                </div>
+                <div className="sm:px-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Yazdırılacak Barkod Türü</label>
+                  <select
+                    value={settings.barcode_type || '1D'}
+                    onChange={(e) => handleChange('barcode_type', e.target.value)}
+                    className="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                  >
+                    <option value="1D">1D (Çizgi Barkod - Code128)</option>
+                    <option value="QR">QR Kod</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Ürün detaylarında "Barkod Yazdır" denildiğinde üretilecek formatı belirler.</p>
                 </div>
               </div>
             </div>
@@ -271,7 +316,7 @@ export const Ayarlar: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Host</label>
                   <input 
                     type="text" 
-                    value={settings.smtp_host}
+                    value={settings.smtp_host || ''}
                     onChange={(e) => handleChange('smtp_host', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -280,7 +325,7 @@ export const Ayarlar: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Port</label>
                   <input 
                     type="text" 
-                    value={settings.smtp_port}
+                    value={settings.smtp_port || ''}
                     onChange={(e) => handleChange('smtp_port', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -289,7 +334,7 @@ export const Ayarlar: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kullanıcı Adı</label>
                   <input 
                     type="text" 
-                    value={settings.smtp_user}
+                    value={settings.smtp_user || ''}
                     onChange={(e) => handleChange('smtp_user', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -353,44 +398,116 @@ export const Ayarlar: React.FC = () => {
                  <h3 className="text-xl font-semibold text-gray-800">E-Posta Şablonları</h3>
               </div>
               <p className="text-sm text-gray-500 mb-4">
-                Gönderilen maillerin tasarımlarını (HTML formatında) buradan özelleştirebilirsiniz. Desteklenen değişkenleri (örn: <code className="bg-gray-100 px-1 rounded">{'{MUSTERI_ADI}'}</code>) ilgili yerlerde kullanabilirsiniz. 
+                Gönderilen maillerin tasarımlarını (HTML formatında) buradan özelleştirebilirsiniz. Desteklenen değişkenleri kopyalayarak html içerisine yapıştırabilirsiniz. 
               </p>
               
-              <div className="grid grid-cols-1 gap-6">
-                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Cari Ekstre */}
+                <div className="col-span-1 border border-gray-200 rounded-xl p-4 bg-gray-50 flex flex-col h-full">
                   <h4 className="font-semibold text-gray-800 mb-2">Cari Ekstre Şablonu</h4>
-                  <p className="text-xs text-gray-500 mb-3">Değişkenler: {'{MUSTERI_ADI}'}, {'{BAKIYE}'}, {'{FIRMA_ADI}'}, {'{TARIH}'}</p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {['{MUSTERI_ADI}', '{BAKIYE}', '{FIRMA_ADI}', '{TARIH}'].map(variable => (
+                      <span key={variable} className="bg-white border text-xs px-2 py-1 rounded cursor-copy hover:bg-gray-100" onClick={() => navigator.clipboard.writeText(variable)} title="Kopyala">{variable}</span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mb-2 border-b pb-2">
+                    <button type="button" className="text-sm font-medium text-emerald-600 hover:underline" onClick={() => {
+                      if(!settings.email_template_customer) {
+                        handleChange('email_template_customer', `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">\n  <div style="background-color: #10b981; color: white; padding: 20px; text-align: center;">\n    <h2 style="margin: 0;">Cari Hesap Ekstresi</h2>\n  </div>\n  <div style="padding: 20px; color: #374151;">\n    <p>Sayın <strong>{MUSTERI_ADI}</strong>,</p>\n    <p>Gelişen ticari ilişkilerimizin devamını dileriz. <strong>{TARIH}</strong> tarihi itibarıyla cari hesabınızın güncel borç/alacak bakiyesi aşağıda belirtilmiştir.</p>\n    <div style="background-color: #f3f4f6; padding: 15px; border-radius: 6px; text-align: center; margin: 20px 0;">\n      <p style="margin: 0; font-size: 14px; text-transform: uppercase;">Güncel Bakiye</p>\n      <h3 style="margin: 5px 0 0 0; font-size: 24px; color: #047857;">{BAKIYE}</h3>\n    </div>\n    <p>Detaylı dökümü ekteki belgede bulabilirsiniz.</p>\n    <p style="margin-top: 30px;">Saygılarımızla,<br/><strong>{FIRMA_ADI}</strong></p>\n  </div>\n</div>`);
+                      }
+                    }}>Varsayılan Şablonu Yükle</button>
+                  </div>
                   <textarea 
-                    rows={6}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
+                    rows={10}
+                    className="w-full flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-sm mb-4"
                     value={settings.email_template_customer || ''}
                     onChange={(e) => handleChange('email_template_customer', e.target.value)}
                     placeholder="<div style='font-family: Arial...'>"
                   ></textarea>
+                  <div>
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">Önizleme</h5>
+                    <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-white overflow-y-auto max-h-[300px]"
+                      dangerouslySetInnerHTML={{ __html: (settings.email_template_customer || 'Görünüm Seçilen HTML\'e Göre Buraya Gelecek')
+                        .replace('{MUSTERI_ADI}', 'Ahmet Yılmaz')
+                        .replace('{BAKIYE}', '1.250,00 TL')
+                        .replace('{FIRMA_ADI}', settings.companyName || 'Örnek Firma Ltd.')
+                        .replace('{TARIH}', new Date().toLocaleDateString('tr-TR'))
+                      }}
+                    />
+                  </div>
                 </div>
 
-                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                {/* Mutabakat */}
+                <div className="col-span-1 border border-gray-200 rounded-xl p-4 bg-gray-50 flex flex-col h-full">
                   <h4 className="font-semibold text-gray-800 mb-2">Mutabakat Şablonu</h4>
-                  <p className="text-xs text-gray-500 mb-3">Değişkenler: {'{MUSTERI_ADI}'}, {'{BAKIYE}'}, {'{BAKIYE_TIPI}'}, {'{TARIH}'}, {'{FIRMA_ADI}'}</p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {['{MUSTERI_ADI}', '{BAKIYE}', '{BAKIYE_TIPI}', '{TARIH}', '{FIRMA_ADI}'].map(variable => (
+                      <span key={variable} className="bg-white border text-xs px-2 py-1 rounded cursor-copy hover:bg-gray-100" onClick={() => navigator.clipboard.writeText(variable)} title="Kopyala">{variable}</span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mb-2 border-b pb-2">
+                    <button type="button" className="text-sm font-medium text-blue-600 hover:underline" onClick={() => {
+                      if(!settings.email_template_reconciliation) {
+                        handleChange('email_template_reconciliation', `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">\n  <div style="background-color: #3b82f6; color: white; padding: 20px; text-align: center;">\n    <h2 style="margin: 0;">Mutabakat Mektubu</h2>\n  </div>\n  <div style="padding: 20px; color: #374151;">\n    <p>Sayın <strong>{MUSTERI_ADI}</strong> Yetkilisi,</p>\n    <p>Şirketimiz kayıtlarına göre <strong>{TARIH}</strong> tarihi itibariyle cari hesabınız aşağıdaki gibidir:</p>\n    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">\n      <tr><td style="border: 1px solid #e5e7eb; padding: 10px; font-weight: bold; background-color: #f9fafb;">Bakiye:</td><td style="border: 1px solid #e5e7eb; padding: 10px; color: #1d4ed8; font-weight:bold; font-size:18px;">{BAKIYE}</td></tr>\n      <tr><td style="border: 1px solid #e5e7eb; padding: 10px; font-weight: bold; background-color: #f9fafb;">Bakiye Tipi:</td><td style="border: 1px solid #e5e7eb; padding: 10px;">{BAKIYE_TIPI}</td></tr>\n    </table>\n    <p>Bakiyenin mutabık olduğunu veya olmadığını tarafımıza dönüş yaparak bildirmenizi rica ederiz.</p>\n    <p style="margin-top: 30px;">Saygılarımızla,<br/><strong>{FIRMA_ADI}</strong></p>\n  </div>\n</div>`);
+                      }
+                    }}>Varsayılan Şablonu Yükle</button>
+                  </div>
                   <textarea 
-                    rows={6}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
+                    rows={10}
+                    className="w-full flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm mb-4"
                     value={settings.email_template_reconciliation || ''}
                     onChange={(e) => handleChange('email_template_reconciliation', e.target.value)}
                     placeholder="<div style='font-family: Arial...'>"
                   ></textarea>
+                  <div>
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">Önizleme</h5>
+                    <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-white overflow-y-auto max-h-[300px]"
+                      dangerouslySetInnerHTML={{ __html: (settings.email_template_reconciliation || 'Görünüm Seçilen HTML\'e Göre Buraya Gelecek')
+                        .replace('{MUSTERI_ADI}', 'Mehmet Demir')
+                        .replace('{BAKIYE}', '5.400,00 TL')
+                        .replace('{BAKIYE_TIPI}', 'Borç Bakiye')
+                        .replace('{FIRMA_ADI}', settings.companyName || 'Örnek Firma Ltd.')
+                        .replace('{TARIH}', new Date().toLocaleDateString('tr-TR'))
+                      }}
+                    />
+                  </div>
                 </div>
 
-                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                {/* Personel */}
+                <div className="col-span-1 lg:col-span-2 border border-gray-200 rounded-xl p-4 bg-gray-50 flex flex-col h-full">
                   <h4 className="font-semibold text-gray-800 mb-2">Personel Bordro Şablonu</h4>
-                  <p className="text-xs text-gray-500 mb-3">Değişkenler: {'{PERSONEL_ADI}'}, {'{AY_YIL}'}, {'{NET_ODENEN}'}, {'{FIRMA_ADI}'}</p>
-                  <textarea 
-                    rows={6}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
-                    value={settings.email_template_personnel || ''}
-                    onChange={(e) => handleChange('email_template_personnel', e.target.value)}
-                    placeholder="<div style='font-family: Arial...'>"
-                  ></textarea>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {['{PERSONEL_ADI}', '{AY_YIL}', '{NET_ODENEN}', '{FIRMA_ADI}'].map(variable => (
+                      <span key={variable} className="bg-white border text-xs px-2 py-1 rounded cursor-copy hover:bg-gray-100" onClick={() => navigator.clipboard.writeText(variable)} title="Kopyala">{variable}</span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mb-2 border-b pb-2">
+                    <button type="button" className="text-sm font-medium text-rose-600 hover:underline" onClick={() => {
+                      if(!settings.email_template_personnel) {
+                        handleChange('email_template_personnel', `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">\n  <div style="background-color: #e11d48; color: white; padding: 20px; text-align: center;">\n    <h2 style="margin: 0;">Maaş Bordrosu</h2>\n  </div>\n  <div style="padding: 20px; color: #374151;">\n    <p>Sayın <strong>{PERSONEL_ADI}</strong>,</p>\n    <p><strong>{AY_YIL}</strong> dönemine ait maaş bordro dökümünüz oluşturulmuştur.</p>\n    <div style="background-color: #fff1f2; padding: 15px; border-radius: 6px; text-align: center; margin: 20px 0; border: 1px solid #fecdd3;">\n      <p style="margin: 0; font-size: 14px; text-transform: uppercase;">Net Ödenen Tutar</p>\n      <h3 style="margin: 5px 0 0 0; font-size: 24px; color: #be123c;">{NET_ODENEN}</h3>\n    </div>\n    <p>Şirketimize olan değerli katkılarınızdan dolayı teşekkür ederiz. Detaylı dökümü ekteki dosyada bulabilirsiniz.</p>\n    <p style="margin-top: 30px;">İnsan Kaynakları & Muhasebe<br/><strong>{FIRMA_ADI}</strong></p>\n  </div>\n</div>`);
+                      }
+                    }}>Varsayılan Şablonu Yükle</button>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
+                    <textarea 
+                      rows={10}
+                      className="w-full h-full min-h-[250px] px-3 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 font-mono text-sm"
+                      value={settings.email_template_personnel || ''}
+                      onChange={(e) => handleChange('email_template_personnel', e.target.value)}
+                      placeholder="<div style='font-family: Arial...'>"
+                    ></textarea>
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-700 mb-2">Önizleme</h5>
+                      <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-white overflow-y-auto h-full max-h-[300px]"
+                        dangerouslySetInnerHTML={{ __html: (settings.email_template_personnel || 'Görünüm Seçilen HTML\'e Göre Buraya Gelecek')
+                          .replace('{PERSONEL_ADI}', 'Ayşe Türk')
+                          .replace('{AY_YIL}', 'Haziran 2026')
+                          .replace('{NET_ODENEN}', '45.000,00 TL')
+                          .replace('{FIRMA_ADI}', settings.companyName || 'Örnek Firma Ltd.')
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -415,7 +532,7 @@ export const Ayarlar: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">SMS Sağlayıcı Token</label>
                   <input 
                     type="password" 
-                    value={settings.sms_token}
+                    value={settings.sms_token || ''}
                     onChange={(e) => handleChange('sms_token', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -433,7 +550,7 @@ export const Ayarlar: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Makbuz Başlığı</label>
                   <input 
                     type="text" 
-                    value={settings.printer_header_text}
+                    value={settings.printer_header_text || ''}
                     onChange={(e) => handleChange('printer_header_text', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -442,7 +559,7 @@ export const Ayarlar: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Makbuz Alt Bilgisi</label>
                   <textarea 
                      rows={3}
-                     value={settings.printer_footer_text}
+                     value={settings.printer_footer_text || ''}
                      onChange={(e) => handleChange('printer_footer_text', e.target.value)}
                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />

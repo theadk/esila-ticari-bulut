@@ -30,15 +30,29 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Generate notifications (low stock)
+  // Generate notifications
   const lowStockProducts = store.products.filter(p => p.stock < 10);
-  const notifications = lowStockProducts.map(p => ({
-    id: p.id,
+  const stockNotifications = lowStockProducts.map(p => ({
+    id: `stock-${p.id}`,
     title: 'Düşük Stok Uyarısı',
     message: `${p.name} ürünü stokta azaldı (${p.stock} adet kaldı).`,
-    time: 'Şimdi',
-    type: 'warning'
+    time: 'Sürekli',
+    type: 'warning',
+    onClick: () => setActivePage('urunler')
   }));
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const activeReminders = (store.reminderNotes || []).filter(n => !n.isCompleted && n.date <= todayStr);
+  const reminderNotifications = activeReminders.map(r => ({
+    id: `note-${r.id}`,
+    title: `Hatırlatma: ${r.type}`,
+    message: r.title + (r.description ? ` - ${r.description}` : ''),
+    time: r.date === todayStr ? 'Bugün' : 'Gecikmiş',
+    type: r.date === todayStr ? 'info' : 'error',
+    onClick: () => setActivePage('ajanda')
+  }));
+
+  const notifications = [...reminderNotifications, ...stockNotifications];
 
   // Global search implementation
   const searchResults = {
@@ -167,12 +181,12 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
                    </div>
                  ) : (
                    notifications.map((n, idx) => (
-                     <div key={idx} className="px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { setActivePage('urunler'); setShowNotifications(false); }}>
+                     <div key={n.id || idx} className="px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { if ((n as any).onClick) (n as any).onClick(); setShowNotifications(false); }}>
                        <div className="flex justify-between items-start mb-1">
-                         <span className="text-sm font-semibold text-gray-800">{n.title}</span>
-                         <span className="text-xs text-gray-400">{n.time}</span>
+                         <span className={`text-sm font-semibold ${(n as any).type === 'error' ? 'text-red-600' : 'text-gray-800'}`}>{n.title}</span>
+                         <span className={`text-xs ${(n as any).type === 'error' ? 'text-red-500 font-bold' : 'text-gray-400'}`}>{n.time}</span>
                        </div>
-                       <p className="text-xs text-gray-600">{n.message}</p>
+                       <p className="text-xs text-gray-600 line-clamp-2">{n.message}</p>
                      </div>
                    ))
                  )}

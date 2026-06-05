@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
+import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock, Users, MessageCircle } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Reconciliation, ReconciliationStatus, Customer } from '../types';
 import { apiFetch } from '../lib/api';
@@ -59,7 +59,7 @@ export const Mutabakat: React.FC = () => {
       FIRMA_VERGI_DAIRESI: store.settings.taxOffice || '',
       FIRMA_VKN: store.settings.taxNumber || '',
       TARIH: new Date(reconciliation.date).toLocaleDateString('tr-TR'),
-      MUTABAKAT_LINKI: `${window.location.origin}/mutabakat-onay/${reconciliation.id}?vkn=${store.settings.vkn || localStorage.getItem('esila_tenant_id')}`
+      MUTABAKAT_LINKI: `${window.location.origin}/mutabakat-onay/${reconciliation.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')}`
     });
 
     const promise = fetch('/api/send-email', {
@@ -250,8 +250,7 @@ export const Mutabakat: React.FC = () => {
                 <th className="py-3 px-4">Cari Adı</th>
                 <th className="py-3 px-4">Bakiye</th>
                 <th className="py-3 px-4">Durum</th>
-                <th className="py-3 px-4">Gönderim</th>
-                <th className="py-3 px-4">Yanıt Zamanı</th>
+                <th className="py-3 px-4 text-center">İşlemler</th>
                 <th className="py-3 px-4 text-right">Müşteri Linki (Test)</th>
               </tr>
             </thead>
@@ -284,19 +283,29 @@ export const Mutabakat: React.FC = () => {
                       {r.status}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                      {r.emailSentAt ? (
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                              <Mail size={14} /> {new Date(r.emailSentAt).toLocaleString('tr-TR')}
-                          </div>
-                      ) : '-'}
-                  </td>
-                  <td className="py-3 px-4">
-                      {r.respondedAt ? (
-                           <div className="text-xs text-gray-500" title={r.responseNotes}>
-                               {new Date(r.respondedAt).toLocaleString('tr-TR')}
+                  <td className="py-3 px-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                       {r.emailSentAt ? (
+                           <div className="text-xs text-gray-500 flex items-center gap-1" title={new Date(r.emailSentAt).toLocaleString('tr-TR')}>
+                               <Mail size={16} className="text-blue-500" /> 
                            </div>
-                      ) : '-'}
+                       ) : <Mail size={16} className="text-gray-300" />}
+                       
+                       <button 
+                         onClick={() => {
+                           const customer = store.customers.find(c => c.id === r.customerId);
+                           if (!customer?.phone) {
+                             alert("Müşterinin telefon numarası kayıtlı değil.");
+                             return;
+                           }
+                           const text = `Sayın ${r.customerName} yetkilisi, güncel kayıtlarımıza göre ${new Date(r.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} (${r.balanceType}) tutarında mutabıktır. Teyit etmenizi rica ederiz. Saygılarımızla, ${store.settings?.companyName || 'Şirket'}`;
+                           window.open(`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                         }}
+                         className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors title='WhatsApp ile Gönder'"
+                       >
+                         <MessageCircle size={16} />
+                       </button>
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-right">
                     {r.status === ReconciliationStatus.PENDING && (

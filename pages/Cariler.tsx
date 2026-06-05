@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload, Printer } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload, Printer, MessageCircle, CheckCircle, Landmark } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Customer, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
@@ -50,6 +50,10 @@ export const Cariler: React.FC = () => {
   // Transaction History States
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  
+  // Bulk WhatsApp States
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
+  const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
   
   // Payment Modal States
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -348,6 +352,15 @@ export const Cariler: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-800">Cari Hesaplar</h2>
         <div className="flex flex-wrap gap-2">
           <input type="file" ref={fileInputRef} onChange={importFromExcel} className="hidden" accept=".xlsx, .xls, .csv" />
+          {selectedCustomerIds.length > 0 && (
+            <button 
+              onClick={() => setIsBulkWhatsAppOpen(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <MessageCircle size={18} />
+              <span className="hidden sm:inline">Toplu WhatsApp ({selectedCustomerIds.length})</span>
+            </button>
+          )}
           <button 
             onClick={() => fileInputRef.current?.click()}
             className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
@@ -373,8 +386,8 @@ export const Cariler: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
-        <div className="p-4 border-b border-gray-100">
-          <div className="relative max-w-full sm:max-w-md">
+        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between gap-4">
+          <div className="relative max-w-full sm:max-w-md w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input 
               type="text" 
@@ -384,12 +397,37 @@ export const Cariler: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <div className="flex items-center gap-2">
+            <button 
+               onClick={() => {
+                 const debtors = filteredCustomers.filter(c => c.balance > 0).map(c => c.id);
+                 setSelectedCustomerIds(debtors);
+               }}
+               className="text-sm px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 font-medium rounded-lg transition-colors border border-red-200"
+            >
+               Tüm Borçlu Carileri Seç ({filteredCustomers.filter(c => c.balance > 0).length})
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-gray-50 text-gray-600 font-medium">
               <tr>
+                <th className="px-6 py-4 w-12 text-center">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-gray-300"
+                    checked={paginatedCustomers.length > 0 && selectedCustomerIds.length === paginatedCustomers.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedCustomerIds(paginatedCustomers.map(c => c.id));
+                      } else {
+                        setSelectedCustomerIds([]);
+                      }
+                    }}
+                  />
+                </th>
                 <th className="px-6 py-4">Cari Türü</th>
                 <th className="px-6 py-4">Cari Adı / Ünvan</th>
                 <th className="px-6 py-4">İletişim</th>
@@ -401,13 +439,27 @@ export const Cariler: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {paginatedCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                     Kayıt bulunamadı.
                   </td>
                 </tr>
               ) : (
                 paginatedCustomers.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-emerald-50/30 transition-colors">
+                  <tr key={customer.id} className={`hover:bg-emerald-50/30 transition-colors ${selectedCustomerIds.includes(customer.id) ? 'bg-emerald-50/50' : ''}`}>
+                    <td className="px-6 py-4 text-center">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-gray-300"
+                        checked={selectedCustomerIds.includes(customer.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCustomerIds([...selectedCustomerIds, customer.id]);
+                          } else {
+                            setSelectedCustomerIds(selectedCustomerIds.filter(id => id !== customer.id));
+                          }
+                        }}
+                      />
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
                         customer.customerType === 'Tüzel' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
@@ -432,6 +484,18 @@ export const Cariler: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Phone size={14} className="text-emerald-500" /> {customer.phone}
+                        {customer.phone && (
+                          <a 
+                            href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="bg-green-100 hover:bg-green-200 text-green-700 p-1 rounded-full transition-colors ml-1"
+                            title="WhatsApp'tan Mesaj Gönder"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MessageCircle size={12} />
+                          </a>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
@@ -614,7 +678,7 @@ export const Cariler: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
                   <input 
                     type="text" 
-                    value={formData.phone}
+                    value={formData.phone || ''}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="05XX XXX XX XX"
@@ -624,7 +688,7 @@ export const Cariler: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">E-Posta</label>
                   <input 
                     type="email" 
-                    value={formData.email}
+                    value={formData.email || ''}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="ornek@firma.com"
@@ -715,7 +779,7 @@ export const Cariler: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Açık Adres</label>
                   <textarea 
                     rows={2}
-                    value={formData.address}
+                    value={formData.address || ''}
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="Mahalle, Sokak, No, Daire vb."
@@ -779,29 +843,72 @@ export const Cariler: React.FC = () => {
                   {selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 items-center">
                 <button 
                   onClick={() => downloadHistoryExcel(selectedCustomerForHistory)} 
                   className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  title="Excel İndir"
                 >
                   <Download size={18} />
-                  <span>Excel İndir</span>
+                  <span className="hidden sm:inline">Excel</span>
                 </button>
                 <button 
                   onClick={() => printCustomerHistory(selectedCustomerForHistory)} 
                   className="bg-emerald-600 text-white px-3 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                  title="Yazdır / PDF"
                 >
                   <Printer size={18} />
-                  <span>Yazdır / PDF (A4)</span>
+                  <span className="hidden sm:inline">Yazdır</span>
                 </button>
                 <button 
                   onClick={() => sendHistoryEmail(selectedCustomerForHistory)} 
                   className="bg-emerald-50 text-emerald-700 px-3 py-2 rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-2"
+                  title="E-Posta Gönder"
                 >
                   <Send size={18} />
-                  <span>Gönder</span>
+                  <span className="hidden sm:inline">E-Posta</span>
                 </button>
-                <button onClick={() => setIsHistoryModalOpen(false)} className="h-10 w-10 flex items-center justify-center text-gray-500 hover:bg-gray-200 rounded-lg hover:text-red-500 transition-colors">
+                {selectedCustomerForHistory.phone && (
+                  <div className="relative group">
+                    <button className="bg-green-100 text-green-700 px-3 py-2 rounded-lg hover:bg-green-200 transition-colors flex items-center gap-2">
+                      <MessageCircle size={18} />
+                      <span className="hidden sm:inline">WhatsApp</span>
+                    </button>
+                    <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col overflow-hidden">
+                      <button 
+                        onClick={() => {
+                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}, güncel bakiye durumunuz: *${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* (${selectedCustomerForHistory.balance > 0 ? 'Borçlu' : 'Alacaklı'}). Detaylı bilgi için bizimle iletişime geçebilirsiniz. İyi çalışmalar dileriz. - ${store.settings?.companyName || 'Şirket'}`;
+                          window.open(`https://wa.me/${selectedCustomerForHistory.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                        }}
+                        className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                      >
+                        <CreditCard size={14} className="text-gray-500" />
+                        Bakiye Hatırlatma
+                      </button>
+                      <button 
+                        onClick={() => {
+                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name} yetkilisi, güncel kayıtlarımıza göre ${new Date().toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz *${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* tutarında mutabıktır. Teyit etmenizi rica ederiz. Saygılarımızla, ${store.settings?.companyName || 'Şirket'}`;
+                          window.open(`https://wa.me/${selectedCustomerForHistory.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                        }}
+                        className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                      >
+                        <CheckCircle size={14} className="text-gray-500" />
+                        Mutabakat Mesajı
+                      </button>
+                      <button 
+                        onClick={() => {
+                          const text = `Merhaba, ${store.settings?.companyName || 'Şirket'} ödeme hesap bilgilerimiz aşağıdaki gibidir:\nBanka: xxxx Bankası\nIBAN: TRxx xxxx xxxx xxxx xxxx xxxx xx\nAlıcı: ${store.settings?.companyName || 'Şirket'}`;
+                          window.open(`https://wa.me/${selectedCustomerForHistory.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                        }}
+                        className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Landmark size={14} className="text-gray-500" />
+                        IBAN / Ödeme Bilgileri
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <button onClick={() => setIsHistoryModalOpen(false)} className="h-10 w-10 flex items-center justify-center text-gray-500 hover:bg-gray-200 rounded-lg hover:text-red-500 transition-colors ml-2">
                   <X size={24} />
                 </button>
               </div>
@@ -954,9 +1061,9 @@ export const Cariler: React.FC = () => {
 
             {/* Print Content - A4 Document Format */}
             <div className="p-8 md:p-12 print:p-4 print:text-black font-sans bg-white">
-              <div className="flex justify-between items-start mb-8 border-b-2 border-gray-800 pb-6 print:border-black">
+              <div className="flex justify-between items-start mb-8 border-b-2 pb-6" style={{ borderColor: store.settings?.invoiceTemplate_color || '#1f2937' }}>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 print:text-black mb-2">CARİ HESAP EKSTRESİ</h1>
+                  <h1 className="text-3xl font-bold mb-2" style={{ color: store.settings?.invoiceTemplate_color || '#111827' }}>CARİ HESAP EKSTRESİ</h1>
                   <p className="text-gray-600 print:text-black mt-2 font-bold text-xl">
                     {selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}
                   </p>
@@ -971,27 +1078,40 @@ export const Cariler: React.FC = () => {
                   {store.settings.companyLogo ? (
                     <img src={store.settings.companyLogo} alt="Logo" className="max-h-20 object-contain ml-auto mb-2" />
                   ) : (
-                    <h2 className="font-logo text-3xl font-bold text-blue-900 print:text-black mb-2">{store.settings.printer_header_text || 'esila'}</h2>
+                    <h2 className="font-logo text-3xl font-bold mb-2" style={{ color: store.settings?.invoiceTemplate_color || '#1e3a8a' }}>{store.settings.printer_header_text || 'esila'}</h2>
                   )}
-                  <p className="text-sm text-gray-600 print:text-black font-medium">{store.settings.companyName}</p>
+                  <p className="text-sm font-medium" style={{ color: store.settings?.invoiceTemplate_color || '#4b5563' }}>{store.settings.companyName}</p>
                 </div>
               </div>
 
               {/* Summary Metrics */}
               <div className="grid grid-cols-2 gap-6 mb-8">
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 print:border-gray-400 print:bg-transparent">
-                  <p className="text-sm text-gray-500 print:text-black font-medium mb-1">Müşteri/Firma Yetkilisi</p>
+                <div className="p-4 rounded-lg border print:bg-transparent" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb', backgroundColor: '#f9fafb' }}>
+                  <p className="text-sm font-medium mb-1" style={{ color: store.settings?.invoiceTemplate_color || '#6b7280' }}>Müşteri/Firma Yetkilisi</p>
                   <p className="text-lg font-bold text-gray-800 print:text-black">
                     {selectedCustomerForHistory.name}
                   </p>
-                  <p className="text-gray-600 print:text-black">{selectedCustomerForHistory.phone}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-gray-600 print:text-black">{selectedCustomerForHistory.phone}</p>
+                    {selectedCustomerForHistory.phone && (
+                      <a 
+                        href={`https://wa.me/${selectedCustomerForHistory.phone.replace(/[^0-9]/g, '')}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="bg-green-100 hover:bg-green-200 text-green-700 p-1 rounded-full transition-colors print:hidden"
+                        title="WhatsApp'tan Mesaj Gönder"
+                      >
+                        <MessageCircle size={14} />
+                      </a>
+                    )}
+                  </div>
                 </div>
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 print:border-gray-500 print:bg-transparent">
-                  <p className="text-sm text-blue-600 print:text-black font-bold mb-1">Güncel Bakiye</p>
+                <div className="p-4 rounded-lg border print:bg-transparent" style={{ borderColor: store.settings?.invoiceTemplate_color || '#bfdbfe', backgroundColor: '#eff6ff' }}>
+                  <p className="text-sm font-bold mb-1" style={{ color: store.settings?.invoiceTemplate_color || '#2563eb' }}>Güncel Bakiye</p>
                   <p className={`text-2xl font-bold ${selectedCustomerForHistory.balance >= 0 ? 'text-emerald-700' : 'text-red-700'} print:text-black`}>
                     {selectedCustomerForHistory.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                   </p>
-                  <p className="text-xs text-blue-700 print:text-black opacity-80 mt-1">
+                  <p className="text-xs opacity-80 mt-1" style={{ color: store.settings?.invoiceTemplate_color || '#1d4ed8' }}>
                     {selectedCustomerForHistory.balance >= 0 ? 'Müşteri Borçludur' : 'Firmamız Borçludur (Fazla Tahsilat)'}
                   </p>
                 </div>
@@ -999,38 +1119,38 @@ export const Cariler: React.FC = () => {
 
               {/* Transactions List */}
               <div className="mb-4">
-                <h3 className="font-bold text-gray-800 print:text-black mb-4 border-b pb-2">Hesap Hareketleri</h3>
+                <h3 className="font-bold print:text-black mb-4 border-b pb-2" style={{ borderBottomColor: store.settings?.invoiceTemplate_color || '#e5e7eb', color: store.settings?.invoiceTemplate_color || '#1f2937' }}>Hesap Hareketleri</h3>
                 <table className="w-full text-sm text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-100 print:bg-gray-200 text-gray-800 print:text-black font-semibold">
-                      <th className="p-3 border border-gray-200 print:border-gray-400 w-32">Tarih</th>
-                      <th className="p-3 border border-gray-200 print:border-gray-400 w-32">İşlem Tipi</th>
-                      <th className="p-3 border border-gray-200 print:border-gray-400">Açıklama</th>
-                      <th className="p-3 border border-gray-200 print:border-gray-400 text-right w-36">Tutar</th>
+                    <tr className="font-semibold" style={{ backgroundColor: store.settings?.invoiceTemplate_color ? `${store.settings.invoiceTemplate_color}1a` : '#f3f4f6', color: store.settings?.invoiceTemplate_color || '#1f2937' }}>
+                      <th className="p-3 border w-32" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>Tarih</th>
+                      <th className="p-3 border w-32" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>İşlem Tipi</th>
+                      <th className="p-3 border" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>Açıklama</th>
+                      <th className="p-3 border text-right w-36" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>Tutar</th>
                     </tr>
                   </thead>
                   <tbody>
                     {transactions.filter(t => t.customerId === selectedCustomerForHistory.id).map(tx => (
-                      <tr key={tx.id} className="border-b border-gray-200 print:border-gray-300">
-                        <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-600 print:text-black whitespace-nowrap">
+                      <tr key={tx.id} className="border-b" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
+                        <td className="p-3 border-x text-gray-600 print:text-black whitespace-nowrap" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                           {new Date(tx.date).toLocaleDateString('tr-TR')}
                         </td>
-                        <td className="p-3 border-x border-gray-200 print:border-gray-300">
+                        <td className="p-3 border-x" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                           <span className={`font-medium ${tx.type === 'Alacak' ? 'text-red-700 print:text-black' : 'text-emerald-700 print:text-black'}`}>
                             {tx.type}
                           </span>
                         </td>
-                        <td className="p-3 border-x border-gray-200 print:border-gray-300 text-gray-800 print:text-black text-xs">
+                        <td className="p-3 border-x text-gray-800 print:text-black text-xs" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                           {tx.description}
                         </td>
-                        <td className={`p-3 border-x border-gray-200 print:border-gray-300 text-right font-bold whitespace-nowrap ${tx.type === 'Alacak' ? 'text-red-700 print:text-black' : 'text-emerald-700 print:text-black'}`}>
+                        <td className={`p-3 border-x text-right font-bold whitespace-nowrap ${tx.type === 'Alacak' ? 'text-red-700 print:text-black' : 'text-emerald-700 print:text-black'}`} style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                           {tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                         </td>
                       </tr>
                     ))}
                     {transactions.filter(t => t.customerId === selectedCustomerForHistory.id).length === 0 && (
                       <tr>
-                        <td colSpan={4} className="p-6 text-center text-gray-500 border border-gray-200">
+                        <td colSpan={4} className="p-6 text-center text-gray-500 border" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                           Kayıtlı hesap hareketi bulunmuyor.
                         </td>
                       </tr>
@@ -1041,24 +1161,88 @@ export const Cariler: React.FC = () => {
 
               <div className="mt-12 flex justify-between px-8 no-print">
                 <div className="text-center">
-                  <div className="w-48 h-px bg-gray-300 mb-2"></div>
+                  <div className="w-48 h-px mb-2" style={{ backgroundColor: store.settings?.invoiceTemplate_color || '#d1d5db' }}></div>
                   <p className="text-gray-500">Müşteri Kaşe/İmza</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-48 h-px bg-gray-300 mb-2"></div>
+                  <div className="w-48 h-px mb-2" style={{ backgroundColor: store.settings?.invoiceTemplate_color || '#d1d5db' }}></div>
                   <p className="text-gray-500">Firma Yetkilisi İmza</p>
                 </div>
               </div>
               <div className="mt-20 print:flex justify-between px-8 hidden text-black">
                 <div className="text-center">
-                  <div className="w-48 h-px bg-black mb-2"></div>
+                  <div className="w-48 h-px mb-2" style={{ backgroundColor: store.settings?.invoiceTemplate_color || '#000' }}></div>
                   <p>Müşteri Kaşe/İmza</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-48 h-px bg-black mb-2"></div>
+                  <div className="w-48 h-px mb-2" style={{ backgroundColor: store.settings?.invoiceTemplate_color || '#000' }}></div>
                   <p>Firma Yetkilisi İmza</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk WhatsApp Modal */}
+      {isBulkWhatsAppOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center rounded-t-xl">
+              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                <MessageCircle className="text-green-600" />
+                Toplu WhatsApp Mesajı
+              </h3>
+              <button onClick={() => setIsBulkWhatsAppOpen(false)} className="text-gray-500 hover:text-gray-700 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-4 sm:p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <p className="text-sm text-gray-600">
+                Seçilen <strong>{selectedCustomerIds.length}</strong> cariye sırayla WhatsApp mesajı gönderebilirsiniz. 
+                WhatsApp'ın spamı önleme politikaları gereği tüm kullanıcılara tek tıkla toplu mesaj gönderilemez; her biri için gönderim penceresini manuel başlatmanız gerekir.
+              </p>
+              
+              <div className="space-y-3">
+                {selectedCustomerIds.map(id => {
+                  const c = customers.find(x => x.id === id);
+                  if (!c) return null;
+                  return (
+                    <div key={id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50">
+                      <div>
+                        <div className="font-medium text-gray-800">{c.companyName || c.name}</div>
+                        <div className="text-sm text-gray-500">{c.phone || 'Telefon Kayıtlı Değil'}</div>
+                        {c.balance > 0 && (
+                          <div className="text-xs text-red-600 font-semibold mt-1">
+                            Bakiye: {c.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                          </div>
+                        )}
+                      </div>
+                      <button 
+                        disabled={!c.phone}
+                        onClick={() => {
+                          const text = `Sayın ${c.companyName || c.name}, güncel kayıtlarımıza göre ödenmemiş *${c.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* bakiyeniz bulunmaktadır. Ödemelerinizi aşağıdaki hesap numaralarımıza yapabilirsiniz:\n${store.settings?.bankName ? `Banka: ${store.settings.bankName}\n` : ''}${store.settings?.iban ? `IBAN: ${store.settings.iban}` : ''}\n\nİyi çalışmalar, ${store.settings?.companyName || 'Şirket Adı'}`;
+                          window.open(`https://wa.me/${(c.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 ${c.phone ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                      >
+                        <MessageCircle size={16} />
+                        Gönder
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <div className="p-4 border-t bg-gray-50 flex justify-end">
+              <button 
+                onClick={() => setIsBulkWhatsAppOpen(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors font-medium"
+              >
+                Kapat
+              </button>
             </div>
           </div>
         </div>

@@ -1,12 +1,56 @@
 import React, { useMemo, useState } from 'react';
 import { useAppStore } from '../lib/store';
-import { TrendingUp, TrendingDown, DollarSign, Download, Printer, AlertCircle, PackageX } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Download, Printer, AlertCircle, PackageX, Calendar } from 'lucide-react';
 import { OrderStatus } from '../types';
 import * as XLSX from 'xlsx';
 
 export const Raporlar: React.FC = () => {
   const store = useAppStore();
-  const [activeTab, setActiveTab] = useState<'karlilik' | 'cariler' | 'siparisler' | 'stoklar'>('karlilik');
+  const [activeTab, setActiveTab] = useState<'karlilik' | 'cariler' | 'siparisler' | 'stoklar' | 'finans'>('finans');
+
+  const { dailySales, dailyCollections } = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayTransactions = (store.transactions || []).filter(t => t.date === todayStr);
+    
+    const sales = todayTransactions
+      .filter(t => t.type === 'Satış')
+      .reduce((sum, t) => sum + t.amount, 0);
+      
+    const collections = todayTransactions
+      .filter(t => t.type === 'Tahsilat')
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      
+    return { dailySales: sales, dailyCollections: collections };
+  }, [store.transactions]);
+
+  const financialForecast = useMemo(() => {
+     const today = new Date();
+     today.setHours(0,0,0,0);
+     const next30Days = new Date(today);
+     next30Days.setDate(next30Days.getDate() + 30);
+     
+     let expectedCollections = 0;
+     let expectedPayments = 0;
+
+     (store.reminderNotes || []).forEach(note => {
+        if (!note.isCompleted) {
+           const noteDate = new Date(note.date);
+           if (noteDate >= today && noteDate <= next30Days) {
+              if (note.type === 'Tahsilat' && note.amount) {
+                 expectedCollections += note.amount;
+              } else if (note.type === 'Ödeme' && note.amount) {
+                 expectedPayments += note.amount;
+              }
+           }
+        }
+     });
+
+     return {
+        collections: expectedCollections,
+        payments: expectedPayments,
+        net: expectedCollections - expectedPayments
+     };
+  }, [store.reminderNotes]);
 
   const metrics = useMemo(() => {
     let totalRevenue = 0;
@@ -117,7 +161,16 @@ export const Raporlar: React.FC = () => {
 
   return (
     <div className="space-y-6 print:m-0 print:p-0">
+      <div className="hidden print:flex flex-col items-center justify-center mb-8 border-b-2 pb-4" style={{ borderColor: store.settings?.invoiceTemplate_color || '#10b981' }}>
+        {store.settings?.companyLogo && (
+          <img src={store.settings.companyLogo} alt="Logo" className="max-h-20 object-contain mb-2" />
+        )}
+        <h1 className="text-2xl font-bold" style={{ color: store.settings?.invoiceTemplate_color || '#10b981' }}>{store.settings?.companyName || 'Sistem Raporu'}</h1>
+        <p className="text-sm text-gray-500">Rapor Tarihi: {new Date().toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+      </div>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 print:hidden">
+
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Sistem Raporları</h1>
           <p className="text-gray-500 text-sm mt-1">Detaylı işletme ve karar analizleri</p>
@@ -135,6 +188,7 @@ export const Raporlar: React.FC = () => {
       </div>
 
       <div className="flex bg-gray-100 p-1 rounded-lg gap-1 border border-gray-200 overflow-x-auto print:hidden">
+        <button onClick={() => setActiveTab('finans')} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${activeTab === 'finans' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Nakit Akışı (Finans)</button>
         <button onClick={() => setActiveTab('karlilik')} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${activeTab === 'karlilik' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Kârlılık Analizi</button>
         <button onClick={() => setActiveTab('cariler')} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${activeTab === 'cariler' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Cari Bakiyeleri</button>
         <button onClick={() => setActiveTab('siparisler')} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${activeTab === 'siparisler' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Sipariş Raporu</button>
@@ -142,6 +196,66 @@ export const Raporlar: React.FC = () => {
       </div>
 
       <div className="print:block">
+        {/* Finans */}
+        {(activeTab === 'finans') && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-gray-800 hidden print:block mb-4">Nakit Akışı ve Finansal Beklentiler</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Gün Sonu Özeti Paneli */}
+              <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-xl border border-indigo-200 shadow-sm flex flex-col justify-center">
+                  <h3 className="text-indigo-800 font-semibold mb-4 flex items-center gap-2">
+                    <Calendar size={18} />
+                    <span>Gün Sonu Özeti ({new Date().toLocaleDateString('tr-TR')})</span>
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-indigo-50 flex items-center gap-3">
+                        <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                          <TrendingUp size={24} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Günlük Ciro</p>
+                          <p className="text-xl font-bold text-gray-900">{dailySales.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-indigo-50 flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                          <DollarSign size={24} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Tahsilat</p>
+                          <p className="text-xl font-bold text-gray-900">{dailyCollections.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</p>
+                        </div>
+                    </div>
+                  </div>
+              </div>
+
+              {/* 30 Günlük Finansal Beklenti */}
+              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-xl border border-emerald-200 shadow-sm flex flex-col justify-center">
+                  <h3 className="text-emerald-800 font-semibold mb-4 flex items-center gap-2">
+                    <TrendingUp size={18} />
+                    <span>Önümüzdeki 30 Günlük Finansal Beklentiler (Ajanda)</span>
+                  </h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-emerald-50 text-center">
+                        <p className="text-xs font-medium text-gray-500 mb-1">Beklenen Tahsilat</p>
+                        <p className="text-lg font-bold text-emerald-600">+{financialForecast.collections.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-emerald-50 text-center">
+                        <p className="text-xs font-medium text-gray-500 mb-1">Beklenen Ödeme</p>
+                        <p className="text-lg font-bold text-red-500">-{financialForecast.payments.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-emerald-50 text-center">
+                        <p className="text-xs font-medium text-gray-500 mb-1">Net Nakit Akışı</p>
+                        <p className={`text-lg font-bold ${financialForecast.net >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {financialForecast.net >= 0 ? '+' : ''}{financialForecast.net.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                        </p>
+                    </div>
+                  </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Kârlılık */}
         {(activeTab === 'karlilik') && (
         <div className="space-y-6">

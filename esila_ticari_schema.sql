@@ -267,3 +267,14 @@ CREATE TABLE IF NOT EXISTS email_logs (
     errorMessage TEXT,
     date DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS reminder_notes (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    title VARCHAR(255),
+    description TEXT,
+    date DATETIME,
+    type VARCHAR(50),
+    isCompleted BOOLEAN DEFAULT FALSE,
+    relatedId VARCHAR(255)
+);

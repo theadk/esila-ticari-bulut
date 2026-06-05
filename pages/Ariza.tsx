@@ -117,7 +117,7 @@ export const Ariza: React.FC = () => {
             FIRMA_VKN: store.settings.taxNumber || "",
             TARIH: new Date(
               ticket.dateCompleted || ticket.dateCreated,
-            ).toLocaleDateString("tr-TR"),
+            ).toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
           });
 
           try {
@@ -622,7 +622,6 @@ export const Ariza: React.FC = () => {
       selectedTicket.plumbingChecklist &&
       selectedTicket.plumbingChecklist.length > 0
         ? `
-      <div class="desc">
         <div class="desc-title">Bakım / Kontrol Listesi:</div>
         <div style="margin-top: 5px;">
           ${selectedTicket.plumbingChecklist
@@ -635,7 +634,6 @@ export const Ariza: React.FC = () => {
             )
             .join("")}
         </div>
-      </div>
     `
         : "";
 
@@ -675,8 +673,10 @@ export const Ariza: React.FC = () => {
               font-size: ${isA4 ? "12px" : "12px"};
               line-height: 1.4;
             }
-            .header { text-align: center; margin-bottom: ${isA4 ? "20px" : "15px"}; border-bottom: ${isA4 ? "2px solid #10b981" : "1px solid #000"}; padding-bottom: ${isA4 ? "10px" : "10px"}; }
-            .header h1 { margin: 0; padding: 0; font-size: ${isA4 ? "24px" : "18px"}; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: ${isA4 ? "#065f46" : "#000"}; }
+            .header { text-align: center; margin-bottom: ${isA4 ? "20px" : "15px"}; border-bottom: ${isA4 ? `2px solid ${store.settings?.invoiceTemplate_color || '#10b981'}` : "1px solid #000"}; padding-bottom: ${isA4 ? "10px" : "10px"}; }
+            .header img { max-height: 80px; object-fit: contain; margin-bottom: 10px; }
+            .header h1 { margin: 0; padding: 0; font-size: ${isA4 ? "24px" : "18px"}; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: ${isA4 ? (store.settings?.invoiceTemplate_color || '#065f46') : "#000"}; }
+            .header p { margin: 2px 0; font-size: 11px; font-weight: normal; color: #374151; }
             .header-info { font-size: ${isA4 ? "11px" : "10px"}; margin-top: 5px; color: #4b5563; }
             
             .info-grid { display: ${isA4 ? "grid" : "block"}; grid-template-columns: 1fr 1fr; gap: ${isA4 ? "15px" : "0"}; margin-bottom: ${isA4 ? "15px" : "15px"}; }
@@ -688,7 +688,7 @@ export const Ariza: React.FC = () => {
             .info-row span { text-align: right; font-weight: 500; font-size: 12px; }
             
             .desc { margin-top: 10px; background: ${isA4 ? "#f9fafb" : "transparent"}; padding: ${isA4 ? "10px" : "10px 0"}; border-radius: ${isA4 ? "8px" : "0"}; border: ${isA4 ? "1px solid #e5e7eb" : "none"}; border-top: ${isA4 ? "1px solid #e5e7eb" : "1px dashed #ccc"}; }
-            .desc-title { font-weight: bold; margin-bottom: 6px; text-transform: uppercase; font-size: ${isA4 ? "11px" : "11px"}; color: #4b5563; letter-spacing: 0.5px; }
+            .desc-title { font-weight: bold; margin-bottom: 6px; text-transform: uppercase; font-size: ${isA4 ? "11px" : "11px"}; color: ${isA4 ? (store.settings?.invoiceTemplate_color || '#4b5563') : "#4b5563"}; letter-spacing: 0.5px; }
             .desc-text { white-space: pre-wrap; font-size: ${isA4 ? "12px" : "12px"}; color: #111827; }
             
             table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px; font-size: ${isA4 ? "12px" : "11px"}; }
@@ -706,8 +706,14 @@ export const Ariza: React.FC = () => {
         </head>
         <body>
           <div class="header">
+            ${isA4 && store.settings?.companyLogo ? `<img src="${store.settings.companyLogo}" alt="Logo" />` : ""}
             <h1>ARIZA / SERVİS FORMU</h1>
-            <div class="header-info">Kayıt No: ${selectedTicket.id.split("-")[0]} &nbsp;|&nbsp; Tarih: ${new Date(selectedTicket.dateCreated).toLocaleDateString("tr-TR")}</div>
+            ${isA4 && store.settings?.companyName ? `<p>${store.settings.companyName}</p>` : ""}
+            <div class="header-info">
+              Kayıt No: ${selectedTicket.id.split("-")[0]} &nbsp;|&nbsp; 
+              Kayıt: ${new Date(selectedTicket.dateCreated).toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })} &nbsp;|&nbsp; 
+              Çıktı: ${new Date().toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+            </div>
           </div>
           
           <div class="info-grid">
@@ -733,11 +739,17 @@ export const Ariza: React.FC = () => {
             </div>
           </div>
 
-          <div class="desc">
-            <div class="desc-title">Şikayet / Arıza Detayı:</div>
-            <div class="desc-text">${selectedTicket.issueDescription}</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: ${isA4 ? "15px" : "10px"};">
+            <div class="desc" style="margin-top: 10px;">
+              <div class="desc-title">Şikayet / Arıza Detayı:</div>
+              <div class="desc-text">${selectedTicket.issueDescription}</div>
+            </div>
+            ${checklistHtml ? `
+            <div class="desc" style="margin-top: 10px;">
+              ${checklistHtml}
+            </div>
+            ` : ""}
           </div>
-          ${checklistHtml}
           ${resolutionHtml}
           
           ${
@@ -864,7 +876,7 @@ export const Ariza: React.FC = () => {
     const emailContent = parseEmailTemplate(templateRaw, {
       FIRMA_ADI: store.settings.company_name || "Şirket Adı",
       MUSTERI_ADI: selectedTicket.customerName,
-      TARIH: new Date().toLocaleDateString("tr-TR"),
+      TARIH: new Date().toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
       KAYIT_NO: selectedTicket.id.split("-")[0],
       CIHAZ: selectedTicket.deviceType,
       DURUM: selectedTicket.status,
@@ -968,7 +980,7 @@ export const Ariza: React.FC = () => {
         const emailContent = parseEmailTemplate(templateRaw, {
           FIRMA_ADI: store.settings.company_name || "Şirket Adı",
           MUSTERI_ADI: ticket.customerName,
-          TARIH: new Date().toLocaleDateString("tr-TR"),
+          TARIH: new Date().toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
           KAYIT_NO: ticket.id.split("-")[0],
           CIHAZ: ticket.deviceType,
           DURUM: ticket.status,
@@ -1032,7 +1044,12 @@ export const Ariza: React.FC = () => {
                 </style>
               </head>
               <body>
-                <h1 style="text-align:center;">Servis Formu</h1>
+                <div style="text-align:center; margin-bottom: 20px; border-bottom: 2px solid ${store.settings?.invoiceTemplate_color || '#10b981'}; padding-bottom: 10px;">
+                  ${store.settings?.companyLogo ? `<img src="${store.settings.companyLogo}" style="max-height: 80px; object-fit: contain; margin-bottom: 10px;" />` : ''}
+                  <h1 style="color: ${store.settings?.invoiceTemplate_color || '#065f46'}; margin: 0;">Servis Formu</h1>
+                  ${store.settings?.companyName ? `<p style="margin: 5px 0;">${store.settings.companyName}</p>` : ''}
+                  <p style="font-size: 10px; color: #666; margin: 0;">Yazdırılma: ${new Date().toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
                 <p><strong>Müşteri:</strong> ${fakeTarget.customerName}</p>
                 <p><strong>Cihaz:</strong> ${fakeTarget.deviceType}</p>
                 <table>
@@ -1246,9 +1263,7 @@ export const Ariza: React.FC = () => {
                           />
                         </td>
                         <td className="p-4 text-gray-600">
-                          {new Date(ticket.dateCreated).toLocaleDateString(
-                            "tr-TR",
-                          )}
+                          {new Date(ticket.dateCreated).toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
                         </td>
                         <td className="p-4 font-medium text-gray-800">
                           {ticket.customerName}
@@ -1266,7 +1281,7 @@ export const Ariza: React.FC = () => {
                             {ticket.nextMaintenanceDate
                               ? new Date(
                                   ticket.nextMaintenanceDate,
-                                ).toLocaleDateString("tr-TR")
+                                ).toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
                               : "-"}
                           </td>
                         )}
@@ -2027,7 +2042,7 @@ export const Ariza: React.FC = () => {
                     <span className="font-semibold">Sonraki Bakım: </span>
                     {new Date(
                       selectedTicket.nextMaintenanceDate!,
-                    ).toLocaleDateString("tr-TR")}{" "}
+                    ).toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}{" "}
                     ({selectedTicket.maintenancePeriodMonths} Ay Sonra)
                   </div>
                 ) : null}

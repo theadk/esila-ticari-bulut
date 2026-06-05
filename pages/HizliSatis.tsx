@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, Search, Plus, Minus, Trash2, CreditCard, Banknote, CheckCircle, Userplus, User } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { ShoppingCart, Search, Plus, Minus, Trash2, CreditCard, Banknote, CheckCircle, UserPlus, User, Camera, X, PauseCircle, Clock } from 'lucide-react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useAppStore } from '../lib/store';
 import { Product, Customer, OrderStatus } from '../types';
 
@@ -8,18 +10,56 @@ export const HizliSatis: React.FC = () => {
   const [cart, setCart] = useState<{product: Product, quantity: number, discount: number}[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [showSuspendedModal, setShowSuspendedModal] = useState(false);
   
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Default parameters
-  const categories = store.categories || [];
   const products = store.products || [];
   const customers = store.customers || [];
+  const suspendedCarts = store.suspendedCarts || [];
+
+  const handleSuspendCart = () => {
+    if (cart.length === 0) return;
+    const currentCustomer = customers.find(c => String(c.id) === String(selectedCustomerId));
+    const customerName = currentCustomer ? currentCustomer.name : 'Perakende Müşteri';
+    const newSuspended = {
+      id: `ASKI-${Date.now()}`,
+      name: `${customerName} - ${cart.length} Ürün (${calculateTotal().toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺)`,
+      date: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+      items: [...cart],
+      customerId: selectedCustomerId
+    };
+    store.setSuspendedCarts([...suspendedCarts, newSuspended]);
+    setCart([]);
+    setSelectedCustomerId('');
+  };
+
+  const handleResumeCart = (cartToResume: any) => {
+    setCart(cartToResume.items);
+    setSelectedCustomerId(cartToResume.customerId);
+    handleRemoveSuspended(cartToResume.id);
+    setShowSuspendedModal(false);
+  };
+
+  const handleRemoveSuspended = (id: string) => {
+    store.setSuspendedCarts(suspendedCarts.filter((c: any) => c.id !== id));
+  };
 
   const handleAddToCart = (product: Product) => {
+    if (product.stock <= 0) {
+      toast.error(`${product.name} stokta yok!`);
+      return;
+    }
+
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id);
       if (existing) {
+        if (existing.quantity >= product.stock) {
+          toast.error(`Stok yetersiz! Mevcut stok: ${product.stock}`);
+          return prev;
+        }
         return prev.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
       }
       return [...prev, { product, quantity: 1, discount: 0 }];
@@ -32,6 +72,10 @@ export const HizliSatis: React.FC = () => {
     setCart(prev => prev.map(item => {
       if (item.product.id === productId) {
         const newQ = item.quantity + delta;
+        if (newQ > item.product.stock) {
+          toast.error(`Stok yetersiz! Mevcut stok: ${item.product.stock}`);
+          return item;
+        }
         return newQ > 0 ? { ...item, quantity: newQ } : item;
       }
       return item;
@@ -101,7 +145,7 @@ export const HizliSatis: React.FC = () => {
           
           <div class="text-center font-bold border-b border-t mb-2 mt-2">
             <h3 style="margin: 5px 0 0 0; font-size: 16px;">BİLGİ FİŞİ</h3>
-            <p style="margin: 5px 0; font-weight: normal; font-size: 12px;">${new Date().toLocaleString('tr-TR')}</p>
+            <p style="margin: 5px 0; font-weight: normal; font-size: 12px;">Yazdırılma: ${new Date().toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
           </div>
           
           <div class="border-b" style="font-size: 13px;">
@@ -168,11 +212,6 @@ export const HizliSatis: React.FC = () => {
   const handleCheckout = (paymentMethod: 'Nakit' | 'Kredi Kartı' | 'Cari') => {
     if (cart.length === 0) return;
 
-    if (paymentMethod === 'Cari' && (!selectedCustomerId || selectedCustomerId === 'RETAIL')) {
-      alert("Cari (Veresiye) satışı yapabilmek için lütfen listeden bir cari seçin.");
-      return;
-    }
-
     let currentCustomer = customers.find(c => String(c.id) === String(selectedCustomerId));
     
     if (!currentCustomer) {
@@ -238,7 +277,7 @@ export const HizliSatis: React.FC = () => {
        id: `SIP-HS-${Date.now()}`,
        customerId: currentCustomer!.id,
        customerName: currentCustomer.name,
-       date: new Date().toISOString(),
+       date: new Date().toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
        status: OrderStatus.COMPLETED,
        items: cart.map(c => ({
          productId: c.product.id,
@@ -253,27 +292,31 @@ export const HizliSatis: React.FC = () => {
     store.setOrders([...(store.orders || []), newOrder as any]);
 
     // 3. Optional: If a real customer is selected, add to customer transactions
-    if (selectedCustomerId && selectedCustomerId !== 'RETAIL' && currentCustomer.id && !currentCustomer.id.startsWith('CAR-PRK-')) {
-      const tx2 = {
-        id: `CTX-INV-${Date.now()}`,
-        customerId: currentCustomer.id,
-        date: new Date().toISOString().split('T')[0],
-        type: 'Borç' as const,
-        amount: totalAmount,
-        description: `Hızlı Satış Faturası`
-      };
-      if (paymentMethod !== 'Cari') {
-        const tx1 = {
-          id: `CTX-${Date.now()}`,
+    if (currentCustomer && currentCustomer.id) {
+      const isPerakende = currentCustomer.name.toLowerCase().includes('perakende');
+      
+      if (!(isPerakende && paymentMethod !== 'Cari')) {
+        const tx2 = {
+          id: `CTX-INV-${Date.now()}`,
           customerId: currentCustomer.id,
           date: new Date().toISOString().split('T')[0],
-          type: 'Alacak' as const,
+          type: 'Borç' as const,
           amount: totalAmount,
-          description: `Hızlı Satış (${paymentMethod})`
+          description: `Hızlı Satış Faturası`
         };
-        store.setTransactions([...store.transactions, tx1, tx2]);
-      } else {
-        store.setTransactions([...store.transactions, tx2]);
+        if (paymentMethod !== 'Cari') {
+          const tx1 = {
+            id: `CTX-${Date.now()}`,
+            customerId: currentCustomer.id,
+            date: new Date().toISOString().split('T')[0],
+            type: 'Alacak' as const,
+            amount: totalAmount,
+            description: `Hızlı Satış (${paymentMethod})`
+          };
+          store.setTransactions([...store.transactions, tx1, tx2]);
+        } else {
+          store.setTransactions([...store.transactions, tx2]);
+        }
       }
     }
 
@@ -331,6 +374,44 @@ export const HizliSatis: React.FC = () => {
     }
   }, [searchTerm]);
 
+  // Handle Barcode Scanner from Camera
+  useEffect(() => {
+    if (isScanning) {
+      const scanner = new Html5QrcodeScanner(
+        "barcode-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
+        false
+      );
+
+      scanner.render(
+        (decodedText) => {
+          scanner.clear();
+          setIsScanning(false);
+          const foundProduct = products.find(p => String(p.barcode) === decodedText || String(p.code) === decodedText);
+          if (foundProduct) {
+             handleAddToCart(foundProduct);
+             // Play success sound
+             try {
+                const audio = new Audio('/success.mp3');
+                audio.play().catch(e => console.log('Audio error:', e));
+             } catch (e) {}
+          } else {
+             alert('Ürün bulunamadı: ' + decodedText);
+          }
+        },
+        (error) => {
+          // ignore error which happens continuously
+        }
+      );
+
+      return () => {
+        scanner.clear().catch(error => {
+          console.error("Failed to clear html5QrcodeScanner. ", error);
+        });
+      };
+    }
+  }, [isScanning, products]);
+
   return (
     <div className="h-full flex gap-6 pb-6">
       
@@ -346,9 +427,16 @@ export const HizliSatis: React.FC = () => {
                 placeholder="Barkod okutun veya ürün adı/kodu arayın... (F2 ile odaklan)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-lg"
+                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-lg"
                 autoFocus
               />
+              <button 
+                onClick={() => setIsScanning(true)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-md transition-colors"
+                title="Kamerayla Barkod Okut"
+              >
+                 <Camera size={20} />
+              </button>
             </div>
             <div className="w-1/3 relative flex items-center gap-2">
               <User className="text-gray-400" size={20} />
@@ -386,9 +474,23 @@ export const HizliSatis: React.FC = () => {
 
       {/* Sağ Panel: Sepet ve Ödeme */}
       <div className="flex-[2] bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col">
-        <div className="p-4 bg-emerald-50 rounded-t-xl border-b border-emerald-100 flex items-center gap-2">
-          <ShoppingCart className="text-emerald-600" />
-          <h2 className="text-lg font-bold text-emerald-800">Satış Sepeti</h2>
+        <div className="p-4 bg-emerald-50 rounded-t-xl border-b border-emerald-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="text-emerald-600" />
+            <h2 className="text-lg font-bold text-emerald-800">Satış Sepeti</h2>
+          </div>
+          <button 
+            onClick={() => setShowSuspendedModal(true)}
+            className="flex items-center gap-1 px-3 py-1 bg-white border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-medium"
+          >
+             <Clock size={16} />
+             Bekleyenler
+             {suspendedCarts.length > 0 && (
+               <span className="ml-1 bg-emerald-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full leading-none">
+                 {suspendedCarts.length}
+               </span>
+             )}
+          </button>
         </div>
         
         <div className="flex-1 overflow-y-auto p-2">
@@ -446,8 +548,16 @@ export const HizliSatis: React.FC = () => {
           
           <div className="flex gap-2 mb-4">
              <button
+               onClick={handleSuspendCart}
+               disabled={cart.length === 0}
+               className="flex-1 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+             >
+                <PauseCircle size={18} /> Askıya Al
+             </button>
+             <button
                onClick={() => setCart([])}
-               className="flex-1 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-medium transition-colors"
+               disabled={cart.length === 0}
+               className="flex-1 py-2 text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50 rounded-lg font-medium transition-colors"
              >
                 Temizle
              </button>
@@ -482,6 +592,99 @@ export const HizliSatis: React.FC = () => {
         </div>
       </div>
       
+      {/* Scanner Modal */}
+      {isScanning && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+               <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                 <Camera className="text-emerald-600" size={24} />
+                 Kamera ile Barkod Okut
+               </h3>
+               <button 
+                 onClick={() => setIsScanning(false)} 
+                 className="text-gray-500 hover:text-red-500 hover:bg-red-50 p-1 rounded-lg transition-colors"
+               >
+                  <X size={24} />
+               </button>
+            </div>
+            <div className="p-0 bg-black relative">
+               <div id="barcode-reader" className="w-full border-none"></div>
+            </div>
+            <div className="p-4 text-center text-sm text-gray-600 bg-gray-50 font-medium">
+               Kameranızı ürün barkoduna doğru tutun.<br/>
+               Ürün bulunduğunda otomatik olarak sepete eklenecektir.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Suspended Carts Modal */}
+      {showSuspendedModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowSuspendedModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+               <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                 <Clock className="text-emerald-600" size={24} />
+                 Bekleyen / Askıdaki Sepetler
+               </h3>
+               <button 
+                 onClick={() => setShowSuspendedModal(false)} 
+                 className="text-gray-500 hover:text-red-500 p-1 rounded-lg transition-colors"
+               >
+                  <X size={24} />
+               </button>
+            </div>
+            
+            <div className="p-4 overflow-y-auto flex-1 bg-gray-50">
+               {suspendedCarts.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                     <Clock size={48} className="mx-auto mb-4 opacity-30" />
+                     <p className="text-lg">Bekleyen sepet bulunamadı.</p>
+                  </div>
+               ) : (
+                  <div className="space-y-3">
+                     {suspendedCarts.map((c: any) => (
+                        <div key={c.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                           <div>
+                              <h4 className="font-bold text-gray-800 text-lg">{c.name}</h4>
+                              <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                                 <Clock size={14} /> {c.date} 
+                                 <span className="text-gray-300">|</span> 
+                                 {c.items.reduce((acc: number, item: any) => acc + item.quantity, 0)} ürün
+                              </p>
+                           </div>
+                           <div className="flex gap-2">
+                              <button 
+                                 onClick={() => handleRemoveSuspended(c.id)}
+                                 className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                 title="Sil"
+                              >
+                                 <Trash2 size={20} />
+                              </button>
+                              <button 
+                                 onClick={() => handleResumeCart(c)}
+                                 className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-4 py-2 rounded-lg font-medium transition-colors"
+                              >
+                                 Geri Çağır
+                              </button>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               )}
+            </div>
+            <div className="p-4 border-t bg-white">
+               <button 
+                 onClick={() => setShowSuspendedModal(false)}
+                 className="w-full py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+               >
+                 Kapat
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

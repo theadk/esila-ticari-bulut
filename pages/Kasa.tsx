@@ -582,9 +582,9 @@ export const Kasa: React.FC = () => {
 
             {/* Print Content - A4 Document Format */}
             <div className="p-8 md:p-12 print:p-4 print:text-black font-sans bg-white">
-              <div className="flex justify-between items-start mb-8 border-b-2 border-gray-800 pb-6 print:border-black">
+              <div className="flex justify-between items-start mb-8 border-b-2 pb-6" style={{ borderColor: settings?.invoiceTemplate_color || '#1f2937' }}>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 print:text-black mb-2">KASA RAPORU</h1>
+                  <h1 className="text-3xl font-bold mb-2" style={{ color: settings?.invoiceTemplate_color || '#111827' }}>KASA RAPORU</h1>
                   <p className="text-gray-600 print:text-black">
                     Tarih Aralığı: {
                       dateFilter === 'all' ? 'Tüm Zamanlar' : 
@@ -600,28 +600,28 @@ export const Kasa: React.FC = () => {
                   {settings.companyLogo ? (
                     <img src={settings.companyLogo} alt="Logo" className="max-h-20 object-contain ml-auto mb-2" />
                   ) : (
-                    <h2 className="font-logo text-3xl font-bold text-emerald-900 print:text-black mb-2">{settings.printer_header_text || 'esila'}</h2>
+                    <h2 className="font-logo text-3xl font-bold mb-2" style={{ color: settings?.invoiceTemplate_color || '#065f46' }}>{settings.printer_header_text || 'esila'}</h2>
                   )}
-                  <p className="text-sm text-gray-600 print:text-black font-medium">{settings.companyName}</p>
+                  <p className="text-sm font-medium" style={{ color: settings?.invoiceTemplate_color || '#4b5563' }}>{settings.companyName}</p>
                 </div>
               </div>
 
               {/* Summary Metrics */}
               <div className="grid grid-cols-3 gap-6 mb-8">
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 print:border-gray-400 print:bg-transparent">
-                  <p className="text-sm text-gray-500 print:text-black font-medium mb-1">Toplam Gelir</p>
+                <div className="p-4 rounded-lg border print:bg-transparent" style={{ borderColor: settings?.invoiceTemplate_color || '#e5e7eb', backgroundColor: '#f9fafb' }}>
+                  <p className="text-sm border-b pb-1 font-medium mb-1" style={{ borderColor: settings?.invoiceTemplate_color || '#e5e7eb', color: settings?.invoiceTemplate_color || '#6b7280' }}>Toplam Gelir</p>
                   <p className="text-2xl font-bold text-emerald-600 print:text-black">
                     {reportIncomeTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                   </p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 print:border-gray-400 print:bg-transparent">
-                  <p className="text-sm text-gray-500 print:text-black font-medium mb-1">Toplam Gider</p>
+                <div className="p-4 rounded-lg border print:bg-transparent" style={{ borderColor: settings?.invoiceTemplate_color || '#e5e7eb', backgroundColor: '#f9fafb' }}>
+                  <p className="text-sm border-b pb-1 font-medium mb-1" style={{ borderColor: settings?.invoiceTemplate_color || '#e5e7eb', color: settings?.invoiceTemplate_color || '#6b7280' }}>Toplam Gider</p>
                   <p className="text-2xl font-bold text-red-600 print:text-black">
                     {reportExpenseTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                   </p>
                 </div>
-                <div className="p-4 bg-gray-100 rounded-lg border border-gray-300 print:border-gray-500 print:bg-transparent">
-                  <p className="text-sm text-gray-600 print:text-black font-bold mb-1">Net Bakiye</p>
+                <div className="p-4 rounded-lg border print:bg-transparent" style={{ borderColor: settings?.invoiceTemplate_color || '#d1d5db', backgroundColor: '#f3f4f6' }}>
+                  <p className="text-sm border-b pb-1 font-bold mb-1" style={{ borderColor: settings?.invoiceTemplate_color || '#d1d5db', color: settings?.invoiceTemplate_color || '#4b5563' }}>Net Bakiye</p>
                   <p className={`text-2xl font-bold ${reportBalance >= 0 ? 'text-emerald-700' : 'text-red-700'} print:text-black`}>
                     {reportBalance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                   </p>
@@ -631,7 +631,7 @@ export const Kasa: React.FC = () => {
               {/* Detail Breakdown */}
               <div className="grid grid-cols-2 gap-8 mb-8">
                 <div>
-                  <h3 className="font-bold text-gray-800 print:text-black mb-3 border-b pb-2">Gelir Kırılımı</h3>
+                  <h3 className="font-bold print:text-black mb-3 border-b pb-2" style={{ borderBottomColor: settings?.invoiceTemplate_color || '#e5e7eb', color: settings?.invoiceTemplate_color || '#1f2937' }}>Gelir Kırılımı</h3>
                   <table className="w-full text-sm">
                     <tbody className="divide-y divide-gray-100 print:divide-gray-300">
                       <tr>

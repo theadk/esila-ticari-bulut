@@ -78,11 +78,19 @@ const DEFAULT_CHARTS_ORDER = [
 ];
 
 export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = ({ setActivePage }) => {
-  const { customers, transactions, serviceTickets, settings, setServiceTickets, cashTransactions, personnel, jobApplications, orders, eInvoices, proposals } = useAppStore();
+  const { customers, transactions, serviceTickets, settings, setServiceTickets, cashTransactions, personnel, jobApplications, orders, eInvoices, proposals, reminderNotes, setReminderNotes } = useAppStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
   const [isSendingMaintenanceReminders, setIsSendingMaintenanceReminders] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [selectedNoteDate, setSelectedNoteDate] = useState<string>('');
+  const [noteForm, setNoteForm] = useState({
+    title: '',
+    description: '',
+    type: 'Genel' as import('../types').ReminderNoteType
+  });
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [statsOrder, setStatsOrder] = useState<string[]>(() => {
@@ -94,6 +102,38 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
     const saved = localStorage.getItem('esila_dashboard_charts');
     return saved ? JSON.parse(saved) : DEFAULT_CHARTS_ORDER;
   });
+
+  const handleOpenNoteModal = (dateStr: string) => {
+    setSelectedNoteDate(dateStr);
+    setNoteForm({ title: '', description: '', type: 'Genel' });
+    setShowNoteModal(true);
+  };
+
+  const handleSaveNote = () => {
+    if (!noteForm.title) {
+        toast.error('Lütfen bir başlık girin');
+        return;
+    }
+    const newNote = {
+        id: `NOTE-${Date.now()}`,
+        title: noteForm.title,
+        description: noteForm.description,
+        type: noteForm.type,
+        date: selectedNoteDate,
+        isCompleted: false
+    };
+    setReminderNotes([...(reminderNotes || []), newNote]);
+    setShowNoteModal(false);
+    toast.success('Hatırlatma notu eklendi');
+  };
+
+  const deleteNote = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if(confirm('Notu silmek istediğinize emin misiniz?')) {
+        setReminderNotes((reminderNotes || []).filter(n => n.id !== id));
+        toast.success("Not silindi");
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -464,7 +504,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
         <SortableItem key={id} id={id} className="lg:col-span-2" isEditMode={isEditMode}>
           <div className="p-4 sm:p-6 h-full flex flex-col">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Arıza / Servis Formları Takvimi</h3>
+              <h3 className="text-lg font-semibold text-gray-800">Ajanda & Hatırlatmalar</h3>
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}
@@ -500,40 +540,49 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
                 
                 const days = [];
                 for (let i = 0; i < startingEmptySlots; i++) {
-                  days.push(<div key={`empty-${i}`} className="bg-transparent rounded-lg p-2 h-20"></div>);
+                  days.push(<div key={`empty-${i}`} className="bg-transparent rounded-lg p-2 min-h-24"></div>);
                 }
                 for (let i = 1; i <= daysInMonth; i++) {
                   const currentDateObj = new Date(year, month, i);
                   const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
                   const dayTickets = serviceTickets.filter(t => t.dateCreated?.startsWith(dateStr));
+                  const dayNotes = (reminderNotes || []).filter(n => n.date === dateStr);
                   
                   days.push(
-                    <div key={`day-${i}`} className="border border-gray-100 rounded-lg p-1 sm:p-2 h-20 md:h-24 flex flex-col items-center justify-start hover:border-emerald-300 transition-colors bg-gray-50/50">
+                    <div 
+                      key={`day-${i}`} 
+                      onClick={() => handleOpenNoteModal(dateStr)}
+                      className="border border-gray-100 rounded-lg p-1 sm:p-2 min-h-24 flex flex-col items-center justify-start hover:border-emerald-300 transition-colors bg-gray-50/50 cursor-pointer relative group overflow-y-auto"
+                    >
                       <span className={`text-xs font-medium mb-1 ${`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}` === dateStr ? 'bg-emerald-100 text-emerald-800 w-6 h-6 rounded-full flex items-center justify-center' : 'text-gray-500'}`}>
                         {i}
                       </span>
+                      
+                      {/* Servis Formları */}
                       {dayTickets.length > 0 && (
                         <div className="flex flex-col gap-1 w-full mt-1">
                           <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-center truncate" title={`${dayTickets.length} Servis Kaydı`}>
                             {dayTickets.length} Servis
                           </span>
-                          {dayTickets.some(t => t.status === 'Bekliyor') && (
-                            <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-center truncate">
-                              {dayTickets.filter(t => t.status === 'Bekliyor').length} Bekleyen
-                            </span>
-                          )}
-                          {dayTickets.some(t => t.status === 'Tamamlandı') && (
-                            <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-center truncate">
-                              {dayTickets.filter(t => t.status === 'Tamamlandı').length} Biten
-                            </span>
-                          )}
-                          {dayTickets.some(t => t.status === 'İşlemde') && (
-                            <span className="text-[10px] bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded text-center truncate">
-                              {dayTickets.filter(t => t.status === 'İşlemde').length} İşlemde
-                            </span>
-                          )}
                         </div>
                       )}
+                      
+                      {/* Hatırlatma Notları */}
+                      {dayNotes.map(n => (
+                         <div key={n.id} className="w-full mt-1 flex justify-between items-start bg-indigo-50 border border-indigo-100 rounded p-1" title={n.description}>
+                            <div className="flex flex-col w-full overflow-hidden">
+                               <span className="text-[9px] font-bold text-indigo-700 truncate">{n.type}</span>
+                               <span className="text-[10px] text-gray-700 truncate">{n.title}</span>
+                            </div>
+                            <button onClick={(e) => deleteNote(e, n.id)} className="text-gray-400 hover:text-red-500 ml-1">
+                               <X size={10} />
+                            </button>
+                         </div>
+                      ))}
+
+                      <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 text-emerald-500 bg-white rounded-full shadow-sm p-0.5">
+                         <PlusCircle size={14} />
+                      </div>
                     </div>
                   );
                 }
@@ -672,6 +721,77 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
             )}
           </div>
         </div>
+      )}
+
+      {/* Hatırlatma Notaları Ekleme Modalı */}
+      {showNoteModal && (
+         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowNoteModal(false)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+               <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                  <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                     Yen Hatırlatma Ekle
+                  </h3>
+                  <button onClick={() => setShowNoteModal(false)} className="text-gray-500 hover:text-red-500 transition-colors bg-white p-1 rounded-md border border-gray-200">
+                     <X size={20} />
+                  </button>
+               </div>
+               <div className="p-4 space-y-4">
+                  <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
+                     <input type="date" className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500" value={selectedNoteDate} disabled />
+                  </div>
+                  <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Başlık</label>
+                     <input 
+                       type="text" 
+                       className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500" 
+                       placeholder="Örn: 200.000 TL Kredi Ödemesi"
+                       value={noteForm.title}
+                       onChange={e => setNoteForm({...noteForm, title: e.target.value})}
+                       autoFocus
+                     />
+                  </div>
+                  <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                     <select 
+                       className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                       value={noteForm.type}
+                       onChange={e => setNoteForm({...noteForm, type: e.target.value as any})}
+                     >
+                        <option value="Teklif">Verilen Teklifler</option>
+                        <option value="Ödeme">Yaklaşan Ödemeler</option>
+                        <option value="Personel">Personel İzin/İstek</option>
+                        <option value="Sipariş">Tedarikçi / Sipariş</option>
+                        <option value="Banka">Banka İşlemleri</option>
+                        <option value="Genel">Genel Not</option>
+                     </select>
+                  </div>
+                  <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Detay / Açıklama</label>
+                     <textarea 
+                       className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-h-[80px]" 
+                       placeholder="İsteğe bağlı detay..."
+                       value={noteForm.description}
+                       onChange={e => setNoteForm({...noteForm, description: e.target.value})}
+                     ></textarea>
+                  </div>
+               </div>
+               <div className="p-4 border-t bg-gray-50 flex justify-end gap-2">
+                  <button 
+                     onClick={() => setShowNoteModal(false)}
+                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
+                  >
+                     İptal
+                  </button>
+                  <button 
+                     onClick={handleSaveNote}
+                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium"
+                  >
+                     Kaydet
+                  </button>
+               </div>
+            </div>
+         </div>
       )}
     </div>
   );

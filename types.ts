@@ -234,9 +234,13 @@ export interface Settings {
   address: string;
   phone: string;
   email: string;
+  authorized_person?: string;
+  barcode_type?: '1D' | 'QR';
   taxOffice?: string;
   taxNumber?: string;
   companyLogo?: string;
+  bankName?: string;
+  iban?: string;
   smtp_host: string;
   smtp_port: string;
   smtp_user: string;
@@ -323,4 +327,17 @@ export interface ServiceTicket {
   maintenancePeriodMonths?: number;
   maintenanceReminderSent?: boolean;
   plumbingChecklist?: { itemName: string; isChecked: boolean }[];
+}
+
+export type ReminderNoteType = 'Teklif' | 'Ödeme' | 'Tahsilat' | 'Personel' | 'Sipariş' | 'Banka' | 'Genel';
+
+export interface ReminderNote {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  type: ReminderNoteType;
+  isCompleted: boolean;
+  relatedId?: string; // ID referencing a proposal, customer, personnel, etc.
+  amount?: number;
 }

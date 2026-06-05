@@ -48,6 +48,10 @@ export const Urunler: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [isBarcodePrintModalOpen, setIsBarcodePrintModalOpen] = useState(false);
+  const [barcodePrintOptions, setBarcodePrintOptions] = useState<{product: Product, count: number}[]>([]);
+  
   // Kategori Formu State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [categoryFormData, setCategoryFormData] = useState<Category>({ id: '', name: '', subCategories: [] });
@@ -162,11 +166,13 @@ export const Urunler: React.FC = () => {
         return;
     }
 
+    const isQR = store.settings?.barcode_type === 'QR';
+    
     const htmlContent = `
       <html>
         <head>
           <title>${product.name} - Barkod</title>
-          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+          ${isQR ? '<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>' : '<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>'}
           <style>
             @media print {
               @page { margin: 0; size: auto; }
@@ -201,10 +207,21 @@ export const Urunler: React.FC = () => {
               width: 100%;
               margin-bottom: 2px;
             }
+            .product-code {
+              font-size: 8px;
+              color: #555;
+              margin-bottom: 2px;
+            }
             .price {
               font-size: 12px;
               font-weight: bold;
               margin-top: 2px;
+            }
+            .barcode-container {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 2px 0;
             }
             svg {
               max-width: 100%;
@@ -215,18 +232,35 @@ export const Urunler: React.FC = () => {
         <body>
           <div class="label">
             <div class="product-name">${product.name}</div>
-            <svg id="barcode"></svg>
+            <div class="product-code">Stok: ${product.code}</div>
+            <div class="barcode-container">
+              ${isQR ? '<div id="barcode"></div>' : '<svg id="barcode"></svg>'}
+            </div>
+            ${isQR ? `<div class="product-code mt-1">${product.barcode}</div>` : ''}
             <div class="price">${product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</div>
           </div>
           <script>
-            JsBarcode("#barcode", "${product.barcode}", {
-              format: "CODE128",
-              width: 1.5,
-              height: 40,
-              displayValue: true,
-              fontSize: 12,
-              margin: 0
-            });
+            try {
+              ${isQR ? `
+                new QRCode(document.getElementById("barcode"), {
+                  text: "${product.barcode}",
+                  width: 50,
+                  height: 50,
+                  colorDark : "#000000",
+                  colorLight : "#ffffff",
+                  correctLevel : QRCode.CorrectLevel.L
+                });
+              ` : `
+                JsBarcode("#barcode", "${product.barcode}", {
+                  format: "CODE128",
+                  width: 1.5,
+                  height: 40,
+                  displayValue: true,
+                  fontSize: 12,
+                  margin: 0
+                });
+              `}
+            } catch(e) { console.error(e); }
             setTimeout(() => {
               window.print();
               window.close();
@@ -237,6 +271,133 @@ export const Urunler: React.FC = () => {
     `;
     printWindow.document.write(htmlContent);
     printWindow.document.close();
+  };
+
+  const handleBulkPrintBarcode = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        alert("Pop-up engelleyiciyi kapatıp tekrar deneyin.");
+        return;
+    }
+
+    const isQR = store.settings?.barcode_type === 'QR';
+
+    const labelsHtml = barcodePrintOptions.flatMap(opt => {
+      // Repeat the label 'count' times
+      return Array.from({ length: opt.count }).map((_, idx) => `
+        <div class="label" style="page-break-after: always;">
+          <div class="product-name">${opt.product.name}</div>
+          <div class="product-code">Stok: ${opt.product.code}</div>
+          <div class="barcode-container">
+            ${isQR ? `<div id="barcode-${opt.product.id}-${idx}"></div>` : `<svg id="barcode-${opt.product.id}-${idx}"></svg>`}
+          </div>
+          ${isQR ? `<div class="product-code mt-1">${opt.product.barcode || '0000000'}</div>` : ''}
+          <div class="price">${opt.product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</div>
+        </div>
+      `);
+    }).join('');
+
+    const scriptHtml = barcodePrintOptions.flatMap(opt => {
+      return Array.from({ length: opt.count }).map((_, idx) => `
+        try {
+          ${isQR ? `
+            new QRCode(document.getElementById("barcode-${opt.product.id}-${idx}"), {
+              text: "${opt.product.barcode || '0000000'}",
+              width: 45,
+              height: 45,
+              colorDark : "#000000",
+              colorLight : "#ffffff",
+              correctLevel : QRCode.CorrectLevel.L
+            });
+          ` : `
+            JsBarcode("#barcode-${opt.product.id}-${idx}", "${opt.product.barcode || '0000000'}", {
+              format: "CODE128",
+              width: 1.5,
+              height: 35,
+              displayValue: true,
+              fontSize: 12,
+              margin: 0
+            });
+          `}
+        } catch(e) { console.error(e); }
+      `);
+    }).join('');
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Toplu Barkod Yazdır</title>
+          ${isQR ? '<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>' : '<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>'}
+          <style>
+            @media print {
+              @page { margin: 0; size: 50mm 30mm; }
+              body { margin: 0; padding: 0; }
+              .label { page-break-after: always; }
+              .label:last-child { page-break-after: auto; }
+            }
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 0; 
+              background: #fff;
+            }
+            .label {
+              width: 50mm;
+              height: 30mm;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              padding: 2mm;
+              box-sizing: border-box;
+              margin: 0 auto;
+            }
+            .product-name {
+              font-size: 10px;
+              font-weight: bold;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              width: 100%;
+              margin-bottom: 2px;
+            }
+            .product-code {
+              font-size: 8px;
+              color: #555;
+              margin-bottom: 2px;
+            }
+            .price {
+              font-size: 11px;
+              font-weight: bold;
+              margin-top: 2px;
+            }
+            .barcode-container {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 2px 0;
+            }
+            svg {
+              max-width: 100%;
+              height: 12mm;
+            }
+          </style>
+        </head>
+        <body>
+          ${labelsHtml || '<div style="padding: 20px;">Geçerli barkod bulunamadı. Lütfen ürünlere barkod ekleyin.</div>'}
+          <script>
+            ${scriptHtml}
+            setTimeout(() => {
+              window.print();
+              // window.close();
+            }, 800);
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    setIsBarcodePrintModalOpen(false);
   };
 
   const filteredProducts = (products || []).filter(p => {
@@ -466,6 +627,22 @@ export const Urunler: React.FC = () => {
                  <Filter size={18} />
                  <span>Filtrele</span>
               </button>
+              {selectedProductIds.length > 0 && (
+                <button 
+                  onClick={() => {
+                    const options = selectedProductIds.map(id => {
+                      const p = products.find(prod => prod.id === id);
+                      return p ? { product: p, count: 1 } : null;
+                    }).filter(Boolean) as {product: Product, count: number}[];
+                    setBarcodePrintOptions(options);
+                    setIsBarcodePrintModalOpen(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                >
+                  <Printer size={18} />
+                  <span>Seçilenleri Yazdır ({selectedProductIds.length})</span>
+                </button>
+              )}
               <button 
                 onClick={handleAddNew}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
@@ -608,6 +785,22 @@ export const Urunler: React.FC = () => {
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-600 font-medium">
             <tr>
+              <th className="px-6 py-4 w-12 text-center">
+                <input 
+                  type="checkbox" 
+                  checked={paginatedProducts.length > 0 && paginatedProducts.every(p => selectedProductIds.includes(p.id))}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      const newIds = new Set([...selectedProductIds, ...paginatedProducts.map(p => p.id)]);
+                      setSelectedProductIds(Array.from(newIds));
+                    } else {
+                      const pIds = paginatedProducts.map(p => p.id);
+                      setSelectedProductIds(selectedProductIds.filter(id => !pIds.includes(id)));
+                    }
+                  }}
+                  className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
+                />
+              </th>
               <th className="px-6 py-4">Ürün Bilgisi</th>
               <th className="px-6 py-4">Barkod</th>
               <th className="px-6 py-4">Kategori & Depo</th>
@@ -619,7 +812,7 @@ export const Urunler: React.FC = () => {
           <tbody className="divide-y divide-gray-100">
             {paginatedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                     Kayıt bulunamadı.
                   </td>
                 </tr>
@@ -630,6 +823,17 @@ export const Urunler: React.FC = () => {
                   className="hover:bg-emerald-50/30 transition-colors cursor-pointer"
                   onClick={() => { setSelectedProduct(product); setIsDetailsOpen(true); }}
                 >
+                  <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedProductIds.includes(product.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedProductIds([...selectedProductIds, product.id]);
+                        else setSelectedProductIds(selectedProductIds.filter(id => id !== product.id));
+                      }}
+                      className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
+                    />
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
@@ -1361,6 +1565,76 @@ export const Urunler: React.FC = () => {
               >
                 <Trash2 size={18} />
                 Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Barcode Print Modal */}
+      {isBarcodePrintModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in text-left">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
+              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                <Printer size={20} className="text-blue-600" />
+                Toplu Barkod Yazdır
+              </h3>
+              <button 
+                onClick={() => setIsBarcodePrintModalOpen(false)}
+                className="text-gray-500 hover:text-red-500 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-4 sm:p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+              <p className="text-gray-600 mb-4 text-sm">Aşağıdaki ürünler için yazdırılacak barkod etiketi sayısını belirleyebilirsiniz.</p>
+              
+              <div className="space-y-3">
+                {barcodePrintOptions.map((opt, index) => (
+                  <div key={opt.product.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 border rounded-lg hover:bg-gray-50 gap-3">
+                    <div className="flex-1 overflow-hidden">
+                      <div className="font-medium text-gray-800 truncate" title={opt.product.name}>{opt.product.name}</div>
+                      <div className="text-xs text-gray-500 flex gap-2">
+                        <span>Kodu: {opt.product.code}</span>
+                        <span>Barkod: {opt.product.barcode || '-'}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <label className="text-xs text-gray-500 font-medium">Adet:</label>
+                      <input 
+                        type="number" 
+                        min="0"
+                        max="100"
+                        className="w-16 border rounded px-2 py-1 text-center"
+                        value={opt.count}
+                        onChange={(e) => {
+                          const newOpts = [...barcodePrintOptions];
+                          newOpts[index].count = Number(e.target.value) || 0;
+                          setBarcodePrintOptions(newOpts);
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3 shrink-0">
+              <button 
+                onClick={() => setIsBarcodePrintModalOpen(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium"
+              >
+                İptal
+              </button>
+              <button 
+                onClick={handleBulkPrintBarcode}
+                disabled={barcodePrintOptions.every(o => o.count === 0)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Printer size={18} />
+                Yazdır ({barcodePrintOptions.reduce((acc, curr) => acc + curr.count, 0)})
               </button>
             </div>
           </div>

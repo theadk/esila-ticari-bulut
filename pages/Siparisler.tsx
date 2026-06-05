@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud, MessageCircle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
@@ -61,11 +62,21 @@ export const Siparisler: React.FC = () => {
     const product = products.find(p => String(p.id) === String(selectedProductToAdd));
     if (!product) return;
 
+    if (quantityToAdd > product.stock) {
+      toast.error(`Stok yetersiz! Mevcut stok: ${product.stock}`);
+      return;
+    }
+
     const existingItemIndex = cartItems.findIndex(item => item.productId === product.id);
 
     if (existingItemIndex > -1) {
       const newItems = [...cartItems];
-      newItems[existingItemIndex].quantity += quantityToAdd;
+      const newQuantity = newItems[existingItemIndex].quantity + quantityToAdd;
+      if (newQuantity > product.stock) {
+         toast.error(`Stok yetersiz! Mevcut stok: ${product.stock}`);
+         return;
+      }
+      newItems[existingItemIndex].quantity = newQuantity;
       newItems[existingItemIndex].taxRate = taxToAdd;
       setCartItems(newItems);
     } else {
@@ -273,6 +284,15 @@ export const Siparisler: React.FC = () => {
     window.print();
   };
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    if (dateStr.includes('T')) {
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? dateStr : d.toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+    return dateStr;
+  };
+
   const getStatusColor = (status: OrderStatus) => {
     switch(status) {
       case OrderStatus.COMPLETED: return 'text-emerald-600 bg-emerald-50';
@@ -283,18 +303,31 @@ export const Siparisler: React.FC = () => {
     }
   };
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('');
+
+  const filteredOrders = React.useMemo(() => {
+    return [...orders].filter(order => {
+      const ms = searchTerm.toLowerCase();
+      const matchSearch = (order.customerName || '').toLowerCase().includes(ms) || (order.id || '').toLowerCase().includes(ms);
+      const matchStatus = statusFilter === 'all' || order.status === statusFilter;
+      const matchDate = !dateFilter || new Date(order.date).toISOString().split('T')[0] === dateFilter;
+      return matchSearch && matchStatus && matchDate;
+    }).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [orders, searchTerm, statusFilter, dateFilter]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
   
-  const sortedOrders = [...orders].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(sortedOrders.length / itemsPerPage);
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(filteredOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedOrders = itemsPerPage === -1 ? sortedOrders : sortedOrders.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedOrders = itemsPerPage === -1 ? filteredOrders : filteredOrders.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <>
       <div className="space-y-6 no-print">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-800">Siparişler</h2>
           <button 
             onClick={handleOpenCreateModal}
@@ -303,6 +336,57 @@ export const Siparisler: React.FC = () => {
             <Plus size={18} />
             <span>Yeni Sipariş</span>
           </button>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 items-end">
+          <div className="flex-1 w-full">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Arama</label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Cari Adı veya Sipariş No..."
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-colors"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            </div>
+          </div>
+          <div className="w-full sm:w-48">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Durum</label>
+            <select
+              className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-colors"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">Tüm Durumlar</option>
+              {Object.values(OrderStatus).map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
+          <div className="w-full sm:w-40">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Tarih</label>
+            <input
+              type="date"
+              className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-colors"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+          </div>
+          <div className="w-full sm:w-auto">
+             <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setDateFilter('');
+                }}
+                className="w-full sm:w-auto px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+              >
+                <X size={16} />
+                <span>Temizle</span>
+              </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
@@ -336,7 +420,7 @@ export const Siparisler: React.FC = () => {
                     </button>
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-800">{order.customerName}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{order.date}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{formatDate(order.date)}</td>
                   <td className="px-6 py-4 font-semibold text-gray-800">
                     {(order.total || (order as any).totalAmount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                   </td>
@@ -397,7 +481,7 @@ export const Siparisler: React.FC = () => {
           onPageChange={setCurrentPage}
           itemsPerPage={itemsPerPage}
           onItemsPerPageChange={setItemsPerPage}
-          totalItems={orders.length}
+          totalItems={filteredOrders.length}
         />
       </div>
 
@@ -423,7 +507,7 @@ export const Siparisler: React.FC = () => {
                 <div>
                   <h4 className="text-sm font-semibold text-gray-500 mb-2">Sipariş Bilgileri</h4>
                   <p><span className="text-gray-500">No:</span> <span className="font-medium text-gray-800">{selectedOrder.id}</span></p>
-                  <p><span className="text-gray-500">Tarih:</span> <span className="font-medium text-gray-800">{selectedOrder.date}</span></p>
+                  <p><span className="text-gray-500">Tarih:</span> <span className="font-medium text-gray-800">{formatDate(selectedOrder.date)}</span></p>
                   <p className="mt-1">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedOrder.status)}`}>
                       {selectedOrder.status}
@@ -524,6 +608,49 @@ export const Siparisler: React.FC = () => {
                  >
                    Kapat
                  </button>
+                 {(() => {
+                   const customer = store.customers.find(c => c.id === selectedOrder.customerId);
+                   if (!customer?.phone) return null;
+                   return (
+                     <div className="relative group">
+                       <button className="px-3 py-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors font-medium flex items-center gap-2">
+                         <MessageCircle size={18} />
+                       </button>
+                       <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col overflow-hidden">
+                         <button 
+                           onClick={() => {
+                             const text = `Sayın ${customer.companyName || customer.name}, ${selectedOrder.id} numaralı siparişiniz başarıyla alınmıştır. Toplam tutar: ${(selectedOrder.total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL. Bizi tercih ettiğiniz için teşekkür ederiz. - ${store.settings?.companyName || 'Şirket'}`;
+                             window.open(`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                           }}
+                           className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                         >
+                           <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                           Sipariş Onayı (Hazırlanıyor)
+                         </button>
+                         <button 
+                           onClick={() => {
+                             const text = `Sayın ${customer.companyName || customer.name}, ${selectedOrder.id} numaralı siparişiniz tamamlanmış olup teslimata/kargoya hazırdır. Bizi tercih ettiğiniz için teşekkür ederiz. - ${store.settings?.companyName || 'Şirket'}`;
+                             window.open(`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                           }}
+                           className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                         >
+                           <CheckCircle size={14} className="text-gray-500" />
+                           Sipariş Tamamlandı
+                         </button>
+                         <button 
+                           onClick={() => {
+                             const text = `Sayın ${customer.companyName || customer.name}, ${selectedOrder.id} numaralı siparişinize istinaden ${(selectedOrder.total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL tutarında ödemenizi beklemekteyiz. Hesap bilgilerimize veya ödeme linkinize portalımız üzerinden ulaşabilirsiniz. Teşekkürler. - ${store.settings?.companyName || 'Şirket'}`;
+                             window.open(`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                           }}
+                           className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                         >
+                           <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                           Ödeme Hatırlatma
+                         </button>
+                       </div>
+                     </div>
+                   );
+                 })()}
                </div>
             </div>
           </div>
@@ -797,7 +924,7 @@ export const Siparisler: React.FC = () => {
                            </div>
                            <div className="flex items-center gap-2">
                               <span className="font-semibold w-28">Tarih</span>
-                              <span>: {selectedOrder.date}</span>
+                              <span>: {formatDate(selectedOrder.date)}</span>
                            </div>
                         </div>
 
@@ -910,7 +1037,7 @@ export const Siparisler: React.FC = () => {
                      <div className="border-b-2 border-dashed border-gray-300 my-4"></div>
                      
                      <div className="mb-4">
-                        <p><strong>Tarih:</strong> {selectedOrder.date}</p>
+                        <p><strong>Tarih:</strong> {formatDate(selectedOrder.date)}</p>
                         <p><strong>Sipariş No:</strong> {selectedOrder.id}</p>
                         <p><strong>Müşteri:</strong> {selectedOrder.customerName}</p>
                      </div>
@@ -1007,16 +1134,31 @@ export const Siparisler: React.FC = () => {
                     `}
                  </style>
                  <div className="contract-style-header bg-white text-black p-8 mx-auto" style={{ maxWidth: '800px' }}>
-                    <h2 className="text-center text-2xl font-bold mb-10 tracking-wider">SİPARİŞ FORMU</h2>
+                    
+                    <div className="flex flex-col items-center justify-center mb-8 border-b-2 pb-6" style={{ borderColor: store.settings?.invoiceTemplate_color || '#000' }}>
+                      {store.settings?.companyLogo && (
+                        <img src={store.settings.companyLogo} alt="Logo" className="max-h-24 object-contain mb-4" />
+                      )}
+                      <h2 className="text-center text-3xl font-bold tracking-wider" style={{ color: store.settings?.invoiceTemplate_color || '#000' }}>SİPARİŞ FORMU</h2>
+                      <p className="text-md font-semibold mt-2">{store.settings?.companyName || ''}</p>
+                    </div>
                     
                     <div className="flex justify-between mb-8">
-                       <div className="flex items-center gap-2">
-                          <span className="font-semibold w-24">Sipariş No</span>
-                          <span>: {selectedOrder.id}</span>
+                       <div className="flex flex-col gap-2">
+                         <div className="flex items-center gap-2">
+                            <span className="font-semibold w-24">Sipariş No</span>
+                            <span>: {selectedOrder.id}</span>
+                         </div>
                        </div>
-                       <div className="flex items-center gap-2">
-                          <span className="font-semibold w-28">Tarih</span>
-                          <span>: {selectedOrder.date}</span>
+                       <div className="flex flex-col gap-2">
+                         <div className="flex items-center gap-2">
+                            <span className="font-semibold w-28">Sipariş Tarihi</span>
+                            <span>: {formatDate(selectedOrder.date)}</span>
+                         </div>
+                         <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="font-semibold w-28">Yazdırma Zamanı</span>
+                            <span>: {new Date().toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                         </div>
                        </div>
                     </div>
 
@@ -1127,7 +1269,8 @@ export const Siparisler: React.FC = () => {
                  </div>
                  
                  <div className="mb-4 text-sm">
-                    <p><strong>Tarih:</strong> {selectedOrder.date}</p>
+                    <p><strong>Tarih:</strong> {formatDate(selectedOrder.date)}</p>
+                    <p><strong>Yazdırılma:</strong> {new Date().toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
                     <p><strong>Fiş No:</strong> {selectedOrder.id}</p>
                     <p><strong>Müşteri:</strong> {selectedOrder.customerName}</p>
                  </div>

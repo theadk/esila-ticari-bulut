@@ -721,7 +721,14 @@ export const Teklifler: React.FC = () => {
                     `}
                  </style>
                  <div className="contract-style-header bg-white text-black p-8 mx-auto" style={{ maxWidth: '800px' }}>
-                    <h2 className="text-center text-2xl font-bold mb-10 tracking-wider">FİYAT TEKLİFİ</h2>
+                    
+                    <div className="flex flex-col items-center justify-center mb-10 border-b-2 pb-6" style={{ borderColor: store.settings?.invoiceTemplate_color || '#000' }}>
+                      {store.settings?.companyLogo && (
+                        <img src={store.settings.companyLogo} alt="Logo" className="max-h-24 object-contain mb-4" />
+                      )}
+                      <h2 className="text-center text-3xl font-bold tracking-wider" style={{ color: store.settings?.invoiceTemplate_color || '#000' }}>FİYAT TEKLİFİ</h2>
+                      <p className="text-md font-semibold mt-2 text-center">{store.settings?.companyName || ''}</p>
+                    </div>
                     
                     <div className="flex justify-between mb-8">
                        <div className="flex items-center gap-2">
