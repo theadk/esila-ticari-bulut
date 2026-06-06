@@ -219,7 +219,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         </button>
       </header>
 
-      <main className="flex-1 max-w-6xl w-full mx-auto p-6">
+      <main className="flex-1 max-w-[98%] w-full mx-auto p-6">
         
         <div className="flex space-x-1 mb-6 bg-white p-1 rounded-lg shadow-sm border border-gray-200 inline-flex">
           <button

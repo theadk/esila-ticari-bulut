@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Cariler } from './pages/Cariler';
 import { Urunler } from './pages/Urunler';
 import { Depo } from './pages/Depo';
+import { StokSayim } from './pages/StokSayim';
 import { Siparisler } from './pages/Siparisler';
 import { HizliSatis } from './pages/HizliSatis';
 import { Ayarlar } from './pages/Ayarlar';
@@ -84,6 +85,7 @@ const App: React.FC = () => {
       case 'cariler': return <Cariler />;
       case 'urunler': return <Urunler />;
       case 'depo': return <Depo />;
+      case 'sayim': return <StokSayim />;
       case 'siparisler': return <Siparisler />;
       case 'hizlisatis': return <HizliSatis />;
       case 'ayarlar': return <Ayarlar />;

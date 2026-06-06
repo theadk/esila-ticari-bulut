@@ -15,7 +15,8 @@ import {
   Handshake,
   Zap,
   Wrench,
-  CalendarDays
+  CalendarDays,
+  ScanLine
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 
@@ -35,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
     { id: 'siparisler', label: 'Siparişler', icon: ShoppingCart },
     { id: 'efatura', label: 'E-Fatura', icon: FileText },
     { id: 'depo', label: 'Depo', icon: Warehouse },
+    { id: 'sayim', label: 'Stok Sayım', icon: ScanLine },
     { id: 'kasa', label: 'Kasa', icon: Wallet },
     { id: 'personel', label: 'Personel', icon: UserCheck },
     { id: 'mutabakat', label: 'Mutabakat', icon: Handshake },
