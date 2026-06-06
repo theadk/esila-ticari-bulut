@@ -35,6 +35,7 @@ import { useAppStore } from "../lib/store";
 import toast from "react-hot-toast";
 import html2pdf from "html2pdf.js";
 import { defaultTemplates, parseEmailTemplate } from "../lib/emailUtils";
+import { copyToClipboard } from '../lib/utils';
 
 const INITIAL_FORM: Partial<ServiceTicket> = {
   customerId: "",
@@ -826,7 +827,7 @@ export const Ariza: React.FC = () => {
        const data = await res.json();
        if (!res.ok) throw new Error(data.error);
        
-       await navigator.clipboard.writeText(data.link);
+       await copyToClipboard(data.link);
        toast.success('Bağlantı oluşturuldu ve panoya kopyalandı!');
     } catch(err: any) {
        toast.error('Bağlantı oluşturulamadı: ' + err.message);

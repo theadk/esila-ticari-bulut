@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../lib/store';
 import { ReminderNoteType } from '../types';
-import { Calendar, Search, Filter, CheckCircle, Circle, Trash2, CalendarDays, TrendingUp, DollarSign, PlusCircle, X } from 'lucide-react';
+import { Calendar, Search, Filter, CheckCircle, Circle, Trash2, CalendarDays, TrendingUp, DollarSign, PlusCircle, X, Mic, MicOff } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 export const Ajanda: React.FC = () => {
   const { reminderNotes, setReminderNotes, transactions } = useAppStore();
@@ -22,6 +23,18 @@ export const Ajanda: React.FC = () => {
     type: 'Genel',
     amount: ''
   });
+
+  const { isListening, supported, listen, stop } = useSpeechRecognition();
+
+  const handleSpeechRecognition = () => {
+    if (isListening) {
+      stop();
+    } else {
+      listen((text) => {
+        setNoteForm(prev => ({ ...prev, description: prev.description ? `${prev.description} ${text}` : text }));
+      });
+    }
+  };
 
   const handleSaveNote = () => {
     if (!noteForm.title) {
@@ -300,7 +313,21 @@ export const Ajanda: React.FC = () => {
                      </div>
                   )}
                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">Detay / Açıklama</label>
+                     <div className="flex justify-between items-center mb-1">
+                       <label className="block text-sm font-medium text-gray-700">Detay / Açıklama</label>
+                       {supported && (
+                         <button
+                           type="button"
+                           onClick={handleSpeechRecognition}
+                           className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                             isListening ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                           }`}
+                           title={isListening ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                         >
+                           {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                         </button>
+                       )}
+                     </div>
                      <textarea 
                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-h-[80px]" 
                        placeholder="İsteğe bağlı detay..."

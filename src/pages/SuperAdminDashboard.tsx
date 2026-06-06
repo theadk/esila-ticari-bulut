@@ -310,7 +310,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                 <th className="p-4">Bitiş Tarihi</th>
                 <th className="p-4">Durum</th>
                 <th className="p-4">Yönetici Şifresi</th>
-                <th className="p-4">İşlem</th>
+                <th className="p-4 min-w-[250px] text-right">İşlemler</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -359,26 +359,28 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                         </button>
                      </div>
                   </td>
-                  <td className="p-4">
-                    {t.status === 'Bekliyor' ? (
-                       <div className="flex flex-col xl:flex-row items-center gap-2 mb-2">
-                         <button className="text-emerald-600 flex items-center gap-1 hover:underline text-xs bg-emerald-50 px-2 py-1 rounded" onClick={() => handleActivate(t.vkn)}>
-                           <UserCheck size={14} /> Onayla
-                         </button>
-                         <button className="text-red-600 flex items-center gap-1 hover:underline text-xs bg-red-50 px-2 py-1 rounded" onClick={() => handleReject(t.vkn)}>
-                           <XCircle size={14} /> Reddet
-                         </button>
-                       </div>
-                    ) : (
-                       <div className="mb-2">
-                         <button onClick={() => handleToggleStatus(t.vkn)} className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${t.status === 'Aktif' ? 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}>
-                           <Power size={14} /> {t.status === 'Aktif' ? 'Pasife Al' : 'Aktif Et'}
-                         </button>
-                       </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => handleEdit(t)} className="text-blue-600 hover:underline text-xs">Düzenle</button>
-                      <button onClick={() => handleDelete(t.vkn)} className="text-red-600 hover:underline text-xs">Sil</button>
+                  <td className="p-4 text-right">
+                    <div className="flex flex-col items-end gap-2">
+                      {t.status === 'Bekliyor' ? (
+                         <div className="flex flex-wrap items-center justify-end gap-2">
+                           <button className="text-emerald-600 flex items-center gap-1 hover:underline text-xs bg-emerald-50 px-2 py-1 rounded" onClick={() => handleActivate(t.vkn)}>
+                             <UserCheck size={14} /> Onayla
+                           </button>
+                           <button className="text-red-600 flex items-center gap-1 hover:underline text-xs bg-red-50 px-2 py-1 rounded" onClick={() => handleReject(t.vkn)}>
+                             <XCircle size={14} /> Reddet
+                           </button>
+                         </div>
+                      ) : (
+                         <div className="">
+                           <button onClick={() => handleToggleStatus(t.vkn)} className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${t.status === 'Aktif' ? 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}>
+                             <Power size={14} /> {t.status === 'Aktif' ? 'Pasife Al' : 'Aktif Et'}
+                           </button>
+                         </div>
+                      )}
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button onClick={() => handleEdit(t)} className="text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 text-xs font-medium transition-colors">Düzenle</button>
+                        <button onClick={() => handleDelete(t.vkn)} className="text-red-600 bg-red-50 px-2 py-1 rounded hover:bg-red-100 text-xs font-medium transition-colors">Sil</button>
+                      </div>
                     </div>
                   </td>
                 </tr>

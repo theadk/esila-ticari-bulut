@@ -106,6 +106,7 @@ export interface Order {
   status: OrderStatus;
   items: OrderItem[];
   proposalId?: string;
+  notes?: string;
 }
 
 export enum ProposalStatus {

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud, MessageCircle, Link, RefreshCw } from 'lucide-react';
+import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud, MessageCircle, Link, RefreshCw, Mic, MicOff } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
 import { api } from '../lib/api';
+import { copyToClipboard } from '../lib/utils';
 import { Pagination } from '../components/Pagination';
+import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 export const Siparisler: React.FC = () => {
   const store = useAppStore();
@@ -90,6 +92,19 @@ export const Siparisler: React.FC = () => {
   const [exchangeRate, setExchangeRate] = useState<number>(1);
   const [exchangeRatesList, setExchangeRatesList] = useState<{Kod: string, Rate: number}[]>([]);
   const [ratesLoading, setRatesLoading] = useState(false);
+  const [orderNotes, setOrderNotes] = useState('');
+
+  const { isListening, supported, listen, stop } = useSpeechRecognition();
+
+  const handleSpeechRecognition = () => {
+    if (isListening) {
+      stop();
+    } else {
+      listen((text) => {
+        setOrderNotes(prev => prev ? `${prev} ${text}` : text);
+      });
+    }
+  };
 
   const fetchExchangeRates = async () => {
     try {
@@ -127,6 +142,7 @@ export const Siparisler: React.FC = () => {
     setSelectedProductToAdd('');
     setQuantityToAdd(1);
     setIsPaid(true);
+    setOrderNotes('');
     setIsCreateModalOpen(true);
   };
 
@@ -193,7 +209,8 @@ export const Siparisler: React.FC = () => {
       currency: orderCurrency,
       exchangeRate: exchangeRate,
       status: OrderStatus.COMPLETED,
-      items: cartItems
+      items: cartItems,
+      notes: orderNotes
     };
 
     setOrders([newOrder, ...orders]);
@@ -406,7 +423,7 @@ export const Siparisler: React.FC = () => {
        const data = await res.json();
        if (!res.ok) throw new Error(data.error);
        
-       await navigator.clipboard.writeText(data.link);
+       await copyToClipboard(data.link);
        toast.success('Bağlantı oluşturuldu ve panoya kopyalandı!');
     } catch(err: any) {
        toast.error('Bağlantı oluşturulamadı: ' + err.message);
@@ -948,6 +965,30 @@ export const Siparisler: React.FC = () => {
                         ))
                       )}
                     </div>
+
+                    <div className="p-4 border-t border-gray-200">
+                       <div className="flex justify-between items-center mb-1">
+                         <label className="text-sm font-medium text-gray-700">Sipariş Notu</label>
+                         {supported && (
+                           <button
+                             type="button"
+                             onClick={handleSpeechRecognition}
+                             className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                               isListening ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                             }`}
+                             title={isListening ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                           >
+                             {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                           </button>
+                         )}
+                       </div>
+                       <textarea
+                         className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 min-h-[60px]"
+                         placeholder="Siparişle ilgili notlarınızı buraya yazabilir veya sesli olarak ekleyebilirsiniz."
+                         value={orderNotes}
+                         onChange={e => setOrderNotes(e.target.value)}
+                       ></textarea>
+                    </div>
                     
                     <div className="bg-gray-50 p-4 border-t border-gray-200">
                       <div className="flex justify-between items-center mb-4">
@@ -1186,7 +1227,10 @@ export const Siparisler: React.FC = () => {
                         <div className="mt-8 flex justify-between items-start">
                            <div>
                              <h3 className="font-bold mb-2">Notlar :</h3>
-                             <p className="text-sm whitespace-pre-line">{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</p>
+                             <div className="text-sm whitespace-pre-line">
+                               {selectedOrder.notes && <div className="mb-4">{selectedOrder.notes}</div>}
+                               <div>{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</div>
+                             </div>
                            </div>
                            <div className="text-center">
                              <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`} size={80} level="M" />
@@ -1420,7 +1464,10 @@ export const Siparisler: React.FC = () => {
                     <div className="mt-8 flex justify-between items-start">
                        <div>
                          <h3 className="font-bold mb-2">Notlar :</h3>
-                         <p className="text-sm whitespace-pre-line">{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</p>
+                         <div className="text-sm whitespace-pre-line">
+                           {selectedOrder.notes && <div className="mb-4">{selectedOrder.notes}</div>}
+                           <div>{store.settings.printer_footer_text || 'Bizi tercih ettiğiniz için teşekkür ederiz.'}</div>
+                         </div>
                        </div>
                        <div className="text-center">
                          <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`} size={80} level="M" />

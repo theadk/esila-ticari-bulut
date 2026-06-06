@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X, Hash, Users, Clock, FileText, Database, Download } from 'lucide-react';
 import { Settings } from '../types';
 import { useAppStore } from '../lib/store';
+import { copyToClipboard } from '../lib/utils';
 import { UsersSettings } from '../components/UsersSettings';
 import toast from 'react-hot-toast';
 
@@ -436,7 +437,7 @@ export const Ayarlar: React.FC = () => {
                   <h4 className="font-semibold text-gray-800 mb-2">Cari Ekstre Şablonu</h4>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {['{MUSTERI_ADI}', '{BAKIYE}', '{FIRMA_ADI}', '{TARIH}'].map(variable => (
-                      <span key={variable} className="bg-white border text-xs px-2 py-1 rounded cursor-copy hover:bg-gray-100" onClick={() => navigator.clipboard.writeText(variable)} title="Kopyala">{variable}</span>
+                      <span key={variable} className="bg-white border text-xs px-2 py-1 rounded cursor-copy hover:bg-gray-100" onClick={() => copyToClipboard(variable)} title="Kopyala">{variable}</span>
                     ))}
                   </div>
                   <div className="flex gap-2 mb-2 border-b pb-2">
@@ -471,7 +472,7 @@ export const Ayarlar: React.FC = () => {
                   <h4 className="font-semibold text-gray-800 mb-2">Mutabakat Şablonu</h4>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {['{MUSTERI_ADI}', '{BAKIYE}', '{BAKIYE_TIPI}', '{TARIH}', '{FIRMA_ADI}'].map(variable => (
-                      <span key={variable} className="bg-white border text-xs px-2 py-1 rounded cursor-copy hover:bg-gray-100" onClick={() => navigator.clipboard.writeText(variable)} title="Kopyala">{variable}</span>
+                      <span key={variable} className="bg-white border text-xs px-2 py-1 rounded cursor-copy hover:bg-gray-100" onClick={() => copyToClipboard(variable)} title="Kopyala">{variable}</span>
                     ))}
                   </div>
                   <div className="flex gap-2 mb-2 border-b pb-2">
@@ -507,7 +508,7 @@ export const Ayarlar: React.FC = () => {
                   <h4 className="font-semibold text-gray-800 mb-2">Personel Bordro Şablonu</h4>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {['{PERSONEL_ADI}', '{AY_YIL}', '{NET_ODENEN}', '{FIRMA_ADI}'].map(variable => (
-                      <span key={variable} className="bg-white border text-xs px-2 py-1 rounded cursor-copy hover:bg-gray-100" onClick={() => navigator.clipboard.writeText(variable)} title="Kopyala">{variable}</span>
+                      <span key={variable} className="bg-white border text-xs px-2 py-1 rounded cursor-copy hover:bg-gray-100" onClick={() => copyToClipboard(variable)} title="Kopyala">{variable}</span>
                     ))}
                   </div>
                   <div className="flex gap-2 mb-2 border-b pb-2">
