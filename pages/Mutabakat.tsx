@@ -75,14 +75,22 @@ export const Mutabakat: React.FC = () => {
          html: body 
       })
     }).then(async res => {
-      if (!res.ok) throw new Error("Gönderim başarısız");
+      if (!res.ok) {
+         try {
+           const errData = await res.json();
+           if (errData.error) throw new Error(errData.error);
+         } catch(e: any) {
+           throw new Error(e.message || "Gönderim başarısız");
+         }
+         throw new Error("Gönderim başarısız");
+      }
       return res.json();
     });
 
     toast.promise(promise, {
       loading: `${customer.companyName || customer.name} için mutabakat maili gönderiliyor...`,
       success: `${customer.companyName || customer.name} adresine gönderildi.`,
-      error: `Mail gönderilemedi.`
+      error: (err) => err.message || `Mail gönderilemedi.`
     });
     
     // We await for the promise slightly so that if called in loop it blocks

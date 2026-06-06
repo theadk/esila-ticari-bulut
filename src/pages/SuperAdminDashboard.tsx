@@ -27,7 +27,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   const [formData, setFormData] = useState({
     vkn: '', name: '', email: '', package: 'Yıllık', sector: '',
     modules: ['dashboard', 'cariler', 'urunler', 'hizlisatis', 'kasa'],
-    expirationDate: ''
+    expirationDate: '', smsLimit: 0, emailLimit: 0
   });
 
   
@@ -129,8 +129,10 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
       sector: tenant.sector,
       package: tenant.package,
       modules: mods,
-      expirationDate: tenant.expirationDate ? tenant.expirationDate.split('T')[0] : ''
-    });
+      expirationDate: tenant.expirationDate ? tenant.expirationDate.split('T')[0] : '',
+      smsLimit: tenant.smsLimit || 0,
+      emailLimit: tenant.emailLimit || 0
+    } as any);
     setIsEditing(true);
     setIsModalOpen(true);
   };
@@ -287,7 +289,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
               setFormData({
                 vkn: '', name: '', email: '', package: 'Yıllık', sector: '',
                 modules: ['dashboard', 'cariler', 'urunler', 'hizlisatis', 'kasa'],
-                expirationDate: ''
+                expirationDate: '', smsLimit: 0, emailLimit: 0
               });
               setIsModalOpen(true);
             }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
@@ -304,6 +306,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                 <th className="p-4">Firma Adı & E-Posta</th>
                 <th className="p-4">Esila Müşteri</th>
                 <th className="p-4">Paket & Modüller</th>
+                <th className="p-4">Limit & Kullanım</th>
                 <th className="p-4">Bitiş Tarihi</th>
                 <th className="p-4">Durum</th>
                 <th className="p-4">Yönetici Şifresi</th>
@@ -334,6 +337,14 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                     <div className="text-gray-500 text-xs mt-1 line-clamp-2 max-w-[200px]" title={t.modules ? (typeof t.modules === 'string' ? JSON.parse(t.modules) : t.modules)?.map((m: string) => MODULES.find(x => x.id === m)?.name || m).join(', ') : 'Tümü'}>
                       {(t.modules ? (typeof t.modules === 'string' ? JSON.parse(t.modules) : t.modules) : ['all'])?.map((m: string) => MODULES.find(x => x.id === m)?.name || m).join(', ')}
                     </div>
+                  </td>
+                  <td className="p-4">
+                     <div className="text-xs text-gray-600 mb-1">
+                        <span className="font-semibold text-gray-800">SMS:</span> {t.smsCount || 0} / {t.smsLimit > 0 ? t.smsLimit : 'Sınırsız'}
+                     </div>
+                     <div className="text-xs text-gray-600">
+                        <span className="font-semibold text-gray-800">E-Posta:</span> {t.emailCount || 0} / {t.emailLimit > 0 ? t.emailLimit : 'Sınırsız'}
+                     </div>
                   </td>
                   <td className="p-4 text-gray-600">{t.expirationDate ? new Date(t.expirationDate).toLocaleDateString('tr-TR') : '-'}</td>
                   <td className="p-4">
@@ -471,6 +482,19 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                     <input type="date" value={formData.expirationDate} onChange={e=>setFormData({...formData, expirationDate: e.target.value})} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" />
                   </div>
                 )}
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">SMS Gönderim Limiti</label>
+                    <p className="text-[10px] text-gray-500 mb-1">Sınırsız için 0 bırakın.</p>
+                    <input type="number" min="0" value={formData.smsLimit || 0} onChange={e=>setFormData({...formData, smsLimit: Number(e.target.value) || 0})} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">E-Posta Gönderim Limiti</label>
+                    <p className="text-[10px] text-gray-500 mb-1">Sınırsız için 0 bırakın.</p>
+                    <input type="number" min="0" value={formData.emailLimit || 0} onChange={e=>setFormData({...formData, emailLimit: Number(e.target.value) || 0})} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" placeholder="0" />
+                  </div>
+                </div>
                 
                 <div className="mt-4">
                   <label className="text-sm font-medium text-gray-700 mb-2 block">Aktif Edilecek Modüller</label>

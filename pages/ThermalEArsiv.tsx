@@ -20,7 +20,7 @@ export const ThermalEArsiv = ({ previewInvoice, invoiceOrder, store, invoiceCust
   };
 
   return (
-    <div className="bg-white p-4 mx-auto w-[300px] text-[11px] font-sans text-black shadow-sm print:shadow-none print:m-0" id="invoice-preview-80mm" style={{ fontSize: '11px' }}>
+    <div className="bg-white p-4 mx-auto w-[300px] text-[11px] font-sans text-black shadow-sm print:shadow-none print:m-0 print-target" id="invoice-preview-80mm" style={{ fontSize: '11px' }}>
       <div className="flex flex-col items-center mb-4 text-center">
         <img 
           src="/gib-logo.png" 

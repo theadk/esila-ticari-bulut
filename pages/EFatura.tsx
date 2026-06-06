@@ -130,9 +130,16 @@ export const EFatura: React.FC = () => {
                 "Invoice": {
                     "ID": inv.id,
                     "IssueDate": new Date(inv.date).toISOString().split('T')[0],
-                    "InvoiceTypeCode": inv.type,
+                    "InvoiceTypeCode": inv.invoiceType || "SATIS",
                     "ProfileID": inv.scenario,
-                    "DocumentCurrencyCode": "TRY",
+                    "DocumentCurrencyCode": order?.currency || "TRY",
+                    ...(order?.currency && order.currency !== 'TRY' ? {
+                        "PricingExchangeRate": {
+                            "SourceCurrencyCode": order.currency,
+                            "TargetCurrencyCode": "TRY",
+                            "CalculationRate": order.exchangeRate || 1
+                        }
+                    } : {}),
                     "AccountingSupplierParty": {
                         "Party": {
                             "PartyName": { "Name": store.settings.companyName || "Şirket Adı" },
@@ -146,10 +153,27 @@ export const EFatura: React.FC = () => {
                         }
                     },
                     "LegalMonetaryTotal": {
-                        "LineExtensionAmount": inv.amount,
-                        "TaxExclusiveAmount": inv.amount,
-                        "TaxInclusiveAmount": inv.amount,
-                        "PayableAmount": inv.amount
+                        "LineExtensionAmount": ((inv as any).subTotal || inv.amount).toFixed(2),
+                        "TaxExclusiveAmount": ((inv as any).subTotal || inv.amount).toFixed(2),
+                        "TaxInclusiveAmount": ((inv as any).total || inv.amount).toFixed(2),
+                        "PayableAmount": ((inv as any).total || inv.amount).toFixed(2)
+                    },
+                    "TaxTotal": {
+                        "TaxAmount": ((inv as any).taxTotal || 0).toFixed(2),
+                        "TaxSubtotal": {
+                            "TaxableAmount": ((inv as any).subTotal || inv.amount).toFixed(2),
+                            "TaxAmount": ((inv as any).taxTotal || 0).toFixed(2),
+                            "TaxCategory": {
+                                "TaxScheme": {
+                                    "Name": "KDV",
+                                    "TaxTypeCode": "0015"
+                                },
+                                ...((inv as any).exceptionCode ? {
+                                    "TaxExemptionReasonCode": (inv as any).exceptionCode,
+                                    "TaxExemptionReason": "Sistem tarafından tanımlanmış istisna"
+                                } : {})
+                            }
+                        }
                     },
                     "InvoiceLine": order?.items.map((item, idx) => ({
                         "ID": (idx + 1).toString(),
@@ -333,13 +357,13 @@ export const EFatura: React.FC = () => {
                           {inv.type}
                         </span>
                         <div className="text-xs text-gray-500">
-                          {inv.scenario}
+                          {inv.scenario} - {inv.invoiceType || 'SATIS'}
                         </div>
                       </td>
                       <td className="p-4 text-sm font-bold text-right text-gray-800">
                         {inv.amount.toLocaleString("tr-TR", {
                           style: "currency",
-                          currency: "TRY",
+                          currency: store.orders?.find(o => o.id === inv.orderId)?.currency || "TRY",
                         })}
                       </td>
                       <td className="p-4 text-center">
@@ -470,7 +494,7 @@ export const EFatura: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 print:p-0 print:bg-white flex justify-center">
               {printType === 'A4' ? (
                 <div
-                  className="bg-white p-8 border border-gray-200 shadow-sm mx-auto max-w-[210mm] min-h-[297mm] text-[11px] font-sans text-black print:border-none print:shadow-none print:m-0"
+                  className="bg-white p-8 border border-gray-200 shadow-sm mx-auto max-w-[210mm] min-h-[297mm] text-[11px] font-sans text-black print:border-none print:shadow-none print:m-0 print-target"
                   id="invoice-preview"
                 >
                 {/* Header Row */}
@@ -559,20 +583,24 @@ export const EFatura: React.FC = () => {
                                   qrDate = new Date(previewInvoice.date).toISOString().split('T')[0];
                                 } catch(e) {}
                                 
+                                const subAmount = (previewInvoice as any).subTotal || (invoiceOrder?.subTotal || (previewInvoice.amount / 1.2));
+                                const taxAmount = (previewInvoice as any).taxTotal || (invoiceOrder?.taxTotal || (previewInvoice.amount - previewInvoice.amount / 1.2));
+                                const totalAmount = (previewInvoice as any).total || (invoiceOrder?.total || previewInvoice.amount);
+
                                 const qrDataObj = {
                                   vkntckn: store.settings?.companyVkn || "3790894905",
                                   avkntckn: invoiceCustomer?.taxNumber || invoiceCustomer?.tcNo || "0100359315",
                                   senaryo: previewInvoice.scenario || "EARSIVFATURA",
-                                  tip: previewInvoice.type || "SATIS",
+                                  tip: previewInvoice.invoiceType || "SATIS",
                                   tarih: qrDate,
                                   no: previewInvoice.id || "ESI2026000002001",
                                   ettn: previewInvoice.id ? `${previewInvoice.id.toLowerCase()}-e-fatura-ettn` : "e9baec5d-f923-4f06-894b-e3de911a16c2",
-                                  parabirimi: "TRY",
-                                  "malhizmettoplam": (invoiceOrder?.subTotal || (previewInvoice.amount / 1.2)).toFixed(2),
-                                  "kdvmatrah(20)": (invoiceOrder?.subTotal || (previewInvoice.amount / 1.2)).toFixed(2),
-                                  "hesaplanankdv(20)": (invoiceOrder?.taxTotal || (previewInvoice.amount - previewInvoice.amount / 1.2)).toFixed(2),
-                                  vergidahil: (invoiceOrder?.total || previewInvoice.amount).toFixed(2),
-                                  odenecek: (invoiceOrder?.total || previewInvoice.amount).toFixed(2)
+                                  parabirimi: invoiceOrder?.currency || "TRY",
+                                  "malhizmettoplam": subAmount.toFixed(2),
+                                  "kdvmatrah(20)": subAmount.toFixed(2),
+                                  "hesaplanankdv(20)": taxAmount.toFixed(2),
+                                  vergidahil: totalAmount.toFixed(2),
+                                  odenecek: totalAmount.toFixed(2)
                                 };
                                 return <QRCodeSVG value={JSON.stringify(qrDataObj)} size={96} />;
                               })()}
@@ -711,7 +739,7 @@ export const EFatura: React.FC = () => {
                             Fatura Tipi:
                           </td>
                           <td className="p-1">
-                            {previewInvoice.type || "SATIS"}
+                            {previewInvoice.invoiceType || "SATIS"}
                           </td>
                         </tr>
                         <tr className="border-b border-black">
@@ -911,7 +939,7 @@ export const EFatura: React.FC = () => {
                           </td>
                           <td className="p-1 w-32 border-l-2 border-black border-l-gray-300">
                             {(
-                              invoiceOrder?.subTotal ||
+                              (previewInvoice as any).subTotal || invoiceOrder?.subTotal ||
                               previewInvoice.amount / 1.2
                             ).toLocaleString("tr-TR", {
                               minimumFractionDigits: 2,
@@ -938,7 +966,7 @@ export const EFatura: React.FC = () => {
                           </td>
                           <td className="p-1 border-l-2 border-black border-l-gray-300">
                             {(
-                              invoiceOrder?.taxTotal ||
+                              (previewInvoice as any).taxTotal || invoiceOrder?.taxTotal ||
                               previewInvoice.amount -
                                 previewInvoice.amount / 1.2
                             ).toLocaleString("tr-TR", {
@@ -953,7 +981,7 @@ export const EFatura: React.FC = () => {
                           </td>
                           <td className="p-1 border-l-2 border-black border-l-gray-300">
                             {(
-                              invoiceOrder?.total || previewInvoice.amount
+                              (previewInvoice as any).total || invoiceOrder?.total || previewInvoice.amount
                             ).toLocaleString("tr-TR", {
                               minimumFractionDigits: 2,
                             })}{" "}
@@ -966,7 +994,7 @@ export const EFatura: React.FC = () => {
                           </td>
                           <td className="p-1 border-l-2 border-black border-l-gray-300">
                             {(
-                              invoiceOrder?.total || previewInvoice.amount
+                              (previewInvoice as any).total || invoiceOrder?.total || previewInvoice.amount
                             ).toLocaleString("tr-TR", {
                               minimumFractionDigits: 2,
                             })}{" "}

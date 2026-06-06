@@ -73,6 +73,7 @@ export interface EInvoice {
   customerName: string;
   amount: number;
   type: string;
+  invoiceType?: string;
   scenario: string;
   date: string;
   status: 'Taslak' | 'Gönderildi' | 'Hatalı' | 'Bekliyor' | 'Onaylandı' | 'Reddedildi';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud, MessageCircle, Link } from 'lucide-react';
+import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud, MessageCircle, Link, RefreshCw } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
@@ -30,8 +30,53 @@ export const Siparisler: React.FC = () => {
   const [eFaturaModalOpen, setEFaturaModalOpen] = useState(false);
   const [eFaturaOrder, setEFaturaOrder] = useState<Order | null>(null);
   const [eFaturaType, setEFaturaType] = useState('E-Fatura');
-  const [eFaturaScenario, setEFaturaScenario] = useState('Ticari Fatura');
+  const [eFaturaInvoiceType, setEFaturaInvoiceType] = useState('SATIS');
+  const [eFaturaScenario, setEFaturaScenario] = useState('TICARIFATURA');
+  const [eFaturaExceptionCode, setEFaturaExceptionCode] = useState('');
   const [eFaturaLoading, setEFaturaLoading] = useState(false);
+
+  useEffect(() => {
+    if (eFaturaModalOpen && eFaturaOrder) {
+      const customer = customers.find(c => c.name === eFaturaOrder.customerName || c.id === eFaturaOrder.customerId);
+      if (customer) {
+        setEFaturaType(customer.efaturaType || 'E-Fatura');
+        setEFaturaInvoiceType(customer.efaturaInvoiceType || 'SATIS');
+        setEFaturaScenario(customer.efaturaScenario || 'TICARIFATURA');
+      } else {
+        setEFaturaType('E-Fatura');
+        setEFaturaInvoiceType('SATIS');
+        setEFaturaScenario('TICARIFATURA');
+      }
+      setEFaturaExceptionCode('');
+    }
+  }, [eFaturaModalOpen, eFaturaOrder, customers]);
+
+  // Derived state for eFatura total based on Invoice Type
+  const calculateEFaturaTotals = () => {
+    if (!eFaturaOrder) return { subTotal: 0, taxTotal: 0, total: 0 };
+    let sub = eFaturaOrder.subTotal || 0;
+    let tax = eFaturaOrder.taxTotal || 0;
+    
+    // If order missing subTotal/taxTotal try to calculate from items
+    if (!sub && eFaturaOrder.items) {
+      sub = eFaturaOrder.items.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+      tax = eFaturaOrder.items.reduce((acc, it) => acc + (it.price * it.quantity * ((it.taxRate || 20) / 100)), 0);
+    }
+    
+    // Fallback if still 0
+    if (!sub) {
+       sub = ((eFaturaOrder.total || (eFaturaOrder as any).totalAmount || 0) / 1.2);
+       tax = (eFaturaOrder.total || (eFaturaOrder as any).totalAmount || 0) - sub;
+    }
+
+    if (eFaturaInvoiceType === 'ISTISNA' || eFaturaInvoiceType === 'IHRACAT') {
+       tax = 0; // İstisna ise KDV %0
+    }
+    
+    return { subTotal: sub, taxTotal: tax, total: sub + tax };
+  };
+
+  const currentEFaturaTotals = calculateEFaturaTotals();
 
   // New Order Form State
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -41,6 +86,35 @@ export const Siparisler: React.FC = () => {
   const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
   const [taxToAdd, setTaxToAdd] = useState<number>(20);
   const [isPaid, setIsPaid] = useState<boolean>(true); // Peşin Tahsil Et
+  const [orderCurrency, setOrderCurrency] = useState('TRY');
+  const [exchangeRate, setExchangeRate] = useState<number>(1);
+  const [exchangeRatesList, setExchangeRatesList] = useState<{Kod: string, Rate: number}[]>([]);
+  const [ratesLoading, setRatesLoading] = useState(false);
+
+  const fetchExchangeRates = async () => {
+    try {
+      setRatesLoading(true);
+      const res = await fetch('/api/exchange-rates');
+      if (!res.ok) throw new Error('Kurlar alınamadı');
+      const xmlData = await res.text();
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlData, "text/xml");
+      const currencies = Array.from(xmlDoc.getElementsByTagName("Currency"));
+      
+      const rates = currencies.map(c => {
+        const kod = c.getAttribute("Kod") || '';
+        const forexSelling = c.getElementsByTagName("ForexSelling")[0]?.textContent;
+        return { Kod: kod, Rate: parseFloat(forexSelling || '0') };
+      }).filter(c => c.Rate > 0 && ['USD', 'EUR', 'GBP'].includes(c.Kod));
+      
+      setExchangeRatesList(rates);
+      toast.success('Güncel kurlar Merkez Bankası\'ndan alındı');
+    } catch (e: any) {
+      toast.error('Kur bilgisi alınamadı: ' + e.message);
+    } finally {
+      setRatesLoading(false);
+    }
+  };
 
   // Derived state for new order total
   const cartSubTotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -116,7 +190,9 @@ export const Siparisler: React.FC = () => {
       subTotal: cartSubTotal,
       taxTotal: cartTaxTotal,
       total: cartTotal,
-      status: OrderStatus.COMPLETED, // Mark as completed if we are integrating with cari directly, or pending. Let's say completed since it's an active sale.
+      currency: orderCurrency,
+      exchangeRate: exchangeRate,
+      status: OrderStatus.COMPLETED,
       items: cartItems
     };
 
@@ -215,6 +291,45 @@ export const Siparisler: React.FC = () => {
   };
 
   const handleStatusChange = (status: OrderStatus, targetOrder: Order) => {
+    if (status === OrderStatus.COMPLETED && targetOrder.status === OrderStatus.PENDING) {
+       let newProducts = [...products];
+       let stockErrors: string[] = [];
+       (targetOrder.items || []).forEach(item => {
+          const product = newProducts.find(p => String(p.id) === String(item.productId));
+          if (product && product.stock < item.quantity) {
+             stockErrors.push(`${product.name} (Stok: ${product.stock}, İstenen: ${item.quantity})`);
+          }
+       });
+
+       if (stockErrors.length > 0) {
+          toast.error(`Stok yetersiz:\n${stockErrors.join('\\n')}`);
+          return;
+       }
+
+       (targetOrder.items || []).forEach(item => {
+         const idx = newProducts.findIndex(p => String(p.id) === String(item.productId));
+         if (idx !== -1) {
+            let p = newProducts[idx];
+            let remainingQuantity = item.quantity;
+            let newWarehouseStocks = [...(p.warehouseStocks || [])];
+            for (let i = 0; i < newWarehouseStocks.length; i++) {
+                if (remainingQuantity <= 0) break;
+                if (newWarehouseStocks[i].stock > 0) {
+                    const deduct = Math.min(newWarehouseStocks[i].stock, remainingQuantity);
+                    newWarehouseStocks[i] = { ...newWarehouseStocks[i], stock: newWarehouseStocks[i].stock - deduct };
+                    remainingQuantity -= deduct;
+                }
+            }
+            newProducts[idx] = { 
+                ...p, 
+                stock: Math.max(0, p.stock - item.quantity),
+                warehouseStocks: newWarehouseStocks
+            };
+         }
+       });
+       setProducts(newProducts);
+    }
+
     // Check if we're cancelling
     if (status === OrderStatus.CANCELLED && targetOrder.status !== OrderStatus.CANCELLED) {
       if (!window.confirm('Bu siparişi iptal etmek istediğinize emin misiniz? (Sipariş tutarı cariden düşülecektir)')) {
@@ -241,26 +356,26 @@ export const Siparisler: React.FC = () => {
       });
       setCustomers(updatedCustomers);
       
-      // Restore stock
-      let newProducts = [...products];
-      (targetOrder.items || []).forEach(item => {
-        const idx = newProducts.findIndex(p => String(p.id) === String(item.productId));
-        if (idx !== -1) {
-          let p = newProducts[idx];
-          // Since we cannot perfectly know which warehouse it was deducted from in multi-warehouse scenarios without transaction logs,
-          // we'll just add it to the first warehouse or the main stock.
-          let newWarehouseStocks = [...(p.warehouseStocks || [])];
-          if (newWarehouseStocks.length > 0) {
-             newWarehouseStocks[0] = { ...newWarehouseStocks[0], stock: newWarehouseStocks[0].stock + item.quantity };
+      // Restore stock only if it was completed and stock was actually deducted
+      if (targetOrder.status === OrderStatus.COMPLETED || targetOrder.status === OrderStatus.SHIPPED) {
+        let newProducts = [...products];
+        (targetOrder.items || []).forEach(item => {
+          const idx = newProducts.findIndex(p => String(p.id) === String(item.productId));
+          if (idx !== -1) {
+            let p = newProducts[idx];
+            let newWarehouseStocks = [...(p.warehouseStocks || [])];
+            if (newWarehouseStocks.length > 0) {
+               newWarehouseStocks[0] = { ...newWarehouseStocks[0], stock: newWarehouseStocks[0].stock + item.quantity };
+            }
+            newProducts[idx] = { 
+                ...p, 
+                stock: p.stock + item.quantity,
+                warehouseStocks: newWarehouseStocks
+            };
           }
-          newProducts[idx] = { 
-              ...p, 
-              stock: p.stock + item.quantity,
-              warehouseStocks: newWarehouseStocks
-          };
-        }
-      });
-      setProducts(newProducts);
+        });
+        setProducts(newProducts);
+      }
     }
 
     const updatedOrders = orders.map(o => 
@@ -440,7 +555,12 @@ export const Siparisler: React.FC = () => {
                   <td className="px-6 py-4 font-medium text-gray-800">{order.customerName}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{formatDate(order.date)}</td>
                   <td className="px-6 py-4 font-semibold text-gray-800">
-                    {(order.total || (order as any).totalAmount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    {(order.total || (order as any).totalAmount || 0).toLocaleString('tr-TR', { style: 'currency', currency: order.currency || 'TRY' })}
+                    {order.currency && order.currency !== 'TRY' && (
+                        <div className="text-xs text-gray-500 font-normal">
+                          Kur: {order.exchangeRate}
+                        </div>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
@@ -830,19 +950,68 @@ export const Siparisler: React.FC = () => {
                     </div>
                     
                     <div className="bg-gray-50 p-4 border-t border-gray-200">
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-medium text-gray-700">Para Birimi:</label>
+                          <select 
+                            value={orderCurrency}
+                            onChange={(e) => {
+                              setOrderCurrency(e.target.value);
+                              if (e.target.value !== 'TRY' && exchangeRatesList.length === 0) {
+                                fetchExchangeRates();
+                              } else if (e.target.value !== 'TRY') {
+                                const matched = exchangeRatesList.find(r => r.Kod === e.target.value);
+                                if (matched) setExchangeRate(matched.Rate);
+                              } else {
+                                setExchangeRate(1);
+                              }
+                            }}
+                            className="p-1 border border-gray-300 rounded text-sm bg-white"
+                          >
+                            <option value="TRY">TRY (₺)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                          </select>
+                        </div>
+                        {orderCurrency !== 'TRY' && (
+                          <div className="text-xs text-gray-500 flex items-center gap-2">
+                            <span>Güncel Kur:</span>
+                            <div className="flex flex-col text-right">
+                                {ratesLoading ? <span>Kurlar yükleniyor...</span> : 
+                                    <input 
+                                        type="number" step="0.01" 
+                                        className="w-20 p-1 text-right border border-gray-300 rounded text-xs" 
+                                        value={exchangeRate} 
+                                        onChange={(e) => setExchangeRate(parseFloat(e.target.value) || 1)} 
+                                    />
+                                }
+                            </div>
+                            <button onClick={fetchExchangeRates} className="p-1 hover:bg-gray-200 rounded text-blue-500" title="TCMB Kur Yenile"><RefreshCw size={14} /></button>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex justify-between items-center mb-1 text-sm text-gray-600">
                         <span>Ara Toplam</span>
-                        <span>{cartSubTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                        <span>{cartSubTotal.toLocaleString('tr-TR', { style: 'currency', currency: orderCurrency })}</span>
                       </div>
                       <div className="flex justify-between items-center mb-3 text-sm text-gray-600">
                         <span>KDV Tutarı</span>
-                        <span>{cartTaxTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                        <span>{cartTaxTotal.toLocaleString('tr-TR', { style: 'currency', currency: orderCurrency })}</span>
                       </div>
                       <div className="flex justify-between items-center mb-3 pt-2 border-t border-gray-200">
                         <span className="text-gray-800 font-bold">Genel Toplam</span>
-                        <span className="text-2xl font-bold text-emerald-600">
-                          {cartTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                        </span>
+                        <div className="text-right">
+                            <span className="text-2xl font-bold text-emerald-600 block">
+                              {cartTotal.toLocaleString('tr-TR', { style: 'currency', currency: orderCurrency })}
+                            </span>
+                            {orderCurrency !== 'TRY' && (
+                                <span className="text-xs text-gray-500 block">
+                                  TRY Karşılığı: {(cartTotal * exchangeRate).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                                </span>
+                            )}
+                        </div>
                       </div>
                       
                       {cartTotal > 0 && selectedCustomer && (
@@ -1373,12 +1542,16 @@ export const Siparisler: React.FC = () => {
                      <p className="text-sm font-bold text-gray-800">{eFaturaOrder.id}</p>
                      <p className="text-sm text-gray-700">{eFaturaOrder.customerName}</p>
                    </div>
-                   <p className="text-sm font-bold text-gray-800">Tutar: {(eFaturaOrder.total || (eFaturaOrder as any).totalAmount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
+                   <div className="text-right">
+                     <p className="text-xs text-gray-500">Matrah: {currentEFaturaTotals.subTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
+                     <p className="text-xs text-gray-500">KDV: {(eFaturaInvoiceType === 'ISTISNA' || eFaturaInvoiceType === 'IHRACAT') ? '%0 (İstisna)' : currentEFaturaTotals.taxTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
+                     <p className="text-sm font-bold text-gray-800">Tutar: {currentEFaturaTotals.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
+                   </div>
                  </div>
               </div>
 
               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Fatura Türü</label>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Fatura Formatı</label>
                  <select 
                    value={eFaturaType} 
                    onChange={(e) => setEFaturaType(e.target.value)}
@@ -1390,17 +1563,64 @@ export const Siparisler: React.FC = () => {
               </div>
 
               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Fatura Türü (GİB)</label>
+                 <select 
+                   value={eFaturaInvoiceType} 
+                   onChange={(e) => {
+                     const newType = e.target.value;
+                     setEFaturaInvoiceType(newType);
+                     if (newType === 'ISTISNA' || newType === 'IHRACAT') {
+                       toast.info(`Fatura türü ${newType === 'ISTISNA' ? 'İstisna' : 'İhracat'} olarak seçildiği için KDV oranı otomatik olarak %0 şeklinde güncellendi.`, {
+                         icon: 'ℹ️',
+                         duration: 5000
+                       });
+                     } else if (eFaturaInvoiceType === 'ISTISNA' || eFaturaInvoiceType === 'IHRACAT') {
+                         toast.success('Fatura türü değiştirildiği için KDV tutarı eski haline getirildi.', { duration: 4000 });
+                     }
+                   }}
+                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                 >
+                   <option value="SATIS">Satış</option>
+                   <option value="IADE">İade</option>
+                   <option value="TEVKIFAT">Tevkifat</option>
+                   <option value="ISTISNA">İstisna</option>
+                   <option value="OZELMATRAH">Özel Matrah</option>
+                   <option value="IHRACKAYITLI">İhraç Kayıtlı</option>
+                   <option value="SGK">SGK</option>
+                 </select>
+              </div>
+
+              <div>
                  <label className="block text-sm font-medium text-gray-700 mb-1">Senaryo Türü</label>
                  <select 
                    value={eFaturaScenario} 
                    onChange={(e) => setEFaturaScenario(e.target.value)}
                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
                  >
-                   <option value="Ticari Fatura">Ticari Fatura</option>
-                   <option value="Temel Fatura">Temel Fatura</option>
-                   <option value="Yolcu Beraberi">Yolcu Beraberi Fatura</option>
+                   <option value="TICARIFATURA">Ticari Fatura</option>
+                   <option value="TEMELFATURA">Temel Fatura</option>
+                   <option value="EARSIVFATURA">E-Arşiv Fatura</option>
+                   <option value="KAMUFATURA">Kamu Faturası</option>
+                   <option value="YOLCUBERABERFATURA">Yolcu Beraberi Fatura</option>
+                   <option value="IHRACAT">İhracat Faturası</option>
                  </select>
               </div>
+
+              {(eFaturaInvoiceType === 'ISTISNA' || eFaturaInvoiceType === 'TEVKIFAT' || eFaturaInvoiceType === 'IHRACAT') && (
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                     {eFaturaInvoiceType === 'TEVKIFAT' ? 'Tevkifat Kodu' : 'İstisna / Muafiyet Kodu'}
+                   </label>
+                   <input 
+                     type="text" 
+                     value={eFaturaExceptionCode}
+                     onChange={(e) => setEFaturaExceptionCode(e.target.value)}
+                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
+                     placeholder={eFaturaInvoiceType === 'TEVKIFAT' ? "Örn: 601" : "Örn: 351"}
+                     required
+                   />
+                </div>
+              )}
 
               <div className="text-xs text-gray-600 bg-blue-50/50 p-3 rounded-lg border border-blue-100 flex items-start gap-2">
                  <Cloud className="text-blue-500 shrink-0" size={16} />
@@ -1432,9 +1652,13 @@ export const Siparisler: React.FC = () => {
                         id: formattedId,
                         orderId: eFaturaOrder.id,
                         customerName: eFaturaOrder.customerName,
-                        amount: eFaturaOrder.total || (eFaturaOrder as any).totalAmount || 0,
+                        amount: currentEFaturaTotals.total,
+                        taxTotal: currentEFaturaTotals.taxTotal,
+                        subTotal: currentEFaturaTotals.subTotal,
                         type: eFaturaType,
+                        invoiceType: eFaturaInvoiceType,
                         scenario: eFaturaScenario,
+                        exceptionCode: eFaturaExceptionCode,
                         date: new Date().toISOString(),
                         status: 'Taslak'
                     };

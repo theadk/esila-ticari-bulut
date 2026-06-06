@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer } from 'lucide-react';
+import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer, TrendingUp } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Product, Warehouse, Category, Brand } from '../types';
 import { api } from '../lib/api';
@@ -64,6 +64,11 @@ export const Urunler: React.FC = () => {
   const [isBrandEditing, setIsBrandEditing] = useState(false);
 
   const [deleteData, setDeleteData] = useState<{ id: string, type: 'product' | 'category' | 'brand', name: string } | null>(null);
+
+  // Fiyat Revizyon State
+  const [isPriceRevisionModalOpen, setIsPriceRevisionModalOpen] = useState(false);
+  const [revisionForm, setRevisionForm] = useState({ category: 'all', brand: 'all', percentage: 10, type: 'increase', target: 'price' });
+  const [isRevisionLoading, setIsRevisionLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -564,6 +569,55 @@ export const Urunler: React.FC = () => {
     }
   };
 
+  const handleApplyPriceRevision = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!revisionForm.percentage || Number(revisionForm.percentage) <= 0) {
+      alert("Geçerli bir yüzde giriniz.");
+      return;
+    }
+    
+    if (!window.confirm("Seçili kriterlere uyan ürünlerin fiyatları otomatik olarak güncellenecektir. Onaylıyor musunuz?")) {
+      return;
+    }
+
+    setIsRevisionLoading(true);
+    try {
+      let targetProducts = products;
+      if (revisionForm.category !== 'all') {
+         targetProducts = targetProducts.filter(p => p.category === revisionForm.category);
+      }
+      if (revisionForm.brand !== 'all') {
+         targetProducts = targetProducts.filter(p => p.brand === revisionForm.brand);
+      }
+
+      if (targetProducts.length === 0) {
+         alert("Seçilen kriterlere uyan ürün bulunamadı.");
+         setIsRevisionLoading(false);
+         return;
+      }
+
+      const multiplier = revisionForm.type === 'increase' 
+          ? 1 + (Number(revisionForm.percentage) / 100) 
+          : 1 - (Number(revisionForm.percentage) / 100);
+
+      const promises = targetProducts.map(p => {
+         const currentVal = Number(p[revisionForm.target as keyof Product] || 0);
+         const newVal = currentVal * multiplier;
+         return api.updateProduct(p.id, { ...p, [revisionForm.target]: parseFloat(newVal.toFixed(2)) });
+      });
+
+      await Promise.all(promises);
+      await loadData();
+      setIsPriceRevisionModalOpen(false);
+      alert(`${targetProducts.length} adet ürünün fiyatı başarıyla güncellendi.`);
+    } catch (err) {
+      console.error(err);
+      alert("Fiyat revizyonu sırasında bir hata oluştu.");
+    } finally {
+      setIsRevisionLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -643,6 +697,13 @@ export const Urunler: React.FC = () => {
                   <span>Seçilenleri Yazdır ({selectedProductIds.length})</span>
                 </button>
               )}
+              <button 
+                onClick={() => setIsPriceRevisionModalOpen(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+              >
+                <TrendingUp size={18} />
+                <span className="hidden lg:inline">Fiyat Revizyon</span>
+              </button>
               <button 
                 onClick={handleAddNew}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
@@ -1637,6 +1698,94 @@ export const Urunler: React.FC = () => {
                 Yazdır ({barcodePrintOptions.reduce((acc, curr) => acc + curr.count, 0)})
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isPriceRevisionModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden">
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-gray-800">Fiyat Revizyon Aracı</h3>
+              <button 
+                type="button" 
+                onClick={() => setIsPriceRevisionModalOpen(false)} 
+                className="text-gray-500 hover:text-red-500 transition-colors"
+                disabled={isRevisionLoading}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleApplyPriceRevision} className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Filtresi</label>
+                <select 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  value={revisionForm.category}
+                  onChange={e => setRevisionForm({...revisionForm, category: e.target.value})}
+                  disabled={isRevisionLoading}
+                >
+                  <option value="all">Tüm Kategoriler</option>
+                  {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Marka Filtresi</label>
+                <select 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  value={revisionForm.brand}
+                  onChange={e => setRevisionForm({...revisionForm, brand: e.target.value})}
+                  disabled={isRevisionLoading}
+                >
+                  <option value="all">Tüm Markalar</option>
+                  {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-4">
+                 <div className="flex-1">
+                   <label className="block text-sm font-medium text-gray-700 mb-1">İşlem Yönü</label>
+                   <select 
+                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50"
+                     value={revisionForm.type}
+                     onChange={e => setRevisionForm({...revisionForm, type: e.target.value})}
+                     disabled={isRevisionLoading}
+                   >
+                     <option value="increase">Artış (+)</option>
+                     <option value="decrease">İndirim (-)</option>
+                   </select>
+                 </div>
+                 <div className="flex-1">
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Yüzde (%)</label>
+                   <input 
+                     type="number"
+                     min="0.1"
+                     step="0.1"
+                     required
+                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                     value={revisionForm.percentage}
+                     onChange={e => setRevisionForm({...revisionForm, percentage: Number(e.target.value)})}
+                     disabled={isRevisionLoading}
+                   />
+                 </div>
+              </div>
+              <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
+                 <button 
+                   type="button" 
+                   onClick={() => setIsPriceRevisionModalOpen(false)}
+                   className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                   disabled={isRevisionLoading}
+                 >
+                   İptal
+                 </button>
+                 <button 
+                   type="submit" 
+                   disabled={isRevisionLoading}
+                   className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50"
+                 >
+                   {isRevisionLoading ? 'İşleniyor...' : 'Uygula'}
+                 </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

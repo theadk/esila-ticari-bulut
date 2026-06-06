@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import html2pdf from 'html2pdf.js';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useAppStore } from '../lib/store';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
@@ -58,6 +61,19 @@ export const Personel: React.FC = () => {
   const [recordAmount, setRecordAmount] = useState<number>(0);
   const [isAddingRecord, setIsAddingRecord] = useState(false);
 
+  // İzin States
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [isAddingLeave, setIsAddingLeave] = useState(false);
+  const [leaveFormData, setLeaveFormData] = useState({
+    id: '', 
+    startDate: new Date().toISOString().split('T')[0], 
+    endDate: new Date().toISOString().split('T')[0], 
+    type: 'Yıllık İzin', 
+    days: 1, 
+    status: 'Bekliyor', 
+    description: ''
+  });
+
   // Bordro States
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
   const [isAddingPayroll, setIsAddingPayroll] = useState(false);
@@ -76,6 +92,196 @@ export const Personel: React.FC = () => {
     p.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.position.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const exportToExcel = () => {
+    const data = filteredPersonnel.map(p => ({
+      'ID': p.id,
+      'Ad Soyad': `${p.firstName} ${p.lastName}`,
+      'TC No': p.tcNo,
+      'Departman': p.department,
+      'Pozisyon': p.position,
+      'İşe Giriş': new Date(p.startDate).toLocaleDateString('tr-TR'),
+      'Telefon': p.phone,
+      'E-posta': p.email,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Personeller');
+    XLSX.writeFile(workbook, 'personeller.xlsx');
+    toast.success('Personel listesi Excel olarak dışa aktarıldı');
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF('l', 'pt', 'a4');
+    doc.text('Personel Listesi', 40, 40);
+    const data = filteredPersonnel.map(p => [
+      p.id,
+      `${p.firstName} ${p.lastName}`,
+      p.tcNo,
+      p.department,
+      p.position,
+      new Date(p.startDate).toLocaleDateString('tr-TR'),
+      p.phone,
+      p.email
+    ]);
+    autoTable(doc, {
+      head: [['ID', 'Ad Soyad', 'TC No', 'Departman', 'Pozisyon', 'İşe Giriş', 'Telefon', 'E-posta']],
+      body: data,
+      startY: 60,
+      styles: { fontSize: 8 },
+    });
+    doc.save('personeller.pdf');
+    toast.success('Personel listesi PDF olarak dışa aktarıldı');
+  };
+
+  const exportPersonnelDossier = (p: Personnel) => {
+    const doc = new jsPDF('p', 'pt', 'a4');
+    
+    const tr = (str: string | undefined | null) => {
+        if (!str) return '';
+        return str.replace(/Ğ/g, 'G').replace(/ğ/g, 'g')
+                  .replace(/Ü/g, 'U').replace(/ü/g, 'u')
+                  .replace(/Ş/g, 'S').replace(/ş/g, 's')
+                  .replace(/İ/g, 'I').replace(/ı/g, 'i')
+                  .replace(/Ö/g, 'O').replace(/ö/g, 'o')
+                  .replace(/Ç/g, 'C').replace(/ç/g, 'c');
+    };
+
+    const checkPageBreak = (doc: any, y: number, neededSpace: number) => {
+        if (y + neededSpace > doc.internal.pageSize.getHeight()) {
+            doc.addPage();
+            return 40;
+        }
+        return y;
+    };
+
+    doc.setFontSize(20);
+    doc.text(tr('Personel Ozluk Raporu'), 40, 50);
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 40, 70);
+
+    doc.setTextColor(0);
+    doc.setFontSize(14);
+    doc.text('1. Temel Bilgiler', 40, 100);
+    
+    const basicInfo = [
+        ['Ad Soyad', tr(`${p.firstName} ${p.lastName}`), 'TC Kimlik', tr(p.tcNo || '-')],
+        ['Departman', tr(p.department || '-'), 'Pozisyon', tr(p.position || '-')],
+        ['Ise Giris', p.startDate ? new Date(p.startDate).toLocaleDateString('tr-TR') : '-', 'Isten Cikis', p.endDate ? new Date(p.endDate).toLocaleDateString('tr-TR') : 'Devam Ediyor'],
+        ['E-posta', tr(p.email || '-'), 'Telefon', tr(p.phone || '-')],
+        ['Maas (Aylik)', p.salary ? `${p.salary} ${tr(p.currency || 'TRY')}` : '-', 'Durum', tr(p.employmentStatus || 'Aktif')],
+        ['Adres', tr(p.address || '-'), 'IBAN', tr(p.iban || '-')],
+    ];
+
+    autoTable(doc, {
+        body: basicInfo,
+        startY: 110,
+        theme: 'grid',
+        styles: { fontSize: 10, cellPadding: 5 },
+        columnStyles: {
+            0: { fontStyle: 'bold', fillColor: [245, 245, 245], cellWidth: 100 },
+            2: { fontStyle: 'bold', fillColor: [245, 245, 245], cellWidth: 100 },
+        }
+    });
+
+    let currentY = (doc as any).lastAutoTable.finalY + 30;
+
+    // Ödemeler & Puantaj (Bordro)
+    currentY = checkPageBreak(doc, currentY, 50);
+    doc.setFontSize(14);
+    doc.text('2. Odemeler ve Puantaj (Bordro Kayitlari)', 40, currentY);
+    
+    const payrollData = (p.payrollRecords || []).map(pr => [
+        pr.periodStart + " - " + pr.periodEnd,
+        `${pr.normalDays} Gun`,
+        `${pr.overtimeHours} Saat`,
+        `${pr.totalBonus} ${tr(p.currency || 'TRY')}`,
+        `${pr.totalDeduction} ${tr(p.currency || 'TRY')}`,
+        `${pr.netPay} ${tr(p.currency || 'TRY')}`,
+        tr(pr.status || '-')
+    ]);
+
+    autoTable(doc, {
+        head: [['Donem', 'Normal', 'Mesai', 'Ek Odeme', 'Kesinti', 'Net Maas', 'Durum']],
+        body: payrollData.length > 0 ? payrollData : [['Kayit bulunamadi', '', '', '', '', '', '']],
+        startY: currentY + 10,
+        theme: 'striped',
+        styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 30;
+
+    // İzinler
+    currentY = checkPageBreak(doc, currentY, 50);
+    doc.setFontSize(14);
+    doc.text('3. Izin Kayitlari', 40, currentY);
+
+    const leaveData = (p.leaveRecords || []).map(lr => [
+        tr(lr.type),
+        new Date(lr.startDate).toLocaleDateString('tr-TR'),
+        new Date(lr.endDate).toLocaleDateString('tr-TR'),
+        `${lr.days} Gun`,
+        tr(lr.status),
+        tr(lr.description || '-')
+    ]);
+
+    autoTable(doc, {
+        head: [['Izin Turu', 'Baslangic', 'Bitis', 'Sure', 'Durum', 'Aciklama']],
+        body: leaveData.length > 0 ? leaveData : [['Kayit bulunamadi', '', '', '', '', '']],
+        startY: currentY + 10,
+        theme: 'striped',
+        styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 30;
+
+    // Özlük Dosyası & Uyarılar
+    currentY = checkPageBreak(doc, currentY, 50);
+    doc.setFontSize(14);
+    doc.text('4. Uyarilar ve Ozluk Dosyasi Ekleri', 40, currentY);
+
+    const recordsData = (p.records || []).map(r => [
+        tr(r.type),
+        new Date(r.date).toLocaleDateString('tr-TR'),
+        tr(r.title),
+        tr(r.description || '-')
+    ]);
+
+    autoTable(doc, {
+        head: [['Kategori', 'Tarih', 'Baslik', 'Aciklama']],
+        body: recordsData.length > 0 ? recordsData : [['Kayit bulunamadi', '', '', '']],
+        startY: currentY + 10,
+        theme: 'striped',
+        styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 30;
+
+    // Zimmetler
+    currentY = checkPageBreak(doc, currentY, 50);
+    doc.setFontSize(14);
+    doc.text('5. Zimmet Kayitlari (Demirbaslar)', 40, currentY);
+
+    const fixtureData = (p.fixtures || []).map(f => [
+        tr(f.fixtureName),
+        tr(f.serialNumber || '-'),
+        new Date(f.issueDate).toLocaleDateString('tr-TR'),
+        f.returnDate ? new Date(f.returnDate).toLocaleDateString('tr-TR') : 'Kullanimda',
+        tr(f.condition || '-')
+    ]);
+
+    autoTable(doc, {
+        head: [['Demirbas Adi', 'Seri No', 'Verilis Tarihi', 'Iade Tarihi', 'Durum']],
+        body: fixtureData.length > 0 ? fixtureData : [['Kayit bulunamadi', '', '', '', '']],
+        startY: currentY + 10,
+        theme: 'striped',
+        styles: { fontSize: 9 }
+    });
+
+    doc.save(`${tr(p.firstName)}_${tr(p.lastName)}_Ozluk_Dosyasi.pdf`);
+    toast.success(`${p.firstName} ${p.lastName} raporu olusturuldu.`);
+  };
 
   const [currentPage, setCurrentPage] = React.useState(1);
   const [itemsPerPage, setItemsPerPage] = React.useState(50);
@@ -293,6 +499,60 @@ export const Personel: React.FC = () => {
       }
   }
 
+  // İzin Management
+  const handleOpenLeave = (p: Personnel) => {
+    setSelectedPersonnel(p);
+    setIsLeaveModalOpen(true);
+    setIsAddingLeave(false);
+  };
+
+  const handleSaveLeave = () => {
+    if (!selectedPersonnel) return;
+    if (leaveFormData.days <= 0) return toast.error('İzin gün sayısı 0 dan büyük olmalıdır.');
+
+    const newLeave = {
+        id: leaveFormData.id || Math.random().toString(36).substr(2, 9),
+        startDate: leaveFormData.startDate,
+        endDate: leaveFormData.endDate,
+        type: leaveFormData.type as any,
+        days: Number(leaveFormData.days),
+        status: leaveFormData.status as any,
+        description: leaveFormData.description
+    };
+
+    const newPersonnelList = personnel.map(p => {
+        if (p.id === selectedPersonnel.id) {
+            let leaves = p.leaveRecords || [];
+            if (leaveFormData.id) {
+                leaves = leaves.map(l => l.id === leaveFormData.id ? newLeave : l);
+            } else {
+                leaves = [newLeave, ...leaves];
+            }
+            return { ...p, leaveRecords: leaves };
+        }
+        return p;
+    });
+
+    setPersonnel(newPersonnelList);
+    setSelectedPersonnel(newPersonnelList.find(p => p.id === selectedPersonnel.id) || selectedPersonnel);
+    setIsAddingLeave(false);
+    toast.success('İzin kaydı başarıyla kaydedildi.');
+  };
+
+  const handleDeleteLeave = (leaveId: string) => {
+    if (!selectedPersonnel) return;
+    if (!window.confirm('Bu izin kaydını silmek istediğinize emin misiniz?')) return;
+
+    const newPersonnelList = personnel.map(p => {
+        if (p.id === selectedPersonnel.id) {
+            return { ...p, leaveRecords: (p.leaveRecords || []).filter(l => l.id !== leaveId) };
+        }
+        return p;
+    });
+    setPersonnel(newPersonnelList);
+    setSelectedPersonnel(newPersonnelList.find(p => p.id === selectedPersonnel.id) || selectedPersonnel);
+  };
+
   // Bordro & Puantaj
   const handleOpenPayroll = (p: Personnel) => {
     setSelectedPersonnel(p);
@@ -382,35 +642,132 @@ export const Personel: React.FC = () => {
       FIRMA_ADI: store.settings.companyName || ''
     });
 
-    const promise = fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-         to: selectedPersonnel.email, 
-         subject: `${payroll.date} Dönemi Maaş Bordrosu`, 
-         html: body 
-      })
-    }).then(async res => {
-      if (!res.ok) throw new Error("E-Bordro gönderilemedi.");
-      
-      const updatedPayroll = {...payroll, emailSentAt: new Date().toISOString()};
-      setPersonnel(personnel.map(p => {
-          if(p.id === selectedPersonnel.id) {
-              return {...p, payrolls: p.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || [] };
-          }
-          return p;
-      }));
-      setSelectedPersonnel({
-          ...selectedPersonnel,
-          payrolls: selectedPersonnel.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || []
-      });
+    const promise = new Promise(async (resolve, reject) => {
+      try {
+        const netSalary = calculateNetSalary(payroll);
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = `
+          <div style="font-family: sans-serif; color: #000; padding: 20px; text-align: left; background: #fff;">
+            <h1 style="text-align: center; border-bottom: 2px solid #ccc; padding-bottom: 10px;">Maaş Bordrosu</h1>
+            <table style="width: 100%; margin-bottom: 20px;">
+              <tr>
+                <td><strong>Firma:</strong> ${store.settings.companyName || ''}</td>
+                <td style="text-align: right;"><strong>Dönem:</strong> ${payroll.date}</td>
+              </tr>
+              <tr>
+                <td><strong>Personel:</strong> ${selectedPersonnel.firstName} ${selectedPersonnel.lastName}</td>
+                <td style="text-align: right;"><strong>TC No:</strong> ${selectedPersonnel.tcNo}</td>
+              </tr>
+            </table>
+            
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="background: #eee;">
+                  <th style="padding: 8px; border: 1px solid #ccc;">Açıklama</th>
+                  <th style="padding: 8px; border: 1px solid #ccc; text-align: right;">Tutar / Değer</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #ccc;">Çalışılan Gün</td>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: right;">${payroll.workedDays} gün</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #ccc;">Temel Maaş Hakedişi</td>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: right;">${payroll.basicSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #ccc;">Mesai Saati</td>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: right;">${payroll.overtimeHours} saat</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #ccc;">Saatlik Mesai Ücreti</td>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: right;">${payroll.overtimePay.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                </tr>
+                <tr style="background: #e6ffed;">
+                  <td style="padding: 8px; border: 1px solid #ccc; color: #059669;">+ Toplam Mesai Hakedişi</td>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: right; color: #059669;">${(payroll.overtimeHours * payroll.overtimePay).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                </tr>
+                <tr style="background: #e6ffed;">
+                  <td style="padding: 8px; border: 1px solid #ccc; color: #059669;">+ Prim / İkramiye / Diğer Kazançlar</td>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: right; color: #059669;">${payroll.bonus.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                </tr>
+                <tr style="background: #ffe6e6;">
+                  <td style="padding: 8px; border: 1px solid #ccc; color: #dc2626;">- Avans / Kesintiler</td>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: right; color: #dc2626;">${payroll.deductions.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr style="background: #eee; font-weight: bold;">
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: right;">NET ÖDENECEK TUTAR:</td>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: right; color: #059669;">${netSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        `;
+        wrapper.style.position = "absolute";
+        wrapper.style.left = "-9999px";
+        document.body.appendChild(wrapper);
 
-      return res.json();
+        const opt = {
+          margin: [10, 10, 10, 10],
+          filename: `Bordro_${payroll.date}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        };
+
+        const pdfBase64DataUri = await html2pdf().set(opt).from(wrapper).outputPdf("datauristring");
+        document.body.removeChild(wrapper);
+
+        const res = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+             to: selectedPersonnel.email, 
+             subject: `${payroll.date} Dönemi Maaş Bordrosu`, 
+             html: body,
+             attachments: [
+               {
+                 filename: `Bordro_${payroll.date}.pdf`,
+                 path: pdfBase64DataUri
+               }
+             ]
+          })
+        });
+
+        if (!res.ok) {
+           try {
+             const errData = await res.json();
+             if (errData.error) throw new Error(errData.error);
+           } catch (e:any) {
+             throw new Error(e.message || "E-Bordro gönderilemedi.");
+           }
+           throw new Error("E-Bordro gönderilemedi.");
+        }
+        
+        const updatedPayroll = {...payroll, emailSentAt: new Date().toISOString()};
+        setPersonnel(personnel.map(p => {
+            if(p.id === selectedPersonnel.id) {
+                return {...p, payrolls: p.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || [] };
+            }
+            return p;
+        }));
+        setSelectedPersonnel({
+            ...selectedPersonnel,
+            payrolls: selectedPersonnel.payrolls?.map(pr => pr.id === payroll.id ? updatedPayroll : pr) || []
+        });
+
+        resolve(await res.json());
+      } catch (err) {
+        reject(err);
+      }
     });
 
     toast.promise(promise, {
-      loading: 'E-Bordro gönderiliyor...',
-      success: `E-Bordro ${selectedPersonnel.email} adresine gönderildi.`,
+      loading: 'E-Bordro PDF hazırlanıyor ve gönderiliyor...',
+      success: `E-Bordro ${selectedPersonnel.email} adresine PDF olarak gönderildi.`,
       error: 'Mail gönderimi sırasında hata oluştu.'
     });
   };
@@ -418,7 +775,7 @@ export const Personel: React.FC = () => {
   const [printBordroModalOpen, setPrintBordroModalOpen] = useState(false);
   const [selectedBordroToPrint, setSelectedBordroToPrint] = useState<Payroll | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'Personeller' | 'İşe Alım'>('Personeller');
+  const [activeTab, setActiveTab] = useState<'Personeller' | 'İşe Alım' | 'İzin Yönetimi'>('Personeller');
 
   const downloadPayrollPDF = (payroll: Payroll) => {
     setSelectedBordroToPrint(payroll);
@@ -443,12 +800,62 @@ export const Personel: React.FC = () => {
           >
             İşe Alım Süreçleri
           </button>
+          <button 
+            onClick={() => setActiveTab('İzin Yönetimi')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'İzin Yönetimi' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            İzin Yönetimi
+          </button>
         </div>
       </div>
 
       {activeTab === 'Personeller' && (
         <>
-          <div className="flex justify-end">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between">
+                <div>
+                   <p className="text-gray-500 text-sm font-medium">Toplam Personel</p>
+                   <p className="text-2xl font-bold text-gray-800">{personnel.filter(p => !p.employmentStatus || p.employmentStatus === 'Aktif').length}</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center"><User size={24} /></div>
+             </div>
+             
+             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between">
+                <div>
+                   <p className="text-gray-500 text-sm font-medium">İzindeki Personel</p>
+                   <p className="text-2xl font-bold text-gray-800">
+                      {personnel.filter(p => p.leaveRecords?.some(l => l.status === 'Onaylandı' && new Date(l.startDate) <= new Date() && new Date(l.endDate) >= new Date())).length}
+                   </p>
+                </div>
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center"><Calendar size={24} /></div>
+             </div>
+
+             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setActiveTab('İzin Yönetimi')}>
+                <div>
+                   <p className="text-gray-500 text-sm font-medium">Onay Bekleyen İzinler</p>
+                   <p className="text-2xl font-bold text-amber-600">
+                      {personnel.reduce((acc, p) => acc + (p.leaveRecords?.filter(l => l.status === 'Bekliyor').length || 0), 0)}
+                   </p>
+                </div>
+                <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center"><FileText size={24} /></div>
+             </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mb-4">
+            <button 
+              onClick={exportToExcel}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm whitespace-nowrap"
+            >
+              <Download size={20} />
+              <span>Excel</span>
+            </button>
+            <button 
+              onClick={exportToPDF}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm whitespace-nowrap"
+            >
+              <Download size={20} />
+              <span>PDF</span>
+            </button>
             <button 
               onClick={handleAddNew}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
@@ -528,6 +935,20 @@ export const Personel: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); exportPersonnelDossier(p); }} 
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="PDF Dosyası Yazdır"
+                      >
+                        <Printer size={18} />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleOpenLeave(p); }} 
+                        className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                        title="İzin Yönetimi"
+                      >
+                        <Calendar size={18} />
+                      </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleOpenPayroll(p); }} 
                         className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
@@ -846,6 +1267,220 @@ export const Personel: React.FC = () => {
                                     <Plus size={18} /> Zimmeti Kaydet ve Stoktan Düş
                                  </button>
                              </form>
+                        </div>
+                    )}
+                </div>
+            </div>
+         </div>
+      )}
+
+      {/* İzin Yönetimi Modal */}
+      {isLeaveModalOpen && selectedPersonnel && (
+         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                <div className="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
+                    <div className="flex items-center gap-4">
+                       <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center">
+                           <Calendar size={24} />
+                       </div>
+                       <div>
+                           <h3 className="text-xl font-bold text-gray-800">İzin Yönetimi</h3>
+                           <p className="text-sm text-gray-500">{selectedPersonnel.firstName} {selectedPersonnel.lastName} • {selectedPersonnel.position}</p>
+                       </div>
+                    </div>
+                    <button onClick={() => setIsLeaveModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100">
+                      <X size={24} />
+                    </button>
+                </div>
+
+                <div className="flex-1 flex overflow-hidden flex-col md:flex-row">
+                    {/* List */}
+                    <div className={`w-full ${isAddingLeave ? 'hidden md:block md:w-1/2 lg:w-3/5' : ''} border-r border-gray-200 bg-gray-50 flex flex-col`}>
+                        <div className="p-4 border-b border-gray-200 bg-white flex justify-between items-center flex-wrap gap-2 shrink-0">
+                            <div className="flex items-center gap-2">
+                                <h4 className="font-semibold text-gray-700">İzin Kayıtları</h4>
+                                <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-medium">
+                                    Kalan Yıllık İzin: {(selectedPersonnel.annualLeaveEntitlement || 14) - (selectedPersonnel.leaveRecords?.filter(l => l.type === 'Yıllık İzin' && l.status === 'Onaylandı').reduce((sum, l) => sum + l.days, 0) || 0)} Gün
+                                </span>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    setLeaveFormData({
+                                        id: '',
+                                        startDate: new Date().toISOString().split('T')[0],
+                                        endDate: new Date().toISOString().split('T')[0],
+                                        type: 'Yıllık İzin',
+                                        days: 1,
+                                        status: 'Bekliyor',
+                                        description: ''
+                                    });
+                                    setIsAddingLeave(true);
+                                }}
+                                className="text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1"
+                            >
+                                <Plus size={16} /> Yeni İzin Ekle
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                            {(!selectedPersonnel.leaveRecords || selectedPersonnel.leaveRecords.length === 0) ? (
+                                <div className="text-center text-gray-500 py-10 flex flex-col items-center">
+                                    <Calendar size={48} className="text-gray-300 mb-3" />
+                                    <p>Henüz izin kaydı eklenmemiş.</p>
+                                </div>
+                            ) : (
+                                (selectedPersonnel.leaveRecords || []).map((leave) => (
+                                    <div key={leave.id} className="bg-white border text-left border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors group relative flex flex-col gap-2">
+                                        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button 
+                                                onClick={() => {
+                                                    setLeaveFormData({
+                                                        id: leave.id,
+                                                        startDate: leave.startDate,
+                                                        endDate: leave.endDate,
+                                                        type: leave.type,
+                                                        days: leave.days,
+                                                        status: leave.status,
+                                                        description: leave.description || ''
+                                                    });
+                                                    setIsAddingLeave(true);
+                                                }}
+                                                className="text-gray-400 hover:text-purple-500"
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDeleteLeave(leave.id)}
+                                                className="text-gray-400 hover:text-red-500"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                                leave.type === 'Yıllık İzin' ? 'bg-blue-100 text-blue-700' :
+                                                leave.type === 'Hastalık İzni' ? 'bg-red-100 text-red-700' :
+                                                'bg-gray-100 text-gray-700'
+                                            }`}>
+                                                {leave.type}
+                                            </span>
+                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                                leave.status === 'Onaylandı' ? 'bg-emerald-100 text-emerald-700' :
+                                                leave.status === 'Bekliyor' ? 'bg-orange-100 text-orange-700' :
+                                                'bg-red-100 text-red-700'
+                                            }`}>
+                                                {leave.status}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-4 mt-2 mb-2 text-sm">
+                                            <div>
+                                                <span className="text-gray-500 block text-xs">Başlangıç</span>
+                                                <span className="font-medium text-gray-800">{new Date(leave.startDate).toLocaleDateString('tr-TR')}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500 block text-xs">Bitiş</span>
+                                                <span className="font-medium text-gray-800">{new Date(leave.endDate).toLocaleDateString('tr-TR')}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex justify-between items-end border-t pt-2">
+                                            <span className="text-sm text-gray-600 truncate mr-4">{leave.description}</span>
+                                            <span className="font-bold text-gray-800 shrink-0">{leave.days} Gün</span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Form */}
+                    {isAddingLeave && (
+                        <div className="w-full md:w-1/2 lg:w-2/5 p-6 overflow-y-auto bg-white border-l">
+                            <div className="flex justify-between items-center mb-6">
+                                <h4 className="font-bold text-lg text-gray-800">{leaveFormData.id ? 'İzni Düzenle' : 'Yeni İzin Ekle'}</h4>
+                                <button onClick={() => setIsAddingLeave(false)} className="md:hidden text-gray-400">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">İzin Türü</label>
+                                    <select
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                                        value={leaveFormData.type}
+                                        onChange={e => setLeaveFormData({...leaveFormData, type: e.target.value as any})}
+                                    >
+                                        <option value="Yıllık İzin">Yıllık İzin</option>
+                                        <option value="Mazeret İzni">Mazeret İzni</option>
+                                        <option value="Ücretsiz İzin">Ücretsiz İzin</option>
+                                        <option value="Hastalık İzni">Hastalık İzni</option>
+                                        <option value="Diğer">Diğer</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Başlangıç Tarihi</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                                        value={leaveFormData.startDate}
+                                        onChange={e => setLeaveFormData({...leaveFormData, startDate: e.target.value})}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Bitiş Tarihi</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                                        value={leaveFormData.endDate}
+                                        onChange={e => setLeaveFormData({...leaveFormData, endDate: e.target.value})}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Gün Sayısı</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="0.5"
+                                        step="0.5"
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                                        value={leaveFormData.days}
+                                        onChange={e => setLeaveFormData({...leaveFormData, days: Number(e.target.value)})}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Durum</label>
+                                    <select
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                                        value={leaveFormData.status}
+                                        onChange={e => setLeaveFormData({...leaveFormData, status: e.target.value as any})}
+                                    >
+                                        <option value="Bekliyor">Bekliyor</option>
+                                        <option value="Onaylandı">Onaylandı</option>
+                                        <option value="Reddedildi">Reddedildi</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+                                    <textarea
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                                        rows={3}
+                                        value={leaveFormData.description}
+                                        onChange={e => setLeaveFormData({...leaveFormData, description: e.target.value})}
+                                        placeholder="İzin açıklaması..."
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleSaveLeave}
+                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Save size={20} />
+                                    {leaveFormData.id ? 'Güncelle' : 'Kaydet'}
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -1343,6 +1978,218 @@ export const Personel: React.FC = () => {
 
       {activeTab === 'İşe Alım' && (
         <RecruitmentView />
+      )}
+
+      {activeTab === 'İzin Yönetimi' && (
+        <LeaveManagementView />
+      )}
+    </div>
+  );
+};
+
+const LeaveManagementView: React.FC = () => {
+  const store = useAppStore();
+  const { personnel, setPersonnel } = store;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPersonId, setSelectedPersonId] = useState('');
+  const [formData, setFormData] = useState({
+    id: '',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+    type: 'Yıllık İzin',
+    days: 1,
+    status: 'Bekliyor',
+    description: ''
+  });
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPersonId) {
+      toast.error('Lütfen personel seçin.');
+      return;
+    }
+    
+    setPersonnel(personnel.map(p => {
+      if (p.id === selectedPersonId) {
+        const leaves = p.leaveRecords || [];
+        return {
+          ...p,
+          leaveRecords: [...leaves, { ...formData, id: Math.random().toString(36).substr(2, 9) } as any]
+        };
+      }
+      return p;
+    }));
+    toast.success('İzin talebi eklendi.');
+    setIsModalOpen(false);
+  };
+
+  const handleStatusChange = (personId: string, leaveId: string, newStatus: any) => {
+    setPersonnel(personnel.map(p => {
+      if (p.id === personId && p.leaveRecords) {
+        return {
+          ...p,
+          leaveRecords: p.leaveRecords.map(lr => lr.id === leaveId ? { ...lr, status: newStatus } : lr)
+        };
+      }
+      return p;
+    }));
+    toast.success(`İzin durumu '${newStatus}' olarak güncellendi.`);
+  };
+
+  const calculateUsedLeave = (p: Personnel) => {
+    return (p.leaveRecords || []).filter(l => l.status === 'Onaylandı' && l.type === 'Yıllık İzin').reduce((acc, curr) => acc + curr.days, 0);
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div>
+          <h3 className="font-bold text-lg text-gray-800">İzin Yönetimi</h3>
+          <p className="text-gray-500 text-sm">Personel yıllık izin, mazeret ve hastalık izinlerinin takibi</p>
+        </div>
+        <button 
+          onClick={() => {
+            setFormData({
+               id: '', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0],
+               type: 'Yıllık İzin', days: 1, status: 'Bekliyor', description: ''
+            });
+            setIsModalOpen(true);
+          }}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+        >
+          <Plus size={20} />
+          <span>Yeni İzin Talebi</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {personnel.map(p => {
+          const usedLeave = calculateUsedLeave(p);
+          const totalLeave = p.annualLeaveEntitlement || 14;
+          const remainingLeave = totalLeave - usedLeave;
+          
+          return (
+            <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold">
+                  {p.firstName[0]}{p.lastName[0]}
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-800">{p.firstName} {p.lastName}</h4>
+                  <p className="text-xs text-gray-500">{p.position}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-sm text-center">
+                 <div className="bg-gray-50 rounded-lg p-2 flex flex-col justify-center">
+                    <p className="text-gray-500 text-xs mb-1 drop-shadow-sm">Kalan Yıllık İzin</p>
+                    <p className={`font-bold text-xl ${remainingLeave <= 3 ? 'text-red-500' : 'text-emerald-600'}`}>{remainingLeave} <span className="text-sm font-normal">Gün</span></p>
+                 </div>
+                 <div className="bg-gray-50 rounded-lg p-2 flex flex-col justify-center">
+                    <p className="text-gray-500 text-xs mb-1 drop-shadow-sm">Kullanılan</p>
+                    <p className="font-bold text-xl text-gray-700">{usedLeave} <span className="text-sm font-normal">Gün</span></p>
+                 </div>
+              </div>
+
+              <div className="mt-4 border-t border-gray-100 pt-3">
+                 <h5 className="text-xs font-semibold text-gray-500 mb-2">Son İzin Hareketleri</h5>
+                 {p.leaveRecords && p.leaveRecords.length > 0 ? (
+                    <div className="space-y-2">
+                      {p.leaveRecords.slice(-3).reverse().map((lr, idx) => (
+                        <div key={idx} className="flex flex-col text-xs p-2 bg-gray-50 rounded gap-2">
+                           <div className="flex justify-between items-center">
+                              <div>
+                                 <span className="font-medium text-gray-800">{lr.type}</span>
+                                 <span className="block text-gray-500">{new Date(lr.startDate).toLocaleDateString('tr-TR')} ({lr.days} Gün)</span>
+                              </div>
+                              <span className={`px-2 py-1 rounded font-medium ${lr.status === 'Onaylandı' ? 'bg-emerald-100 text-emerald-700' : lr.status === 'Reddedildi' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{lr.status}</span>
+                           </div>
+                           {lr.status === 'Bekliyor' && (
+                             <div className="flex justify-end gap-1 mt-1 border-t border-gray-200 pt-2">
+                                <button onClick={() => handleStatusChange(p.id, lr.id, 'Reddedildi')} className="px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded transition-colors text-[10px] font-medium border border-red-200">Reddet</button>
+                                <button onClick={() => handleStatusChange(p.id, lr.id, 'Onaylandı')} className="px-2 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded transition-colors text-[10px] font-medium border border-emerald-200">Onayla</button>
+                             </div>
+                           )}
+                        </div>
+                      ))}
+                    </div>
+                 ) : (
+                    <p className="text-xs text-gray-400">İzin kaydı bulunmuyor.</p>
+                 )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-fade-in">
+             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+               <h3 className="font-bold text-lg text-gray-800">Yeni İzin Talebi</h3>
+               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+             </div>
+             
+             <form onSubmit={handleSave} className="p-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Personel</label>
+                  <select value={selectedPersonId} onChange={e => setSelectedPersonId(e.target.value)} required className="w-full px-3 py-2 border rounded-lg bg-white">
+                    <option value="">Personel Seçin</option>
+                    {personnel.map(p => (
+                      <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">İzin Türü</label>
+                    <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full px-3 py-2 border rounded-lg bg-white">
+                      <option value="Yıllık İzin">Yıllık İzin</option>
+                      <option value="Mazeret İzni">Mazeret İzni</option>
+                      <option value="Hastalık İzni">Hastalık İzni</option>
+                      <option value="Ücretsiz İzin">Ücretsiz İzin</option>
+                      <option value="Diğer">Diğer</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gün Sayısı</label>
+                    <input type="number" min="0.5" step="0.5" value={formData.days} onChange={e => setFormData({...formData, days: parseFloat(e.target.value) || 0})} className="w-full px-3 py-2 border rounded-lg" required />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Başlangıç Tarihi</label>
+                    <input type="date" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} className="w-full px-3 py-2 border rounded-lg" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Bitiş Tarihi</label>
+                    <input type="date" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} className="w-full px-3 py-2 border rounded-lg" required />
+                  </div>
+                </div>
+
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">İzin Durumu</label>
+                   <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-3 py-2 border rounded-lg bg-white">
+                     <option value="Bekliyor">Bekliyor</option>
+                     <option value="Onaylandı">Onaylandı</option>
+                     <option value="Reddedildi">Reddedildi</option>
+                   </select>
+                </div>
+
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama / Sebebi</label>
+                   <textarea rows={2} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border rounded-lg placeholder-gray-400" placeholder="İsteğe bağlı açıklama..."></textarea>
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3 border-t border-gray-100">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">İptal</button>
+                  <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-2 transition-colors"><Save size={18} /> Kaydet</button>
+                </div>
+             </form>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -188,14 +188,22 @@ export const Cariler: React.FC = () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to: customer.email, subject, html: body })
     }).then(async res => {
-      if (!res.ok) throw new Error('Mail gönderilemedi.');
+      if (!res.ok) {
+         try {
+           const errData = await res.json();
+           if (errData.error) throw new Error(errData.error);
+         } catch(e: any) {
+           throw new Error(e.message || 'Mail gönderilemedi.');
+         }
+         throw new Error('Mail gönderilemedi.');
+      }
       return res.json();
     });
 
     toast.promise(promise, {
       loading: 'E-posta gönderiliyor...',
       success: 'E-posta başarıyla gönderildi.',
-      error: 'Mail gönderimi sırasında hata oluştu.'
+      error: (err) => err.message || 'Mail gönderimi sırasında hata oluştu.'
     });
   };
 
@@ -519,9 +527,16 @@ export const Cariler: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`font-semibold ${customer.balance > 0 ? 'text-emerald-600' : customer.balance < 0 ? 'text-red-600' : 'text-gray-500'}`}>
-                        {Number(customer.balance).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className={`font-semibold ${customer.balance > 0 ? 'text-emerald-600' : customer.balance < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                          {Number(customer.balance).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                        </span>
+                        {customer.riskLimit && customer.balance > customer.riskLimit && (
+                           <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                             Risk Limiti Aşıldı
+                           </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -595,6 +610,15 @@ export const Cariler: React.FC = () => {
             <form onSubmit={handleSave} className="flex flex-col overflow-hidden">
               <div className="p-4 sm:p-6 space-y-6 overflow-y-auto">
               
+                {isEditing && formData.riskLimit && formData.balance > formData.riskLimit && (
+                  <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mb-2">
+                    <div className="flex items-center gap-2">
+                      <Landmark className="text-red-500" size={20} />
+                      <p className="text-red-700 font-medium">Uyarı: Bu carinin bakiyesi ({formData.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}), belirlenen risk limitini ({formData.riskLimit.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}) aşmaktadır!</p>
+                    </div>
+                  </div>
+                )}
+
                    <div className="flex gap-4 sm:p-6 pb-4 border-b">
                 <div className="flex-1">
                    <label className="block text-sm font-semibold text-gray-700 mb-2">Cari Türü</label>
@@ -799,8 +823,64 @@ export const Cariler: React.FC = () => {
                 </div>
               </div>
 
+              {/* E-Fatura Varsayılanları */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:p-6 pt-4 border-t">
+                 <div className="md:col-span-3">
+                  <h4 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-2">E-Fatura Ayarları (Varsayılan)</h4>
+                  <p className="text-xs text-gray-500 mb-4">Bu cari için işlem yapıldığında seçili e-fatura ayarları otomatik olarak tanımlanır.</p>
+                 </div>
+
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Fatura Formatı</label>
+                   <select 
+                     value={formData.efaturaType || ''} 
+                     onChange={(e) => setFormData({...formData, efaturaType: e.target.value})}
+                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm bg-white"
+                   >
+                     <option value="">Seçiniz</option>
+                     <option value="E-Fatura">E-Fatura (Mükellef)</option>
+                     <option value="E-Arşiv">E-Arşiv (Son Tüketici)</option>
+                   </select>
+                 </div>
+
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Fatura Türü (GİB)</label>
+                   <select 
+                     value={formData.efaturaInvoiceType || ''} 
+                     onChange={(e) => setFormData({...formData, efaturaInvoiceType: e.target.value})}
+                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm bg-white"
+                   >
+                     <option value="">Seçiniz</option>
+                     <option value="SATIS">Satış</option>
+                     <option value="IADE">İade</option>
+                     <option value="TEVKIFAT">Tevkifat</option>
+                     <option value="ISTISNA">İstisna</option>
+                     <option value="OZELMATRAH">Özel Matrah</option>
+                     <option value="IHRACKAYITLI">İhraç Kayıtlı</option>
+                     <option value="SGK">SGK</option>
+                   </select>
+                 </div>
+
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Senaryo Türü</label>
+                   <select 
+                     value={formData.efaturaScenario || ''} 
+                     onChange={(e) => setFormData({...formData, efaturaScenario: e.target.value})}
+                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm bg-white"
+                   >
+                     <option value="">Seçiniz</option>
+                     <option value="TICARIFATURA">Ticari Fatura</option>
+                     <option value="TEMELFATURA">Temel Fatura</option>
+                     <option value="EARSIVFATURA">E-Arşiv Fatura</option>
+                     <option value="KAMUFATURA">Kamu Faturası</option>
+                     <option value="YOLCUBERABERFATURA">Yolcu Beraberi Fatura</option>
+                     <option value="IHRACAT">İhracat Faturası</option>
+                   </select>
+                 </div>
+              </div>
+
               {/* Finansal */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:p-6 pt-4 border-t">
                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Cari Durumu</label>
                     <select
@@ -819,6 +899,16 @@ export const Cariler: React.FC = () => {
                       value={formData.balance}
                       onChange={(e) => setFormData({...formData, balance: Number(e.target.value)})}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                 </div>
+                 <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Risk Limiti (₺)</label>
+                    <input 
+                      type="number" 
+                      value={formData.riskLimit || ''}
+                      onChange={(e) => setFormData({...formData, riskLimit: Number(e.target.value) || undefined})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Örn: 50000"
                     />
                  </div>
               </div>

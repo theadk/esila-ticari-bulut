@@ -121,5 +121,21 @@ export const api = {
   async deleteWarehouse(id: string): Promise<void> {
     const response = await apiFetch(`/api/warehouses/${id}`, { method: 'DELETE' });
     if (!response.ok) throw new Error('Network response was not ok');
+  },
+  
+  async getStockTransfers(): Promise<any[]> {
+    const response = await apiFetch('/api/stock_transfers');
+    if (!response.ok) throw new Error('Network response was not ok');
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  },
+  async addStockTransfer(transfer: any): Promise<any> {
+    const response = await apiFetch('/api/stock_transfers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(transfer),
+    });
+    if (!response.ok) throw new Error('Network response was not ok');
+    return await response.json();
   }
 };

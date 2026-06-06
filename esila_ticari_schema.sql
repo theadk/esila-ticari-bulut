@@ -8,7 +8,14 @@ CREATE TABLE IF NOT EXISTS tenants (
     modules JSON,
     status ENUM('Bekliyor', 'Aktif', 'Pasif') DEFAULT 'Bekliyor',
     activationToken VARCHAR(255),
-    isEsilaCustomer BOOLEAN DEFAULT FALSE
+    isEsilaCustomer BOOLEAN DEFAULT FALSE,
+    package ENUM('Aylık', 'Yıllık', 'Sınırsız') DEFAULT 'Yıllık',
+    expirationDate DATETIME,
+    sector VARCHAR(255),
+    smsLimit INT DEFAULT 0,
+    emailLimit INT DEFAULT 0,
+    smsCount INT DEFAULT 0,
+    emailCount INT DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -234,6 +241,18 @@ CREATE TABLE IF NOT EXISTS service_tickets (
     nextMaintenanceDate DATETIME,
     maintenancePeriodMonths INT,
     maintenanceReminderSent BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS stock_transfers (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    productId VARCHAR(255),
+    productName VARCHAR(255),
+    sourceWarehouse VARCHAR(255),
+    targetWarehouse VARCHAR(255),
+    quantity DECIMAL(15,2),
+    date DATETIME,
+    personnelName VARCHAR(255)
 );
 
 -- Örnek Veriler (Opsiyonel)

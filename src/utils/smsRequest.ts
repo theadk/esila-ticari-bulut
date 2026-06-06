@@ -38,7 +38,12 @@ export const sendSMS = async (settings: any, receivers: string[], messageText: s
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`SMS gönderilirken bir hata oluştu: ${errorText}`);
+    let errMsg = errorText;
+    try {
+       const parsed = JSON.parse(errorText);
+       if (parsed.error) errMsg = parsed.error;
+    } catch(e) {}
+    throw new Error(`SMS gönderilemedi: ${errMsg}`);
   }
 
   const result = await response.json();

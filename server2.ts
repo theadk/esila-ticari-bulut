@@ -430,7 +430,7 @@ async function startServer() {
     
     try {
       const pool = getPool();
-      await pool.query('INSERT INTO reconciliations (vkn, id, `customerId`, `customerName`, date, `balanceType`, balance, status, notes, `emailSentAt`, `respondedAt`, `responseNotes`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [req.headers['x-tenant-id'] || '1111111111', mutabakat.id, mutabakat.customerId, mutabakat.customerName, mutabakat.date, mutabakat.balanceType, mutabakat.balance, mutabakat.status, mutabakat.notes, mutabakat.emailSentAt, mutabakat.respondedAt, mutabakat.responseNotes]);
+      await pool.query('INSERT INTO reconciliations (vkn, id, `customerId`, `customerName`, date, `balanceType`, balance, status, notes, `emailSentAt`, `respondedAt`, `responseNotes`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [req.headers['x-tenant-id'] || '1111111111', mutabakat.id, mutabakat.customerId, mutabakat.customerName, mutabakat.date, mutabakat.balanceType, mutabakat.balance, mutabakat.status || 'Bekliyor', mutabakat.notes || '', mutabakat.emailSentAt || null, mutabakat.respondedAt || null, mutabakat.responseNotes || null]);
       res.json(mutabakat);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -447,7 +447,7 @@ async function startServer() {
     }
     try {
       const pool = getPool();
-      await pool.query('UPDATE reconciliations SET `customerId` = ?, `customerName` = ?, date = ?, `balanceType` = ?, balance = ?, status = ?, notes = ?, `emailSentAt` = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?', [customerId, customerName, date, balanceType, balance, status, notes, emailSentAt, respondedAt, responseNotes, id, req.headers['x-tenant-id'] || '1111111111']);
+      await pool.query('UPDATE reconciliations SET `customerId` = ?, `customerName` = ?, date = ?, `balanceType` = ?, balance = ?, status = ?, notes = ?, `emailSentAt` = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?', [customerId, customerName, date, balanceType, balance, status || 'Bekliyor', notes || '', emailSentAt || null, respondedAt || null, responseNotes || null, id, req.headers['x-tenant-id'] || '1111111111']);
       res.json({ id, ...req.body });
     } catch (e) {
       res.status(500).json({ error: String(e) });

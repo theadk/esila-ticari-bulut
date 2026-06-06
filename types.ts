@@ -43,6 +43,17 @@ export interface Brand {
   name: string;
 }
 
+export interface StockTransfer {
+  id: string;
+  productId: string;
+  productName: string;
+  sourceWarehouse: string;
+  targetWarehouse: string;
+  quantity: number;
+  date: string;
+  personnelName: string;
+}
+
 export interface CustomerTransaction {
   id: string;
   customerId: string;
@@ -68,6 +79,10 @@ export interface Customer {
   type: 'Alıcı' | 'Satıcı';
   balance: number;
   status: 'Aktif' | 'Pasif';
+  efaturaType?: string;
+  efaturaScenario?: string;
+  efaturaInvoiceType?: string;
+  riskLimit?: number;
 }
 
 export interface OrderItem {
@@ -86,6 +101,8 @@ export interface Order {
   subTotal?: number;
   taxTotal?: number;
   total: number;
+  currency?: string;
+  exchangeRate?: number;
   status: OrderStatus;
   items: OrderItem[];
   proposalId?: string;
@@ -198,6 +215,18 @@ export interface Personnel {
   records: PersonnelRecord[];
   fixtures?: { id: string; productId: string; productName: string; quantity: number; dateGiven: string; }[];
   payrolls?: Payroll[];
+
+  // Leave Management
+  annualLeaveEntitlement?: number;
+  leaveRecords?: {
+    id: string;
+    startDate: string;
+    endDate: string;
+    type: 'Yıllık İzin' | 'Mazeret İzni' | 'Ücretsiz İzin' | 'Hastalık İzni' | 'Diğer';
+    days: number;
+    status: 'Bekliyor' | 'Onaylandı' | 'Reddedildi';
+    description?: string;
+  }[];
 }
 
 export enum ReconciliationStatus {

@@ -27,6 +27,7 @@ import { getPool, initDb } from './server/db.js';
 import cors from 'cors';
 import { sendMail } from './server/mailer.js';
 import { startMailScheduler } from './server/mailScheduler.js';
+import { startBackupScheduler } from './server/backupScheduler.js';
 import { getFallbackTable, insertFallbackRow, updateFallbackRow, deleteFallbackRow } from './server/fallbackDb.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -49,6 +50,7 @@ const loginAttempts = new Map<string, { attempts: number, lockUntil: number | nu
 async function startServer() {
   await initDb();
   startMailScheduler();
+  startBackupScheduler();
   
   const app = express();
   const PORT = process.env.PORT || 3000;
@@ -57,6 +59,21 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use(cors());
+
+  app.get('/api/exchange-rates', async (req, res) => {
+    try {
+      const response = await fetch('https://www.tcmb.gov.tr/kurlar/today.xml');
+      if (!response.ok) {
+        throw new Error('TCMB API error: ' + response.statusText);
+      }
+      const xmlData = await response.text();
+      res.set('Content-Type', 'application/xml; charset=utf-8');
+      res.send(xmlData);
+    } catch (error) {
+      console.error('Exchange rate error:', error);
+      res.status(500).json({ error: 'Failed to fetch exchange rates' });
+    }
+  });
 
   app.post('/api/test-email', async (req, res) => {
     try {
@@ -80,6 +97,32 @@ async function startServer() {
   app.post('/api/send-email', async (req, res) => {
     try {
       const vkn = typeof req.headers['x-tenant-id'] === 'string' ? req.headers['x-tenant-id'] : '1111111111';
+      
+      // Limit Check
+      if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql")) {
+        const pool = getPool();
+        const [tenantRows] = await pool.query('SELECT emailLimit, emailCount FROM tenants WHERE vkn = ?', [vkn]) as any;
+        if (tenantRows && tenantRows.length > 0) {
+            const limit = tenantRows[0].emailLimit || 0;
+            const count = tenantRows[0].emailCount || 0;
+            if (limit > 0 && count >= limit) {
+                return res.status(403).json({ success: false, error: "E-Posta gönderim limitine ulaştınız. Lütfen paketinizi yükseltin." });
+            }
+            await pool.query('UPDATE tenants SET emailCount = emailCount + 1 WHERE vkn = ?', [vkn]);
+        }
+      } else {
+         const tTable = getFallbackTable('tenants');
+         const t = tTable.find((x: any) => x.vkn === vkn);
+         if (t) {
+             const limit = t.emailLimit || 0;
+             const count = t.emailCount || 0;
+             if (limit > 0 && count >= limit) {
+                 return res.status(403).json({ success: false, error: "E-Posta gönderim limitine ulaştınız. Lütfen paketinizi yükseltin." });
+             }
+             updateFallbackRow('tenants', vkn, vkn, { emailCount: count + 1 });
+         }
+      }
+
       const { to, subject, html, wrapped, attachments } = req.body;
       const result = await sendMail(to, subject, html, wrapped ?? false, attachments, vkn);
       if (result.success) {
@@ -94,6 +137,33 @@ async function startServer() {
 
   app.post('/api/send-sms', async (req, res) => {
     try {
+      const vkn = typeof req.headers['x-tenant-id'] === 'string' ? req.headers['x-tenant-id'] : '1111111111';
+      
+      // Limit Check
+      if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql")) {
+        const pool = getPool();
+        const [tenantRows] = await pool.query('SELECT smsLimit, smsCount FROM tenants WHERE vkn = ?', [vkn]) as any;
+        if (tenantRows && tenantRows.length > 0) {
+            const limit = tenantRows[0].smsLimit || 0;
+            const count = tenantRows[0].smsCount || 0;
+            if (limit > 0 && count >= limit) {
+                return res.status(403).json({ success: false, error: "SMS gönderim limitine ulaştınız. Lütfen paketinizi yükseltin." });
+            }
+            await pool.query('UPDATE tenants SET smsCount = smsCount + 1 WHERE vkn = ?', [vkn]);
+        }
+      } else {
+         const tTable = getFallbackTable('tenants');
+         const t = tTable.find((x: any) => x.vkn === vkn);
+         if (t) {
+             const limit = t.smsLimit || 0;
+             const count = t.smsCount || 0;
+             if (limit > 0 && count >= limit) {
+                 return res.status(403).json({ success: false, error: "SMS gönderim limitine ulaştınız. Lütfen paketinizi yükseltin." });
+             }
+             updateFallbackRow('tenants', vkn, vkn, { smsCount: count + 1 });
+         }
+      }
+
       const payload = req.body;
       const response = await fetch('https://api.iletimerkezi.com/v1/send-sms/json', {
         method: 'POST',
@@ -398,6 +468,77 @@ async function startServer() {
     }
   });
 
+  app.get('/api/stock_transfers', async (req, res) => {
+    const vkn = req.headers['x-tenant-id'] || '1111111111';
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) return res.json(getFallbackTable('stock_transfers', vkn));
+    try {
+      const pool = getPool();
+      const [rows] = await pool.query('SELECT * FROM stock_transfers WHERE vkn = ? ORDER BY date DESC', [vkn]);
+      res.json(rows);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  app.post('/api/stock_transfers', async (req, res) => {
+    const vkn = req.headers['x-tenant-id'] || '1111111111';
+    const data = req.body;
+    
+    if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
+      const products = getFallbackTable('products', vkn);
+      const product = products.find((p: any) => p.id === data.productId);
+      if (product) {
+         if (!product.warehouseStocks) product.warehouseStocks = [];
+         
+         const sourceWhIndex = product.warehouseStocks.findIndex((w: any) => w.warehouseId === data.sourceWarehouse);
+         if (sourceWhIndex > -1) {
+            product.warehouseStocks[sourceWhIndex].stock -= data.quantity;
+         } else {
+            product.warehouseStocks.push({ warehouseId: data.sourceWarehouse, stock: -data.quantity });
+         }
+
+         const targetWhIndex = product.warehouseStocks.findIndex((w: any) => w.warehouseId === data.targetWarehouse);
+         if (targetWhIndex > -1) {
+            product.warehouseStocks[targetWhIndex].stock += data.quantity;
+         } else {
+            product.warehouseStocks.push({ warehouseId: data.targetWarehouse, stock: data.quantity });
+         }
+         
+         updateFallbackRow('products', data.productId, vkn, { warehouseStocks: product.warehouseStocks });
+      }
+
+      insertFallbackRow('stock_transfers', { ...data, vkn });
+      return res.json({ id: data.id, ...data });
+    }
+
+    try {
+      const pool = getPool();
+      const [rows] = await pool.query('SELECT warehouseStocks FROM products WHERE id = ? AND vkn = ?', [data.productId, vkn]) as any;
+      if (rows && rows.length > 0) {
+         let wStocks = rows[0].warehouseStocks;
+         if (typeof wStocks === 'string') wStocks = JSON.parse(wStocks);
+         if (!wStocks) wStocks = [];
+
+         const sourceWhIndex = wStocks.findIndex((w: any) => w.warehouseId === data.sourceWarehouse);
+         if (sourceWhIndex > -1) wStocks[sourceWhIndex].stock -= data.quantity;
+         else wStocks.push({ warehouseId: data.sourceWarehouse, stock: -data.quantity });
+
+         const targetWhIndex = wStocks.findIndex((w: any) => w.warehouseId === data.targetWarehouse);
+         if (targetWhIndex > -1) wStocks[targetWhIndex].stock += data.quantity;
+         else wStocks.push({ warehouseId: data.targetWarehouse, stock: data.quantity });
+
+         await pool.query('UPDATE products SET warehouseStocks = ? WHERE id = ? AND vkn = ?', [JSON.stringify(wStocks), data.productId, vkn]);
+      }
+
+      const q = "INSERT INTO stock_transfers (id, vkn, productId, productName, sourceWarehouse, targetWarehouse, quantity, date, personnelName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      await pool.query(q, [data.id, vkn, data.productId, data.productName, data.sourceWarehouse, data.targetWarehouse, data.quantity, data.date, data.personnelName]);
+      
+      res.json({ id: data.id, ...data });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   app.post('/api/warehouses', async (req, res) => {
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
     insertFallbackRow('warehouses', { ...req.body, vkn: req.headers['x-tenant-id'] || '1111111111' });
@@ -556,7 +697,7 @@ async function startServer() {
     
     try {
       const pool = getPool();
-      await pool.query('INSERT INTO reconciliations (vkn, id, `customerId`, `customerName`, date, `balanceType`, balance, status, notes, `emailSentAt`, `respondedAt`, `responseNotes`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [req.headers['x-tenant-id'] || '1111111111', mutabakat.id, mutabakat.customerId, mutabakat.customerName, mutabakat.date, mutabakat.balanceType, mutabakat.balance, mutabakat.status, mutabakat.notes, mutabakat.emailSentAt, mutabakat.respondedAt, mutabakat.responseNotes]);
+      await pool.query('INSERT INTO reconciliations (vkn, id, `customerId`, `customerName`, date, `balanceType`, balance, status, notes, `emailSentAt`, `respondedAt`, `responseNotes`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [req.headers['x-tenant-id'] || '1111111111', mutabakat.id, mutabakat.customerId, mutabakat.customerName, mutabakat.date, mutabakat.balanceType, mutabakat.balance, mutabakat.status || 'Bekliyor', mutabakat.notes || '', mutabakat.emailSentAt || null, mutabakat.respondedAt || null, mutabakat.responseNotes || null]);
       res.json(mutabakat);
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -572,7 +713,7 @@ async function startServer() {
     }
     try {
       const pool = getPool();
-      await pool.query('UPDATE reconciliations SET `customerId` = ?, `customerName` = ?, date = ?, `balanceType` = ?, balance = ?, status = ?, notes = ?, `emailSentAt` = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?', [customerId, customerName, date, balanceType, balance, status, notes, emailSentAt, respondedAt, responseNotes, id, req.headers['x-tenant-id'] || '1111111111']);
+      await pool.query('UPDATE reconciliations SET `customerId` = ?, `customerName` = ?, date = ?, `balanceType` = ?, balance = ?, status = ?, notes = ?, `emailSentAt` = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?', [customerId, customerName, date, balanceType, balance, status || 'Bekliyor', notes || '', emailSentAt || null, respondedAt || null, responseNotes || null, id, req.headers['x-tenant-id'] || '1111111111']);
       res.json({ id, ...req.body });
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -788,7 +929,7 @@ async function startServer() {
         dDate.setFullYear(dDate.getFullYear() + (data.package === 'Aylık' ? 0 : data.package === 'Sınırsız' ? 100 : 1));
         if (data.package === 'Aylık') dDate.setMonth(dDate.getMonth() + 1);
 
-        insertFallbackRow('tenants', { ...data, status: 'Bekliyor', expirationDate: dDate.toISOString() });
+        insertFallbackRow('tenants', { ...data, status: 'Bekliyor', expirationDate: dDate.toISOString(), smsLimit: data.smsLimit || 0, emailLimit: data.emailLimit || 0, smsCount: 0, emailCount: 0 });
         insertFallbackRow('users', { id: "admin-" + data.vkn, vkn: data.vkn, name: data.name + ' Admin', username: data.vkn, email: data.email, passwordHash: newAdminPass, role: 'Admin', status: 'Aktif' });
    insertFallbackRow('settings', { vkn: data.vkn, id: 1, companyName: data.name, email: data.email });
         
@@ -797,8 +938,8 @@ async function startServer() {
       }
 
       const pool = getPool();
-      const q = `INSERT INTO tenants (vkn, name, email, modules, status, package, expirationDate, sector, isEsilaCustomer) VALUES (?, ?, ?, ?, 'Bekliyor', ?, DATE_ADD(NOW(), INTERVAL ${expInterval}), ?, ?)`;
-      await pool.query(q, [data.vkn, data.name, data.email, JSON.stringify(data.modules), data.package || 'Yıllık', data.sector || '', data.isEsilaCustomer ? true : false]);
+      const q = `INSERT INTO tenants (vkn, name, email, modules, status, package, expirationDate, sector, isEsilaCustomer, smsLimit, emailLimit, smsCount, emailCount) VALUES (?, ?, ?, ?, 'Bekliyor', ?, DATE_ADD(NOW(), INTERVAL ${expInterval}), ?, ?, ?, ?, 0, 0)`;
+      await pool.query(q, [data.vkn, data.name, data.email, JSON.stringify(data.modules), data.package || 'Yıllık', data.sector || '', data.isEsilaCustomer ? true : false, data.smsLimit || 0, data.emailLimit || 0]);
       
       // Seed user for tenant
       await pool.query("INSERT INTO users (id, vkn, name, username, email, passwordHash, role, status) VALUES (?, ?, ?, ?, ?, ?, 'Admin', 'Aktif')",
@@ -979,22 +1120,24 @@ async function startServer() {
           email: data.email, 
           package: data.package,
           modules: JSON.stringify(data.modules),
-          expirationDate: dDate.toISOString()
+          expirationDate: dDate.toISOString(),
+          smsLimit: data.smsLimit || 0,
+          emailLimit: data.emailLimit || 0
         });
         return res.json({success: true});
       }
       const pool = getPool();
       if (data.package) {
         if (data.expirationDate) {
-           const q = `UPDATE tenants SET name = ?, email = ?, package = ?, modules = ?, expirationDate = ? WHERE vkn = ?`;
-           await pool.query(q, [data.name, data.email, data.package, JSON.stringify(data.modules), new Date(data.expirationDate).toISOString().slice(0, 19).replace('T', ' '), vkn]);
+           const q = `UPDATE tenants SET name = ?, email = ?, package = ?, modules = ?, expirationDate = ?, smsLimit = ?, emailLimit = ? WHERE vkn = ?`;
+           await pool.query(q, [data.name, data.email, data.package, JSON.stringify(data.modules), new Date(data.expirationDate).toISOString().slice(0, 19).replace('T', ' '), data.smsLimit || 0, data.emailLimit || 0, vkn]);
         } else {
-           const q = `UPDATE tenants SET name = ?, email = ?, package = ?, modules = ?, expirationDate = DATE_ADD(NOW(), INTERVAL ${expInterval}) WHERE vkn = ?`;
-           await pool.query(q, [data.name, data.email, data.package, JSON.stringify(data.modules), vkn]);
+           const q = `UPDATE tenants SET name = ?, email = ?, package = ?, modules = ?, expirationDate = DATE_ADD(NOW(), INTERVAL ${expInterval}), smsLimit = ?, emailLimit = ? WHERE vkn = ?`;
+           await pool.query(q, [data.name, data.email, data.package, JSON.stringify(data.modules), data.smsLimit || 0, data.emailLimit || 0, vkn]);
         }
       } else {
-         await pool.query("UPDATE tenants SET name = ?, email = ?, modules = ? WHERE vkn = ?", 
-        [data.name, data.email, JSON.stringify(data.modules), vkn]);
+         await pool.query("UPDATE tenants SET name = ?, email = ?, modules = ?, smsLimit = ?, emailLimit = ? WHERE vkn = ?", 
+        [data.name, data.email, JSON.stringify(data.modules), data.smsLimit || 0, data.emailLimit || 0, vkn]);
       }
       res.json({success: true});
     } catch(e) { res.status(500).json({error: String(e)}); }

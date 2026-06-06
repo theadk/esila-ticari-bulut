@@ -148,19 +148,48 @@ export const Ayarlar: React.FC = () => {
           {activeTab === 'genel' && (
             <div className="space-y-6 animate-fade-in">
               {tenantInfo && (
-                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
-                      <Clock size={20} />
+                <div className="space-y-4">
+                  <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-lg flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                        <Clock size={20} />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-emerald-900">Lisans Durumu</h4>
+                        <p className="text-sm text-emerald-700">Lisans Bitiş Tarihi: <strong>{tenantInfo.expirationDate ? new Date(tenantInfo.expirationDate).toLocaleDateString('tr-TR') : 'Sınırsız (Ömür Boyu)'}</strong></p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-emerald-900">Lisans Durumu</h4>
-                      <p className="text-sm text-emerald-700">Lisans Bitiş Tarihi: <strong>{tenantInfo.expirationDate ? new Date(tenantInfo.expirationDate).toLocaleDateString('tr-TR') : 'Sınırsız (Ömür Boyu)'}</strong></p>
-                    </div>
+                    {tenantInfo.expirationDate && new Date(tenantInfo.expirationDate).getTime() < Date.now() + 15 * 24 * 60 * 60 * 1000 && (
+                       <span className="text-red-500 font-semibold text-sm bg-red-50 px-3 py-1 rounded-full">Yakında Dolacak!</span>
+                    )}
                   </div>
-                  {tenantInfo.expirationDate && new Date(tenantInfo.expirationDate).getTime() < Date.now() + 15 * 24 * 60 * 60 * 1000 && (
-                     <span className="text-red-500 font-semibold text-sm bg-red-50 px-3 py-1 rounded-full">Yakında Dolacak!</span>
-                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="bg-white border p-4 rounded-lg flex items-center gap-4">
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-full"><Mail size={20} /></div>
+                        <div>
+                           <h4 className="text-sm font-semibold text-gray-800">E-Posta Kullanımı</h4>
+                           <p className="text-xs text-gray-500 mt-1">Kullanılan: <span className="font-semibold text-gray-900">{tenantInfo.emailCount || 0}</span> / {tenantInfo.emailLimit > 0 ? tenantInfo.emailLimit : 'Sınırsız'}</p>
+                           {tenantInfo.emailLimit > 0 && (
+                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                <div className={`h-1.5 rounded-full ${((tenantInfo.emailCount || 0) / tenantInfo.emailLimit) > 0.8 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, ((tenantInfo.emailCount || 0) / tenantInfo.emailLimit) * 100)}%` }}></div>
+                              </div>
+                           )}
+                        </div>
+                     </div>
+                     <div className="bg-white border p-4 rounded-lg flex items-center gap-4">
+                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-full"><MessageSquare size={20} /></div>
+                        <div>
+                           <h4 className="text-sm font-semibold text-gray-800">SMS Kullanımı</h4>
+                           <p className="text-xs text-gray-500 mt-1">Kullanılan: <span className="font-semibold text-gray-900">{tenantInfo.smsCount || 0}</span> / {tenantInfo.smsLimit > 0 ? tenantInfo.smsLimit : 'Sınırsız'}</p>
+                           {tenantInfo.smsLimit > 0 && (
+                              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                <div className={`h-1.5 rounded-full ${((tenantInfo.smsCount || 0) / tenantInfo.smsLimit) > 0.8 ? 'bg-red-500' : 'bg-indigo-500'}`} style={{ width: `${Math.min(100, ((tenantInfo.smsCount || 0) / tenantInfo.smsLimit) * 100)}%` }}></div>
+                              </div>
+                           )}
+                        </div>
+                     </div>
+                  </div>
                 </div>
               )}
 

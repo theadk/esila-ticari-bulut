@@ -867,17 +867,23 @@ export const Ariza: React.FC = () => {
     const html = generateHTML("a4");
     const wrapper = document.createElement("div");
     wrapper.innerHTML = html;
+    
+    wrapper.style.position = "absolute";
+    wrapper.style.left = "-9999px";
+    document.body.appendChild(wrapper);
 
     const opt = {
       margin: [5, 5, 5, 5],
       filename: `Servis_Formu_${selectedTicket.id.split("-")[0]}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
+      html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
-    html2pdf().set(opt).from(wrapper).save();
+    html2pdf().set(opt).from(wrapper).save().then(() => {
+        document.body.removeChild(wrapper);
+    });
     toast.success("PDF indirme başladı.");
   };
 
@@ -918,12 +924,15 @@ export const Ariza: React.FC = () => {
       const html = generateHTML("a4");
       const wrapper = document.createElement("div");
       wrapper.innerHTML = html;
+      wrapper.style.position = "absolute";
+      wrapper.style.left = "-9999px";
+      document.body.appendChild(wrapper);
 
       const opt = {
         margin: [5, 5, 5, 5],
         filename: `Servis_Formu_${selectedTicket.id.split("-")[0]}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
@@ -932,6 +941,8 @@ export const Ariza: React.FC = () => {
         .set(opt)
         .from(wrapper)
         .outputPdf("datauristring");
+      
+      document.body.removeChild(wrapper);
 
       const res = await fetch("/api/send-email", {
         method: "POST",
@@ -1087,15 +1098,25 @@ export const Ariza: React.FC = () => {
 
           const wrapper = document.createElement("div");
           wrapper.innerHTML = html;
+          wrapper.style.position = "absolute";
+          wrapper.style.left = "-9999px";
+          document.body.appendChild(wrapper);
+          
+          const opt = {
+            margin: [5, 5, 5, 5],
+            filename: `Servis_Formu_${ticket.id.split("-")[0]}.pdf`,
+            image: { type: "jpeg", quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+          };
+
           const pdfBase64DataUri = await html2pdf()
-            .set({
-              margin: [5, 5, 5, 5],
-              filename: "form.pdf",
-              jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            })
+            .set(opt)
             .from(wrapper)
             .outputPdf("datauristring");
+            
+          document.body.removeChild(wrapper);
 
           const res = await fetch("/api/send-email", {
             method: "POST",

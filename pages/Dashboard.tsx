@@ -19,7 +19,8 @@ import {
   Settings,
   X,
   CreditCard,
-  Edit3
+  Edit3,
+  Calendar
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -67,7 +68,8 @@ const DEFAULT_STATS_ORDER = [
   'stat_activeCustomers', 
   'stat_criticalStock', 
   'stat_activePersonnel', 
-  'stat_newJobApps'
+  'stat_newJobApps',
+  'stat_pendingLeaves'
 ];
 
 const DEFAULT_CHARTS_ORDER = [
@@ -234,6 +236,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
     const activePersonnel = personnel.filter(p => !p.employmentStatus || p.employmentStatus === 'Aktif').length;
     const newJobApps = jobApplications.filter(j => j.status === 'Yeni').length;
     const pendingProposals = proposals.filter(p => p.status === 'Bekliyor').length;
+    const pendingLeaves = personnel.reduce((sum, p) => sum + (p.leaveRecords?.filter(l => l.status === 'Bekliyor').length || 0), 0);
 
     return { 
       monthlySales, 
@@ -244,7 +247,8 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
       dailyIncome,
       activePersonnel,
       newJobApps,
-      pendingProposals
+      pendingProposals,
+      pendingLeaves
     };
   }, [transactions, customers, products, orders, cashTransactions, personnel, jobApplications, proposals]);
 
@@ -396,6 +400,19 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
             <div>
               <p className="text-sm text-gray-500">Bekleyen Teklifler</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.pendingProposals}</p>
+            </div>
+          </div>
+        </SortableItem>
+      );
+      case 'stat_pendingLeaves': return (
+        <SortableItem key={id} id={id} isEditMode={isEditMode}>
+          <div className="p-4 sm:p-6 flex items-center space-x-4">
+            <div className="p-3 bg-purple-100 text-purple-600 rounded-full">
+              <Calendar size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Bekleyen İzinler</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">{stats.pendingLeaves || 0}</p>
             </div>
           </div>
         </SortableItem>

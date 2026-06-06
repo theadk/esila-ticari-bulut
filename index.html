@@ -41,8 +41,17 @@
       }
       
       @media print {
+        body * { visibility: hidden; }
+        body, html, #root, div, main, section { overflow: visible !important; height: auto !important; max-height: none !important; }
+        .print-only, .print-only *, .print-target, .print-target * { visibility: visible; }
+        .print-only, .print-target {
+           position: absolute;
+           left: 0;
+           top: 0;
+           width: 100%;
+           display: block !important;
+        }
         .no-print { display: none !important; }
-        .print-only { display: block !important; }
         body { background: white; }
       }
       .print-only { display: none; }
