@@ -298,8 +298,8 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-          <table className="w-full text-left">
+        <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
+          <table className="w-full text-left min-w-[1400px]">
             <thead className="bg-gray-100 text-gray-600 text-sm">
               <tr>
                 <th className="p-4">VKN</th>
@@ -385,7 +385,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                   </td>
                 </tr>
               ))}
-              {filteredTenants.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-gray-500">Kayıtlı şirket yok.</td></tr>}
+              {filteredTenants.length === 0 && <tr><td colSpan={9} className="p-8 text-center text-gray-500">Kayıtlı şirket yok.</td></tr>}
             </tbody>
           </table>
         </div>
