@@ -214,7 +214,9 @@ export interface Personnel {
   socialSecurityNo: string; // SGK No
   
   records: PersonnelRecord[];
-  fixtures?: { id: string; productId: string; productName: string; quantity: number; dateGiven: string; }[];
+  currency?: string;
+  payrollRecords?: any[];
+  fixtures?: { id: string; productId: string; productName: string; quantity: number; dateGiven: string; fixtureName?: string; serialNumber?: string; issueDate?: string; returnDate?: string; condition?: string; }[];
   payrolls?: Payroll[];
 
   // Leave Management
@@ -277,9 +279,14 @@ export interface Settings {
   smtp_user: string;
   smtp_pass?: string;
   sms_token: string;
+  sms_api_key?: string;
+  sms_api_hash?: string;
   sms_sender_id?: string;
   printer_header_text: string;
   printer_footer_text: string;
+  email_template_service_ticket?: string;
+  email_template_maintenance?: string;
+  email_template_proposal?: string;
   
   // Fatura Şablon Ayarları
   invoiceTemplate_color?: string;

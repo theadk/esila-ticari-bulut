@@ -18,6 +18,8 @@ import {
   Send,
   Link,
   Copy,
+  Mic,
+  MicOff
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Pagination } from "../components/Pagination";
@@ -36,6 +38,7 @@ import toast from "react-hot-toast";
 import html2pdf from "html2pdf.js";
 import { defaultTemplates, parseEmailTemplate } from "../lib/emailUtils";
 import { copyToClipboard } from '../lib/utils';
+import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 const INITIAL_FORM: Partial<ServiceTicket> = {
   customerId: "",
@@ -78,6 +81,23 @@ export const Ariza: React.FC = () => {
   const [quantityToAdd, setQuantityToAdd] = useState(1);
   const [isPaid, setIsPaid] = useState(true);
   const [maintenancePeriod, setMaintenancePeriod] = useState<number | "">("");
+
+  const { isListening, supported, listen, stop } = useSpeechRecognition();
+
+  const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
+
+  const startListening = (field: string, updateFn: (text: string) => void) => {
+    if (isListening && activeSpeechField === field) {
+      stop();
+      setActiveSpeechField(null);
+    } else {
+      if (isListening) stop();
+      setActiveSpeechField(field);
+      listen((text) => {
+        updateFn(text);
+      });
+    }
+  };
 
   useEffect(() => {
     // Automatically schedule and send follow-up maintenance notifications
@@ -882,7 +902,7 @@ export const Ariza: React.FC = () => {
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
-    html2pdf().set(opt).from(wrapper).save().then(() => {
+    html2pdf().set(opt as any).from(wrapper).save().then(() => {
         document.body.removeChild(wrapper);
     });
     toast.success("PDF indirme başladı.");
@@ -901,7 +921,7 @@ export const Ariza: React.FC = () => {
       defaultTemplates.service_ticket;
 
     const emailContent = parseEmailTemplate(templateRaw, {
-      FIRMA_ADI: store.settings.company_name || "Şirket Adı",
+      FIRMA_ADI: store.settings.companyName || "Şirket Adı",
       MUSTERI_ADI: selectedTicket.customerName,
       TARIH: new Date().toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
       KAYIT_NO: selectedTicket.id.split("-")[0],
@@ -914,9 +934,9 @@ export const Ariza: React.FC = () => {
             currency: "TRY",
           })
         : "0,00 ₺",
-      FIRMA_ADRES: store.settings.company_address || "-",
-      FIRMA_TELEFON: store.settings.company_phone || "-",
-      FIRMA_MAIL: store.settings.company_email || "-",
+      FIRMA_ADRES: store.settings.address || "-",
+      FIRMA_TELEFON: store.settings.phone || "-",
+      FIRMA_MAIL: store.settings.email || "-",
     });
 
     const loadingToast = toast.loading("E-posta gönderiliyor...");
@@ -939,7 +959,7 @@ export const Ariza: React.FC = () => {
       };
 
       const pdfBase64DataUri = await html2pdf()
-        .set(opt)
+        .set(opt as any)
         .from(wrapper)
         .outputPdf("datauristring");
       
@@ -1010,7 +1030,7 @@ export const Ariza: React.FC = () => {
       const customer = customers.find((c) => c.id === ticket.customerId);
       if (customer?.email) {
         const emailContent = parseEmailTemplate(templateRaw, {
-          FIRMA_ADI: store.settings.company_name || "Şirket Adı",
+          FIRMA_ADI: store.settings.companyName || "Şirket Adı",
           MUSTERI_ADI: ticket.customerName,
           TARIH: new Date().toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
           KAYIT_NO: ticket.id.split("-")[0],
@@ -1023,9 +1043,9 @@ export const Ariza: React.FC = () => {
                 currency: "TRY",
               })
             : "0,00 ₺",
-          FIRMA_ADRES: store.settings.company_address || "-",
-          FIRMA_TELEFON: store.settings.company_phone || "-",
-          FIRMA_MAIL: store.settings.company_email || "-",
+          FIRMA_ADRES: store.settings.address || "-",
+          FIRMA_TELEFON: store.settings.phone || "-",
+          FIRMA_MAIL: store.settings.email || "-",
         });
 
         try {
@@ -1113,7 +1133,7 @@ export const Ariza: React.FC = () => {
           };
 
           const pdfBase64DataUri = await html2pdf()
-            .set(opt)
+            .set(opt as any)
             .from(wrapper)
             .outputPdf("datauristring");
             
@@ -1578,9 +1598,23 @@ export const Ariza: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Arıza / Şikayet Açıklaması *
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Arıza / Şikayet Açıklaması *
+                  </label>
+                  {supported && (
+                    <button
+                      type="button"
+                      onClick={() => startListening('issueDescription', (text) => setFormData(prev => ({ ...prev, issueDescription: prev.issueDescription ? `${prev.issueDescription} ${text}` : text })))}
+                      className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                        isListening && activeSpeechField === 'issueDescription' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                      title={isListening && activeSpeechField === 'issueDescription' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                    >
+                      {isListening && activeSpeechField === 'issueDescription' ? <MicOff size={16} /> : <Mic size={16} />}
+                    </button>
+                  )}
+                </div>
                 <textarea
                   className="w-full p-2.5 rounded-lg border border-gray-200 focus:border-emerald-500 outline-none min-h-[100px]"
                   value={formData.issueDescription}
@@ -1913,9 +1947,32 @@ export const Ariza: React.FC = () => {
 
                 {/* Resolution Notes */}
                 <div className="mt-2 flex-1">
-                  <h4 className="font-semibold text-gray-700 border-b pb-2 mb-3">
-                    Yapılan İşlemler / Çözüm Detayları
-                  </h4>
+                  <div className="flex justify-between items-center border-b pb-2 mb-3">
+                    <h4 className="font-semibold text-gray-700">
+                      Yapılan İşlemler / Çözüm Detayları
+                    </h4>
+                    {supported && selectedTicket.status !== ServiceTicketStatus.COMPLETED && selectedTicket.status !== ServiceTicketStatus.CANCELLED && (
+                       <button
+                         type="button"
+                         onClick={() => startListening('resolutionNotes', (text) => {
+                            const updated = {
+                              ...selectedTicket,
+                              resolutionNotes: selectedTicket.resolutionNotes ? `${selectedTicket.resolutionNotes} ${text}` : text
+                            };
+                            store.setServiceTickets(
+                              serviceTickets.map((t) => t.id === selectedTicket.id ? updated : t)
+                            );
+                            setSelectedTicket(updated);
+                         })}
+                         className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                           isListening && activeSpeechField === 'resolutionNotes' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                         }`}
+                         title={isListening && activeSpeechField === 'resolutionNotes' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                       >
+                         {isListening && activeSpeechField === 'resolutionNotes' ? <MicOff size={16} /> : <Mic size={16} />}
+                       </button>
+                    )}
+                  </div>
                   {selectedTicket.status !== ServiceTicketStatus.COMPLETED &&
                   selectedTicket.status !== ServiceTicketStatus.CANCELLED ? (
                     <textarea

@@ -20,7 +20,9 @@ import {
   X,
   CreditCard,
   Edit3,
-  Calendar
+  Calendar,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -41,6 +43,7 @@ import { useAppStore } from '../lib/store';
 import { api } from '../lib/api';
 import { Product, OrderStatus } from '../types';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
+import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 import toast from 'react-hot-toast';
 
 import {
@@ -104,6 +107,22 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
     const saved = localStorage.getItem('esila_dashboard_charts');
     return saved ? JSON.parse(saved) : DEFAULT_CHARTS_ORDER;
   });
+
+  const { isListening, supported, listen, stop } = useSpeechRecognition();
+  const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
+
+  const startListening = (field: string, updateFn: (text: string) => void) => {
+    if (isListening && activeSpeechField === field) {
+      stop();
+      setActiveSpeechField(null);
+    } else {
+      if (isListening) stop();
+      setActiveSpeechField(field);
+      listen((text) => {
+        updateFn(text);
+      });
+    }
+  };
 
   const handleOpenNoteModal = (dateStr: string) => {
     setSelectedNoteDate(dateStr);
@@ -784,7 +803,21 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
                      </select>
                   </div>
                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">Detay / Açıklama</label>
+                     <div className="flex justify-between items-center mb-1">
+                       <label className="block text-sm font-medium text-gray-700">Detay / Açıklama</label>
+                       {supported && (
+                         <button
+                           type="button"
+                           onClick={() => startListening('noteForm', (text) => setNoteForm(prev => ({ ...prev, description: prev.description ? `${prev.description} ${text}` : text })))}
+                           className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                             isListening && activeSpeechField === 'noteForm' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                           }`}
+                           title={isListening && activeSpeechField === 'noteForm' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                         >
+                           {isListening && activeSpeechField === 'noteForm' ? <MicOff size={16} /> : <Mic size={16} />}
+                         </button>
+                       )}
+                     </div>
                      <textarea 
                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-h-[80px]" 
                        placeholder="İsteğe bağlı detay..."

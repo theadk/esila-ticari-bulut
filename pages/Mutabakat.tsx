@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock, Users, MessageCircle, MessageSquare } from 'lucide-react';
+import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock, Users, MessageCircle, MessageSquare, Mic, MicOff } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Reconciliation, ReconciliationStatus, Customer } from '../types';
 import { apiFetch } from '../lib/api';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/Pagination';
+import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 import { sendSMS } from '../src/utils/smsRequest';
 
@@ -15,6 +16,22 @@ export const Mutabakat: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const store = useAppStore();
+
+  const { isListening, supported, listen, stop } = useSpeechRecognition();
+  const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
+
+  const startListening = (field: string, updateFn: (text: string) => void) => {
+    if (isListening && activeSpeechField === field) {
+      stop();
+      setActiveSpeechField(null);
+    } else {
+      if (isListening) stop();
+      setActiveSpeechField(field);
+      listen((text) => {
+        updateFn(text);
+      });
+    }
+  };
 
   const [formData, setFormData] = useState<Partial<Reconciliation> & { sendSms?: boolean }>({
     date: new Date().toISOString().split('T')[0],
@@ -451,7 +468,21 @@ export const Mutabakat: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama / Not (Opsiyonel)</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700">Açıklama / Not (Opsiyonel)</label>
+                    {supported && (
+                      <button
+                        type="button"
+                        onClick={() => startListening('singleNote', (text) => setFormData(prev => ({ ...prev, notes: prev.notes ? `${prev.notes} ${text}` : text })))}
+                        className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                          isListening && activeSpeechField === 'singleNote' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                        title={isListening && activeSpeechField === 'singleNote' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                      >
+                        {isListening && activeSpeechField === 'singleNote' ? <MicOff size={16} /> : <Mic size={16} />}
+                      </button>
+                    )}
+                  </div>
                   <textarea
                     rows={3}
                     value={formData.notes || ''}
@@ -532,7 +563,21 @@ export const Mutabakat: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Toplu Açıklama / Not (Opsiyonel)</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700">Toplu Açıklama / Not (Opsiyonel)</label>
+                    {supported && (
+                      <button
+                        type="button"
+                        onClick={() => startListening('bulkNote', (text) => setBulkFormData(prev => ({ ...prev, notes: prev.notes ? `${prev.notes} ${text}` : text })))}
+                        className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                          isListening && activeSpeechField === 'bulkNote' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                        title={isListening && activeSpeechField === 'bulkNote' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                      >
+                        {isListening && activeSpeechField === 'bulkNote' ? <MicOff size={16} /> : <Mic size={16} />}
+                      </button>
+                    )}
+                  </div>
                   <textarea
                     rows={3}
                     disabled={isSendingBulk}

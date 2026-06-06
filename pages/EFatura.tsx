@@ -143,7 +143,7 @@ export const EFatura: React.FC = () => {
                     "AccountingSupplierParty": {
                         "Party": {
                             "PartyName": { "Name": store.settings.companyName || "Şirket Adı" },
-                            "PartyTaxScheme": { "TaxScheme": { "Name": "VD" }, "CompanyID": store.settings.vkn || "1111111111" }
+                            "PartyTaxScheme": { "TaxScheme": { "Name": "VD" }, "CompanyID": store.settings.taxNumber || "1111111111" }
                         }
                     },
                     "AccountingCustomerParty": {
@@ -588,8 +588,8 @@ export const EFatura: React.FC = () => {
                                 const totalAmount = (previewInvoice as any).total || (invoiceOrder?.total || previewInvoice.amount);
 
                                 const qrDataObj = {
-                                  vkntckn: store.settings?.companyVkn || "3790894905",
-                                  avkntckn: invoiceCustomer?.taxNumber || invoiceCustomer?.tcNo || "0100359315",
+                                  vkntckn: store.settings?.taxNumber || "3790894905",
+                                  avkntckn: invoiceCustomer?.taxNumber || "0100359315",
                                   senaryo: previewInvoice.scenario || "EARSIVFATURA",
                                   tip: previewInvoice.invoiceType || "SATIS",
                                   tarih: qrDate,
@@ -711,7 +711,7 @@ export const EFatura: React.FC = () => {
                     <div>
                       TCKN/VKN:{" "}
                       {invoiceCustomer?.taxNumber ||
-                        invoiceCustomer?.tcNo ||
+                        invoiceCustomer?.taxNumber ||
                         "11111111111"}
                     </div>
                   </div>

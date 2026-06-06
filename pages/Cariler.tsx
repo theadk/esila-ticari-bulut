@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload, Printer, MessageCircle, MessageSquare, CheckCircle, Landmark } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload, Printer, MessageCircle, MessageSquare, CheckCircle, Landmark, Mic, MicOff } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Customer, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
@@ -7,6 +7,7 @@ import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/Pagination';
 import { sendSMS } from '../src/utils/smsRequest';
+import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 const INITIAL_FORM: Customer = {
   id: '',
@@ -61,6 +62,22 @@ export const Cariler: React.FC = () => {
   // Payment Modal States
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentForm, setPaymentForm] = useState<{ amount: number, description: string, type: 'Tahsilat' | 'Ödeme' }>({ amount: 0, description: '', type: 'Tahsilat' });
+
+  const { isListening, supported, listen, stop } = useSpeechRecognition();
+  const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
+
+  const startListening = (field: string, updateFn: (text: string) => void) => {
+    if (isListening && activeSpeechField === field) {
+      stop();
+      setActiveSpeechField(null);
+    } else {
+      if (isListening) stop();
+      setActiveSpeechField(field);
+      listen((text) => {
+        updateFn(text);
+      });
+    }
+  };
 
   const handleOpenHistory = (customer: Customer) => {
     setSelectedCustomerForHistory(customer);
@@ -130,10 +147,10 @@ export const Cariler: React.FC = () => {
 
     const exportData = sortedTransactions.map(t => ({
       'Tarih': t.date,
-      'İşlem Tipi': t.type,
+      'İşlem Tipi': t.type as string,
       'Açıklama': t.description,
       'Tutar': t.amount,
-      'Kasa/Banka': t.bankId ? banks.find(b => b.id === t.bankId)?.name || '' : ''
+      'Kasa/Banka': ''
     }));
 
     // Add current balance as the last row for summary
@@ -1163,7 +1180,21 @@ export const Cariler: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Açıklama</label>
+                  {supported && (
+                    <button
+                      type="button"
+                      onClick={() => startListening('paymentDescription', (text) => setPaymentForm(prev => ({ ...prev, description: prev.description ? `${prev.description} ${text}` : text })))}
+                      className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                        isListening && activeSpeechField === 'paymentDescription' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                      title={isListening && activeSpeechField === 'paymentDescription' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                    >
+                      {isListening && activeSpeechField === 'paymentDescription' ? <MicOff size={16} /> : <Mic size={16} />}
+                    </button>
+                  )}
+                </div>
                 <textarea 
                   rows={2}
                   required
@@ -1297,14 +1328,14 @@ export const Cariler: React.FC = () => {
                           {new Date(tx.date).toLocaleDateString('tr-TR')}
                         </td>
                         <td className="p-3 border-x" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
-                          <span className={`font-medium ${tx.type === 'Alacak' ? 'text-red-700 print:text-black' : 'text-emerald-700 print:text-black'}`}>
+                          <span className={`font-medium ${tx.type === 'Satış' || tx.type === 'Alış' ? 'text-red-700 print:text-black' : 'text-emerald-700 print:text-black'}`}>
                             {tx.type}
                           </span>
                         </td>
                         <td className="p-3 border-x text-gray-800 print:text-black text-xs" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                           {tx.description}
                         </td>
-                        <td className={`p-3 border-x text-right font-bold whitespace-nowrap ${tx.type === 'Alacak' ? 'text-red-700 print:text-black' : 'text-emerald-700 print:text-black'}`} style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
+                        <td className={`p-3 border-x text-right font-bold whitespace-nowrap ${tx.type === 'Satış' || tx.type === 'Alış' ? 'text-red-700 print:text-black' : 'text-emerald-700 print:text-black'}`} style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                           {tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                         </td>
                       </tr>

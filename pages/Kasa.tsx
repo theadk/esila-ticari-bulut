@@ -1,13 +1,30 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../lib/store';
-import { Plus, Search, TrendingUp, TrendingDown, Wallet, X, Save, Printer, FileText, Filter, Calendar } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Wallet, X, Save, Printer, FileText, Filter, Calendar, Mic, MicOff } from 'lucide-react';
 import { CashTransaction } from '../types';
 import { Pagination } from '../components/Pagination';
+import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 export const Kasa: React.FC = () => {
   const { settings, cashTransactions, setCashTransactions, customers, setCustomers, transactions, setTransactions, personnel, setPersonnel } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'this_week' | 'this_month'>('all');
+  
+  const { isListening, supported, listen, stop } = useSpeechRecognition();
+  const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
+
+  const startListening = (field: string, updateFn: (text: string) => void) => {
+    if (isListening && activeSpeechField === field) {
+      stop();
+      setActiveSpeechField(null);
+    } else {
+      if (isListening) stop();
+      setActiveSpeechField(field);
+      listen((text) => {
+        updateFn(text);
+      });
+    }
+  };
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
@@ -406,7 +423,21 @@ export const Kasa: React.FC = () => {
                  />
               </div>
               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+                 <div className="flex justify-between items-center mb-1">
+                   <label className="block text-sm font-medium text-gray-700">Açıklama</label>
+                   {supported && (
+                     <button
+                       type="button"
+                       onClick={() => startListening('kasaDescription', (text) => setFormData(prev => ({ ...prev, description: prev.description ? `${prev.description} ${text}` : text })))}
+                       className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                         isListening && activeSpeechField === 'kasaDescription' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                       }`}
+                       title={isListening && activeSpeechField === 'kasaDescription' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                     >
+                       {isListening && activeSpeechField === 'kasaDescription' ? <MicOff size={16} /> : <Mic size={16} />}
+                     </button>
+                   )}
+                 </div>
                  <input 
                    required type="text"
                    value={formData.description}

@@ -15,6 +15,8 @@ interface Tenant {
   phone?: string;
   address?: string;
   isEsilaCustomer?: boolean;
+  smsLimit?: number;
+  emailLimit?: number;
 }
 
 export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {

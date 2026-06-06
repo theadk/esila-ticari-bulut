@@ -21,8 +21,11 @@ export const Ayarlar: React.FC = () => {
     }).then(res => res.json()).then(data => setTenantInfo(data)).catch();
   }, []);
 
-  const handleChange = (key: keyof Settings, value: string) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+  const handleChange = (key: keyof Settings, value: string | number) => {
+    setSettings(prev => {
+      if (!prev) return prev;
+      return { ...prev, [key]: value } as Settings;
+    });
   };
 
   const handleExportBackup = () => {

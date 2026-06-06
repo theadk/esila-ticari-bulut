@@ -99,7 +99,7 @@ export const Depo: React.FC = () => {
          targetWarehouse: transferForm.targetWarehouse,
          quantity: transferForm.quantity,
          date: new Date().toISOString(),
-         personnelName: store.user?.name || 'Bilinmiyor'
+         personnelName: store.users?.[0] ? store.users[0].name : 'Admin'
       });
       await loadData();
       setIsTransferModalOpen(false);

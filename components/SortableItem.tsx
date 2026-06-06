@@ -10,7 +10,7 @@ interface SortableItemProps {
   isEditMode?: boolean;
 }
 
-export function SortableItem({ id, children, className, isEditMode }: SortableItemProps) {
+export const SortableItem: React.FC<SortableItemProps> = ({ id, children, className, isEditMode }) => {
   const {
     attributes,
     listeners,

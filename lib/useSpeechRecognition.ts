@@ -39,7 +39,7 @@ export const useSpeechRecognition = () => {
     };
 
     recognition.onerror = (event: any) => {
-      console.error("Speech recognition error", event.error);
+      console.warn("Speech recognition error", event.error);
       setIsListening(false);
       if (onError) onError(event.error);
     };

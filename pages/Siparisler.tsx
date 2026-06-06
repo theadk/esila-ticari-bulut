@@ -1617,7 +1617,7 @@ export const Siparisler: React.FC = () => {
                      const newType = e.target.value;
                      setEFaturaInvoiceType(newType);
                      if (newType === 'ISTISNA' || newType === 'IHRACAT') {
-                       toast.info(`Fatura türü ${newType === 'ISTISNA' ? 'İstisna' : 'İhracat'} olarak seçildiği için KDV oranı otomatik olarak %0 şeklinde güncellendi.`, {
+                       toast(`Fatura türü ${newType === 'ISTISNA' ? 'İstisna' : 'İhracat'} olarak seçildiği için KDV oranı otomatik olarak %0 şeklinde güncellendi.`, {
                          icon: 'ℹ️',
                          duration: 5000
                        });

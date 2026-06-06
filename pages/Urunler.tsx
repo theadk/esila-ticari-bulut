@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer, TrendingUp } from 'lucide-react';
+import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer, TrendingUp, Mic, MicOff } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Product, Warehouse, Category, Brand } from '../types';
 import { api } from '../lib/api';
 import { useAppStore } from '../lib/store';
 import { Pagination } from '../components/Pagination';
+import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 const INITIAL_FORM: Product = {
   id: '',
@@ -57,6 +58,22 @@ export const Urunler: React.FC = () => {
   const [categoryFormData, setCategoryFormData] = useState<Category>({ id: '', name: '', subCategories: [] });
   const [newSubCategory, setNewSubCategory] = useState('');
   const [isCategoryEditing, setIsCategoryEditing] = useState(false);
+
+  const { isListening, supported, listen, stop } = useSpeechRecognition();
+  const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
+
+  const startListening = (field: string, updateFn: (text: string) => void) => {
+    if (isListening && activeSpeechField === field) {
+      stop();
+      setActiveSpeechField(null);
+    } else {
+      if (isListening) stop();
+      setActiveSpeechField(field);
+      listen((text) => {
+        updateFn(text);
+      });
+    }
+  };
 
   // Marka Formu State
   const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
@@ -1207,7 +1224,21 @@ export const Urunler: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kısa Açıklama</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Kısa Açıklama</label>
+                  {supported && (
+                    <button
+                      type="button"
+                      onClick={() => startListening('urunDescription', (text) => setFormData(prev => ({ ...prev, description: prev.description ? `${prev.description} ${text}` : text })))}
+                      className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                        isListening && activeSpeechField === 'urunDescription' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                      title={isListening && activeSpeechField === 'urunDescription' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                    >
+                      {isListening && activeSpeechField === 'urunDescription' ? <MicOff size={16} /> : <Mic size={16} />}
+                    </button>
+                  )}
+                </div>
                 <textarea 
                   rows={2}
                   value={formData.description || ''}

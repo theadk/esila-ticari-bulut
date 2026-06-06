@@ -7,7 +7,8 @@ import { useAppStore } from '../lib/store';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/Pagination';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download, Printer, Package, MessageSquare } from 'lucide-react';
+import { useSpeechRecognition } from '../lib/useSpeechRecognition';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download, Printer, Package, MessageSquare, Mic, MicOff } from 'lucide-react';
 import { Personnel, PersonnelRecord, Payroll } from '../types';
 import { sendSMS } from '../src/utils/smsRequest';
 
@@ -85,6 +86,22 @@ export const Personel: React.FC = () => {
   const [isFixtureModalOpen, setIsFixtureModalOpen] = useState(false);
   const [isAddingFixture, setIsAddingFixture] = useState(false);
   const [fixtureFormData, setFixtureFormData] = useState({ productId: '', quantity: 1, dateGiven: new Date().toISOString().split('T')[0] });
+
+  const { isListening, supported, listen, stop } = useSpeechRecognition();
+  const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
+
+  const startListening = (field: string, updateFn: (text: string) => void) => {
+    if (isListening && activeSpeechField === field) {
+      stop();
+      setActiveSpeechField(null);
+    } else {
+      if (isListening) stop();
+      setActiveSpeechField(field);
+      listen((text) => {
+        updateFn(text);
+      });
+    }
+  };
 
   const filteredPersonnel = personnel.filter(p => 
     `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -718,7 +735,7 @@ export const Personel: React.FC = () => {
           jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         };
 
-        const pdfBase64DataUri = await html2pdf().set(opt).from(wrapper).outputPdf("datauristring");
+        const pdfBase64DataUri = await html2pdf().set(opt as any).from(wrapper).outputPdf("datauristring");
         document.body.removeChild(wrapper);
 
         const res = await fetch('/api/send-email', {
@@ -1463,7 +1480,21 @@ export const Personel: React.FC = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="block text-sm font-medium text-gray-700">Açıklama</label>
+                                        {supported && (
+                                            <button
+                                                type="button"
+                                                onClick={() => startListening('leave', (text) => setLeaveFormData(prev => ({ ...prev, description: prev.description ? `${prev.description} ${text}` : text })))}
+                                                className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                                                    isListening && activeSpeechField === 'leave' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                }`}
+                                                title={isListening && activeSpeechField === 'leave' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                                            >
+                                                {isListening && activeSpeechField === 'leave' ? <MicOff size={16} /> : <Mic size={16} />}
+                                            </button>
+                                        )}
+                                    </div>
                                     <textarea
                                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
                                         rows={3}
@@ -1631,7 +1662,21 @@ export const Personel: React.FC = () => {
                                     <input required type="text" value={recordFormData.title} onChange={e => setRecordFormData({...recordFormData, title: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" placeholder="Örn: 2024 Zammı, Yıllık İzin vb." />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Detaylı Açıklama</label>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="block text-sm font-medium text-gray-700">Detaylı Açıklama</label>
+                                        {supported && (
+                                            <button
+                                                type="button"
+                                                onClick={() => startListening('record', (text) => setRecordFormData(prev => ({ ...prev, description: prev.description ? `${prev.description} ${text}` : text })))}
+                                                className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                                                    isListening && activeSpeechField === 'record' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                }`}
+                                                title={isListening && activeSpeechField === 'record' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                                            >
+                                                {isListening && activeSpeechField === 'record' ? <MicOff size={16} /> : <Mic size={16} />}
+                                            </button>
+                                        )}
+                                    </div>
                                     <textarea rows={5} required value={recordFormData.description} onChange={e => setRecordFormData({...recordFormData, description: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 resize-none"></textarea>
                                 </div>
                                 <div>
@@ -1992,6 +2037,23 @@ const LeaveManagementView: React.FC = () => {
   const { personnel, setPersonnel } = store;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPersonId, setSelectedPersonId] = useState('');
+  
+  const { isListening, supported, listen, stop } = useSpeechRecognition();
+  const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
+
+  const startListening = (field: string, updateFn: (text: string) => void) => {
+    if (isListening && activeSpeechField === field) {
+      stop();
+      setActiveSpeechField(null);
+    } else {
+      if (isListening) stop();
+      setActiveSpeechField(field);
+      listen((text) => {
+        updateFn(text);
+      });
+    }
+  };
+
   const [formData, setFormData] = useState({
     id: '',
     startDate: new Date().toISOString().split('T')[0],
@@ -2179,8 +2241,22 @@ const LeaveManagementView: React.FC = () => {
                 </div>
 
                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama / Sebebi</label>
-                   <textarea rows={2} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border rounded-lg placeholder-gray-400" placeholder="İsteğe bağlı açıklama..."></textarea>
+                   <div className="flex justify-between items-center mb-1">
+                     <label className="block text-sm font-medium text-gray-700">Açıklama / Sebebi</label>
+                     {supported && (
+                         <button
+                             type="button"
+                             onClick={() => startListening('genel_izin', (text) => setFormData(prev => ({ ...prev, description: (prev as any).description ? `${(prev as any).description} ${text}` : text })))}
+                             className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                                 isListening && activeSpeechField === 'genel_izin' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                             }`}
+                             title={isListening && activeSpeechField === 'genel_izin' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                         >
+                             {isListening && activeSpeechField === 'genel_izin' ? <MicOff size={16} /> : <Mic size={16} />}
+                         </button>
+                     )}
+                   </div>
+                   <textarea rows={2} value={(formData as any).description || ''} onChange={e => setFormData({...formData, description: e.target.value} as any)} className="w-full px-3 py-2 border rounded-lg placeholder-gray-400" placeholder="İsteğe bağlı açıklama..."></textarea>
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3 border-t border-gray-100">
@@ -2201,6 +2277,22 @@ const RecruitmentView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingApplication, setEditingApplication] = useState<any>(null);
+
+  const { isListening, supported, listen, stop } = useSpeechRecognition();
+  const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
+
+  const startListening = (field: string, updateFn: (text: string) => void) => {
+    if (isListening && activeSpeechField === field) {
+      stop();
+      setActiveSpeechField(null);
+    } else {
+      if (isListening) stop();
+      setActiveSpeechField(field);
+      listen((text) => {
+        updateFn(text);
+      });
+    }
+  };
 
   const initialForm = {
     id: '',
@@ -2392,8 +2484,22 @@ const RecruitmentView: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Notlar / Mülakat Kararı</label>
-                   <textarea rows={4} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full px-4 py-2 border rounded-lg placeholder-gray-300" placeholder="Adayın mülakat performansını veya özgeçmiş notlarını buraya alın..."></textarea>
+                   <div className="flex justify-between items-center mb-1">
+                     <label className="block text-sm font-medium text-gray-700">Notlar / Mülakat Kararı</label>
+                     {supported && (
+                         <button
+                             type="button"
+                             onClick={() => startListening('notes', (text) => setFormData(prev => ({ ...prev, notes: prev.notes ? `${prev.notes} ${text}` : text })))}
+                             className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                                 isListening && activeSpeechField === 'notes' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                             }`}
+                             title={isListening && activeSpeechField === 'notes' ? 'Dinlemeyi Durdur' : 'Sesle Yazdır'}
+                         >
+                             {isListening && activeSpeechField === 'notes' ? <MicOff size={16} /> : <Mic size={16} />}
+                         </button>
+                     )}
+                   </div>
+                   <textarea rows={4} value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full px-4 py-2 border rounded-lg placeholder-gray-300" placeholder="Adayın mülakat performansını veya özgeçmiş notlarını buraya alın..."></textarea>
                 </div>
               </div>
               <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 mt-auto rounded-b-xl">
