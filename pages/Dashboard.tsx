@@ -664,12 +664,38 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-800">Yönetim Paneli</h2>
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full xl:w-auto">
+          <h2 className="text-2xl font-bold text-gray-800 whitespace-nowrap">Yönetim Paneli</h2>
+          <div className="hidden sm:block h-6 w-px bg-gray-300"></div>
+          
+          <div className="flex bg-white rounded-lg shadow-sm border border-emerald-500 overflow-hidden w-full sm:w-auto ring-1 ring-emerald-500/20">
+             <button onClick={() => {
+                if (setActivePage) setActivePage('efatura');
+             }} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border-r border-gray-200 transition-colors group whitespace-nowrap">
+                <FileText size={16} className="text-purple-600 group-hover:text-purple-700" />
+                <span className="hidden sm:inline">Yeni</span> Fatura
+             </button>
+             <button onClick={() => {
+                if (setActivePage) setActivePage('cariler');
+                setTimeout(() => window.dispatchEvent(new CustomEvent('open-new-cari')), 100);
+             }} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border-r border-gray-200 transition-colors group whitespace-nowrap">
+                <Users size={16} className="text-blue-600 group-hover:text-blue-700" />
+                <span className="hidden sm:inline">Yeni</span> Cari
+             </button>
+             <button onClick={() => {
+                if (setActivePage) setActivePage('hizlisatis');
+             }} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors group whitespace-nowrap bg-emerald-50/50">
+                <ShoppingCart size={16} className="text-emerald-600 group-hover:text-emerald-700" />
+                Hızlı Satış
+             </button>
+          </div>
+        </div>
+
         <button 
           type="button"
           onClick={() => setIsEditMode(!isEditMode)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isEditMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors w-full sm:w-auto ${isEditMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
         >
           {isEditMode ? <><X size={18} /> Düzenlemeyi Bitir</> : <><Edit3 size={18} /> Paneli Düzenle</>}
         </button>
@@ -677,7 +703,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
       
       {/* Quick Actions Widget */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-        <h3 className="text-sm font-semibold text-gray-500 tracking-wider uppercase mb-4">Hızlı İşlemler</h3>
+        <h3 className="text-sm font-semibold text-gray-500 tracking-wider uppercase mb-4">Tüm Menüler</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <button type="button" onClick={() => setActivePage && setActivePage('hizlisatis')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-100 cursor-pointer">
                 <ShoppingCart size={24} className="mb-2" />
@@ -687,9 +713,9 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
                 <PlusCircle size={24} className="mb-2" />
                 <span className="text-sm font-medium text-center">Ürün Ekle</span>
             </button>
-            <button type="button" onClick={() => setActivePage && setActivePage('cariler')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-100 cursor-pointer">
+            <button type="button" onClick={() => { setActivePage && setActivePage('cariler'); setTimeout(() => window.dispatchEvent(new CustomEvent('open-new-cari')), 100); }} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-100 cursor-pointer">
                 <Users size={24} className="mb-2" />
-                <span className="text-sm font-medium text-center">Cari Ekle</span>
+                <span className="text-sm font-medium text-center">Yeni Cari</span>
             </button>
             <button type="button" onClick={() => setActivePage && setActivePage('kasa')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-100 cursor-pointer">
                 <CreditCard size={24} className="mb-2" />
@@ -697,7 +723,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
             </button>
             <button type="button" onClick={() => setActivePage && setActivePage('efatura')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors border border-purple-100 cursor-pointer">
                 <FileText size={24} className="mb-2" />
-                <span className="text-sm font-medium text-center">Fatura Kes</span>
+                <span className="text-sm font-medium text-center">Yeni Fatura</span>
             </button>
             <button type="button" onClick={() => setActivePage && setActivePage('ariza')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors border border-orange-100 cursor-pointer">
                 <Wrench size={24} className="mb-2" />

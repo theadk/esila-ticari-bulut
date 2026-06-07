@@ -341,6 +341,14 @@ export const Cariler: React.FC = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
+  useEffect(() => {
+    const handleOpenNewCari = () => {
+      handleAddNew();
+    };
+    window.addEventListener('open-new-cari', handleOpenNewCari);
+    return () => window.removeEventListener('open-new-cari', handleOpenNewCari);
+  }, [store.settings]);
+
   const handleAddNew = () => {
     const nextId = `${store.settings.prefix_customer || 'CAR'}-${store.settings.next_customer_id || 1001}`;
     setFormData({ ...INITIAL_FORM, id: nextId });
