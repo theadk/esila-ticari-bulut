@@ -415,18 +415,11 @@ export const Siparisler: React.FC = () => {
   const handleGenerateLink = async () => {
     if (!selectedOrder) return;
     try {
-       const res = await fetch('/api/public-form/generate-link', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: selectedOrder.id, type: 'order', t: localStorage.getItem("esila_tenant_id") || "1111111111" })
-       });
-       const data = await res.json();
-       if (!res.ok) throw new Error(data.error);
-       
-       await copyToClipboard(data.link);
-       toast.success('Bağlantı oluşturuldu ve panoya kopyalandı!');
-    } catch(err: any) {
-       toast.error('Bağlantı oluşturulamadı: ' + err.message);
+      const link = `${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`;
+      await navigator.clipboard.writeText(link);
+      toast.success('Bağlantı panoya kopyalandı!');
+    } catch (err: any) {
+      toast.error('Bağlantı kopyalanamadı: ' + err.message);
     }
   };
 
