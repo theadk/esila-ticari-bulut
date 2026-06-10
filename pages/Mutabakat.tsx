@@ -231,9 +231,16 @@ export const Mutabakat: React.FC = () => {
     }));
   };
 
-  const filteredReconciliations = reconciliations.filter(r => 
-    r.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+  const filteredReconciliations = reconciliations.filter(r => {
+    const searchMatch = r.customerName.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!searchMatch) return false;
+    if (activeTab === 'pending') return r.status === ReconciliationStatus.PENDING;
+    if (activeTab === 'approved') return r.status === ReconciliationStatus.APPROVED;
+    if (activeTab === 'rejected') return r.status === ReconciliationStatus.REJECTED;
+    return true;
+  });
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
@@ -244,7 +251,7 @@ export const Mutabakat: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, activeTab]);
 
   return (
     <div className="space-y-6">
@@ -274,7 +281,55 @@ export const Mutabakat: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="border-b border-gray-100">
+          <nav className="flex space-x-4 px-4" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'all'
+                  ? 'border-emerald-500 text-emerald-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Tümü
+            </button>
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                activeTab === 'pending'
+                  ? 'border-amber-500 text-amber-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Clock size={16} />
+              Onay Bekleyenler
+            </button>
+            <button
+              onClick={() => setActiveTab('approved')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                activeTab === 'approved'
+                  ? 'border-emerald-500 text-emerald-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <CheckCircle size={16} />
+              Onaylananlar
+            </button>
+            <button
+              onClick={() => setActiveTab('rejected')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                activeTab === 'rejected'
+                  ? 'border-red-500 text-red-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <XCircle size={16} />
+              Reddedilenler
+            </button>
+          </nav>
+        </div>
+
+        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="relative max-w-full sm:max-w-md w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input 

@@ -22,6 +22,7 @@ import { Ajanda } from './pages/Ajanda';
 import { SuperAdminLogin } from './src/pages/SuperAdminLogin';
 import { SuperAdminDashboard } from './src/pages/SuperAdminDashboard';
 import { PublicFormView } from './pages/PublicFormView';
+import { MutabakatOnayView } from './pages/MutabakatOnayView';
 import { FileText } from 'lucide-react';
 import { initializeStore } from './lib/store';
 import { InstallPrompt } from './src/components/InstallPrompt';
@@ -65,6 +66,12 @@ const App: React.FC = () => {
 
   if (publicFormId && publicFormType && publicTenantId) {
     return <PublicFormView id={publicFormId} type={publicFormType} tenantId={publicTenantId} />;
+  }
+
+  if (window.location.pathname.startsWith('/mutabakat-onay/')) {
+    const mutabakatId = window.location.pathname.split('/').pop() || '';
+    const mutabakatVkn = searchParams.get('vkn') || '';
+    return <MutabakatOnayView id={mutabakatId} vkn={mutabakatVkn} />;
   }
 
   if (isSuperAdminRoute) {

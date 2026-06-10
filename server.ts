@@ -738,34 +738,19 @@ async function startServer() {
     const id = req.params.id;
     const notes = req.query.notes || '';
     const date = new Date().toISOString();
+    const vkn = req.query.vkn || req.headers['x-tenant-id'] || '1111111111';
     
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      updateFallbackRow('reconciliations', id, req.headers['x-tenant-id'] || '1111111111', { status: 'Onaylandı', respondedAt: date, responseNotes: notes });
-      return res.send(`
-        <html>
-          <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
-            <h1 style="color: green;">Mutabakat Onaylandı</h1>
-            <p>Onayınız sisteme başarıyla işlenmiştir.</p>
-            <script>setTimeout(() => window.close(), 3000);</script>
-          </body>
-        </html>
-      `);
+      updateFallbackRow('reconciliations', id, vkn as string, { status: 'Onaylandı', respondedAt: date, responseNotes: notes });
+      return res.json({ success: true, message: 'Mutabakat Onaylandı' });
     }
 
     try {
       const pool = getPool();
-      await pool.query('UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?', ['Onaylandı', date, notes, id, req.headers['x-tenant-id'] || '1111111111']);
-      res.send(`
-        <html>
-          <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
-            <h1 style="color: green;">Mutabakat Onaylandı</h1>
-            <p>Onayınız sisteme başarıyla işlenmiştir.</p>
-            <script>setTimeout(() => window.close(), 3000);</script>
-          </body>
-        </html>
-      `);
+      await pool.query('UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?', ['Onaylandı', date, notes, id, vkn]);
+      res.json({ success: true, message: 'Mutabakat Onaylandı' });
     } catch (e) {
-      res.status(500).send('Sunucu hatası: ' + e);
+      res.status(500).json({ error: String(e) });
     }
   });
 
@@ -773,34 +758,19 @@ async function startServer() {
     const id = req.params.id;
     const notes = req.query.notes || '';
     const date = new Date().toISOString();
+    const vkn = req.query.vkn || req.headers['x-tenant-id'] || '1111111111';
     
     if ((!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql"))) {
-      updateFallbackRow('reconciliations', id, req.headers['x-tenant-id'] || '1111111111', { status: 'Reddedildi', respondedAt: date, responseNotes: notes });
-      return res.send(`
-        <html>
-          <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
-            <h1 style="color: red;">Mutabakat Reddedildi</h1>
-            <p>Ret işleminiz sisteme başarıyla işlenmiştir.</p>
-            <script>setTimeout(() => window.close(), 3000);</script>
-          </body>
-        </html>
-      `);
+      updateFallbackRow('reconciliations', id, vkn as string, { status: 'Reddedildi', respondedAt: date, responseNotes: notes });
+      return res.json({ success: true, message: 'Mutabakat Reddedildi' });
     }
 
     try {
       const pool = getPool();
-      await pool.query('UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?', ['Reddedildi', date, notes, id, req.headers['x-tenant-id'] || '1111111111']);
-      res.send(`
-        <html>
-          <body style="font-family:sans-serif; text-align:center; padding-top: 50px;">
-            <h1 style="color: red;">Mutabakat Reddedildi</h1>
-            <p>Ret işleminiz sisteme başarıyla işlenmiştir.</p>
-            <script>setTimeout(() => window.close(), 3000);</script>
-          </body>
-        </html>
-      `);
+      await pool.query('UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?', ['Reddedildi', date, notes, id, vkn]);
+      res.json({ success: true, message: 'Mutabakat Reddedildi' });
     } catch (e) {
-      res.status(500).send('Sunucu hatası: ' + e);
+      res.status(500).json({ error: String(e) });
     }
   });
 
