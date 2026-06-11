@@ -852,6 +852,32 @@ export const Ayarlar: React.FC = () => {
                   <div className="text-xs mt-1 text-gray-500 text-right">Örnek Sonuç: <strong className="text-gray-800">{(settings.prefix_earsiv || 'ARS').padEnd(3, 'A').slice(0, 3)}{new Date().getFullYear()}{String(settings.next_earsiv_id || 1).padStart(9, '0')}</strong></div>
                 </div>
 
+                {/* Servis Formu Şablonu */}
+                <div className="flex flex-col gap-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                  <h4 className="font-semibold text-gray-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-cyan-500"></div>Servis Formu Numarası</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Ön Ek</label>
+                      <input 
+                        type="text" 
+                        value={settings.prefix_service || 'SRV'}
+                        onChange={(e) => handleChange('prefix_service', e.target.value.toUpperCase())}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">Sıradaki No</label>
+                      <input 
+                        type="number" 
+                        value={settings.next_service_id || 1001}
+                        onChange={(e) => handleChange('next_service_id', Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs mt-1 text-gray-500 text-right">Örnek Sonuç: <strong className="text-gray-800">{(settings.prefix_service || 'SRV')}-{(settings.next_service_id || 1001)}</strong></div>
+                </div>
+
               </div>
             </div>
           )}

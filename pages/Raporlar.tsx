@@ -1,12 +1,16 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { useAppStore } from '../lib/store';
 import { TrendingUp, TrendingDown, DollarSign, Download, Printer, AlertCircle, PackageX, Calendar } from 'lucide-react';
 import { OrderStatus } from '../types';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export const Raporlar: React.FC = () => {
   const store = useAppStore();
   const [activeTab, setActiveTab] = useState<'karlilik' | 'cariler' | 'siparisler' | 'stoklar' | 'finans'>('finans');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const { dailySales, dailyCollections } = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -155,12 +159,57 @@ export const Raporlar: React.FC = () => {
     XLSX.writeFile(wb, "Sistem_Raporlari.xlsx");
   };
 
-  const printReport = () => {
-    window.print();
+  const printReport = async () => {
+    // Determine context. In iframes usually print behaves differently or gets blocked
+    try {
+      setIsGeneratingPdf(true);
+      
+      const element = printRef.current;
+      if (!element) return;
+
+      // Unhide the print-only header for rendering
+      const headerElements = element.querySelectorAll('[class*="print:flex"]');
+      headerElements.forEach(el => {
+        (el as HTMLElement).style.display = 'flex';
+      });
+
+      // Hide the print:hidden elements
+      const hiddenElements = element.querySelectorAll('[class*="print:hidden"]');
+      hiddenElements.forEach(el => {
+        (el as HTMLElement).style.display = 'none';
+      });
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+
+      // Restore elements
+      headerElements.forEach(el => {
+        (el as HTMLElement).style.display = '';
+      });
+      hiddenElements.forEach(el => {
+        (el as HTMLElement).style.display = '';
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('Sistem_Raporu.pdf');
+    } catch (error) {
+      console.error('PDF oluşturulurken hata:', error);
+      alert('PDF oluşturulurken bir hata oluştu. Açılır pencerelerin engellenmediğinden emin olun veya daha sonra tekrar deneyin.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   return (
-    <div className="space-y-6 print:m-0 print:p-0">
+    <div ref={printRef} className="space-y-6 print:m-0 print:p-0">
       <div className="hidden print:flex flex-col items-center justify-center mb-8 border-b-2 pb-4" style={{ borderColor: store.settings?.invoiceTemplate_color || '#10b981' }}>
         {store.settings?.companyLogo && (
           <img src={store.settings.companyLogo} alt="Logo" className="max-h-20 object-contain mb-2" />
@@ -180,9 +229,9 @@ export const Raporlar: React.FC = () => {
             <Download size={18} />
             <span>Excel'e Aktar</span>
           </button>
-          <button onClick={printReport} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+          <button disabled={isGeneratingPdf} onClick={printReport} className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-75 disabled:cursor-wait text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
             <Printer size={18} />
-            <span>Yazdır / PDF</span>
+            <span>{isGeneratingPdf ? 'Oluşturuluyor...' : 'Yazdır / PDF'}</span>
           </button>
         </div>
       </div>

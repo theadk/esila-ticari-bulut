@@ -17,6 +17,7 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "fast-xml-parser": "^5.8.0",
+    "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.14.0",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",

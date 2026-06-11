@@ -313,6 +313,8 @@ export interface Settings {
   next_efatura_id?: number;
   prefix_earsiv?: string;
   next_earsiv_id?: number;
+  prefix_service?: string;
+  next_service_id?: number;
   
   // Mail Şablonları
   email_template_customer?: string;
@@ -374,6 +376,8 @@ export interface ReminderNote {
   title: string;
   description: string;
   date: string;
+  notificationTime?: string;
+  notificationSent?: boolean;
   type: ReminderNoteType;
   isCompleted: boolean;
   relatedId?: string; // ID referencing a proposal, customer, personnel, etc.

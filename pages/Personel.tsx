@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import html2pdf from 'html2pdf.js';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import { useAppStore } from '../lib/store';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
@@ -725,17 +725,20 @@ export const Personel: React.FC = () => {
         `;
         wrapper.style.position = "absolute";
         wrapper.style.left = "-9999px";
+        wrapper.style.width = "210mm";
+        wrapper.style.minHeight = "297mm";
+        wrapper.style.padding = "10mm";
+        wrapper.style.backgroundColor = "white";
         document.body.appendChild(wrapper);
 
-        const opt = {
-          margin: [10, 10, 10, 10],
-          filename: `Bordro_${payroll.date}.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        };
-
-        const pdfBase64DataUri = await html2pdf().set(opt as any).from(wrapper).outputPdf("datauristring");
+        const canvas = await html2canvas(wrapper, { scale: 2, useCORS: true, logging: false });
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        
+        const pdfBase64DataUri = pdf.output("datauristring");
         document.body.removeChild(wrapper);
 
         const res = await fetch('/api/send-email', {

@@ -35,7 +35,8 @@ import {
 } from "../types";
 import { useAppStore } from "../lib/store";
 import toast from "react-hot-toast";
-import html2pdf from "html2pdf.js";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { defaultTemplates, parseEmailTemplate } from "../lib/emailUtils";
 import { copyToClipboard } from '../lib/utils';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
@@ -311,8 +312,10 @@ export const Ariza: React.FC = () => {
         nextMaintenanceDate = d.toISOString();
       }
 
+      const ticketId = `${store.settings.prefix_service || 'SRV'}-${store.settings.next_service_id || 1001}`;
+      
       const newTicket: ServiceTicket = {
-        id: crypto.randomUUID(),
+        id: ticketId,
         customerId: customer!.id,
         customerName: customer!.name,
         personnelId: formData.personnelId,
@@ -337,6 +340,12 @@ export const Ariza: React.FC = () => {
           }),
         ),
       };
+      
+      store.setSettings({
+        ...store.settings,
+        next_service_id: (store.settings.next_service_id || 1001) + 1
+      });
+      
       store.setServiceTickets([...serviceTickets, newTicket]);
       toast.success("Yeni kayıt oluşturuldu.");
     }
@@ -733,7 +742,7 @@ export const Ariza: React.FC = () => {
             <h1>ARIZA / SERVİS FORMU</h1>
             ${isA4 && store.settings?.companyName ? `<p>${store.settings.companyName}</p>` : ""}
             <div class="header-info">
-              Kayıt No: ${selectedTicket.id.split("-")[0]} &nbsp;|&nbsp; 
+              Kayıt No: ${(selectedTicket.id.length > 20 ? selectedTicket.id.split("-")[0].toUpperCase() : selectedTicket.id)} &nbsp;|&nbsp; 
               Kayıt: ${new Date(selectedTicket.dateCreated).toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })} &nbsp;|&nbsp; 
               Çıktı: ${new Date().toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
             </div>
@@ -836,17 +845,6 @@ export const Ariza: React.FC = () => {
     `;
   };
 
-  const handleGenerateLink = async () => {
-    if (!selectedTicket) return;
-    try {
-      const link = `${window.location.origin}?public_form=${selectedTicket.id}&type=ticket&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`;
-      await navigator.clipboard.writeText(link);
-      toast.success('Bağlantı panoya kopyalandı!');
-    } catch (err: any) {
-      toast.error('Bağlantı kopyalanamadı: ' + err.message);
-    }
-  };
-
   const handlePrint = (format: "a4" | "thermal") => {
     if (!selectedTicket) return;
     const html = generateHTML(format);
@@ -876,7 +874,7 @@ export const Ariza: React.FC = () => {
     }, 500);
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!selectedTicket) return;
     const html = generateHTML("a4");
     const wrapper = document.createElement("div");
@@ -884,21 +882,27 @@ export const Ariza: React.FC = () => {
     
     wrapper.style.position = "absolute";
     wrapper.style.left = "-9999px";
+    wrapper.style.width = "210mm";
+    wrapper.style.minHeight = "297mm";
+    wrapper.style.padding = "10mm";
+    wrapper.style.backgroundColor = "white";
     document.body.appendChild(wrapper);
 
-    const opt = {
-      margin: [5, 5, 5, 5],
-      filename: `Servis_Formu_${selectedTicket.id.split("-")[0]}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    html2pdf().set(opt as any).from(wrapper).save().then(() => {
-        document.body.removeChild(wrapper);
-    });
-    toast.success("PDF indirme başladı.");
+    try {
+      const canvas = await html2canvas(wrapper, { scale: 2, useCORS: true, logging: false });
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Servis_Formu_${(selectedTicket.id.length > 20 ? selectedTicket.id.split("-")[0].toUpperCase() : selectedTicket.id)}.pdf`);
+    } catch (err) {
+      console.error(err);
+      toast.error('PDF oluşturulurken hata oluştu.');
+    } finally {
+      document.body.removeChild(wrapper);
+    }
+    toast.success("PDF indirme başarıyla tamamlandı.");
   };
 
   const handleSendEmail = async () => {
@@ -917,7 +921,7 @@ export const Ariza: React.FC = () => {
       FIRMA_ADI: store.settings.companyName || "Şirket Adı",
       MUSTERI_ADI: selectedTicket.customerName,
       TARIH: new Date().toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
-      KAYIT_NO: selectedTicket.id.split("-")[0],
+      KAYIT_NO: (selectedTicket.id.length > 20 ? selectedTicket.id.split("-")[0].toUpperCase() : selectedTicket.id),
       CIHAZ: selectedTicket.deviceType,
       DURUM: selectedTicket.status,
       SIKAYET: selectedTicket.issueDescription || "-",
@@ -940,21 +944,20 @@ export const Ariza: React.FC = () => {
       wrapper.innerHTML = html;
       wrapper.style.position = "absolute";
       wrapper.style.left = "-9999px";
+      wrapper.style.width = "210mm";
+      wrapper.style.minHeight = "297mm";
+      wrapper.style.padding = "10mm";
+      wrapper.style.backgroundColor = "white";
       document.body.appendChild(wrapper);
 
-      const opt = {
-        margin: [5, 5, 5, 5],
-        filename: `Servis_Formu_${selectedTicket.id.split("-")[0]}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      };
-
-      const pdfBase64DataUri = await html2pdf()
-        .set(opt as any)
-        .from(wrapper)
-        .outputPdf("datauristring");
+      const canvas = await html2canvas(wrapper, { scale: 2, useCORS: true, logging: false });
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      
+      const pdfBase64DataUri = pdf.output("datauristring");
       
       document.body.removeChild(wrapper);
 
@@ -967,12 +970,12 @@ export const Ariza: React.FC = () => {
         },
         body: JSON.stringify({
           to: customer.email,
-          subject: `Servis Kayıt Formu - ${selectedTicket.id.split("-")[0]}`,
+          subject: `Servis Kayıt Formu - ${(selectedTicket.id.length > 20 ? selectedTicket.id.split("-")[0].toUpperCase() : selectedTicket.id)}`,
           html: emailContent,
           wrapped: true,
           attachments: [
             {
-              filename: `Servis_Formu_${selectedTicket.id.split("-")[0]}.pdf`,
+              filename: `Servis_Formu_${(selectedTicket.id.length > 20 ? selectedTicket.id.split("-")[0].toUpperCase() : selectedTicket.id)}.pdf`,
               path: pdfBase64DataUri,
             },
           ],
@@ -1026,7 +1029,7 @@ export const Ariza: React.FC = () => {
           FIRMA_ADI: store.settings.companyName || "Şirket Adı",
           MUSTERI_ADI: ticket.customerName,
           TARIH: new Date().toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
-          KAYIT_NO: ticket.id.split("-")[0],
+          KAYIT_NO: (ticket.id.length > 20 ? ticket.id.split("-")[0].toUpperCase() : ticket.id),
           CIHAZ: ticket.deviceType,
           DURUM: ticket.status,
           SIKAYET: ticket.issueDescription || "-",
@@ -1114,21 +1117,20 @@ export const Ariza: React.FC = () => {
           wrapper.innerHTML = html;
           wrapper.style.position = "absolute";
           wrapper.style.left = "-9999px";
+          wrapper.style.width = "210mm";
+          wrapper.style.minHeight = "297mm";
+          wrapper.style.padding = "10mm";
+          wrapper.style.backgroundColor = "white";
           document.body.appendChild(wrapper);
           
-          const opt = {
-            margin: [5, 5, 5, 5],
-            filename: `Servis_Formu_${ticket.id.split("-")[0]}.pdf`,
-            image: { type: "jpeg", quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-          };
-
-          const pdfBase64DataUri = await html2pdf()
-            .set(opt as any)
-            .from(wrapper)
-            .outputPdf("datauristring");
+          const canvas = await html2canvas(wrapper, { scale: 2, useCORS: true, logging: false });
+          const imgData = canvas.toDataURL('image/jpeg', 1.0);
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+          pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+          
+          const pdfBase64DataUri = pdf.output("datauristring");
             
           document.body.removeChild(wrapper);
 
@@ -1141,12 +1143,12 @@ export const Ariza: React.FC = () => {
             },
             body: JSON.stringify({
               to: customer.email,
-              subject: `Servis Bilgilendirmesi - ${ticket.id.split("-")[0]}`,
+              subject: `Servis Bilgilendirmesi - ${(ticket.id.length > 20 ? ticket.id.split("-")[0].toUpperCase() : ticket.id)}`,
               html: emailContent,
               wrapped: true,
               attachments: [
                 {
-                  filename: `Servis_Formu_${ticket.id.split("-")[0]}.pdf`,
+                  filename: `Servis_Formu_${(ticket.id.length > 20 ? ticket.id.split("-")[0].toUpperCase() : ticket.id)}.pdf`,
                   path: pdfBase64DataUri,
                 },
               ],
@@ -1580,13 +1582,22 @@ export const Ariza: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    list="serial-number-list"
                     className="w-full p-2.5 rounded-lg border border-gray-200 focus:border-emerald-500 outline-none"
                     value={formData.serialNumber}
                     onChange={(e) =>
                       setFormData({ ...formData, serialNumber: e.target.value })
                     }
-                    placeholder="Seri veya Model No"
+                    placeholder="Seri veya Model No Seçin/Yazın"
                   />
+                  <datalist id="serial-number-list">
+                    {Array.from(new Set([
+                      ...store.serviceTickets.map(t => t.serialNumber).filter(Boolean),
+                      ...store.personnel.flatMap(p => p.fixtures?.map(f => f.serialNumber) || []).filter(Boolean)
+                    ])).map(sn => (
+                      <option key={sn} value={sn}>{sn}</option>
+                    ))}
+                  </datalist>
                 </div>
               </div>
 
@@ -1674,14 +1685,34 @@ export const Ariza: React.FC = () => {
                 Arıza Formu Detayı
               </h3>
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  onClick={handleGenerateLink}
-                  className="flex items-center gap-2 bg-purple-50 hover:bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-purple-200"
-                  title="Bağlantı kopyala (Giriş gerektirmez)"
-                >
-                  <Link size={16} />
-                  Link Kopyala
-                </button>
+                {selectedTicket.status === "Tamamlandı" && (
+                  <button
+                    onClick={() => {
+                        const invoiceData = {
+                            id: crypto.randomUUID(),
+                            orderId: selectedTicket.id,
+                            customerName: selectedTicket.customerName,
+                            amount: selectedTicket.totalCost,
+                            taxTotal: selectedTicket.totalCost - (selectedTicket.totalCost / (1 + ((selectedTicket.taxRate || 20) / 100))),
+                            subTotal: selectedTicket.totalCost / (1 + ((selectedTicket.taxRate || 20) / 100)),
+                            type: 'e-Arşiv Fatura',
+                            invoiceType: 'SATIŞ',
+                            scenario: 'İnternet',
+                            date: new Date().toISOString(),
+                            status: 'Taslak'
+                        };
+                        if (store.setEInvoices) {
+                            store.setEInvoices([...(store.eInvoices || []), invoiceData]);
+                            alert("Arıza formu başarıyla e-Fatura taslağına dönüştürüldü.");
+                        }
+                    }}
+                    className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-indigo-200"
+                    title="Faturaya Çevir (Taslak)"
+                  >
+                    <FileText size={16} />
+                    Faturaya Çevir
+                  </button>
+                )}
                 <button
                   onClick={() => setIsQRModalOpen(true)}
                   className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200"

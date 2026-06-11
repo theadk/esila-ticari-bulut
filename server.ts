@@ -637,55 +637,7 @@ async function startServer() {
   app.post('/api/reconciliations', async (req, res) => {
     const mutabakat = { ...req.body, id: req.body.id || String(Date.now()), emailSentAt: new Date().toISOString() };
     
-    // Gerçek mail gönderimi
-    const approveLink = `https://${req.get('host')}/api/reconciliations/${mutabakat.id}/approve?notes=`;
-    const rejectLink = `https://${req.get('host')}/api/reconciliations/${mutabakat.id}/reject?notes=`;
-    
-    // Müşterinin e-mail adresini bulmak için, eğer email body'de gelmiyorsa 
-    // veya mutabakat.email olarak geliyorsa onu kullanalım. Şimdilik mutabakat formunda e -posta yolluyor olmasını varsayıyoruz. 
-    // Veya sadece konsola da yazabiliriz, ama gercekten mail atacaksak kime atacagiz?
-    // Kullanici "butun mailleri..." dedi diye ben bir try-catch koyuyorum
-    if (mutabakat.email || mutabakat.customerEmail) {
-       await sendMail(
-         mutabakat.email || mutabakat.customerEmail, 
-         "Cari Mutabakatı - Esila Ticari",
-         `
-         <h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 24px;">Sayın ${mutabakat.customerName},</h2>
-<p style="margin-bottom: 16px;">Firmanız ile olan cari hesap mutabakatımıza göre, kayıtlarımızda bulunan bakiye bilginiz aşağıdaki gibidir:</p>
-
-<div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
-    <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-                <td style="padding-bottom: 8px; color: #6b7280; font-weight: 500;">Tarih:</td>
-                <td style="padding-bottom: 8px; font-weight: 600; text-align: right;">${new Date().toLocaleDateString('tr-TR')}</td>
-            </tr>
-            <tr>
-                <td style="padding-bottom: 8px; color: #6b7280; font-weight: 500;">Bakiye Tipi:</td>
-                <td style="padding-bottom: 8px; font-weight: 600; text-align: right;">${mutabakat.balance > 0 ? "Alacaklıyız" : (mutabakat.balance < 0 ? "Borçluyuz" : "Bakiye Yok")}</td>
-            </tr>
-            <tr>
-                <td style="border-top: 1px solid #d1d5db; padding-top: 12px; color: #374151; font-weight: 600; font-size: 16px;">Mutabakat Bakiyesi:</td>
-                <td style="border-top: 1px solid #d1d5db; padding-top: 12px; font-weight: 700; text-align: right; font-size: 18px; color: #059669;">${Math.abs(mutabakat.balance).toLocaleString('tr-TR')} TL</td>
-            </tr>
-        </table>
-    </div>
-</div>
-
-<p style="margin-bottom: 24px;">Lütfen bakiyeyi kendi kayıtlarınızla kontrol ederek mutabakat durumunuzu bize bildiriniz.</p>
-
-<div style="display: block; width: 100%; gap: 16px; margin-bottom: 32px;">
-    <a href="${approveLink}" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 15px; margin-right: 12px; margin-bottom: 8px; text-align: center;">Kabul Et ve Onayla</a>
-    <a href="${rejectLink}" style="display: inline-block; background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 15px; margin-bottom: 8px; text-align: center;">Reddet ve İtiraz İlet</a>
-</div>
-
-<p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">Mutabakat konusunda sorularınız varsa veya bakiye ile ilgili itirazınız bulunuyorsa yukarıdaki bağlantıları kullanabilirsiniz.</p>
-         </div>
-         `
-       );
-    }
-
-    console.log(`[Mutabakat] Email gönderildi: ${mutabakat.customerName} - Bakiye: ${mutabakat.balance} ${mutabakat.balanceType}`);
+    console.log(`[Mutabakat] İstemci tarafından mail gönderilmesi bekleniyor: ${mutabakat.customerName} - Bakiye: ${mutabakat.balance} ${mutabakat.balanceType}`);
     console.log(`[Onay Linki] /api/reconciliations/${mutabakat.id}/approve`);
     console.log(`[Red Linki] /api/reconciliations/${mutabakat.id}/reject`);
 

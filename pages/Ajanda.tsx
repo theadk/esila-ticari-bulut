@@ -16,15 +16,53 @@ export const Ajanda: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'Tümü' | 'Bekleyenler' | 'Tamamlananlar'>('Tümü');
 
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [noteForm, setNoteForm] = useState<{title: string, description: string, date: string, type: ReminderNoteType, amount: number | ''}>({
+  const [noteForm, setNoteForm] = useState<{title: string, description: string, date: string, notificationTime: string, type: ReminderNoteType, amount: number | ''}>({
     title: '',
     description: '',
     date: todayStr,
+    notificationTime: '',
     type: 'Genel',
     amount: ''
   });
 
   const { isListening, supported, listen, stop } = useSpeechRecognition();
+
+  // Desktop Notification Permission & Checker
+  useEffect(() => {
+    if ("Notification" in window) {
+      if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
+    }
+
+    const checkNotifications = () => {
+      if (!reminderNotes || !("Notification" in window) || Notification.permission !== "granted") return;
+      
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0];
+      const currentTime = now.toTimeString().split(' ')[0].substring(0, 5); // "HH:MM"
+      
+      let updatedNotes = false;
+      const newNotes = reminderNotes.map(note => {
+        if (!note.isCompleted && !note.notificationSent && note.date === currentDate && note.notificationTime === currentTime) {
+          new Notification("Hatırlatma: " + note.title, {
+            body: note.description || "Göz atmak için ajanda uygulamasına dönebilirsiniz.",
+            icon: "/favicon.ico"
+          });
+          updatedNotes = true;
+          return { ...note, notificationSent: true };
+        }
+        return note;
+      });
+
+      if (updatedNotes) {
+        setReminderNotes(newNotes);
+      }
+    };
+
+    const intervalId = setInterval(checkNotifications, 10000); // Check every 10 seconds
+    return () => clearInterval(intervalId);
+  }, [reminderNotes, setReminderNotes]);
 
   const handleSpeechRecognition = () => {
     if (isListening) {
@@ -47,6 +85,7 @@ export const Ajanda: React.FC = () => {
         description: noteForm.description,
         type: noteForm.type,
         date: noteForm.date,
+        notificationTime: noteForm.notificationTime || undefined,
         amount: noteForm.amount ? Number(noteForm.amount) : undefined,
         isCompleted: false
     };
@@ -124,7 +163,7 @@ export const Ajanda: React.FC = () => {
         </h2>
         <button 
            onClick={() => {
-             setNoteForm({ title: '', description: '', date: todayStr, type: 'Genel', amount: '' });
+             setNoteForm({ title: '', description: '', date: todayStr, notificationTime: '', type: 'Genel', amount: '' });
              setShowNoteModal(true);
            }}
            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
@@ -241,7 +280,10 @@ export const Ajanda: React.FC = () => {
                        )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                       <div className="text-sm text-gray-900">{new Date(note.date).toLocaleDateString('tr-TR')}</div>
+                       <div className="text-sm text-gray-900">
+                           {new Date(note.date).toLocaleDateString('tr-TR')}
+                           {note.notificationTime && <span className="ml-2 text-gray-500">[{note.notificationTime}]</span>}
+                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                        <button onClick={() => deleteNote(note.id)} className="text-gray-400 hover:text-red-500 bg-white hover:bg-red-50 p-2 rounded-lg transition-colors">
@@ -269,9 +311,15 @@ export const Ajanda: React.FC = () => {
                   </button>
                </div>
                <div className="p-4 space-y-4">
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
-                     <input type="date" className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500" value={noteForm.date} onChange={e => setNoteForm({...noteForm, date: e.target.value})} />
+                  <div className="flex gap-4">
+                     <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
+                        <input type="date" className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500" value={noteForm.date} onChange={e => setNoteForm({...noteForm, date: e.target.value})} />
+                     </div>
+                     <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Bildirim Saati (Opsiyonel)</label>
+                        <input type="time" className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500" value={noteForm.notificationTime} onChange={e => setNoteForm({...noteForm, notificationTime: e.target.value})} />
+                     </div>
                   </div>
                   <div>
                      <label className="block text-sm font-medium text-gray-700 mb-1">Başlık</label>

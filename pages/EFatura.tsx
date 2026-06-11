@@ -12,6 +12,8 @@ import {
   Printer,
   Eye,
   X,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { useAppStore } from "../lib/store";
 import { InvoiceTemplateEditor } from "../components/InvoiceTemplateEditor";
@@ -24,6 +26,7 @@ export const EFatura: React.FC = () => {
   );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [previewInvoice, setPreviewInvoice] = useState<any>(null);
+  const [editInvoice, setEditInvoice] = useState<any>(null);
   const [printType, setPrintType] = useState<'A4' | '80mm'>('A4');
 
   const invoices = store.eInvoices || [];
@@ -70,6 +73,26 @@ export const EFatura: React.FC = () => {
     }, 1500);
   };
 
+
+  const handleDeleteInvoice = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Taslak faturayı silmek istediğinize emin misiniz?")) {
+      if (store.setEInvoices) {
+        store.setEInvoices(store.eInvoices.filter((i) => i.id !== id));
+      }
+    }
+  };
+
+  const handleEditInvoiceSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editInvoice) return;
+    if (store.setEInvoices) {
+      store.setEInvoices(
+        store.eInvoices.map((inv) => (inv.id === editInvoice.id ? editInvoice : inv))
+      );
+    }
+    setEditInvoice(null);
+  };
 
   const filtered = invoices.filter((inv) => {
     if (activeTab === "Taslak") return inv.status === "Taslak";
@@ -403,12 +426,28 @@ export const EFatura: React.FC = () => {
                             <Eye size={16} />
                           </button>
                           {inv.status === "Taslak" ? (
-                            <button
-                              onClick={() => handleSendToPortal(inv.id)}
-                              className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1"
-                            >
-                              <Send size={14} /> GİB'e Gönder
-                            </button>
+                            <>
+                              <button
+                                onClick={() => setEditInvoice(inv)}
+                                className="px-2 py-1.5 bg-gray-50 text-emerald-600 hover:bg-emerald-50 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1"
+                                title="Düzenle"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={(e) => handleDeleteInvoice(inv.id, e)}
+                                className="px-2 py-1.5 bg-gray-50 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1"
+                                title="Sil"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleSendToPortal(inv.id)}
+                                className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1"
+                              >
+                                <Send size={14} /> GİB'e Gönder
+                              </button>
+                            </>
                           ) : (
                             <div className="flex gap-1 items-center">
                               <button 
@@ -440,6 +479,72 @@ export const EFatura: React.FC = () => {
             onItemsPerPageChange={setItemsPerPage}
             totalItems={filtered.length}
           />
+        </div>
+      )}
+
+      {/* Edit Invoice Modal */}
+      {editInvoice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Taslak Fatura Düzenle</h3>
+              <button
+                onClick={() => setEditInvoice(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleEditInvoiceSave} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fatura Tipi / Türü</label>
+                <select
+                  className="w-full p-2.5 rounded-lg border border-gray-200 outline-none"
+                  value={editInvoice.type}
+                  onChange={(e) => setEditInvoice({ ...editInvoice, type: e.target.value })}
+                >
+                  <option value="e-Fatura">e-Fatura</option>
+                  <option value="e-Arşiv Fatura">e-Arşiv Fatura</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Senaryo</label>
+                <select
+                  className="w-full p-2.5 rounded-lg border border-gray-200 outline-none"
+                  value={editInvoice.scenario}
+                  onChange={(e) => setEditInvoice({ ...editInvoice, scenario: e.target.value })}
+                >
+                  <option value="Temel Fatura">Temel Fatura</option>
+                  <option value="Ticari Fatura">Ticari Fatura</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">İstisna Kodu (Sadece İstisna ise)</label>
+                <input
+                  type="text"
+                  className="w-full p-2.5 rounded-lg border border-gray-200 outline-none"
+                  value={editInvoice.exceptionCode || ""}
+                  onChange={(e) => setEditInvoice({ ...editInvoice, exceptionCode: e.target.value })}
+                  placeholder="Örn: 221"
+                />
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setEditInvoice(null)}
+                  className="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50 font-medium"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
