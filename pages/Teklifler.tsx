@@ -108,6 +108,7 @@ export const Teklifler: React.FC = () => {
           productName: product.name,
           price: product.price,
           quantity: quantityToAdd,
+          unit: product.unit || 'Adet',
           discountRate: discountToAdd,
           taxRate: taxToAdd
         }
@@ -392,7 +393,7 @@ export const Teklifler: React.FC = () => {
                              <td className="px-4 py-3 text-right">{item.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
                              <td className="px-4 py-3 text-right text-red-500">% {item.discountRate}</td>
                              <td className="px-4 py-3 text-right text-gray-500">% {item.taxRate || 20}</td>
-                             <td className="px-4 py-3 text-right">{item.quantity}</td>
+                             <td className="px-4 py-3 text-right">{item.quantity} {item.unit || 'Adet'}</td>
                              <td className="px-4 py-3 text-right font-medium">
                                {(netTotal + taxTotalForItem).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                              </td>
@@ -560,13 +561,23 @@ export const Teklifler: React.FC = () => {
                       <div className="flex flex-wrap gap-2">
                         <div className="flex-1">
                           <label className="block text-xs font-medium text-gray-500 mb-1">Miktar</label>
-                          <input 
-                            type="number" 
-                            min="1"
-                            value={quantityToAdd}
-                            onChange={(e) => setQuantityToAdd(Number(e.target.value))}
-                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                          />
+                          <div className="relative">
+                            <input 
+                              type="number" 
+                              min="0.01"
+                              step="0.01"
+                              value={quantityToAdd}
+                              onChange={(e) => setQuantityToAdd(parseFloat(e.target.value) || 1)}
+                              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                            />
+                            {selectedProductToAdd && (
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <span className="text-gray-500 text-sm">
+                                  {products.find(p => String(p.id) === selectedProductToAdd)?.unit || 'Adet'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="flex-1">
                           <label className="block text-xs font-medium text-gray-500 mb-1">İndirim (%)</label>
@@ -637,7 +648,7 @@ export const Teklifler: React.FC = () => {
                              <td className="px-4 py-2">{item.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
                              <td className="px-4 py-2 text-red-500 text-center">%{item.discountRate}</td>
                              <td className="px-4 py-2 text-gray-500 text-center">%{item.taxRate || 20}</td>
-                             <td className="px-4 py-2 text-center">{item.quantity}</td>
+                             <td className="px-4 py-2 text-center">{item.quantity} {item.unit || 'Adet'}</td>
                              <td className="px-4 py-2 text-right font-medium">
                                 {(netTotal + taxTotalForItem).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                              </td>
@@ -784,7 +795,7 @@ export const Teklifler: React.FC = () => {
                              return (
                                <tr key={idx}>
                                  <td className="border border-black text-left">{item.productName}</td>
-                                 <td className="border border-black text-center">{item.quantity}</td>
+                                 <td className="border border-black text-center">{item.quantity} {item.unit || 'Adet'}</td>
                                  <td className="border border-black text-right">
                                    {netPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                  </td>
@@ -881,7 +892,7 @@ export const Teklifler: React.FC = () => {
                       return (
                         <tr key={idx} className="border-b border-gray-300 border-dashed">
                           <td className="py-1 pr-2">{item.productName} {item.discountRate > 0 && <span className="text-[10px] block">(-%{item.discountRate})</span>}</td>
-                          <td className="py-1 text-right whitespace-nowrap">{item.quantity}</td>
+                          <td className="py-1 text-right whitespace-nowrap">{item.quantity} {item.unit || 'Adet'}</td>
                           <td className="py-1 text-right whitespace-nowrap">
                             {(netPrice * item.quantity).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                           </td>

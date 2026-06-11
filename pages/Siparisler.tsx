@@ -177,6 +177,7 @@ export const Siparisler: React.FC = () => {
           productName: product.name,
           price: product.price,
           quantity: quantityToAdd,
+          unit: product.unit || 'Adet',
           taxRate: taxToAdd
         }
       ]);
@@ -669,7 +670,7 @@ export const Siparisler: React.FC = () => {
                 <thead className="bg-gray-50 text-gray-600 text-sm">
                   <tr>
                     <th className="py-2 px-3">Ürün</th>
-                    <th className="py-2 px-3 text-right">Adet</th>
+                    <th className="py-2 px-3 text-right">Miktar</th>
                     <th className="py-2 px-3 text-right">Birim Fiyat</th>
                     <th className="py-2 px-3 text-right">Toplam</th>
                   </tr>
@@ -678,7 +679,7 @@ export const Siparisler: React.FC = () => {
                   {selectedOrder.items.map((item, idx) => (
                     <tr key={idx} className="text-sm text-gray-800">
                       <td className="py-2 px-3">{item.productName}</td>
-                      <td className="py-2 px-3 text-right">{item.quantity}</td>
+                      <td className="py-2 px-3 text-right">{item.quantity} {item.unit || 'Adet'}</td>
                       <td className="py-2 px-3 text-right">
                         {(item.price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                       </td>
@@ -888,15 +889,21 @@ export const Siparisler: React.FC = () => {
                         </div>
                       </div>
                       
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 items-center">
                         <input 
                           type="number" 
-                          min="1"
+                          min="0.01"
+                          step="0.01"
                           title="Miktar"
                           className="w-20 p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 text-sm"
                           value={quantityToAdd}
-                          onChange={(e) => setQuantityToAdd(parseInt(e.target.value) || 1)}
+                          onChange={(e) => setQuantityToAdd(parseFloat(e.target.value) || 1)}
                         />
+                        {selectedProductToAdd && (
+                          <span className="text-sm font-medium text-gray-600">
+                            {products.find(p => String(p.id) === selectedProductToAdd)?.unit || 'Adet'}
+                          </span>
+                        )}
                         <select 
                           title="KDV Oranı"
                           className="w-20 p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 text-sm"

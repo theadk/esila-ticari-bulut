@@ -14,6 +14,7 @@ const INITIAL_FORM: Product = {
   price: 0,
   purchasePrice: 0,
   stock: 0,
+  unit: 'Adet',
   category: '',
   subCategory: '',
   warehouse: '',
@@ -961,9 +962,9 @@ export const Urunler: React.FC = () => {
                     {product.stock === 0 ? (
                       <span className="text-red-600 text-sm font-medium bg-red-50 px-2 py-1 rounded">Tükendi</span>
                     ) : product.stock < 10 ? (
-                      <span className="text-orange-600 text-sm font-medium bg-orange-50 px-2 py-1 rounded">Kritik ({product.stock})</span>
+                      <span className="text-orange-600 text-sm font-medium bg-orange-50 px-2 py-1 rounded">Kritik ({product.stock} {product.unit || 'Adet'})</span>
                     ) : (
-                      <span className="text-emerald-600 text-sm font-medium bg-emerald-50 px-2 py-1 rounded">Stokta ({product.stock})</span>
+                      <span className="text-emerald-600 text-sm font-medium bg-emerald-50 px-2 py-1 rounded">Stokta ({product.stock} {product.unit || 'Adet'})</span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -1133,7 +1134,7 @@ export const Urunler: React.FC = () => {
             </div>
             
             <form onSubmit={handleSave} className="p-3 sm:p-4 space-y-3 overflow-y-auto flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ürün Kodu</label>
                   <input 
@@ -1152,6 +1153,25 @@ export const Urunler: React.FC = () => {
                     onChange={(e) => setFormData({...formData, barcode: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
+                 </div>
+                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Birim</label>
+                  <select
+                    value={formData.unit || 'Adet'}
+                    onChange={(e) => setFormData({...formData, unit: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                  >
+                    <option value="Adet">Adet</option>
+                    <option value="Paket">Paket</option>
+                    <option value="Koli">Koli</option>
+                    <option value="Kutu">Kutu</option>
+                    <option value="Kilo">Kilogram (kg)</option>
+                    <option value="Gram">Gram (g)</option>
+                    <option value="Litre">Litre (L)</option>
+                    <option value="Metre">Metre (m)</option>
+                    <option value="Saat">Saat</option>
+                    <option value="Gün">Gün</option>
+                  </select>
                  </div>
               </div>
 
@@ -1296,7 +1316,7 @@ export const Urunler: React.FC = () => {
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <label className="block text-sm font-medium text-gray-700">Depo ve Stok Dağılımı</label>
-                  <span className="text-sm font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md">Toplam Stok: {formData.stock}</span>
+                  <span className="text-sm font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md">Toplam Stok: {formData.stock} {formData.unit || 'Adet'}</span>
                 </div>
                 {(formData.warehouseStocks || []).map((ws, i) => (
                   <div key={i} className="flex gap-2 mb-2">
@@ -1318,7 +1338,8 @@ export const Urunler: React.FC = () => {
                     <input 
                       required
                       type="number" 
-                      placeholder="Adet"
+                      step="0.01"
+                      placeholder="Miktar"
                       value={ws.stock === 0 ? '' : ws.stock}
                       onChange={(e) => {
                          const newStocks = [...(formData.warehouseStocks || [])];

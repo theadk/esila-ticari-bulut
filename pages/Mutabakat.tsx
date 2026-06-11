@@ -402,7 +402,8 @@ export const Mutabakat: React.FC = () => {
                              return;
                            }
                            const link = `${window.location.origin}/mutabakat-onay/${r.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')}`;
-                           const text = `Sayın ${r.customerName} yetkilisi, güncel kayıtlarımıza göre ${new Date(r.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} (${r.balanceType}) tutarında mutabıktır. Linkten teyit etmenizi rica ederiz: ${link} Saygılarımızla, ${store.settings?.companyName || 'Şirket'}`;
+                           const ibanText = (r.balanceType === 'B' && store.settings?.iban) ? `\n\nÖdeme Bilgilerimiz:\nBanka: ${store.settings?.bankName || ''}\nIBAN: ${store.settings?.iban}` : '';
+                           const text = `Sayın ${r.customerName} yetkilisi, güncel kayıtlarımıza göre ${new Date(r.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} (${r.balanceType}) tutarında mutabıktır. Linkten teyit etmenizi rica ederiz: ${link} ${ibanText}\n\nSaygılarımızla, ${store.settings?.companyName || 'Şirket'}`;
                            window.open(`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
                          }}
                          className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors title='WhatsApp ile Gönder'"
@@ -418,7 +419,8 @@ export const Mutabakat: React.FC = () => {
                              return;
                            }
                            const link = `${window.location.origin}/mutabakat-onay/${r.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')}`;
-                           const text = `Sayın ${r.customerName} yetkilisi, ${new Date(r.date).toLocaleDateString('tr-TR')} itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${r.balanceType}) mutabıktır. Linkten onaylayabilirsiniz: ${link} ${store.settings?.companyName || 'Şirket'}`;
+                           const ibanText = (r.balanceType === 'B' && store.settings?.iban) ? ` Ödeme: ${store.settings?.iban}` : '';
+                           const text = `Sayın ${r.customerName} yetkilisi, ${new Date(r.date).toLocaleDateString('tr-TR')} itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${r.balanceType}) mutabıktır. Linkten onaylayabilirsiniz: ${link} ${ibanText} ${store.settings?.companyName || 'Şirket'}`;
                            try {
                              await sendSMS(store.settings, [customer.phone], text);
                              toast.success("SMS başarıyla gönderildi!");

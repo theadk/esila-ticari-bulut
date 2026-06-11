@@ -61,7 +61,7 @@ export const Cariler: React.FC = () => {
   
   // Payment Modal States
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [paymentForm, setPaymentForm] = useState<{ amount: number, description: string, type: 'Tahsilat' | 'Ödeme' }>({ amount: 0, description: '', type: 'Tahsilat' });
+  const [paymentForm, setPaymentForm] = useState<{ amount: number, description: string, type: 'Tahsilat' | 'Ödeme' | 'Borçlandırma', date: string }>({ amount: 0, description: '', type: 'Tahsilat', date: new Date().toISOString().split('T')[0] });
 
   const { isListening, supported, listen, stop } = useSpeechRecognition();
   const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
@@ -84,9 +84,9 @@ export const Cariler: React.FC = () => {
     setIsHistoryModalOpen(true);
   };
 
-  const handleOpenPayment = (customer: Customer, type: 'Tahsilat' | 'Ödeme') => {
+  const handleOpenPayment = (customer: Customer, type: 'Tahsilat' | 'Ödeme' | 'Borçlandırma') => {
     setSelectedCustomerForHistory(customer);
-    setPaymentForm({ amount: 0, description: '', type });
+    setPaymentForm({ amount: 0, description: '', type, date: new Date().toISOString().split('T')[0] });
     setIsPaymentModalOpen(true);
   };
 
@@ -97,7 +97,7 @@ export const Cariler: React.FC = () => {
     const newTransaction: CustomerTransaction = {
       id: Math.random().toString(36).substr(2, 9),
       customerId: selectedCustomerForHistory.id,
-      date: new Date().toISOString().split('T')[0],
+      date: paymentForm.date || new Date().toISOString().split('T')[0],
       type: paymentForm.type,
       amount: paymentForm.type === 'Tahsilat' ? -Math.abs(paymentForm.amount) : Math.abs(paymentForm.amount),
       description: paymentForm.description
@@ -106,16 +106,18 @@ export const Cariler: React.FC = () => {
     const newTransactions = [...transactions, newTransaction];
     setTransactions(newTransactions);
 
-    const newCashTx: CashTransaction = {
-      id: Math.random().toString(36).substr(2, 9),
-      date: newTransaction.date,
-      type: paymentForm.type === 'Tahsilat' ? 'Gelir' : 'Gider',
-      category: paymentForm.type === 'Tahsilat' ? 'Cari Tahsilat' : 'Cari Ödeme',
-      amount: Math.abs(paymentForm.amount),
-      description: paymentForm.description + ' (' + (selectedCustomerForHistory.companyName || selectedCustomerForHistory.name) + ')',
-      customerId: selectedCustomerForHistory.id
-    };
-    setCashTransactions([...cashTransactions, newCashTx]);
+    if (paymentForm.type !== 'Borçlandırma') {
+      const newCashTx: CashTransaction = {
+        id: Math.random().toString(36).substr(2, 9),
+        date: newTransaction.date,
+        type: paymentForm.type === 'Tahsilat' ? 'Gelir' : 'Gider',
+        category: paymentForm.type === 'Tahsilat' ? 'Cari Tahsilat' : 'Cari Ödeme',
+        amount: Math.abs(paymentForm.amount),
+        description: paymentForm.description + ' (' + (selectedCustomerForHistory.companyName || selectedCustomerForHistory.name) + ')',
+        customerId: selectedCustomerForHistory.id
+      };
+      setCashTransactions([...cashTransactions, newCashTx]);
+    }
 
     const updatedCustomers = customers.map(c => {
       if (c.id === selectedCustomerForHistory.id) {
@@ -137,6 +139,85 @@ export const Cariler: React.FC = () => {
 
   const printCustomerHistory = (customer: Customer) => {
     setPrintEkstreModalOpen(true);
+  };
+
+  const fileInputRefHistory = useRef<HTMLInputElement>(null);
+
+  const importHistoryFromExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedCustomerForHistory) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json<any>(worksheet);
+
+        let successCount = 0;
+        let totalAmountChange = 0;
+        
+        const newTransactions = jsonData.map(row => {
+          let dateStr = row['Tarih'] || row['TARIH'] || row['Date'] || row['DATE'] || row['tarih'];
+          const typeStr = row['İşlem Tipi'] || row['ISLEM TIPI'] || row['Type'] || row['TYPE'] || row['tip'] || row['TİP'];
+          const descStr = row['Açıklama'] || row['ACIKLAMA'] || row['Description'] || row['DESCRIPTION'] || row['açıklama'];
+          const amountStr = row['Tutar'] || row['TUTAR'] || row['Amount'] || row['AMOUNT'] || row['tutar'];
+
+          if(dateStr === 'GENEL TOPLAM / BAKİYE') return null; // Skip summary row
+          if(!dateStr || !typeStr || amountStr === undefined) return null;
+          
+          let amount = parseFloat(String(amountStr).replace(',', '.'));
+          if(isNaN(amount)) return null;
+
+          let dateVal;
+          if (typeof dateStr === 'number') {
+            const dateObj = new Date(Math.round((dateStr - 25569) * 86400 * 1000));
+            dateVal = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+          } else {
+             dateVal = String(dateStr);
+          }
+
+          successCount++;
+          totalAmountChange += amount;
+          return {
+             id: `TR-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+             customerId: selectedCustomerForHistory.id,
+             date: dateVal,
+             type: typeStr,
+             description: descStr || '',
+             amount: amount,
+          };
+        }).filter(Boolean) as CustomerTransaction[];
+
+        if(newTransactions.length > 0) {
+            setTransactions([...transactions, ...newTransactions]);
+            
+            // Update customer balance
+            const updatedCustomers = customers.map(c => {
+               if (c.id === selectedCustomerForHistory.id) {
+                 return { ...c, balance: c.balance + totalAmountChange };
+               }
+               return c;
+            });
+            setCustomers(updatedCustomers);
+            setSelectedCustomerForHistory(updatedCustomers.find(c => c.id === selectedCustomerForHistory.id) || null);
+            
+            toast.success(`${successCount} adet işlem başarıyla içeri aktarıldı.`);
+        } else {
+            toast.error('İçeri aktarılacak geçerli veri bulunamadı.');
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error('Excel dosyası okunurken bir hata oluştu.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    // Reset file input
+    if (fileInputRefHistory.current) {
+        fileInputRefHistory.current.value = '';
+    }
   };
 
   const downloadHistoryExcel = (customer: Customer) => {
@@ -586,6 +667,13 @@ export const Cariler: React.FC = () => {
                         >
                           <CreditCard size={18} />
                         </button>
+                        <button 
+                          title="Manuel Borçlandır"
+                          onClick={() => handleOpenPayment(customer, 'Borçlandırma')}
+                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-orange-600 transition-colors"
+                        >
+                          <Plus size={18} />
+                        </button>
                         <div className="w-px h-6 bg-gray-200 mx-1"></div>
                         <button 
                           title="Düzenle"
@@ -971,6 +1059,21 @@ export const Cariler: React.FC = () => {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 items-center">
+                <input 
+                  type="file" 
+                  ref={fileInputRefHistory} 
+                  onChange={importHistoryFromExcel} 
+                  className="hidden" 
+                  accept=".xlsx, .xls, .csv" 
+                />
+                <button 
+                  onClick={() => fileInputRefHistory.current?.click()} 
+                  className="bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                  title="Excel Yükle"
+                >
+                  <Upload size={18} />
+                  <span className="hidden sm:inline">Yükle</span>
+                </button>
                 <button 
                   onClick={() => downloadHistoryExcel(selectedCustomerForHistory)} 
                   className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -1024,7 +1127,9 @@ export const Cariler: React.FC = () => {
                       </button>
                       <button 
                         onClick={() => {
-                          const text = `Merhaba, ${store.settings?.companyName || 'Şirket'} ödeme hesap bilgilerimiz aşağıdaki gibidir:\nBanka: xxxx Bankası\nIBAN: TRxx xxxx xxxx xxxx xxxx xxxx xx\nAlıcı: ${store.settings?.companyName || 'Şirket'}`;
+                          const bankNameStr = store.settings?.bankName ? store.settings.bankName : 'xxxx Bankası';
+                          const ibanStr = store.settings?.iban ? store.settings.iban : 'TRxx xxxx xxxx xxxx xxxx xxxx xx';
+                          const text = `Merhaba, ${store.settings?.companyName || 'Şirket'} ödeme hesap bilgilerimiz aşağıdaki gibidir:\nBanka: ${bankNameStr}\nIBAN: ${ibanStr}\nAlıcı: ${store.settings?.companyName || 'Şirket'}`;
                           window.open(`https://wa.me/${selectedCustomerForHistory.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
                         }}
                         className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
@@ -1077,7 +1182,9 @@ export const Cariler: React.FC = () => {
                       </button>
                       <button 
                         onClick={async () => {
-                          const text = `Merhaba, ${store.settings?.companyName || 'Şirket'} ödeme hesap bilgilerimiz:\nBanka: xxxx Bankası\nIBAN: TRxx xxxx xxxx xxxx xxxx xxxx xx\nAlıcı: ${store.settings?.companyName || 'Şirket'}`;
+                          const bankNameStr = store.settings?.bankName ? store.settings.bankName : 'xxxx Bankası';
+                          const ibanStr = store.settings?.iban ? store.settings.iban : 'TRxx xxxx xxxx xxxx xxxx xxxx xx';
+                          const text = `Merhaba, ${store.settings?.companyName || 'Şirket'} ödeme hesap bilgilerimiz:\nBanka: ${bankNameStr}\nIBAN: ${ibanStr}\nAlıcı: ${store.settings?.companyName || 'Şirket'}`;
                           try {
                              toast.loading("SMS gönderiliyor...", { id: 'singleSms' });
                              await sendSMS(store.settings, [selectedCustomerForHistory.phone], text);
@@ -1153,7 +1260,7 @@ export const Cariler: React.FC = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden">
              <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
               <h3 className="font-bold text-lg text-gray-800">
-                {paymentForm.type === 'Tahsilat' ? 'Tahsilat Al' : 'Ödeme Yap'}
+                {paymentForm.type === 'Tahsilat' ? 'Tahsilat Al' : paymentForm.type === 'Ödeme' ? 'Ödeme Yap' : 'Manuel Borçlandır'}
               </h3>
               <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
                 <X size={24} />
@@ -1168,13 +1275,23 @@ export const Cariler: React.FC = () => {
                  <label className="block text-sm font-medium text-gray-700 mb-1">İşlem Türü</label>
                  <select 
                    value={paymentForm.type}
-                   onChange={e => setPaymentForm({...paymentForm, type: e.target.value as 'Tahsilat'|'Ödeme'})}
+                   onChange={e => setPaymentForm({...paymentForm, type: e.target.value as 'Tahsilat'|'Ödeme'|'Borçlandırma'})}
                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
                  >
                     <option value="Tahsilat">Tahsilat (Alınan)</option>
                     <option value="Ödeme">Ödeme (Verilen)</option>
+                    <option value="Borçlandırma">Manuel Borçlandır</option>
                  </select>
                </div>
+               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
+                <input 
+                  type="date"
+                  value={paymentForm.date}
+                  onChange={(e) => setPaymentForm({...paymentForm, date: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </div>
                <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tutar (₺)</label>
                 <input 
@@ -1222,10 +1339,10 @@ export const Cariler: React.FC = () => {
                 </button>
                 <button 
                   type="submit" 
-                  className={`px-6 py-2 text-white rounded-lg transition-colors flex items-center gap-2 ${paymentForm.type === 'Tahsilat' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}
+                  className={`px-6 py-2 text-white rounded-lg transition-colors flex items-center gap-2 ${paymentForm.type === 'Tahsilat' ? 'bg-emerald-600 hover:bg-emerald-700' : paymentForm.type === 'Ödeme' ? 'bg-red-600 hover:bg-red-700' : 'bg-orange-600 hover:bg-orange-700'}`}
                 >
                   <Save size={18} />
-                  {paymentForm.type === 'Tahsilat' ? 'Tahsilat Al' : 'Ödeme Yap'}
+                  {paymentForm.type === 'Tahsilat' ? 'Tahsilat Al' : paymentForm.type === 'Ödeme' ? 'Ödeme Yap' : 'Manuel Borçlandır'}
                 </button>
               </div>
             </form>

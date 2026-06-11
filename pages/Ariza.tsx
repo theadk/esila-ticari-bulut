@@ -368,7 +368,10 @@ export const Ariza: React.FC = () => {
   };
 
   const openDetail = (ticket: ServiceTicket) => {
-    setSelectedTicket(ticket);
+    setSelectedTicket({
+      ...ticket,
+      materialsUsed: ticket.materialsUsed || [],
+    });
     setIsDetailModalOpen(true);
     setMaintenancePeriod(ticket.maintenancePeriodMonths || "");
   };
@@ -412,6 +415,7 @@ export const Ariza: React.FC = () => {
          productId: fixture.productId,
          productName: fixture.productName,
          quantity: quantityToAdd,
+         unit: baseProduct?.unit || 'Adet',
          unitPrice: baseProduct?.price || 0,
          source: 'Zimmet',
          fixtureId: fixture.id
@@ -426,6 +430,7 @@ export const Ariza: React.FC = () => {
          productId: product.id,
          productName: product.name,
          quantity: quantityToAdd,
+         unit: product.unit || 'Adet',
          unitPrice: product.price,
          source: 'Depo'
        };
@@ -501,8 +506,9 @@ export const Ariza: React.FC = () => {
     const newProducts = [...products];
     const newPersonnelList = [...store.personnel];
     let personnelUpdated = false;
+    const materialsToProcess = selectedTicket.materialsUsed || [];
 
-    for (const material of selectedTicket.materialsUsed) {
+    for (const material of materialsToProcess) {
       if (material.source === 'Zimmet') {
         const pIndex = newPersonnelList.findIndex(p => String(p.id) === String(selectedTicket.personnelId));
         if (pIndex > -1 && newPersonnelList[pIndex].fixtures) {
@@ -557,7 +563,7 @@ export const Ariza: React.FC = () => {
     if (selectedTicket.totalCost > 0) {
       if (isPaid) {
         const cashTrx: CashTransaction = {
-          id: crypto.randomUUID(),
+          id: Math.random().toString(36).substr(2, 9),
           date: new Date().toISOString(),
           type: "Gelir",
           category: "Satış",
@@ -568,7 +574,7 @@ export const Ariza: React.FC = () => {
         store.setCashTransactions([...store.cashTransactions, cashTrx]);
       } else {
         const customerTrx: CustomerTransaction = {
-          id: crypto.randomUUID(),
+          id: Math.random().toString(36).substr(2, 9),
           customerId: selectedTicket.customerId,
           date: new Date().toISOString(),
           type: "Satış",
@@ -613,6 +619,7 @@ export const Ariza: React.FC = () => {
       ),
     );
     setSelectedTicket(updatedTicket);
+    toast.success("Servis formu başarıyla tamamlandı.");
   };
 
   const generateHTML = (format: "a4" | "thermal") => {
@@ -632,7 +639,7 @@ export const Ariza: React.FC = () => {
         (m) => `
       <tr>
         <td style="padding: 4px 0">${m.productName}</td>
-        <td style="padding: 4px 0; text-align: center;">${m.quantity}</td>
+        <td style="padding: 4px 0; text-align: center;">${m.quantity} ${m.unit || 'Adet'}</td>
         ${isA4 ? `<td style="padding: 4px 0; text-align: right;">${m.unitPrice.toLocaleString("tr-TR")} ₺</td>` : ""}
         <td style="padding: 4px 0; text-align: right;">${(m.quantity * m.unitPrice).toLocaleString("tr-TR")} ₺</td>
       </tr>
@@ -1061,7 +1068,7 @@ export const Ariza: React.FC = () => {
               (m) => `
             <tr>
               <td style="padding: 4px 0">${m.productName}</td>
-              <td style="padding: 4px 0; text-align: center;">${m.quantity}</td>
+              <td style="padding: 4px 0; text-align: center;">${m.quantity} ${m.unit || 'Adet'}</td>
               <td style="padding: 4px 0; text-align: right;">${m.unitPrice.toLocaleString("tr-TR")} ₺</td>
               <td style="padding: 4px 0; text-align: right;">${(m.quantity * m.unitPrice).toLocaleString("tr-TR")} ₺</td>
             </tr>
@@ -1689,7 +1696,7 @@ export const Ariza: React.FC = () => {
                   <button
                     onClick={() => {
                         const invoiceData = {
-                            id: crypto.randomUUID(),
+                            id: Math.random().toString(36).substr(2, 9),
                             orderId: selectedTicket.id,
                             customerName: selectedTicket.customerName,
                             amount: selectedTicket.totalCost,
@@ -1889,10 +1896,11 @@ export const Ariza: React.FC = () => {
                         <input
                           type="number"
                           className="w-20 p-2 rounded-lg border border-gray-200 outline-none text-center"
-                          min="1"
+                          min="0.01"
+                          step="0.01"
                           value={quantityToAdd}
                           onChange={(e) =>
-                            setQuantityToAdd(Number(e.target.value))
+                            setQuantityToAdd(parseFloat(e.target.value) || 1)
                           }
                         />
                         <button
@@ -1927,7 +1935,7 @@ export const Ariza: React.FC = () => {
                             className="border-b last:border-0 hover:bg-gray-50"
                           >
                             <td className="p-2">{m.productName}</td>
-                            <td className="p-2">{m.quantity}</td>
+                            <td className="p-2">{m.quantity} {m.unit || 'Adet'}</td>
                             <td className="p-2">
                               {m.unitPrice.toLocaleString("tr-TR", {
                                 minimumFractionDigits: 2,

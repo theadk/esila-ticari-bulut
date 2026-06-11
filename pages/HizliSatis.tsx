@@ -164,7 +164,7 @@ export const HizliSatis: React.FC = () => {
               return `
               <div class="item-row">
                 <span class="item-name">${item.product.name}</span>
-                <span class="item-qty-price">${item.quantity}x ${item.product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                <span class="item-qty-price">${item.quantity} ${item.product.unit || 'Adet'} x ${item.product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
               </div>
               <div style="text-align: right;">
                 = ${discountedTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
@@ -514,9 +514,26 @@ export const HizliSatis: React.FC = () => {
                       {item.product.price.toLocaleString('tr-TR')} ₺
                     </div>
                     <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md">
-                      <button onClick={() => updateQuantity(item.product.id, -1)} className="p-1 px-2 hover:bg-gray-100 text-gray-600 rounded-l-md">-</button>
-                      <span className="w-8 text-center font-medium">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.product.id, 1)} className="p-1 px-2 hover:bg-gray-100 text-gray-600 rounded-r-md">+</button>
+                      <button onClick={() => updateQuantity(item.product.id, Math.floor(item.quantity) === item.quantity ? -1 : -item.quantity + Math.floor(item.quantity))} className="p-1 px-2 hover:bg-gray-100 text-gray-600 rounded-l-md">-</button>
+                      <input 
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val)) {
+                            setCart(prev => prev.map(cartItem => 
+                              cartItem.product.id === item.product.id 
+                                ? { ...cartItem, quantity: val }
+                                : cartItem
+                            ));
+                          }
+                        }}
+                        className="w-16 text-center font-medium border-none focus:ring-0 text-sm p-1"
+                      />
+                      <span className="text-xs text-gray-400 pr-2 select-none border-l pl-2 border-gray-100">{item.product.unit || 'Adet'}</span>
+                      <button onClick={() => updateQuantity(item.product.id, Math.floor(item.quantity) === item.quantity ? 1 : Math.ceil(item.quantity) - item.quantity)} className="p-1 px-2 hover:bg-gray-100 text-gray-600 rounded-r-md block">+</button>
                     </div>
                     <div className="flex items-center gap-1">
                        <span className="text-xs text-gray-500" title="Kısayol: F3">% İskonto (F3)</span>

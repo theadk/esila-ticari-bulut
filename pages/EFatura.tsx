@@ -986,7 +986,7 @@ export const EFatura: React.FC = () => {
                               {idx + 1}
                             </td>
                             <td className="p-1 border-r border-black">
-                              {item.productId || "1K"}
+                              {store.products?.find(p => p.id === item.productId)?.code || ""}
                             </td>
                             <td className="p-1 border-r border-black">
                               {item.productName}

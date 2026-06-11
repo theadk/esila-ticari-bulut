@@ -12,6 +12,7 @@ export interface Product {
   price: number;
   purchasePrice?: number;
   stock: number;
+  unit?: string; // Adet, Paket, Kilo, Metre, Koli vb.
   category: string;
   subCategory?: string;
   image?: string;
@@ -89,6 +90,7 @@ export interface OrderItem {
   productId: string;
   productName: string;
   quantity: number;
+  unit?: string;
   price: number;
   taxRate?: number;
 }
@@ -119,6 +121,7 @@ export interface ProposalItem {
   productId: string;
   productName: string;
   quantity: number;
+  unit?: string;
   price: number;
   discountRate: number; // Yüzde olarak indirim
   taxRate?: number;
@@ -341,6 +344,7 @@ export interface ServiceMaterial {
   productId: string;
   productName: string;
   quantity: number;
+  unit?: string;
   unitPrice: number;
   source?: 'Zimmet' | 'Depo';
   fixtureId?: string;
