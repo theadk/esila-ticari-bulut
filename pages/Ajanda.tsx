@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../lib/store';
 import { ReminderNoteType } from '../types';
 import { Calendar, Search, Filter, CheckCircle, Circle, Trash2, CalendarDays, TrendingUp, DollarSign, PlusCircle, X, Mic, MicOff } from 'lucide-react';

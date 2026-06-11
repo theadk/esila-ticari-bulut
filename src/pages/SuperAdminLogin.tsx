@@ -32,7 +32,7 @@ export const SuperAdminLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) 
       localStorage.removeItem('esila_sa_attempts');
     }
 
-    if (username === 'superadmin' && password === 'esila2026') {
+    if (username === 'superadmin' && password === 'Esila2026*') {
       setFailedAttempts(0);
       setLockoutUntil(null);
       localStorage.removeItem('esila_sa_lockout');

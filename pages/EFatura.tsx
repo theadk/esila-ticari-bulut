@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { ThermalEArsiv } from "./ThermalEArsiv";
 import { QRCodeSVG } from "qrcode.react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   FileText,
   FileJson,
@@ -138,6 +140,32 @@ export const EFatura: React.FC = () => {
     setTimeout(() => {
       window.print();
     }, 500);
+  };
+
+  const handleDownloadModalPDF = async () => {
+    if (!previewInvoice) return;
+    const element = document.getElementById(printType === 'A4' ? 'invoice-preview' : 'invoice-preview-80mm');
+    if (!element) return;
+    try {
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false });
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      let pdf;
+      if (printType === 'A4') {
+        pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      } else {
+        const pdfWidth = 80;
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf = new jsPDF('p', 'mm', [pdfWidth, pdfHeight]);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      }
+      pdf.save(`Fatura_${previewInvoice.id}.pdf`);
+    } catch (e) {
+      console.error(e);
+      alert('PDF oluşturulurken bir hata oluştu');
+    }
   };
 
   const handleBulkJSONDownload = () => {
@@ -551,8 +579,8 @@ export const EFatura: React.FC = () => {
       {/* Önizleme Modalı */}
       {previewInvoice && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col no-print">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 print:hidden">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">
                   E-Fatura Önizlemesi
@@ -580,12 +608,18 @@ export const EFatura: React.FC = () => {
 
               <div className="flex items-center gap-3">
                 <button
+                  onClick={handleDownloadModalPDF}
+                  className="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <Download size={16} /> PDF İndir
+                </button>
+                <button
                   onClick={() => {
-                    window.print();
+                    setTimeout(() => window.print(), 100);
                   }}
                   className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                 >
-                  <Printer size={16} /> Yazdır / PDF
+                  <Printer size={16} /> Yazdır
                 </button>
                 <button
                   onClick={() => setPreviewInvoice(null)}
