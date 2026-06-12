@@ -405,7 +405,18 @@ export const Ajanda: React.FC = () => {
                      <select 
                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                        value={noteForm.type}
-                       onChange={e => setNoteForm({...noteForm, type: e.target.value as any})}
+                       onChange={e => {
+                           const newType = e.target.value as any;
+                           setNoteForm((prev) => {
+                               let newDate = prev.date;
+                               if ((newType === 'Tahsilat' || newType === 'Ödeme') && prev.date === todayStr) {
+                                   const d = new Date();
+                                   d.setDate(d.getDate() + 7);
+                                   newDate = d.toISOString().split('T')[0];
+                               }
+                               return { ...prev, type: newType, date: newDate };
+                           });
+                       }}
                      >
                         <option value="Teklif">Verilen Teklifler</option>
                         <option value="Tahsilat">Beklenen Tahsilatlar</option>

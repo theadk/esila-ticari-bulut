@@ -147,14 +147,20 @@ export const EFatura: React.FC = () => {
     setEditInvoice(null);
   };
 
+  const [pendingIncomingInvoices, setPendingIncomingInvoices] = useState<any[]>([]);
+  const [incomingFilter, setIncomingFilter] = useState<'Tümü' | 'İşlendi' | 'İşlenmedi'>('Tümü');
+
   const filtered = invoices.filter((inv) => {
     if (activeTab === "Taslak") return inv.status === "Taslak" && inv.type !== "Gelen Fatura";
     if (activeTab === "Giden") return inv.status !== "Taslak" && inv.type !== "Gelen Fatura";
-    if (activeTab === "Gelen") return inv.type === "Gelen Fatura";
+    if (activeTab === "Gelen") {
+       if (inv.type !== "Gelen Fatura") return false;
+       if (incomingFilter === 'İşlendi') return !!inv.isProcessed;
+       if (incomingFilter === 'İşlenmedi') return !inv.isProcessed;
+       return true;
+    }
     return true;
   });
-
-  const [pendingIncomingInvoices, setPendingIncomingInvoices] = useState<any[]>([]);
 
   const handleXmlUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -497,7 +503,7 @@ export const EFatura: React.FC = () => {
        (previewInvoice as any).items.forEach((item: any) => {
           const existingProductIndex = currentProducts.findIndex(p => 
             (item.productId && p.id === item.productId) || 
-            (!item.productId && p.name === item.productName)
+            (!item.productId && p.name && item.productName && p.name.trim().toLowerCase() === item.productName.trim().toLowerCase())
           );
           if (existingProductIndex >= 0) {
              let p = currentProducts[existingProductIndex];
@@ -541,7 +547,13 @@ export const EFatura: React.FC = () => {
     if (store.setEInvoices) store.setEInvoices(updated);
     
     // Add reminder note for payment tracking
-    const paymentDueDate = previewInvoice.dueDate || previewInvoice.date;
+    let paymentDueDate = previewInvoice.dueDate;
+    if (!paymentDueDate || paymentDueDate === previewInvoice.date) {
+        const d = new Date(previewInvoice.date || new Date());
+        d.setDate(d.getDate() + 7);
+        paymentDueDate = d.toISOString().split('T')[0];
+    }
+    
     if (paymentDueDate) {
        // Optional: Add some warning days before due date, e.g. due date itself
        const newReminder = {
@@ -731,7 +743,16 @@ export const EFatura: React.FC = () => {
             </div>
         )}
         {activeTab === "Gelen" && (
-             <div className="flex ml-4 mt-4 sm:mt-0 items-center justify-end">
+             <div className="flex ml-4 mt-4 sm:mt-0 items-center justify-end gap-2">
+                <select 
+                  className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={incomingFilter}
+                  onChange={(e) => setIncomingFilter(e.target.value as any)}
+                >
+                  <option value="Tümü">Tümü</option>
+                  <option value="İşlenmedi">İşlenmeyenler</option>
+                  <option value="İşlendi">İşlenenler</option>
+                </select>
                 <label className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-sm cursor-pointer border border-blue-600">
                   <Upload size={16} /> Toplu XML Yükle
                   <input type="file" accept=".xml" multiple className="hidden" onChange={handleXmlUpload} />
