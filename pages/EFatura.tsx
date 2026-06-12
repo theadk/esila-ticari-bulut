@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { XMLParser } from "fast-xml-parser";
 import { useAppStore } from "../lib/store";
+import { api } from "../lib/api";
 import { InvoiceTemplateEditor } from "../components/InvoiceTemplateEditor";
 import { Pagination } from "../components/Pagination";
 
@@ -199,27 +200,77 @@ export const EFatura: React.FC = () => {
         const currency = getVal(invoiceData['cbc:DocumentCurrencyCode']) || 'TRY';
         
         const supplierNode = invoiceData['cac:AccountingSupplierParty']?.['cac:Party'];
-        let supplierName = 'Bilinmeyen Satıcı';
+        
+        let supplierName = '';
         if (supplierNode?.['cac:PartyName']?.['cbc:Name']) {
             supplierName = getVal(supplierNode['cac:PartyName']['cbc:Name']);
-        } else if (supplierNode?.['cac:PartyLegalEntity']?.['cbc:RegistrationName']) {
+        } 
+        if (!supplierName && supplierNode?.['cac:PartyLegalEntity']?.['cbc:RegistrationName']) {
             supplierName = getVal(supplierNode['cac:PartyLegalEntity']['cbc:RegistrationName']);
+        }
+        if (!supplierName && supplierNode?.['cac:Person']) {
+            const firstName = getVal(supplierNode['cac:Person']?.['cbc:FirstName']) || '';
+            const familyName = getVal(supplierNode['cac:Person']?.['cbc:FamilyName']) || '';
+            supplierName = `${firstName} ${familyName}`.trim();
+        }
+        if (!supplierName) {
+            supplierName = 'Bilinmeyen Satıcı';
         }
 
         let supplierTaxNumber = '';
-        if (supplierNode?.['cac:PartyTaxScheme']?.['cbc:CompanyID']) {
-           supplierTaxNumber = getVal(supplierNode['cac:PartyTaxScheme']['cbc:CompanyID']);
-        } else if (supplierNode?.['cac:PartyIdentification']?.['cbc:ID']) {
-           supplierTaxNumber = getVal(supplierNode['cac:PartyIdentification']['cbc:ID']);
+        const partyIdentifications = Array.isArray(supplierNode?.['cac:PartyIdentification']) 
+            ? supplierNode?.['cac:PartyIdentification'] 
+            : (supplierNode?.['cac:PartyIdentification'] ? [supplierNode?.['cac:PartyIdentification']] : []);
+            
+        for (const pid of partyIdentifications) {
+            const idVal = getVal(pid?.['cbc:ID']);
+            if (idVal && (idVal.length === 10 || idVal.length === 11)) {
+                 supplierTaxNumber = idVal;
+                 break;
+            }
+        }
+        
+        if (!supplierTaxNumber) {
+            const partyTaxSchemes = Array.isArray(supplierNode?.['cac:PartyTaxScheme'])
+                ? supplierNode?.['cac:PartyTaxScheme']
+                : (supplierNode?.['cac:PartyTaxScheme'] ? [supplierNode?.['cac:PartyTaxScheme']] : []);
+                
+            for (const pts of partyTaxSchemes) {
+                const cmpId = getVal(pts?.['cbc:CompanyID']);
+                if (cmpId) {
+                    supplierTaxNumber = cmpId;
+                    break;
+                }
+            }
         }
         
         let supplierTaxOffice = '';
-        if (supplierNode?.['cac:PartyTaxScheme']?.['cac:TaxScheme']?.['cbc:Name']) {
-           supplierTaxOffice = getVal(supplierNode['cac:PartyTaxScheme']['cac:TaxScheme']['cbc:Name']);
+        const taxSchemesInfo = Array.isArray(supplierNode?.['cac:PartyTaxScheme']) 
+            ? supplierNode?.['cac:PartyTaxScheme'] 
+            : (supplierNode?.['cac:PartyTaxScheme'] ? [supplierNode?.['cac:PartyTaxScheme']] : []);
+        for (const pts of taxSchemesInfo) {
+             const tOffice = getVal(pts?.['cac:TaxScheme']?.['cbc:Name']);
+             if (tOffice) {
+                 supplierTaxOffice = tOffice;
+                 break;
+             }
         }
         
         const legalTotalNode = invoiceData['cac:LegalMonetaryTotal'];
-        const payableAmount = legalTotalNode?.['cbc:PayableAmount'] ? getVal(legalTotalNode['cbc:PayableAmount']) : 0;
+        const payableAmount = Number(getVal(legalTotalNode?.['cbc:PayableAmount'])) || 0;
+        const taxExclusiveAmount = Number(getVal(legalTotalNode?.['cbc:TaxExclusiveAmount'])) || 0;
+        const taxInclusiveAmount = Number(getVal(legalTotalNode?.['cbc:TaxInclusiveAmount'])) || payableAmount;
+        
+        let taxTotal = 0;
+        const taxTotalGlobal = invoiceData['cac:TaxTotal'];
+        if (Array.isArray(taxTotalGlobal)) {
+             taxTotal = Number(getVal(taxTotalGlobal[0]?.['cbc:TaxAmount'])) || 0;
+        } else if (taxTotalGlobal) {
+             taxTotal = Number(getVal(taxTotalGlobal['cbc:TaxAmount'])) || 0;
+        }
+        if (!taxTotal && taxInclusiveAmount && taxExclusiveAmount) {
+             taxTotal = taxInclusiveAmount - taxExclusiveAmount;
+        }
         
         let parsedItems: any[] = [];
         const invoiceLinesRaw = invoiceData['cac:InvoiceLine'];
@@ -231,11 +282,36 @@ export const EFatura: React.FC = () => {
             const sellersItemIdentification = getVal(item?.['cac:SellersItemIdentification']?.['cbc:ID']);
             const buyersItemIdentification = getVal(item?.['cac:BuyersItemIdentification']?.['cbc:ID']);
             const standardItemIdentification = getVal(item?.['cac:StandardItemIdentification']?.['cbc:ID']);
-            const qty = Number(getVal(line['cbc:InvoicedQuantity']));
-            const unit = line['cbc:InvoicedQuantity']?.['@_unitCode'] || 'Adet';
-            const price = Number(getVal(line['cac:Price']?.['cbc:PriceAmount']));
-            const taxTotalNode = line['cac:TaxTotal']?.['cac:TaxSubtotal'] || line['cac:TaxTotal'];
-            const taxRate = Number(getVal(taxTotalNode?.['cac:TaxCategory']?.['cbc:Percent']) || 0);
+            
+            const unitObj = line['cbc:InvoicedQuantity'];
+            const qty = Number(getVal(unitObj)) || 1;
+            const unitCode = unitObj?.['@_unitCode'];
+            let unit = unitCode || 'Adet';
+            if (unit === 'C62' || unit === 'c62' || unit === 'NIU') unit = 'Adet';
+
+            const priceNodeAmount = getVal(line['cac:Price']?.['cbc:PriceAmount']);
+            // Fallback to line extension amount / qty if price is 0 or missing
+            let itemPrice = Number(priceNodeAmount);
+            if (!itemPrice && qty > 0) {
+               const lineExtAmt = Number(getVal(line['cbc:LineExtensionAmount']));
+               if (lineExtAmt) {
+                  itemPrice = lineExtAmt / qty;
+               }
+            }
+            
+            let taxRate = 0;
+            const lineTaxTotalNode = line['cac:TaxTotal'];
+            const taxSubtotalArray = Array.isArray(lineTaxTotalNode?.['cac:TaxSubtotal']) 
+                ? lineTaxTotalNode['cac:TaxSubtotal'] 
+                : (lineTaxTotalNode?.['cac:TaxSubtotal'] ? [lineTaxTotalNode['cac:TaxSubtotal']] : []);
+                
+            for (const sub of taxSubtotalArray) {
+               const percent = Number(getVal(sub['cac:TaxCategory']?.['cbc:Percent']));
+               if (!isNaN(percent) && percent > 0) {
+                  taxRate = percent;
+                  break;
+               }
+            }
             
             let matchedProductId = undefined;
             
@@ -255,15 +331,12 @@ export const EFatura: React.FC = () => {
             return {
                productId: matchedProductId,
                productName: name || 'Bilinmeyen Ürün',
-               quantity: qty || 1,
-               unit: (unit === 'C62' || unit === 'c62' || unit === 'NIU') ? 'Adet' : unit,
-               price: (price || 0) * (1 + (taxRate / 100)), // UBL price is usually tax exclusive
+               quantity: qty,
+               unit: unit,
+               price: itemPrice * (1 + (taxRate / 100)), // store tax-inclusive price as item setting default
                taxRate: taxRate,
             };
         });
-
-        const subTotal = Number(getVal(legalTotalNode?.['cbc:TaxExclusiveAmount'])) || 0;
-        const taxTotal = Number(getVal(invoiceData['cac:TaxTotal']?.['cbc:TaxAmount']) || getVal(invoiceData['cac:TaxTotal']?.[0]?.['cbc:TaxAmount'])) || 0;
 
         const newIncoming: any = {
             id: invId,
@@ -274,7 +347,7 @@ export const EFatura: React.FC = () => {
             customerName: supplierName,
             supplierTaxNumber: supplierTaxNumber,
             supplierTaxOffice: supplierTaxOffice,
-            amount: Number(payableAmount),
+            amount: payableAmount || taxInclusiveAmount,
             type: 'Gelen Fatura',
             scenario: getVal(invoiceData['cbc:ProfileID']) || 'TEMELFATURA',
             invoiceType: getVal(invoiceData['cbc:InvoiceTypeCode']) || 'SATIS',
@@ -283,9 +356,9 @@ export const EFatura: React.FC = () => {
             status: 'Onaylandı',
             xmlContent: xmlText,
             items: parsedItems,
-            subTotal: subTotal,
+            subTotal: taxExclusiveAmount,
             taxTotal: taxTotal,
-            total: Number(payableAmount)
+            total: payableAmount || taxInclusiveAmount
         };
         parsedInvoices.push(newIncoming);
       } catch (err) {
@@ -341,11 +414,25 @@ export const EFatura: React.FC = () => {
     }, 500);
   };
   
-  const handleProcessIncomingInvoice = () => {
+  const handleProcessIncomingInvoice = async () => {
     if (!previewInvoice || previewInvoice.type !== 'Gelen Fatura' || previewInvoice.isProcessed) return;
 
     const confirmed = window.confirm(`${previewInvoice.customerName} faturasını işlemek istediğinize emin misiniz? (Cari hareketlere ve stoklara kayıt edilecektir.)`);
     if (!confirmed) return;
+
+    let gelenFaturaWarehouseId = '';
+    try {
+        const warehouses = await api.getWarehouses();
+        let targetWarehouse = warehouses.find(w => w.name === 'Gelen Fatura');
+        if (!targetWarehouse) {
+            targetWarehouse = await api.addWarehouse({ id: `WH-${Date.now()}`, name: 'Gelen Fatura' });
+        }
+        if (targetWarehouse) {
+            gelenFaturaWarehouseId = targetWarehouse.id;
+        }
+    } catch (err) {
+        console.error("Warehouse fetch/create error:", err);
+    }
 
     let customerId = '';
     
@@ -404,12 +491,25 @@ export const EFatura: React.FC = () => {
             (!item.productId && p.name === item.productName)
           );
           if (existingProductIndex >= 0) {
+             let p = currentProducts[existingProductIndex];
+             let whStocks = p.warehouseStocks ? [...p.warehouseStocks] : [];
+             if (gelenFaturaWarehouseId) {
+                const whIndex = whStocks.findIndex(ws => ws.warehouseId === gelenFaturaWarehouseId);
+                if (whIndex >= 0) {
+                   whStocks[whIndex] = { ...whStocks[whIndex], stock: whStocks[whIndex].stock + (item.quantity || 1) };
+                } else {
+                   whStocks.push({ warehouseId: gelenFaturaWarehouseId, stock: (item.quantity || 1) });
+                }
+             }
+
              currentProducts[existingProductIndex] = {
-                 ...currentProducts[existingProductIndex],
-                 stock: currentProducts[existingProductIndex].stock + (item.quantity || 1),
-                 purchasePrice: item.price
+                 ...p,
+                 stock: p.stock + (item.quantity || 1),
+                 purchasePrice: item.price,
+                 warehouseStocks: whStocks
              };
           } else {
+             const whStocks = gelenFaturaWarehouseId ? [{ warehouseId: gelenFaturaWarehouseId, stock: (item.quantity || 1) }] : [];
              const newProduct = {
                id: `PRD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                code: `PRD-${Date.now().toString().slice(-6)}`,
@@ -418,6 +518,8 @@ export const EFatura: React.FC = () => {
                purchasePrice: item.price,
                stock: (item.quantity || 1),
                category: 'Gelen Fatura',
+               warehouse: 'Gelen Fatura',
+               warehouseStocks: whStocks,
                taxRate: item.taxRate || 20
              };
              currentProducts.push(newProduct);
