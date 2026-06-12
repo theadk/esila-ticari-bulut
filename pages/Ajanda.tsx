@@ -6,7 +6,12 @@ import toast from 'react-hot-toast';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 export const Ajanda: React.FC = () => {
-  const { reminderNotes, setReminderNotes, transactions } = useAppStore();
+  const { 
+    reminderNotes, setReminderNotes, 
+    transactions, setTransactions,
+    cashTransactions, setCashTransactions,
+    customers, setCustomers 
+  } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<ReminderNoteType | 'Tümü'>('Tümü');
   
@@ -128,11 +133,74 @@ export const Ajanda: React.FC = () => {
   }, [reminderNotes, searchTerm, selectedType, selectedDate, statusFilter]);
 
   const toggleComplete = (id: string, currentStatus: boolean) => {
+    const noteToUpdate = reminderNotes?.find(n => n.id === id);
+    if (!noteToUpdate) return;
+    
+    // If we are marking as COMPLETE, and it's a financial transaction with an amount
+    if (!currentStatus && (noteToUpdate.type === 'Ödeme' || noteToUpdate.type === 'Tahsilat' || noteToUpdate.type === 'Banka') && noteToUpdate.amount) {
+       const confirmPayment = window.confirm(`${noteToUpdate.title} notunu tamamlıyorsunuz. Kasa ve cariye işlensin mi?`);
+       if (confirmPayment) {
+           const isIncome = noteToUpdate.type === 'Tahsilat';
+           const categoryName = isIncome ? 'Cari Tahsilat' : 'Cari Ödeme';
+           
+           let customerIdStr = '';
+           // Extract customer from related ID (like invoice customer or directly if we had a customer field)
+           if (noteToUpdate.relatedId && String(noteToUpdate.relatedId).startsWith('CUS-')) {
+               customerIdStr = String(noteToUpdate.relatedId);
+           } else {
+               // Try to find if relatedId matches an eInvoice to get its customer
+               // We don't have eInvoices in store here natively exported, but we can search transactions that have this relatedId
+               const matchingTx = (transactions || []).find((t: any) => t.description?.includes(String(noteToUpdate.relatedId)));
+               if (matchingTx) customerIdStr = matchingTx.customerId;
+           }
+
+           // Cash Transaction Update
+           if (setCashTransactions) {
+               const newTx = {
+                   id: `CASH-${Date.now()}`,
+                   date: new Date().toISOString().split('T')[0],
+                   type: (isIncome ? 'Gelir' : 'Gider') as any,
+                   category: categoryName,
+                   amount: noteToUpdate.amount,
+                   description: noteToUpdate.title + ' (Ajanda Ödemesi)',
+                   customerId: customerIdStr || undefined
+               };
+               setCashTransactions([...(cashTransactions || []), newTx]);
+           }
+
+           // Customer Balance & Transaction Update
+           if (customerIdStr && customers && setCustomers && transactions && setTransactions) {
+               const txType = isIncome ? 'Tahsilat' : 'Ödeme';
+               const txAmount = isIncome ? -noteToUpdate.amount : noteToUpdate.amount;
+               
+               const newCariTx = {
+                   id: `TR-${Date.now()}`,
+                   customerId: customerIdStr,
+                   date: new Date().toISOString().split('T')[0],
+                   type: txType as any,
+                   amount: txAmount,
+                   description: noteToUpdate.title + ' (Ajanda Kasa İşlemi)'
+               };
+               setTransactions([...transactions, newCariTx]);
+               
+               setCustomers(customers.map(c => 
+                   c.id === customerIdStr ? { ...c, balance: c.balance + txAmount } : c
+               ));
+           }
+           
+           toast.success('Kasa ve Cari işlemleri başarıyla tamamlandı!');
+       }
+    }
+
     const updated = (reminderNotes || []).map(n => 
       n.id === id ? { ...n, isCompleted: !currentStatus } : n
     );
     setReminderNotes(updated);
-    toast.success(currentStatus ? 'Durum: Bekliyor' : 'Durum: Tamamlandı');
+    if (currentStatus) {
+       toast.success('Durum: Bekliyor (Kasa işlemi geri ALINMADI, manuel düzeltin)');
+    } else {
+       toast.success('Durum: Tamamlandı');
+    }
   };
 
   const deleteNote = (id: string) => {

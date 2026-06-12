@@ -324,7 +324,7 @@ export const Raporlar: React.FC = () => {
 
             <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between">
               <div className="text-gray-500 text-sm mb-2 flex items-center justify-between">
-                <span>Toplam Maliyet (Alışlar)</span>
+                <span>Satılan Ürün Maliyeti (SMM)</span>
                 <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center print:hidden">
                   <TrendingDown size={16} />
                 </div>

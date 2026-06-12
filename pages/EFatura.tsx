@@ -428,7 +428,7 @@ export const EFatura: React.FC = () => {
             targetWarehouse = await api.addWarehouse({ id: `WH-${Date.now()}`, name: 'Gelen Fatura' });
         }
         if (targetWarehouse) {
-            gelenFaturaWarehouseId = targetWarehouse.id;
+            gelenFaturaWarehouseId = targetWarehouse.name;
         }
     } catch (err) {
         console.error("Warehouse fetch/create error:", err);
@@ -448,7 +448,12 @@ export const EFatura: React.FC = () => {
       customerId = existingCustomer.id;
       if (store.setCustomers && store.customers) {
          store.setCustomers(store.customers.map(c => 
-            c.id === customerId ? { ...c, balance: (c.balance || 0) - updatedCustomerBalanceVal } : c
+            c.id === customerId ? { 
+                ...c, 
+                balance: (c.balance || 0) - updatedCustomerBalanceVal,
+                taxNumber: c.taxNumber || previewInvoice.supplierTaxNumber || '',
+                taxOffice: c.taxOffice || previewInvoice.supplierTaxOffice || ''
+            } : c
          ));
       }
     } else {
@@ -482,6 +487,10 @@ export const EFatura: React.FC = () => {
     if (store.setTransactions) {
        store.setTransactions([...(store.transactions || []), newTransaction]);
     }
+
+    // Kasaya Ekleme İşlemi İPTAL EDİLDİ - Gider akışını borç olarak işleyeceğiz. 
+    // Ödeme yapıldığında Gider olarak işlenmesi sağlanacak.
+
 
     let currentProducts = [...(store.products || [])];
     if ((previewInvoice as any).items?.length > 0) {
