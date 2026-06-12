@@ -444,8 +444,18 @@ export const Cariler: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Bu cariyi silmek istediğinizden emin misiniz?')) {
+    if (window.confirm('Bu cariyi silmek istediğinize emin misiniz? (Cariye ait tüm hesap hareketleri ve kasa kayıtları da silinecektir.)')) {
       setCustomers(customers.filter(c => String(c.id) !== String(id)));
+      
+      // Remove associated transactions
+      if (store.transactions) {
+          setTransactions(store.transactions.filter(t => String(t.customerId) !== String(id)));
+      }
+      
+      // Remove associated cash transactions
+      if (store.cashTransactions) {
+          setCashTransactions(store.cashTransactions.filter(ct => String(ct.customerId) !== String(id)));
+      }
     }
   };
 
