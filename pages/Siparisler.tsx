@@ -684,7 +684,7 @@ export const Siparisler: React.FC = () => {
                         {(item.price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                       </td>
                       <td className="py-2 px-3 text-right font-medium">
-                        {Number(order.total || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                        {(item.quantity * item.price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                       </td>
                     </tr>
                   ))}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, ShieldCheck, Mail, Smartphone, FileText, CheckCircle, Package, ArrowRight, Printer } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Mail, Smartphone, FileText, CheckCircle, Package, ArrowRight, Printer, QrCode, XCircle } from 'lucide-react';
+import { QRCodeSVG } from "qrcode.react";
 
 interface PublicFormProps {
   id?: string;
@@ -14,6 +15,7 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, 
   const [code, setCode] = useState('');
   const [sentTo, setSentTo] = useState('');
   const [error, setError] = useState('');
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
 
   const [data, setData] = useState<{ record: any, customer: any, settings: any, products: any[], type?: string } | null>(null);
 
@@ -35,8 +37,15 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, 
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Token doğrulanamadı');
+      const safeRecord = { ...result.record };
+      if (typeof safeRecord.materialsUsed === 'string') safeRecord.materialsUsed = JSON.parse(safeRecord.materialsUsed);
+      if (typeof safeRecord.plumbingChecklist === 'string') safeRecord.plumbingChecklist = JSON.parse(safeRecord.plumbingChecklist);
+      if (typeof safeRecord.items === 'string') safeRecord.items = JSON.parse(safeRecord.items);
+      if (typeof safeRecord.device === 'string') safeRecord.device = JSON.parse(safeRecord.device);
+      if (typeof safeRecord.materials === 'string') safeRecord.materials = JSON.parse(safeRecord.materials);
+
       setData({
-        record: result.record,
+        record: safeRecord,
         customer: result.customer,
         settings: result.settings,
         products: result.products || [],
@@ -83,8 +92,15 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, 
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Geçersiz kod');
+      const safeRecord = { ...result.record };
+      if (typeof safeRecord.materialsUsed === 'string') safeRecord.materialsUsed = JSON.parse(safeRecord.materialsUsed);
+      if (typeof safeRecord.plumbingChecklist === 'string') safeRecord.plumbingChecklist = JSON.parse(safeRecord.plumbingChecklist);
+      if (typeof safeRecord.items === 'string') safeRecord.items = JSON.parse(safeRecord.items);
+      if (typeof safeRecord.device === 'string') safeRecord.device = JSON.parse(safeRecord.device);
+      if (typeof safeRecord.materials === 'string') safeRecord.materials = JSON.parse(safeRecord.materials);
+
       setData({
-        record: result.record,
+        record: safeRecord,
         customer: result.customer,
         settings: result.settings,
         products: result.products || []
@@ -286,7 +302,7 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, 
                              return (
                                <li key={i} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 text-sm">
                                   <span className="text-gray-700">{pName}</span>
-                                  <span className="text-gray-500">{m.quantity} {m.unit || 'Adet'} x {Number(m.price).toLocaleString('tr-TR')} TL</span>
+                                  <span className="text-gray-500">{m.quantity} {m.unit || 'Adet'} x {Number(m.price || m.unitPrice).toLocaleString('tr-TR')} TL</span>
                                </li>
                              );
                            })}
@@ -344,11 +360,52 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, 
         </div>
         
         {/* Actions Float */}
-        <div className="fixed bottom-6 right-6">
-           <button onClick={() => window.print()} className="bg-gray-900 text-white p-4 rounded-full shadow-xl hover:bg-gray-800 transition-colors flex items-center justify-center">
+        <div className="fixed bottom-6 right-6 flex flex-col gap-3">
+           <button onClick={() => setIsQRModalOpen(true)} className="bg-emerald-600 text-white p-4 rounded-full shadow-xl hover:bg-emerald-700 transition-colors flex items-center justify-center" title="QR ile Paylaş">
+              <QrCode size={24} />
+           </button>
+           <button onClick={() => window.print()} className="bg-gray-900 text-white p-4 rounded-full shadow-xl hover:bg-gray-800 transition-colors flex items-center justify-center" title="Yazdır">
               <Printer size={24} />
            </button>
         </div>
+
+      {isQRModalOpen && (
+        <div
+          className="fixed inset-0 bg-gray-500/75 flex items-center justify-center p-4 z-[60] animate-fade-in"
+          onClick={() => setIsQRModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <QrCode className="text-emerald-600" />
+                Dökuman QR Kodu
+              </h3>
+              <button
+                onClick={() => setIsQRModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircle size={24} />
+              </button>
+            </div>
+            <div className="p-8 flex flex-col items-center justify-center bg-white">
+              <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm mb-4">
+                <QRCodeSVG
+                  value={window.location.href}
+                  size={200}
+                  level="M"
+                  includeMargin={false}
+                />
+              </div>
+              <p className="text-sm text-gray-500 text-center">
+                Müşteriler bu QR kodu okutarak formu dijital olarak görüntüleyebilirler.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     );
   }
