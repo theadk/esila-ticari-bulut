@@ -186,7 +186,7 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, 
                 {isTicket ? 'Servis / Arıza Formu' : 'Sipariş Detayı'}
               </h1>
               <p className="text-gray-500 flex items-center gap-2">
-                <FileText size={16} /> Form No: {isTicket ? data.record.ticketNumber : data.record.orderNumber}
+                <FileText size={16} /> Form No: {isTicket ? (data.record.ticketNumber || data.record.id) : (data.record.orderNumber || data.record.id)}
               </p>
             </div>
             {data.settings?.companyLogo ? (
@@ -216,16 +216,16 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, 
                    <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 space-y-3">
                       <div className="flex justify-between">
                          <span className="text-gray-500">Tarih</span>
-                         <span className="font-medium text-gray-800">{new Date(data.record.date || data.record.createdAt).toLocaleDateString('tr-TR')}</span>
+                         <span className="font-medium text-gray-800">{new Date(data.record.date || data.record.createdAt || data.record.dateCreated).toLocaleDateString('tr-TR')}</span>
                       </div>
                       <div className="flex justify-between">
                          <span className="text-gray-500">Durum</span>
                          <span className="font-medium text-gray-800">{data.record.status}</span>
                       </div>
-                      {data.record.totalAmount !== undefined && (
+                      {(data.record.totalAmount !== undefined || data.record.totalCost !== undefined) && (
                         <div className="flex justify-between pt-3 border-t border-gray-200">
                            <span className="text-gray-500">Toplam Tutar</span>
-                           <span className="font-bold text-emerald-600">{Number(data.record.totalAmount).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</span>
+                           <span className="font-bold text-emerald-600">{Number(data.record.totalAmount || data.record.totalCost).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</span>
                         </div>
                       )}
                    </div>
@@ -243,35 +243,62 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, 
                     <div className="p-5 flex flex-col md:flex-row gap-4 justify-between bg-white">
                        <div>
                          <p className="text-sm text-gray-500 mb-1">Cihaz</p>
-                         <p className="font-medium text-gray-800">{data.record.device?.brand} {data.record.device?.model}</p>
-                         {data.record.device?.serialNumber && <p className="text-xs text-gray-400 mt-1">S/N: {data.record.device.serialNumber}</p>}
+                         <p className="font-medium text-gray-800">{data.record.device?.brand || data.record.deviceType} {data.record.device?.model || ''}</p>
+                         {(data.record.device?.serialNumber || data.record.serialNumber) && <p className="text-xs text-gray-400 mt-1">S/N: {data.record.device?.serialNumber || data.record.serialNumber}</p>}
                        </div>
                        <div>
                          <p className="text-sm text-gray-500 mb-1">Şikayet</p>
-                         <p className="font-medium text-gray-800">{data.record.issue}</p>
+                         <p className="font-medium text-gray-800">{data.record.issue || data.record.issueDescription}</p>
                        </div>
                     </div>
-                    {data.record.description && (
+                    {(data.record.description || data.record.resolutionNotes) && (
                        <div className="p-5 bg-gray-50">
                          <p className="text-sm text-gray-500 mb-2">Açıklama / Teknisyen Notu</p>
-                         <p className="text-gray-800 whitespace-pre-line">{data.record.description}</p>
+                         <p className="text-gray-800 whitespace-pre-line">{data.record.description || data.record.resolutionNotes}</p>
                        </div>
                     )}
-                    {data.record.materials && data.record.materials.length > 0 && (
-                       <div className="p-5 bg-white">
-                         <p className="text-sm text-gray-500 mb-3">Kullanılan Malzeme & İşçilik</p>
+                    {data.record.plumbingChecklist && data.record.plumbingChecklist.length > 0 && (
+                       <div className="p-5 bg-white border-b border-gray-100">
+                         <p className="text-sm text-gray-500 mb-3">Kontrol Listesi / Testler</p>
                          <ul className="space-y-2">
-                           {data.record.materials.map((m: any, i: number) => {
-                             const pName = data.products.find((x:any)=>x.id===m.productId)?.name || 'Bilinmeyen Ürün';
+                           {data.record.plumbingChecklist.map((m: any, i: number) => {
                              return (
-                               <li key={i} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 text-sm">
-                                  <span className="text-gray-700">{pName}</span>
-                                  <span className="text-gray-500">{m.quantity} x {Number(m.price).toLocaleString('tr-TR')} TL</span>
+                               <li key={i} className="flex gap-2 items-center text-sm">
+                                  {m.isChecked ? (
+                                     <CheckCircle size={16} className="text-emerald-500" />
+                                  ) : (
+                                     <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                                  )}
+                                  <span className="text-gray-700">{m.itemName}</span>
                                </li>
                              );
                            })}
                          </ul>
                        </div>
+                    )}
+
+                    {((data.record.materials && data.record.materials.length > 0) || (data.record.materialsUsed && data.record.materialsUsed.length > 0)) && (
+                       <div className="p-5 bg-white border-b border-gray-100">
+                         <p className="text-sm text-gray-500 mb-3">Kullanılan Malzeme & Ürünler</p>
+                         <ul className="space-y-2">
+                           {(data.record.materials || data.record.materialsUsed).map((m: any, i: number) => {
+                             const pName = m.name || data.products.find((x:any)=>x.id===m.productId)?.name || 'Bilinmeyen Ürün';
+                             return (
+                               <li key={i} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 text-sm">
+                                  <span className="text-gray-700">{pName}</span>
+                                  <span className="text-gray-500">{m.quantity} {m.unit || 'Adet'} x {Number(m.price).toLocaleString('tr-TR')} TL</span>
+                               </li>
+                             );
+                           })}
+                         </ul>
+                       </div>
+                    )}
+                    
+                    {data.record.laborFee !== undefined && data.record.laborFee > 0 && (
+                        <div className="p-5 bg-gray-50 flex justify-between items-center text-sm">
+                          <span className="text-gray-700 font-medium">İşçilik / Servis Ücreti</span>
+                          <span className="text-gray-700 font-medium">{Number(data.record.laborFee).toLocaleString('tr-TR')} TL</span>
+                        </div>
                     )}
                  </div>
                ) : (
