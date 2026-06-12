@@ -120,11 +120,16 @@ export const Urunler: React.FC = () => {
       'Kategori': p.category,
       'Alt Kategori': p.subCategory || '',
       'Marka': p.brand || '',
-      'Perakende Fiyatı': p.price,
-      'Stok': p.stock,
+      'Alış Fiyatı': p.purchasePrice || 0,
+      'Satış Fiyatı': p.price,
       'KDV Oranı': p.taxRate || 0,
+      'Stok': p.stock,
+      'Birim': p.unit || 'Adet',
       'Depo': p.warehouse || '',
-      'Barkod': p.barcode || ''
+      'Barkod': p.barcode || '',
+      'Varyantlar': (p.variants || []).join(', '),
+      'Kısa Açıklama': p.description || '',
+      'Hızlı Satışta Göster': p.showInQuickSale ? 'Evet' : 'Hayır'
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -146,28 +151,58 @@ export const Urunler: React.FC = () => {
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
         
-        const newProducts: Product[] = data.map((row: any) => ({
-          id: Math.random().toString(36).substr(2, 9),
+        const importedData = data.map((row: any) => ({
           code: row['Ürün Kodu']?.toString() || '',
           name: row['Ürün Adı']?.toString() || '',
           category: row['Kategori']?.toString() || 'Genel',
           subCategory: row['Alt Kategori']?.toString() || '',
           brand: row['Marka']?.toString() || '',
-          price: Number(row['Perakende Fiyatı']) || Number(row['Fiyat']) || 0,
+          purchasePrice: Number(row['Alış Fiyatı']) || 0,
+          price: Number(row['Satış Fiyatı']) || Number(row['Perakende Fiyatı']) || Number(row['Fiyat']) || 0,
+          taxRate: (row['KDV Oranı'] !== undefined && row['KDV Oranı'] !== null) ? Number(row['KDV Oranı']) : 20,
           stock: Number(row['Stok']) || 0,
-          taxRate: Number(row['KDV Oranı']) || 0,
+          unit: row['Birim']?.toString() || 'Adet',
           warehouse: row['Depo']?.toString() || '',
-          barcode: row['Barkod']?.toString() || ''
+          barcode: row['Barkod']?.toString() || '',
+          variants: row['Varyantlar'] ? row['Varyantlar'].toString().split(',').map((v: string) => v.trim()).filter(Boolean) : [],
+          description: row['Kısa Açıklama']?.toString() || '',
+          showInQuickSale: row['Hızlı Satışta Göster']?.toString().toLowerCase() === 'evet' || row['Hızlı Satışta Göster']?.toString().toLowerCase() === 'true'
         })).filter((p: any) => p.name && p.code);
         
-        if (newProducts.length > 0) {
-          // just use setProducts and assume a simple store mechanism, but since api exists we can also use that if createBulk is available. 
-          // Let's check what 'api.products.createBulk' is... Actually we have a store in this app probably or just local state saving is done with `api.addProduct`.
-          for(const p of newProducts) {
-             await api.addProduct(p);
+        if (importedData.length > 0) {
+          let updatedCount = 0;
+          let addedCount = 0;
+          const currentProducts = [...products];
+
+          for(const impProduct of importedData) {
+             const existingIndex = currentProducts.findIndex((p: Product) => 
+                 p.code === impProduct.code || (p.barcode && impProduct.barcode && p.barcode === impProduct.barcode)
+             );
+             
+             if (existingIndex >= 0) {
+                 const existingProduct = currentProducts[existingIndex];
+                 const updatedProduct = {
+                     ...existingProduct,
+                     ...impProduct,
+                     id: existingProduct.id, 
+                     warehouseStocks: [{ warehouseId: impProduct.warehouse || existingProduct.warehouse || '', stock: impProduct.stock }]
+                 };
+                 await api.updateProduct(existingProduct.id, updatedProduct);
+                 currentProducts[existingIndex] = updatedProduct;
+                 updatedCount++;
+             } else {
+                 const newProduct = {
+                     ...impProduct,
+                     warehouseStocks: [{ warehouseId: impProduct.warehouse || '', stock: impProduct.stock }],
+                     id: Math.random().toString(36).substr(2, 9)
+                 };
+                 await api.addProduct(newProduct);
+                 currentProducts.push(newProduct);
+                 addedCount++;
+             }
           }
-          setProducts([...products, ...newProducts]);
-          alert(`${newProducts.length} ürün başarıyla eklendi.`);
+          setProducts(currentProducts);
+          alert(`${addedCount} ürün eklendi, ${updatedCount} ürün güncellendi.`);
         }
       } catch (error) {
         console.error("Error importing excel:", error);

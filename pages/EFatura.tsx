@@ -33,7 +33,7 @@ export const EFatura: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [previewInvoice, setPreviewInvoice] = useState<any>(null);
   const [editInvoice, setEditInvoice] = useState<any>(null);
-  const [printType, setPrintType] = useState<'A4' | '80mm'>('A4');
+  const [printType, setPrintType] = useState<'A4' | '80mm' | 'XML'>('A4');
 
   const invoices = store.eInvoices || [];
 
@@ -1093,6 +1093,14 @@ export const EFatura: React.FC = () => {
                 >
                   80mm
                 </button>
+                {previewInvoice?.xmlContent && (
+                  <button
+                    onClick={() => setPrintType('XML')}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${printType === 'XML' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Orijinal Görünüm
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-3">
@@ -1163,9 +1171,15 @@ export const EFatura: React.FC = () => {
             )}
 
             <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 print:p-0 print:bg-white flex justify-center">
-              {printType === 'A4' ? (
+              {printType === 'XML' && previewInvoice?.xmlContent ? (
+                  <iframe 
+                      src={URL.createObjectURL(new Blob([previewInvoice.xmlContent], { type: 'application/xml' }))} 
+                      className="w-full bg-white border border-gray-200 shadow-sm mx-auto min-h-[297mm] max-w-5xl" 
+                      title="XML Preview"
+                  />
+              ) : printType === 'A4' ? (
                 <div
-                  className="bg-white p-8 border border-gray-200 shadow-sm mx-auto max-w-[210mm] min-h-[297mm] text-[11px] font-sans text-black print:border-none print:shadow-none print:m-0 print-target"
+                  className="bg-white p-8 border border-gray-200 shadow-sm mx-auto max-w-[210mm] w-[210mm] min-h-[297mm] text-[11px] font-sans text-black print:border-none print:shadow-none print:m-0 print-target"
                   id="invoice-preview"
                 >
                 {/* Header Row */}
