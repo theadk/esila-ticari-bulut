@@ -1,0 +1,17 @@
+                        {Number(inv.amount || 0).toLocaleString("tr-TR", {
+                              {Number(priceWithoutTax || 0).toLocaleString("tr-TR", {
+                              {Number((taxAmount * item.quantity) || 0).toLocaleString(
+                              {Number(totalItemWithoutTax || 0).toLocaleString("tr-TR", {
+                              {Number(priceWithoutTax || 0).toLocaleString("tr-TR", {
+                              {Number((taxAmount * item.quantity) || 0).toLocaleString(
+                              {Number(totalItemWithoutTax || 0).toLocaleString("tr-TR", {
+                          {Number((previewInvoice.amount || 0) / 1.2).toLocaleString(
+                          ).toLocaleString("tr-TR", {
+                          {Number((previewInvoice.amount || 0) / 1.2).toLocaleString(
+                            ).toLocaleString("tr-TR", {
+                            ).toLocaleString("tr-TR", {
+                            ).toLocaleString("tr-TR", {
+                            ).toLocaleString("tr-TR", {
+                            ).toLocaleString("tr-TR", {
+                      <td className="p-3 text-gray-600">{Number(inv.taxTotal || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</td>
+                        {Number(inv.total || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}

@@ -271,7 +271,7 @@ export const Cariler: React.FC = () => {
     const templateRaw = store.settings.email_template_customer || defaultTemplates.customer_statement;
     const body = parseEmailTemplate(templateRaw, {
       MUSTERI_ADI: customer.companyName || customer.name || '',
-      BAKIYE: customer.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }),
+      BAKIYE: (customer.balance || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }),
       FIRMA_ADI: store.settings.companyName || '',
       FIRMA_TELEFON: store.settings.phone || '',
       FIRMA_MAIL: store.settings.email || '',
@@ -445,7 +445,7 @@ export const Cariler: React.FC = () => {
 
   const handleDelete = (id: string) => {
     if (window.confirm('Bu cariyi silmek istediğinizden emin misiniz?')) {
-      setCustomers(customers.filter(c => c.id !== id));
+      setCustomers(customers.filter(c => String(c.id) !== String(id)));
     }
   };
 
@@ -684,7 +684,7 @@ export const Cariler: React.FC = () => {
                         </button>
                         <button 
                           title="Sil"
-                          onClick={() => handleDelete(customer.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(customer.id); }}
                           className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-600 transition-colors"
                         >
                           <Trash2 size={18} />
@@ -727,7 +727,7 @@ export const Cariler: React.FC = () => {
                   <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mb-2">
                     <div className="flex items-center gap-2">
                       <Landmark className="text-red-500" size={20} />
-                      <p className="text-red-700 font-medium">Uyarı: Bu carinin bakiyesi ({formData.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}), belirlenen risk limitini ({formData.riskLimit.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}) aşmaktadır!</p>
+                      <p className="text-red-700 font-medium">Uyarı: Bu carinin bakiyesi ({(formData.balance || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}), belirlenen risk limitini ({(formData.riskLimit || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}) aşmaktadır!</p>
                     </div>
                   </div>
                 )}
@@ -1107,7 +1107,7 @@ export const Cariler: React.FC = () => {
                     <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col overflow-hidden">
                       <button 
                         onClick={() => {
-                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}, güncel bakiye durumunuz: *${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* (${selectedCustomerForHistory.balance > 0 ? 'Borçlu' : 'Alacaklı'}). Detaylı bilgi için bizimle iletişime geçebilirsiniz. İyi çalışmalar dileriz. - ${store.settings?.companyName || 'Şirket'}`;
+                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}, güncel bakiye durumunuz: *${(selectedCustomerForHistory.balance || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* (${selectedCustomerForHistory.balance > 0 ? 'Borçlu' : 'Alacaklı'}). Detaylı bilgi için bizimle iletişime geçebilirsiniz. İyi çalışmalar dileriz. - ${store.settings?.companyName || 'Şirket'}`;
                           window.open(`https://wa.me/${selectedCustomerForHistory.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
                         }}
                         className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
@@ -1117,7 +1117,7 @@ export const Cariler: React.FC = () => {
                       </button>
                       <button 
                         onClick={() => {
-                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name} yetkilisi, güncel kayıtlarımıza göre ${new Date().toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz *${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* tutarında mutabıktır. Teyit etmenizi rica ederiz. Saygılarımızla, ${store.settings?.companyName || 'Şirket'}`;
+                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name} yetkilisi, güncel kayıtlarımıza göre ${new Date().toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz *${(selectedCustomerForHistory.balance || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* tutarında mutabıktır. Teyit etmenizi rica ederiz. Saygılarımızla, ${store.settings?.companyName || 'Şirket'}`;
                           window.open(`https://wa.me/${selectedCustomerForHistory.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
                         }}
                         className="px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
@@ -1150,7 +1150,7 @@ export const Cariler: React.FC = () => {
                     <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col overflow-hidden">
                       <button 
                         onClick={async () => {
-                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}, güncel bakiye durumunuz: ${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${selectedCustomerForHistory.balance > 0 ? 'Borçlu' : 'Alacaklı'}). Detaylı bilgi için bizimle iletişime geçebilirsiniz. İyi çalışmalar dileriz. - ${store.settings?.companyName || 'Şirket'}`;
+                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}, güncel bakiye durumunuz: ${(selectedCustomerForHistory.balance || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${selectedCustomerForHistory.balance > 0 ? 'Borçlu' : 'Alacaklı'}). Detaylı bilgi için bizimle iletişime geçebilirsiniz. İyi çalışmalar dileriz. - ${store.settings?.companyName || 'Şirket'}`;
                           try {
                              toast.loading("SMS gönderiliyor...", { id: 'singleSms' });
                              await sendSMS(store.settings, [selectedCustomerForHistory.phone], text);
@@ -1166,7 +1166,7 @@ export const Cariler: React.FC = () => {
                       </button>
                       <button 
                         onClick={async () => {
-                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name} yetkilisi, ${new Date().toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL tutarında mutabıktır. ${store.settings?.companyName || 'Şirket'}`;
+                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name} yetkilisi, ${new Date().toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${(selectedCustomerForHistory.balance || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL tutarında mutabıktır. ${store.settings?.companyName || 'Şirket'}`;
                           try {
                              toast.loading("SMS gönderiliyor...", { id: 'singleSms' });
                              await sendSMS(store.settings, [selectedCustomerForHistory.phone], text);
@@ -1211,7 +1211,7 @@ export const Cariler: React.FC = () => {
               <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-100 mb-4">
                 <span className="text-gray-600 font-medium">Güncel Bakiye:</span>
                 <span className={`text-xl font-bold ${selectedCustomerForHistory.balance > 0 ? 'text-emerald-600' : selectedCustomerForHistory.balance < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                  {selectedCustomerForHistory.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                  {(selectedCustomerForHistory.balance || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                 </span>
               </div>
               
@@ -1242,7 +1242,7 @@ export const Cariler: React.FC = () => {
                           </span>
                         </td>
                         <td className={`px-6 py-4 text-right font-medium ${t.amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                          {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                          {t.amount >= 0 ? '+' : ''}{(t.amount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                         </td>
                       </tr>
                     ))
@@ -1426,7 +1426,7 @@ export const Cariler: React.FC = () => {
                 <div className="p-4 rounded-lg border print:bg-transparent" style={{ borderColor: store.settings?.invoiceTemplate_color || '#bfdbfe', backgroundColor: '#eff6ff' }}>
                   <p className="text-sm font-bold mb-1" style={{ color: store.settings?.invoiceTemplate_color || '#2563eb' }}>Güncel Bakiye</p>
                   <p className={`text-2xl font-bold ${selectedCustomerForHistory.balance >= 0 ? 'text-emerald-700' : 'text-red-700'} print:text-black`}>
-                    {selectedCustomerForHistory.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    {(selectedCustomerForHistory.balance || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                   </p>
                   <p className="text-xs opacity-80 mt-1" style={{ color: store.settings?.invoiceTemplate_color || '#1d4ed8' }}>
                     {selectedCustomerForHistory.balance >= 0 ? 'Müşteri Borçludur' : 'Firmamız Borçludur (Fazla Tahsilat)'}
@@ -1461,7 +1461,7 @@ export const Cariler: React.FC = () => {
                           {tx.description}
                         </td>
                         <td className={`p-3 border-x text-right font-bold whitespace-nowrap ${tx.type === 'Satış' || tx.type === 'Alış' ? 'text-red-700 print:text-black' : 'text-emerald-700 print:text-black'}`} style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
-                          {tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                          {(tx.amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                         </td>
                       </tr>
                     ))}
@@ -1532,14 +1532,14 @@ export const Cariler: React.FC = () => {
                         <div className="text-sm text-gray-500">{c.phone || 'Telefon Kayıtlı Değil'}</div>
                         {c.balance > 0 && (
                           <div className="text-xs text-red-600 font-semibold mt-1">
-                            Bakiye: {c.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                            Bakiye: {(c.balance || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
                           </div>
                         )}
                       </div>
                       <button 
                         disabled={!c.phone}
                         onClick={() => {
-                          const text = `Sayın ${c.companyName || c.name}, güncel kayıtlarımıza göre ödenmemiş *${c.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* bakiyeniz bulunmaktadır. Ödemelerinizi aşağıdaki hesap numaralarımıza yapabilirsiniz:\n${store.settings?.bankName ? `Banka: ${store.settings.bankName}\n` : ''}${store.settings?.iban ? `IBAN: ${store.settings.iban}` : ''}\n\nİyi çalışmalar, ${store.settings?.companyName || 'Şirket Adı'}`;
+                          const text = `Sayın ${c.companyName || c.name}, güncel kayıtlarımıza göre ödenmemiş *${(c.balance || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* bakiyeniz bulunmaktadır. Ödemelerinizi aşağıdaki hesap numaralarımıza yapabilirsiniz:\n${store.settings?.bankName ? `Banka: ${store.settings.bankName}\n` : ''}${store.settings?.iban ? `IBAN: ${store.settings.iban}` : ''}\n\nİyi çalışmalar, ${store.settings?.companyName || 'Şirket Adı'}`;
                           window.open(`https://wa.me/${(c.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
                         }}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 ${c.phone ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}

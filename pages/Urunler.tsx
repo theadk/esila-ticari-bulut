@@ -263,7 +263,7 @@ export const Urunler: React.FC = () => {
               ${isQR ? '<div id="barcode"></div>' : '<svg id="barcode"></svg>'}
             </div>
             ${isQR ? `<div class="product-code mt-1">${product.barcode}</div>` : ''}
-            <div class="price">${product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</div>
+            <div class="price">${Number(product.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</div>
           </div>
           <script>
             try {
@@ -318,7 +318,7 @@ export const Urunler: React.FC = () => {
             ${isQR ? `<div id="barcode-${opt.product.id}-${idx}"></div>` : `<svg id="barcode-${opt.product.id}-${idx}"></svg>`}
           </div>
           ${isQR ? `<div class="product-code mt-1">${opt.product.barcode || '0000000'}</div>` : ''}
-          <div class="price">${opt.product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</div>
+          <div class="price">${Number(opt.product.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</div>
         </div>
       `);
     }).join('');

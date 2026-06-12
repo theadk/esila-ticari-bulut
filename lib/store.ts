@@ -253,70 +253,70 @@ export const useAppStore = () => {
   return {
     get users() { return globalUsers; },
     setUsers(updater: any) {
-      const old = globalUsers;
+      const old = [...globalUsers];
       globalUsers = typeof updater === 'function' ? updater(globalUsers) : updater;
       syncArray('users', old, globalUsers);
       emit();
     },
     get customers() { return globalCustomers; },
     setCustomers(updater: any) {
-      const old = globalCustomers;
+      const old = [...globalCustomers];
       globalCustomers = typeof updater === 'function' ? updater(globalCustomers) : updater;
       syncArray('customers', old, globalCustomers);
       emit();
     },
     get products() { return globalProducts; },
     setProducts(updater: any) {
-      const old = globalProducts;
+      const old = [...globalProducts];
       globalProducts = typeof updater === 'function' ? updater(globalProducts) : updater;
       syncArray('products', old, globalProducts);
       emit();
     },
     get transactions() { return globalTransactions; },
     setTransactions(updater: any) {
-      const old = globalTransactions;
+      const old = [...globalTransactions];
       globalTransactions = typeof updater === 'function' ? updater(globalTransactions) : updater;
       syncArray('customer_transactions', old, globalTransactions);
       emit();
     },
     get cashTransactions() { return globalCashTransactions; },
     setCashTransactions(updater: any) {
-      const old = globalCashTransactions;
+      const old = [...globalCashTransactions];
       globalCashTransactions = typeof updater === 'function' ? updater(globalCashTransactions) : updater;
       syncArray('cash_transactions', old, globalCashTransactions);
       emit();
     },
     get personnel() { return globalPersonnel; },
     setPersonnel(updater: any) {
-      const old = globalPersonnel;
+      const old = [...globalPersonnel];
       globalPersonnel = typeof updater === 'function' ? updater(globalPersonnel) : updater;
       syncArray('personnel', old, globalPersonnel);
       emit();
     },
     get jobApplications() { return globalJobApplications; },
     setJobApplications(updater: any) {
-      const old = globalJobApplications;
+      const old = [...globalJobApplications];
       globalJobApplications = typeof updater === 'function' ? updater(globalJobApplications) : updater;
       syncArray('job_applications', old, globalJobApplications);
       emit();
     },
     get orders() { return globalOrders; },
     setOrders(updater: any) {
-      const old = globalOrders;
+      const old = [...globalOrders];
       globalOrders = typeof updater === 'function' ? updater(globalOrders) : updater;
       syncArray('orders', old, globalOrders);
       emit();
     },
     get proposals() { return globalProposals; },
     setProposals(updater: any) {
-      const old = globalProposals;
+      const old = [...globalProposals];
       globalProposals = typeof updater === 'function' ? updater(globalProposals) : updater;
       syncArray('proposals', old, globalProposals);
       emit();
     },
     get eInvoices() { return globalEInvoices; },
     setEInvoices(updater: any) {
-      const old = globalEInvoices;
+      const old = [...globalEInvoices];
       globalEInvoices = typeof updater === 'function' ? updater(globalEInvoices) : updater;
       syncArray('e_invoices', old, globalEInvoices);
       emit();
@@ -330,14 +330,14 @@ export const useAppStore = () => {
     },
     get serviceTickets() { return globalServiceTickets; },
     setServiceTickets(updater: any) {
-      const old = globalServiceTickets;
+      const old = [...globalServiceTickets];
       globalServiceTickets = typeof updater === 'function' ? updater(globalServiceTickets) : updater;
       syncArray('service_tickets', old, globalServiceTickets);
       emit();
     },
     get reminderNotes() { return globalReminderNotes; },
     setReminderNotes(updater: any) {
-      const old = globalReminderNotes;
+      const old = [...globalReminderNotes];
       globalReminderNotes = typeof updater === 'function' ? updater(globalReminderNotes) : updater;
       syncArray('reminder_notes', old, globalReminderNotes);
       emit();

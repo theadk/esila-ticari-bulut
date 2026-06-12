@@ -1,0 +1,31 @@
+pages/Cariler.tsx:274:      BAKIYE: customer.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }),
+pages/Cariler.tsx:638:                          {Number(customer.balance).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+pages/Cariler.tsx:730:                      <p className="text-red-700 font-medium">Uyarı: Bu carinin bakiyesi ({formData.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}), belirlenen risk limitini ({formData.riskLimit.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}) aşmaktadır!</p>
+pages/Cariler.tsx:1110:                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}, güncel bakiye durumunuz: *${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* (${selectedCustomerForHistory.balance > 0 ? 'Borçlu' : 'Alacaklı'}). Detaylı bilgi için bizimle iletişime geçebilirsiniz. İyi çalışmalar dileriz. - ${store.settings?.companyName || 'Şirket'}`;
+pages/Cariler.tsx:1120:                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name} yetkilisi, güncel kayıtlarımıza göre ${new Date().toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz *${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* tutarında mutabıktır. Teyit etmenizi rica ederiz. Saygılarımızla, ${store.settings?.companyName || 'Şirket'}`;
+pages/Cariler.tsx:1153:                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}, güncel bakiye durumunuz: ${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${selectedCustomerForHistory.balance > 0 ? 'Borçlu' : 'Alacaklı'}). Detaylı bilgi için bizimle iletişime geçebilirsiniz. İyi çalışmalar dileriz. - ${store.settings?.companyName || 'Şirket'}`;
+pages/Cariler.tsx:1169:                          const text = `Sayın ${selectedCustomerForHistory.companyName || selectedCustomerForHistory.name} yetkilisi, ${new Date().toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${selectedCustomerForHistory.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL tutarında mutabıktır. ${store.settings?.companyName || 'Şirket'}`;
+pages/Cariler.tsx:1214:                  {selectedCustomerForHistory.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+pages/Cariler.tsx:1245:                          {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+pages/Cariler.tsx:1391:                    Çıktı Tarihi: {new Date().toLocaleString('tr-TR')}
+pages/Cariler.tsx:1429:                    {selectedCustomerForHistory.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+pages/Cariler.tsx:1464:                          {tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+pages/Cariler.tsx:1535:                            Bakiye: {c.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+pages/Cariler.tsx:1542:                          const text = `Sayın ${c.companyName || c.name}, güncel kayıtlarımıza göre ödenmemiş *${c.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL* bakiyeniz bulunmaktadır. Ödemelerinizi aşağıdaki hesap numaralarımıza yapabilirsiniz:\n${store.settings?.bankName ? `Banka: ${store.settings.bankName}\n` : ''}${store.settings?.iban ? `IBAN: ${store.settings.iban}` : ''}\n\nİyi çalışmalar, ${store.settings?.companyName || 'Şirket Adı'}`;
+pages/EFatura.tsx:742:                        {Number(inv.amount || 0).toLocaleString("tr-TR", {
+pages/EFatura.tsx:1394:                              {Number(priceWithoutTax || 0).toLocaleString("tr-TR", {
+pages/EFatura.tsx:1404:                              {Number((taxAmount * item.quantity) || 0).toLocaleString(
+pages/EFatura.tsx:1412:                              {Number(totalItemWithoutTax || 0).toLocaleString("tr-TR", {
+pages/EFatura.tsx:1449:                              {Number(priceWithoutTax || 0).toLocaleString("tr-TR", {
+pages/EFatura.tsx:1459:                              {Number((taxAmount * item.quantity) || 0).toLocaleString(
+pages/EFatura.tsx:1467:                              {Number(totalItemWithoutTax || 0).toLocaleString("tr-TR", {
+pages/EFatura.tsx:1488:                          {Number((previewInvoice.amount || 0) / 1.2).toLocaleString(
+pages/EFatura.tsx:1504:                          ).toLocaleString("tr-TR", {
+pages/EFatura.tsx:1511:                          {Number((previewInvoice.amount || 0) / 1.2).toLocaleString(
+pages/EFatura.tsx:1534:                            ).toLocaleString("tr-TR", {
+pages/EFatura.tsx:1547:                            ).toLocaleString("tr-TR", {
+pages/EFatura.tsx:1562:                            ).toLocaleString("tr-TR", {
+pages/EFatura.tsx:1575:                            ).toLocaleString("tr-TR", {
+pages/EFatura.tsx:1588:                            ).toLocaleString("tr-TR", {
+pages/EFatura.tsx:1694:                      <td className="p-3 text-gray-600">{Number(inv.taxTotal || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</td>
+pages/EFatura.tsx:1696:                        {Number(inv.total || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}

@@ -684,7 +684,7 @@ export const Siparisler: React.FC = () => {
                         {(item.price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                       </td>
                       <td className="py-2 px-3 text-right font-medium">
-                        {(item.price * item.quantity).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                        {Number(order.total || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                       </td>
                     </tr>
                   ))}
@@ -853,7 +853,7 @@ export const Siparisler: React.FC = () => {
                     </select>
                     {selectedCustomer && (
                        <div className="mt-3 text-xs text-gray-500 bg-white p-2 rounded border">
-                          <p>Bakiye: {selectedCustomer.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
+                          <p>Bakiye: {Number(selectedCustomer?.balance || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
                           <p>{selectedCustomer.address}</p>
                        </div>
                     )}
@@ -951,7 +951,7 @@ export const Siparisler: React.FC = () => {
                              <div className="w-16 text-center text-gray-600">{item.quantity}</div>
                              <div className="w-16 text-center text-gray-500 text-xs">%{item.taxRate || 0}</div>
                              <div className="w-24 text-right font-semibold text-gray-800">
-                               {((item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate||20)/100))).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                               {Number(((item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate || 0) / 100))) || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                              </div>
                              <div className="w-10 flex justify-end">
                                <button 
@@ -1035,21 +1035,21 @@ export const Siparisler: React.FC = () => {
 
                       <div className="flex justify-between items-center mb-1 text-sm text-gray-600">
                         <span>Ara Toplam</span>
-                        <span>{cartSubTotal.toLocaleString('tr-TR', { style: 'currency', currency: orderCurrency })}</span>
+                        <span>{Number(cartSubTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: orderCurrency })}</span>
                       </div>
                       <div className="flex justify-between items-center mb-3 text-sm text-gray-600">
                         <span>KDV Tutarı</span>
-                        <span>{cartTaxTotal.toLocaleString('tr-TR', { style: 'currency', currency: orderCurrency })}</span>
+                        <span>{Number(cartTaxTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: orderCurrency })}</span>
                       </div>
                       <div className="flex justify-between items-center mb-3 pt-2 border-t border-gray-200">
                         <span className="text-gray-800 font-bold">Genel Toplam</span>
                         <div className="text-right">
                             <span className="text-2xl font-bold text-emerald-600 block">
-                              {cartTotal.toLocaleString('tr-TR', { style: 'currency', currency: orderCurrency })}
+                              {Number(cartTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: orderCurrency })}
                             </span>
                             {orderCurrency !== 'TRY' && (
                                 <span className="text-xs text-gray-500 block">
-                                  TRY Karşılığı: {(cartTotal * exchangeRate).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                                  TRY Karşılığı: {Number((cartTotal * exchangeRate) || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                                 </span>
                             )}
                         </div>
@@ -1198,7 +1198,7 @@ export const Siparisler: React.FC = () => {
                                        {(item.price || (item as any).unitPrice || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                      </td>
                                      <td className="border border-black text-right">
-                                       {netAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                       {Number(netAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                      </td>
                                    </tr>
                                  );
@@ -1295,7 +1295,7 @@ export const Siparisler: React.FC = () => {
                              <td className="py-1">{item.productName}</td>
                              <td className="py-1 text-right">{item.quantity}</td>
                              <td className="py-1 text-right">
-                               {((item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate || 0) / 100))).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                               {Number(((item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate || 0) / 100))) || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                              </td>
                            </tr>
                          ))}
@@ -1432,10 +1432,10 @@ export const Siparisler: React.FC = () => {
                                  <td className="border border-black text-left">{item.productName}</td>
                                  <td className="border border-black text-center">{item.quantity}</td>
                                  <td className="border border-black text-right">
-                                   {item.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                   {Number(item.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                  </td>
                                  <td className="border border-black text-right">
-                                   {netAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                   {Number(netAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                  </td>
                                </tr>
                              );
@@ -1531,7 +1531,7 @@ export const Siparisler: React.FC = () => {
                          <td className="py-1">{item.productName}</td>
                          <td className="py-1 text-right">{item.quantity}</td>
                          <td className="py-1 text-right">
-                           {(item.price * item.quantity).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                           {Number((item.price * item.quantity) || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                          </td>
                        </tr>
                      ))}
@@ -1590,9 +1590,9 @@ export const Siparisler: React.FC = () => {
                      <p className="text-sm text-gray-700">{eFaturaOrder.customerName}</p>
                    </div>
                    <div className="text-right">
-                     <p className="text-xs text-gray-500">Matrah: {currentEFaturaTotals.subTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
+                     <p className="text-xs text-gray-500">Matrah: {Number(currentEFaturaTotals.subTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
                      <p className="text-xs text-gray-500">KDV: {(eFaturaInvoiceType === 'ISTISNA' || eFaturaInvoiceType === 'IHRACAT') ? '%0 (İstisna)' : currentEFaturaTotals.taxTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
-                     <p className="text-sm font-bold text-gray-800">Tutar: {currentEFaturaTotals.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
+                     <p className="text-sm font-bold text-gray-800">Tutar: {Number(currentEFaturaTotals.total || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</p>
                    </div>
                  </div>
               </div>

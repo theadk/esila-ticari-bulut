@@ -402,14 +402,14 @@ export const InvoiceTemplateEditor: React.FC = () => {
                 </td>
                 <td className="p-1 border-r border-black text-right">1 Adet</td>
                 <td className="p-1 border-r border-black text-right">
-                  {(previewAmount / 1.2).toLocaleString("tr-TR", {
+                  {Number(previewAmount || 0).toLocaleString("tr-TR", {
                     minimumFractionDigits: 2,
                   })}{" "}
                   TL
                 </td>
                 <td className="p-1 border-r border-black text-right">%20,00</td>
                 <td className="p-1 border-r border-black text-right">
-                  {(previewAmount - previewAmount / 1.2).toLocaleString(
+                  {Number(previewAmount || 0).toLocaleString(
                     "tr-TR",
                     { minimumFractionDigits: 2 },
                   )}{" "}
@@ -417,7 +417,7 @@ export const InvoiceTemplateEditor: React.FC = () => {
                 </td>
                 <td className="p-1 border-r border-black text-right"></td>
                 <td className="p-1 text-right">
-                  {(previewAmount / 1.2).toLocaleString("tr-TR", {
+                  {Number(previewAmount || 0).toLocaleString("tr-TR", {
                     minimumFractionDigits: 2,
                   })}{" "}
                   TL
@@ -436,7 +436,7 @@ export const InvoiceTemplateEditor: React.FC = () => {
                       Mal Hizmet Toplam Tutarı
                     </td>
                     <td className="p-1 w-32 border-l-2 border-black border-l-gray-300">
-                      {(previewAmount / 1.2).toLocaleString("tr-TR", {
+                      {Number(previewAmount || 0).toLocaleString("tr-TR", {
                         minimumFractionDigits: 2,
                       })}{" "}
                       TL
@@ -455,7 +455,7 @@ export const InvoiceTemplateEditor: React.FC = () => {
                       Hesaplanan GERÇEK USULDE KDV(%20)
                     </td>
                     <td className="p-1 border-l-2 border-black border-l-gray-300">
-                      {(previewAmount - previewAmount / 1.2).toLocaleString(
+                      {Number(previewAmount || 0).toLocaleString(
                         "tr-TR",
                         { minimumFractionDigits: 2 },
                       )}{" "}
@@ -467,7 +467,7 @@ export const InvoiceTemplateEditor: React.FC = () => {
                       Vergiler Dahil Toplam Tutar
                     </td>
                     <td className="p-1 border-l-2 border-black border-l-gray-300">
-                      {previewAmount.toLocaleString("tr-TR", {
+                      {Number(previewAmount || 0).toLocaleString("tr-TR", {
                         minimumFractionDigits: 2,
                       })}{" "}
                       TL
@@ -478,7 +478,7 @@ export const InvoiceTemplateEditor: React.FC = () => {
                       Ödenecek Tutar
                     </td>
                     <td className="p-1 border-l-2 border-black border-l-gray-300">
-                      {previewAmount.toLocaleString("tr-TR", {
+                      {Number(previewAmount || 0).toLocaleString("tr-TR", {
                         minimumFractionDigits: 2,
                       })}{" "}
                       TL

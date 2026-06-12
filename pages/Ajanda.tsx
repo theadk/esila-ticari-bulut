@@ -271,7 +271,7 @@ export const Ajanda: React.FC = () => {
                           {note.title}
                           {note.amount && (
                              <span className="ml-2 font-bold text-sm bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full border border-gray-200">
-                                {note.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                {(note.amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
                              </span>
                           )}
                        </div>

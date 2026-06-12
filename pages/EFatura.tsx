@@ -16,14 +16,17 @@ import {
   X,
   Edit,
   Trash2,
+  Upload,
+  Check,
 } from "lucide-react";
+import { XMLParser } from "fast-xml-parser";
 import { useAppStore } from "../lib/store";
 import { InvoiceTemplateEditor } from "../components/InvoiceTemplateEditor";
 import { Pagination } from "../components/Pagination";
 
 export const EFatura: React.FC = () => {
   const store = useAppStore();
-  const [activeTab, setActiveTab] = useState<"Taslak" | "Giden" | "Şablon">(
+  const [activeTab, setActiveTab] = useState<"Taslak" | "Giden" | "Gelen" | "Şablon">(
     "Taslak",
   );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -76,11 +79,58 @@ export const EFatura: React.FC = () => {
   };
 
 
-  const handleDeleteInvoice = (id: string, e: React.MouseEvent) => {
+  const handleDeleteInvoice = (inv: any, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm("Taslak faturayı silmek istediğinize emin misiniz?")) {
+    
+    // Check if it's Gelen Fatura and processed
+    const isIncomingProcessed = inv.type === 'Gelen Fatura' && inv.isProcessed;
+    const confirmMessage = isIncomingProcessed 
+        ? "Bu gelen fatura daha önce işlenmiş. Silerseniz cari hareketlerden, ajanda hatırlatmasından ve stoklardan işlemin GERİ ALINMASINA neden olacaktır. Silmek istediğinize emin misiniz?"
+        : "Faturayı silmek istediğinize emin misiniz?";
+
+    if (window.confirm(confirmMessage)) {
+      if (isIncomingProcessed) {
+        // Find existing transaction to get customerId
+        const transactionToRemove = store.transactions?.find(t => t.description?.includes(`(${inv.id})`));
+        const amountToRevert = Number(inv.total) || Number(inv.amount) || 0;
+        
+        // Revert transactions and balance logic for customer accounts
+        if (store.transactions && store.setTransactions) {
+           store.setTransactions(store.transactions.filter(t => !t.description?.includes(`(${inv.id})`)));
+           
+           if (transactionToRemove && store.customers && store.setCustomers) {
+              store.setCustomers(store.customers.map(c => 
+                 c.id === transactionToRemove.customerId ? { ...c, balance: (c.balance || 0) - amountToRevert } : c
+              ));
+           }
+        }
+        
+        // Revert reminders
+        if (store.reminderNotes && store.setReminderNotes) {
+           store.setReminderNotes(store.reminderNotes.filter(r => r.relatedId !== inv.id));
+        }
+        
+        // Revert stocks
+        if (store.products && store.setProducts && inv.items?.length > 0) {
+           let currentProducts = [...store.products];
+           inv.items.forEach((item: any) => {
+               const existingProductIndex = currentProducts.findIndex(p => 
+                  (item.productId && p.id === item.productId) || 
+                  (!item.productId && p.name === item.productName)
+               );
+               if (existingProductIndex >= 0) {
+                   currentProducts[existingProductIndex] = {
+                       ...currentProducts[existingProductIndex],
+                       stock: Math.max(0, currentProducts[existingProductIndex].stock - (item.quantity || 1))
+                   };
+               }
+           });
+           store.setProducts(currentProducts);
+        }
+      }
+
       if (store.setEInvoices) {
-        store.setEInvoices(store.eInvoices.filter((i) => i.id !== id));
+        store.setEInvoices(store.eInvoices.filter((i) => String(i.id) !== String(inv.id)));
       }
     }
   };
@@ -97,10 +147,159 @@ export const EFatura: React.FC = () => {
   };
 
   const filtered = invoices.filter((inv) => {
-    if (activeTab === "Taslak") return inv.status === "Taslak";
-    if (activeTab === "Giden") return inv.status !== "Taslak";
+    if (activeTab === "Taslak") return inv.status === "Taslak" && inv.type !== "Gelen Fatura";
+    if (activeTab === "Giden") return inv.status !== "Taslak" && inv.type !== "Gelen Fatura";
+    if (activeTab === "Gelen") return inv.type === "Gelen Fatura";
     return true;
   });
+
+  const [pendingIncomingInvoices, setPendingIncomingInvoices] = useState<any[]>([]);
+
+  const handleXmlUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const parsedInvoices: any[] = [];
+
+    for (const file of files) {
+      try {
+        const xmlText = await file.text();
+        const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+        const jsonObj = parser.parse(xmlText);
+        
+        let invoiceData = null;
+        const rootKey = Object.keys(jsonObj).find(k => k.includes('Invoice'));
+        if (rootKey) {
+            invoiceData = jsonObj[rootKey];
+        } else if (jsonObj.Invoice) {
+            invoiceData = jsonObj.Invoice;
+        }
+
+        if (!invoiceData) {
+            continue;
+        }
+
+        const getVal = (obj: any) => obj?.['#text'] || obj || '';
+        
+        const invId = getVal(invoiceData['cbc:ID']) || `GELEN-${Date.now()}-${Math.random().toString(36).substr(2,5)}`;
+        const issueDate = getVal(invoiceData['cbc:IssueDate']) || new Date().toISOString().split('T')[0];
+        
+        let dueDate = getVal(invoiceData['cbc:DueDate']);
+        if (!dueDate) {
+            const paymentMeans = invoiceData['cac:PaymentMeans'];
+            if (paymentMeans && paymentMeans['cbc:PaymentDueDate']) {
+                dueDate = getVal(paymentMeans['cbc:PaymentDueDate']);
+            }
+        }
+        
+        const uuid = getVal(invoiceData['cbc:UUID']) || '';
+
+        const orderId = getVal(invoiceData['cac:OrderReference']?.['cbc:ID']) || '';
+        const note = getVal(invoiceData['cbc:Note']) || '';
+        const currency = getVal(invoiceData['cbc:DocumentCurrencyCode']) || 'TRY';
+        
+        const supplierNode = invoiceData['cac:AccountingSupplierParty']?.['cac:Party'];
+        let supplierName = 'Bilinmeyen Satıcı';
+        if (supplierNode?.['cac:PartyName']?.['cbc:Name']) {
+            supplierName = getVal(supplierNode['cac:PartyName']['cbc:Name']);
+        } else if (supplierNode?.['cac:PartyLegalEntity']?.['cbc:RegistrationName']) {
+            supplierName = getVal(supplierNode['cac:PartyLegalEntity']['cbc:RegistrationName']);
+        }
+
+        let supplierTaxNumber = '';
+        if (supplierNode?.['cac:PartyTaxScheme']?.['cbc:CompanyID']) {
+           supplierTaxNumber = getVal(supplierNode['cac:PartyTaxScheme']['cbc:CompanyID']);
+        } else if (supplierNode?.['cac:PartyIdentification']?.['cbc:ID']) {
+           supplierTaxNumber = getVal(supplierNode['cac:PartyIdentification']['cbc:ID']);
+        }
+        
+        let supplierTaxOffice = '';
+        if (supplierNode?.['cac:PartyTaxScheme']?.['cac:TaxScheme']?.['cbc:Name']) {
+           supplierTaxOffice = getVal(supplierNode['cac:PartyTaxScheme']['cac:TaxScheme']['cbc:Name']);
+        }
+        
+        const legalTotalNode = invoiceData['cac:LegalMonetaryTotal'];
+        const payableAmount = legalTotalNode?.['cbc:PayableAmount'] ? getVal(legalTotalNode['cbc:PayableAmount']) : 0;
+        
+        let parsedItems: any[] = [];
+        const invoiceLinesRaw = invoiceData['cac:InvoiceLine'];
+        const invoiceLines = Array.isArray(invoiceLinesRaw) ? invoiceLinesRaw : (invoiceLinesRaw ? [invoiceLinesRaw] : []);
+        
+        parsedItems = invoiceLines.map((line: any) => {
+            const item = line['cac:Item'];
+            const name = getVal(item?.['cbc:Name']);
+            const sellersItemIdentification = getVal(item?.['cac:SellersItemIdentification']?.['cbc:ID']);
+            const buyersItemIdentification = getVal(item?.['cac:BuyersItemIdentification']?.['cbc:ID']);
+            const standardItemIdentification = getVal(item?.['cac:StandardItemIdentification']?.['cbc:ID']);
+            const qty = Number(getVal(line['cbc:InvoicedQuantity']));
+            const unit = line['cbc:InvoicedQuantity']?.['@_unitCode'] || 'Adet';
+            const price = Number(getVal(line['cac:Price']?.['cbc:PriceAmount']));
+            const taxTotalNode = line['cac:TaxTotal']?.['cac:TaxSubtotal'] || line['cac:TaxTotal'];
+            const taxRate = Number(getVal(taxTotalNode?.['cac:TaxCategory']?.['cbc:Percent']) || 0);
+            
+            let matchedProductId = undefined;
+            
+            if (store.products) {
+              const matchedProduct = store.products.find(p => 
+                (sellersItemIdentification && (p.code === sellersItemIdentification || p.barcode === sellersItemIdentification)) ||
+                (buyersItemIdentification && (p.code === buyersItemIdentification || p.barcode === buyersItemIdentification)) ||
+                (standardItemIdentification && (p.code === standardItemIdentification || p.barcode === standardItemIdentification)) ||
+                (name && p.name.toLowerCase() === name.toLowerCase())
+              );
+              
+              if (matchedProduct) {
+                 matchedProductId = matchedProduct.id;
+              }
+            }
+
+            return {
+               productId: matchedProductId,
+               productName: name || 'Bilinmeyen Ürün',
+               quantity: qty || 1,
+               unit: (unit === 'C62' || unit === 'c62' || unit === 'NIU') ? 'Adet' : unit,
+               price: (price || 0) * (1 + (taxRate / 100)), // UBL price is usually tax exclusive
+               taxRate: taxRate,
+            };
+        });
+
+        const subTotal = Number(getVal(legalTotalNode?.['cbc:TaxExclusiveAmount'])) || 0;
+        const taxTotal = Number(getVal(invoiceData['cac:TaxTotal']?.['cbc:TaxAmount']) || getVal(invoiceData['cac:TaxTotal']?.[0]?.['cbc:TaxAmount'])) || 0;
+
+        const newIncoming: any = {
+            id: invId,
+            uuid: uuid,
+            orderId: orderId,
+            note: note,
+            currency: currency,
+            customerName: supplierName,
+            supplierTaxNumber: supplierTaxNumber,
+            supplierTaxOffice: supplierTaxOffice,
+            amount: Number(payableAmount),
+            type: 'Gelen Fatura',
+            scenario: getVal(invoiceData['cbc:ProfileID']) || 'TEMELFATURA',
+            invoiceType: getVal(invoiceData['cbc:InvoiceTypeCode']) || 'SATIS',
+            date: issueDate,
+            dueDate: dueDate,
+            status: 'Onaylandı',
+            xmlContent: xmlText,
+            items: parsedItems,
+            subTotal: subTotal,
+            taxTotal: taxTotal,
+            total: Number(payableAmount)
+        };
+        parsedInvoices.push(newIncoming);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    if (parsedInvoices.length > 0) {
+      setPendingIncomingInvoices(parsedInvoices);
+    } else {
+      alert('Geçerli bir e-Fatura formatında XML dosyası bulunamadı.');
+    }
+    e.target.value = '';
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
@@ -140,6 +339,118 @@ export const EFatura: React.FC = () => {
     setTimeout(() => {
       window.print();
     }, 500);
+  };
+  
+  const handleProcessIncomingInvoice = () => {
+    if (!previewInvoice || previewInvoice.type !== 'Gelen Fatura' || previewInvoice.isProcessed) return;
+
+    const confirmed = window.confirm(`${previewInvoice.customerName} faturasını işlemek istediğinize emin misiniz? (Cari hareketlere ve stoklara kayıt edilecektir.)`);
+    if (!confirmed) return;
+
+    let customerId = '';
+    
+    const existingCustomer = store.customers?.find(c => 
+      (previewInvoice.supplierTaxNumber && c.taxNumber === previewInvoice.supplierTaxNumber) ||
+      c.name === previewInvoice.customerName || 
+      c.companyName === previewInvoice.customerName
+    );
+
+    let updatedCustomerBalanceVal = Number(previewInvoice.total) || Number(previewInvoice.amount);
+    
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+      if (store.setCustomers && store.customers) {
+         store.setCustomers(store.customers.map(c => 
+            c.id === customerId ? { ...c, balance: (c.balance || 0) - updatedCustomerBalanceVal } : c
+         ));
+      }
+    } else {
+      customerId = `CUS-${Date.now()}`;
+      const newCustomer = {
+         id: customerId,
+         customerType: previewInvoice.supplierTaxNumber?.length === 11 ? 'Şahıs' as const : 'Tüzel' as const,
+         name: previewInvoice.customerName,
+         companyName: previewInvoice.customerName,
+         email: '',
+         phone: '',
+         taxNumber: previewInvoice.supplierTaxNumber || '',
+         taxOffice: previewInvoice.supplierTaxOffice || '',
+         balance: -updatedCustomerBalanceVal,
+         type: 'Satıcı' as const,
+         status: 'Aktif' as const
+      };
+      if (store.setCustomers) {
+         store.setCustomers([...(store.customers || []), newCustomer]);
+      }
+    }
+
+    const newTransaction = {
+       id: `TR-${Date.now()}`,
+       customerId: customerId,
+       date: previewInvoice.date,
+       type: 'Alış' as const, 
+       amount: -updatedCustomerBalanceVal,
+       description: `Gelen e-Fatura İşlemi (${previewInvoice.id})`
+    };
+    if (store.setTransactions) {
+       store.setTransactions([...(store.transactions || []), newTransaction]);
+    }
+
+    let currentProducts = [...(store.products || [])];
+    if ((previewInvoice as any).items?.length > 0) {
+       (previewInvoice as any).items.forEach((item: any) => {
+          const existingProductIndex = currentProducts.findIndex(p => 
+            (item.productId && p.id === item.productId) || 
+            (!item.productId && p.name === item.productName)
+          );
+          if (existingProductIndex >= 0) {
+             currentProducts[existingProductIndex] = {
+                 ...currentProducts[existingProductIndex],
+                 stock: currentProducts[existingProductIndex].stock + (item.quantity || 1),
+                 purchasePrice: item.price
+             };
+          } else {
+             const newProduct = {
+               id: `PRD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+               code: `PRD-${Date.now().toString().slice(-6)}`,
+               name: item.productName,
+               price: item.price * 1.5,
+               purchasePrice: item.price,
+               stock: (item.quantity || 1),
+               category: 'Gelen Fatura',
+               taxRate: item.taxRate || 20
+             };
+             currentProducts.push(newProduct);
+          }
+       });
+       if (store.setProducts) store.setProducts(currentProducts);
+    }
+    
+    const updated = invoices.map((i: any) => i.id === previewInvoice.id ? { ...i, isProcessed: true } : i);
+    if (store.setEInvoices) store.setEInvoices(updated);
+    
+    // Add reminder note for payment tracking
+    const paymentDueDate = previewInvoice.dueDate || previewInvoice.date;
+    if (paymentDueDate) {
+       // Optional: Add some warning days before due date, e.g. due date itself
+       const newReminder = {
+           id: `NOTE-${Date.now()}`,
+           title: `Fatura Ödemesi: ${previewInvoice.customerName || previewInvoice.supplierTaxNumber}`,
+           description: `İşlenen Gelen Fatura (No: ${previewInvoice.id}) için ödeme hatırlatması. Vade Tarihi: ${new Date(paymentDueDate).toLocaleDateString('tr-TR')}`,
+           date: paymentDueDate,
+           notificationTime: '09:00',
+           type: 'Ödeme' as any,
+           amount: Number(previewInvoice.total) || Number(previewInvoice.amount),
+           isCompleted: false,
+           relatedId: previewInvoice.id
+       };
+       if (store.setReminderNotes) {
+           store.setReminderNotes([...(store.reminderNotes || []), newReminder]);
+       }
+    }
+    
+    setPreviewInvoice({...previewInvoice, isProcessed: true});
+    alert('Fatura başarıyla işlendi. Cari hareket, stoklar ve ajanda güncellendi.');
   };
 
   const handleDownloadModalPDF = async () => {
@@ -252,7 +563,9 @@ export const EFatura: React.FC = () => {
   const invoiceCustomer = previewInvoice
     ? store.customers?.find(
         (c) =>
+          (previewInvoice.supplierTaxNumber && c.taxNumber === previewInvoice.supplierTaxNumber) ||
           c.name === previewInvoice.customerName ||
+          c.companyName === previewInvoice.customerName ||
           (invoiceOrder && c.id === invoiceOrder.customerId),
       )
     : null;
@@ -283,6 +596,12 @@ export const EFatura: React.FC = () => {
             Giden Kutusu
           </button>
           <button
+            onClick={() => setActiveTab("Gelen")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "Gelen" ? "bg-white shadow text-blue-600" : "text-gray-600"}`}
+          >
+            Gelen Faturalar
+          </button>
+          <button
             onClick={() => setActiveTab("Şablon")}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "Şablon" ? "bg-white shadow text-blue-600" : "text-gray-600"}`}
           >
@@ -299,6 +618,14 @@ export const EFatura: React.FC = () => {
                 <Clock size={16} /> {isQuerying ? 'GİB Sorgulanıyor...' : 'GİB Durum Sorgula'}
               </button>
             </div>
+        )}
+        {activeTab === "Gelen" && (
+             <div className="flex ml-4 mt-4 sm:mt-0 items-center justify-end">
+                <label className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-sm cursor-pointer border border-blue-600">
+                  <Upload size={16} /> Toplu XML Yükle
+                  <input type="file" accept=".xml" multiple className="hidden" onChange={handleXmlUpload} />
+                </label>
+             </div>
         )}
       </div>
 
@@ -357,7 +684,7 @@ export const EFatura: React.FC = () => {
                   </th>
                   <th className="p-4 font-medium">Tarih</th>
                   <th className="p-4 font-medium">Belge No / Ref</th>
-                  <th className="p-4 font-medium">Müşteri</th>
+                  <th className="p-4 font-medium">Müşteri / Satıcı</th>
                   <th className="p-4 font-medium">Senaryo / Tür</th>
                   <th className="p-4 font-medium text-right">Tutar</th>
                   <th className="p-4 font-medium text-center">Durum</th>
@@ -372,9 +699,9 @@ export const EFatura: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  paginated.map((inv) => (
+                  paginated.map((inv, idx) => (
                     <tr
-                      key={inv.id}
+                      key={`${inv.id}-${idx}`}
                       className="border-b border-gray-100 hover:bg-gray-50/50"
                     >
                       <td className="p-4 text-center">
@@ -412,7 +739,7 @@ export const EFatura: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-4 text-sm font-bold text-right text-gray-800">
-                        {inv.amount.toLocaleString("tr-TR", {
+                        {Number(inv.amount || 0).toLocaleString("tr-TR", {
                           style: "currency",
                           currency: store.orders?.find(o => o.id === inv.orderId)?.currency || "TRY",
                         })}
@@ -429,9 +756,16 @@ export const EFatura: React.FC = () => {
                           </span>
                         )}
                         {inv.status === "Onaylandı" && (
-                          <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium border border-green-200">
-                            <CheckCircle size={12} /> GİB Onaylı
-                          </span>
+                          <div className="flex flex-col gap-1 items-center">
+                            <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium border border-green-200">
+                              <CheckCircle size={12} /> GİB Onaylı
+                            </span>
+                            {(inv as any).isProcessed && (
+                              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-medium border border-emerald-200">
+                                İşlendi
+                              </span>
+                            )}
+                          </div>
                         )}
                         {inv.status === "Reddedildi" && (
                           <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 px-2.5 py-1 rounded-full text-xs font-medium border border-red-200">
@@ -463,7 +797,7 @@ export const EFatura: React.FC = () => {
                                 <Edit size={16} />
                               </button>
                               <button
-                                onClick={(e) => handleDeleteInvoice(inv.id, e)}
+                                onClick={(e) => handleDeleteInvoice(inv, e)}
                                 className="px-2 py-1.5 bg-gray-50 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1"
                                 title="Sil"
                               >
@@ -486,6 +820,29 @@ export const EFatura: React.FC = () => {
                                 className="p-1.5 text-teal-600 hover:bg-teal-50 rounded" title="GİB JSON İndir">
                                 <FileJson size={16} />
                               </button>
+                              {(inv as any).xmlContent && (
+                                <button 
+                                  onClick={() => {
+                                      const element = document.createElement("a");
+                                      const file = new Blob([(inv as any).xmlContent], {type: 'application/xml'});
+                                      element.href = URL.createObjectURL(file);
+                                      element.download = `${inv.id}.xml`;
+                                      document.body.appendChild(element);
+                                      element.click();
+                                  }}
+                                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Orijinal XML İndir">
+                                  <FileText size={16} />
+                                </button>
+                              )}
+                              {inv.type === 'Gelen Fatura' && (
+                                <button
+                                  onClick={(e) => handleDeleteInvoice(inv, e)}
+                                  className="p-1.5 text-red-600 hover:bg-red-50 rounded inline-flex items-center gap-1"
+                                  title="Sil"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
                               <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded">
                                 <MoreHorizontal size={18} />
                               </button>
@@ -607,6 +964,19 @@ export const EFatura: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-3">
+                {previewInvoice.type === 'Gelen Fatura' && !previewInvoice.isProcessed && (
+                  <button
+                    onClick={handleProcessIncomingInvoice}
+                    className="px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                  >
+                    Faturalaştır
+                  </button>
+                )}
+                {previewInvoice.type === 'Gelen Fatura' && previewInvoice.isProcessed && (
+                  <span className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium flex items-center gap-2">
+                    İşlendi
+                  </span>
+                )}
                 <button
                   onClick={handleDownloadModalPDF}
                   className="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
@@ -629,6 +999,36 @@ export const EFatura: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {previewInvoice.type === 'Gelen Fatura' && !invoiceCustomer && (
+              <div className="mx-4 mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-center justify-between no-print shadow-sm">
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-sm font-semibold text-orange-800">Cari Eşleşmesi Bulunamadı</h3>
+                  <p className="text-xs text-orange-700"> Sisteminizde VKN/TCKN ({previewInvoice.supplierTaxNumber || 'Belirtilmemiş'}) veya ünvan ({previewInvoice.customerName}) ile eşleşen bir cari kart bulunmuyor. </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const newCustomer = {
+                       id: `CUS-${Date.now()}`,
+                       customerType: previewInvoice.supplierTaxNumber?.length === 11 ? 'Şahıs' as const : 'Tüzel' as const,
+                       name: previewInvoice.customerName,
+                       companyName: previewInvoice.customerName,
+                       email: '',
+                       phone: '',
+                       taxNumber: previewInvoice.supplierTaxNumber || '',
+                       taxOffice: previewInvoice.supplierTaxOffice || ''
+                    };
+                    if (store.setCustomers) {
+                       store.setCustomers([...(store.customers || []), newCustomer]);
+                    }
+                    alert("Cari kart başarıyla oluşturuldu ve eşleştirildi.");
+                  }}
+                  className="px-4 py-2 bg-orange-600 text-white hover:bg-orange-700 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-sm"
+                >
+                  Hızlı Cari Kart Oluştur
+                </button>
+              </div>
+            )}
 
             <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 print:p-0 print:bg-white flex justify-center">
               {printType === 'A4' ? (
@@ -966,7 +1366,58 @@ export const EFatura: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {invoiceOrder &&
+                    {((previewInvoice as any).items && (previewInvoice as any).items.length > 0) ? (
+                      (previewInvoice as any).items.map((item: any, idx: number) => {
+                        const taxRate = item.taxRate || 0;
+                        const priceWithoutTax = item.price / (1 + taxRate / 100);
+                        const taxAmount = item.price - priceWithoutTax;
+                        const totalItemWithoutTax = priceWithoutTax * item.quantity;
+
+                        return (
+                          <tr
+                            key={idx}
+                            className="border-b border-black last:border-b-0"
+                          >
+                            <td className="p-1 border-r border-black text-center">
+                              {idx + 1}
+                            </td>
+                            <td className="p-1 border-r border-black">
+                              {store.products?.find(p => p.id === item.productId)?.code || ""}
+                            </td>
+                            <td className="p-1 border-r border-black">
+                              {item.productName}
+                            </td>
+                            <td className="p-1 border-r border-black text-right">
+                              {item.quantity} {item.unit || "Adet"}
+                            </td>
+                            <td className="p-1 border-r border-black text-right">
+                              {Number(priceWithoutTax || 0).toLocaleString("tr-TR", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 4,
+                              })}{" "}
+                              TL
+                            </td>
+                            <td className="p-1 border-r border-black text-right">
+                              %{taxRate}
+                            </td>
+                            <td className="p-1 border-r border-black text-right">
+                              {Number((taxAmount * item.quantity) || 0).toLocaleString(
+                                "tr-TR",
+                                { minimumFractionDigits: 2 },
+                              )}{" "}
+                              TL
+                            </td>
+                            <td className="p-1 border-r border-black text-right"></td>
+                            <td className="p-1 text-right">
+                              {Number(totalItemWithoutTax || 0).toLocaleString("tr-TR", {
+                                minimumFractionDigits: 2,
+                              })}{" "}
+                              TL
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : invoiceOrder &&
                     invoiceOrder.items &&
                     invoiceOrder.items.length > 0 ? (
                       invoiceOrder.items.map((item: any, idx: number) => {
@@ -995,7 +1446,7 @@ export const EFatura: React.FC = () => {
                               {item.quantity} {item.unit || "Adet"}
                             </td>
                             <td className="p-1 border-r border-black text-right">
-                              {priceWithoutTax.toLocaleString("tr-TR", {
+                              {Number(priceWithoutTax || 0).toLocaleString("tr-TR", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 4,
                               })}{" "}
@@ -1005,7 +1456,7 @@ export const EFatura: React.FC = () => {
                               %{taxRate}
                             </td>
                             <td className="p-1 border-r border-black text-right">
-                              {(taxAmount * item.quantity).toLocaleString(
+                              {Number((taxAmount * item.quantity) || 0).toLocaleString(
                                 "tr-TR",
                                 { minimumFractionDigits: 2 },
                               )}{" "}
@@ -1013,7 +1464,7 @@ export const EFatura: React.FC = () => {
                             </td>
                             <td className="p-1 border-r border-black text-right"></td>
                             <td className="p-1 text-right">
-                              {totalItemWithoutTax.toLocaleString("tr-TR", {
+                              {Number(totalItemWithoutTax || 0).toLocaleString("tr-TR", {
                                 minimumFractionDigits: 2,
                               })}{" "}
                               TL
@@ -1034,7 +1485,7 @@ export const EFatura: React.FC = () => {
                           1 Adet
                         </td>
                         <td className="p-1 border-r border-black text-right">
-                          {(previewInvoice.amount / 1.2).toLocaleString(
+                          {Number((previewInvoice.amount || 0) / 1.2).toLocaleString(
                             "tr-TR",
                             {
                               minimumFractionDigits: 2,
@@ -1048,8 +1499,8 @@ export const EFatura: React.FC = () => {
                         </td>
                         <td className="p-1 border-r border-black text-right">
                           {(
-                            previewInvoice.amount -
-                            previewInvoice.amount / 1.2
+                            (previewInvoice.amount || 0) -
+                            (previewInvoice.amount || 0) / 1.2
                           ).toLocaleString("tr-TR", {
                             minimumFractionDigits: 2,
                           })}{" "}
@@ -1057,7 +1508,7 @@ export const EFatura: React.FC = () => {
                         </td>
                         <td className="p-1 border-r border-black text-right"></td>
                         <td className="p-1 text-right">
-                          {(previewInvoice.amount / 1.2).toLocaleString(
+                          {Number((previewInvoice.amount || 0) / 1.2).toLocaleString(
                             "tr-TR",
                             { minimumFractionDigits: 2 },
                           )}{" "}
@@ -1077,9 +1528,9 @@ export const EFatura: React.FC = () => {
                             Mal Hizmet Toplam Tutarı
                           </td>
                           <td className="p-1 w-32 border-l-2 border-black border-l-gray-300">
-                            {(
+                            {Number(
                               (previewInvoice as any).subTotal || invoiceOrder?.subTotal ||
-                              previewInvoice.amount / 1.2
+                              (previewInvoice.amount || 0) / 1.2 || 0
                             ).toLocaleString("tr-TR", {
                               minimumFractionDigits: 2,
                             })}{" "}
@@ -1104,10 +1555,10 @@ export const EFatura: React.FC = () => {
                             Hesaplanan KDV Toplamı
                           </td>
                           <td className="p-1 border-l-2 border-black border-l-gray-300">
-                            {(
+                            {Number(
                               (previewInvoice as any).taxTotal || invoiceOrder?.taxTotal ||
-                              previewInvoice.amount -
-                                previewInvoice.amount / 1.2
+                              (previewInvoice.amount || 0) -
+                                (previewInvoice.amount || 0) / 1.2 || 0
                             ).toLocaleString("tr-TR", {
                               minimumFractionDigits: 2,
                             })}{" "}
@@ -1119,8 +1570,8 @@ export const EFatura: React.FC = () => {
                             Vergiler Dahil Toplam Tutar
                           </td>
                           <td className="p-1 border-l-2 border-black border-l-gray-300">
-                            {(
-                              (previewInvoice as any).total || invoiceOrder?.total || previewInvoice.amount
+                            {Number(
+                              (previewInvoice as any).total || invoiceOrder?.total || previewInvoice.amount || 0
                             ).toLocaleString("tr-TR", {
                               minimumFractionDigits: 2,
                             })}{" "}
@@ -1132,8 +1583,8 @@ export const EFatura: React.FC = () => {
                             Ödenecek Tutar
                           </td>
                           <td className="p-1 border-l-2 border-black border-l-gray-300">
-                            {(
-                              (previewInvoice as any).total || invoiceOrder?.total || previewInvoice.amount
+                            {Number(
+                              (previewInvoice as any).total || invoiceOrder?.total || previewInvoice.amount || 0
                             ).toLocaleString("tr-TR", {
                               minimumFractionDigits: 2,
                             })}{" "}
@@ -1204,6 +1655,71 @@ export const EFatura: React.FC = () => {
               ) : (
                 <ThermalEArsiv previewInvoice={previewInvoice} invoiceOrder={invoiceOrder} store={store} invoiceCustomer={invoiceCustomer} />
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingIncomingInvoices.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-xl font-bold text-gray-800">Toplu XML Yükleme Onayı</h2>
+              <button
+                onClick={() => setPendingIncomingInvoices([])}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 flex-1 overflow-y-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500">
+                    <th className="p-3">Fatura No</th>
+                    <th className="p-3">Tarih</th>
+                    <th className="p-3">VKN/TCKN</th>
+                    <th className="p-3">Unvan</th>
+                    <th className="p-3">KDV</th>
+                    <th className="p-3 text-right">Tutar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingIncomingInvoices.map((inv, idx) => (
+                    <tr key={idx} className="border-b last:border-0 hover:bg-gray-50 border-gray-100">
+                      <td className="p-3 font-medium text-gray-900">{inv.id}</td>
+                      <td className="p-3 text-gray-600">{new Date(inv.date).toLocaleDateString('tr-TR')}</td>
+                      <td className="p-3 text-gray-600">{inv.supplierTaxNumber}</td>
+                      <td className="p-3 text-gray-600">{inv.customerName}</td>
+                      <td className="p-3 text-gray-600">{Number(inv.taxTotal || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</td>
+                      <td className="p-3 text-right font-medium text-emerald-600">
+                        {Number(inv.total || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-end gap-3 p-4 border-t bg-gray-50">
+               <button
+                 onClick={() => setPendingIncomingInvoices([])}
+                 className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors"
+               >
+                 İptal
+               </button>
+               <button
+                 onClick={() => {
+                    const updated = [...invoices, ...pendingIncomingInvoices];
+                    if (store.setEInvoices) {
+                        store.setEInvoices(updated);
+                        setPendingIncomingInvoices([]);
+                        alert(`${pendingIncomingInvoices.length} adet faturayı başarıyla eklediniz.`);
+                    }
+                 }}
+                 className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+               >
+                 <Check size={16} /> Onayla ve Ekle
+               </button>
             </div>
           </div>
         </div>

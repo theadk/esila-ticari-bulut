@@ -390,12 +390,12 @@ export const Teklifler: React.FC = () => {
                          return (
                            <tr key={idx}>
                              <td className="px-4 py-3">{item.productName}</td>
-                             <td className="px-4 py-3 text-right">{item.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                             <td className="px-4 py-3 text-right">{Number(item.price || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
                              <td className="px-4 py-3 text-right text-red-500">% {item.discountRate}</td>
                              <td className="px-4 py-3 text-right text-gray-500">% {item.taxRate || 20}</td>
                              <td className="px-4 py-3 text-right">{item.quantity} {item.unit || 'Adet'}</td>
                              <td className="px-4 py-3 text-right font-medium">
-                               {(netTotal + taxTotalForItem).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                               {Number((netTotal + taxTotalForItem) || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                              </td>
                            </tr>
                          );
@@ -409,15 +409,15 @@ export const Teklifler: React.FC = () => {
                  <div className="w-64 space-y-2">
                     <div className="flex justify-between text-sm text-gray-600">
                       <span>Ara Toplam:</span>
-                      <span>{selectedProposal.subTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                      <span>{Number(selectedProposal.subTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                     </div>
                     <div className="flex justify-between text-sm text-red-500">
                       <span>İndirimler:</span>
-                      <span>- {selectedProposal.discountTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                      <span>- {Number(selectedProposal.discountTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                     </div>
                     <div className="flex justify-between text-sm text-gray-600">
                       <span>KDV Durumu:</span>
-                      <span>+ {selectedProposal.taxTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                      <span>+ {Number(selectedProposal.taxTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                     </div>
                     <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-lg text-emerald-700">
                       <span>GENEL TOPLAM:</span>
@@ -645,12 +645,12 @@ export const Teklifler: React.FC = () => {
                          return (
                            <tr key={idx} className="bg-white">
                              <td className="px-4 py-2">{item.productName}</td>
-                             <td className="px-4 py-2">{item.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                             <td className="px-4 py-2">{Number(item.price || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
                              <td className="px-4 py-2 text-red-500 text-center">%{item.discountRate}</td>
                              <td className="px-4 py-2 text-gray-500 text-center">%{item.taxRate || 20}</td>
                              <td className="px-4 py-2 text-center">{item.quantity} {item.unit || 'Adet'}</td>
                              <td className="px-4 py-2 text-right font-medium">
-                                {(netTotal + taxTotalForItem).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                                {Number((netTotal + taxTotalForItem) || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                              </td>
                              <td className="px-4 py-2 text-right">
                                <button onClick={() => removeItemFromCart(idx)} className="text-red-500 hover:bg-red-50 p-1 rounded transition-colors">
@@ -670,19 +670,19 @@ export const Teklifler: React.FC = () => {
                  <div className="w-64 space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-200 text-sm">
                     <div className="flex justify-between text-gray-600">
                       <span>Ara Toplam:</span>
-                      <span>{subTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                      <span>{Number(subTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                     </div>
                     <div className="flex justify-between text-red-500">
                       <span>İndirimler:</span>
-                      <span>- {discountTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                      <span>- {Number(discountTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                     </div>
                     <div className="flex justify-between text-gray-600 pb-2 border-b border-gray-200">
                       <span>KDV Tutarı:</span>
-                      <span>+ {taxTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                      <span>+ {Number(taxTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                     </div>
                     <div className="pt-2 flex justify-between font-bold text-lg text-emerald-700">
                       <span>GENEL TOPLAM:</span>
-                      <span>{cartTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                      <span>{Number(cartTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                     </div>
                  </div>
                </div>
@@ -797,10 +797,10 @@ export const Teklifler: React.FC = () => {
                                  <td className="border border-black text-left">{item.productName}</td>
                                  <td className="border border-black text-center">{item.quantity} {item.unit || 'Adet'}</td>
                                  <td className="border border-black text-right">
-                                   {netPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                   {Number(netPrice || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                  </td>
                                  <td className="border border-black text-right">
-                                   {netAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                   {Number(netAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                  </td>
                                </tr>
                              );
@@ -812,11 +812,11 @@ export const Teklifler: React.FC = () => {
                           <div className="w-64">
                              <div className="grid grid-cols-2 gap-2 mb-2 text-right">
                                 <span className="font-bold">Ara Toplam :</span>
-                                <span>{(selectedProposal.subTotal - selectedProposal.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                <span>{Number((selectedProposal.subTotal - selectedProposal.discountTotal) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                              </div>
                              <div className="grid grid-cols-2 gap-2 mb-2 text-right">
                                 <span className="font-bold">KDV Tutarı :</span>
-                                <span>{selectedProposal.taxTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                <span>{Number(selectedProposal.taxTotal || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                              </div>
                              <div className="grid grid-cols-2 gap-2 mt-4 text-right">
                                 <span className="font-bold">Genel Toplam :</span>
@@ -894,7 +894,7 @@ export const Teklifler: React.FC = () => {
                           <td className="py-1 pr-2">{item.productName} {item.discountRate > 0 && <span className="text-[10px] block">(-%{item.discountRate})</span>}</td>
                           <td className="py-1 text-right whitespace-nowrap">{item.quantity} {item.unit || 'Adet'}</td>
                           <td className="py-1 text-right whitespace-nowrap">
-                            {(netPrice * item.quantity).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                            {Number((netPrice * item.quantity) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                           </td>
                         </tr>
                       );
@@ -906,7 +906,7 @@ export const Teklifler: React.FC = () => {
                   <div className="text-right w-full">
                     <div className="flex justify-between border-b border-gray-300 border-dashed pb-1">
                       <span>KDV:</span>
-                      <span>{selectedProposal.taxTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</span>
+                      <span>{Number(selectedProposal.taxTotal || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</span>
                     </div>
                     <div className="flex justify-between pt-1">
                       <span className="font-bold">Toplam:</span>

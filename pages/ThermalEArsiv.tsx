@@ -76,7 +76,7 @@ export const ThermalEArsiv = ({ previewInvoice, invoiceOrder, store, invoiceCust
                 <td className="py-1 pl-0 pr-1">{item.productName}</td>
                 <td className="py-1 text-right">{item.quantity}</td>
                 <td className="py-1 text-right pr-0">
-                  {((item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate || 0) / 100))).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                  {Number(((item.price * item.quantity) + (item.price * item.quantity * ((item.taxRate || 0) / 100))) || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                 </td>
               </tr>
             ))
@@ -96,11 +96,11 @@ export const ThermalEArsiv = ({ previewInvoice, invoiceOrder, store, invoiceCust
         <div className="text-right w-full pt-1">
           <div className="flex justify-between items-center mb-1">
             <span>Mal Hizmet Toplam Tutarı:</span>
-            <span>{(invoiceOrder?.subTotal || ((previewInvoice?.amount || 0) / 1.2)).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+            <span>{Number((invoiceOrder?.subTotal || ((previewInvoice?.amount || 0) / 1.2)) || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
           </div>
           <div className="flex justify-between items-center mb-1">
             <span>Hesaplanan KDV Toplamı:</span>
-            <span>{(invoiceOrder?.taxTotal || ((previewInvoice?.amount || 0) - ((previewInvoice?.amount || 0) / 1.2))).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+            <span>{Number((invoiceOrder?.taxTotal || ((previewInvoice?.amount || 0) - ((previewInvoice?.amount || 0) / 1.2))) || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
           </div>
           <div className="flex justify-between items-center font-bold text-[13px] border-t border-black pt-1 mt-1">
             <span>Ödenecek Tutar:</span>

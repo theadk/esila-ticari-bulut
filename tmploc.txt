@@ -1,0 +1,26 @@
+               description: formData.description + ' Tutarı: ' + Number(formData.amount).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })
+            {totalBalance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+              <h4 className="text-lg font-bold text-gray-800">{totalIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</h4>
+            <div className="flex justify-between"><span>Satışlar:</span> <span className="font-medium text-gray-800">{salesIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+            <div className="flex justify-between"><span>Cari Tahsilat:</span> <span className="font-medium text-gray-800">{customerIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+            <div className="flex justify-between"><span>Diğer Gelirler:</span> <span className="font-medium text-gray-800">{otherIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+              <h4 className="text-lg font-bold text-gray-800">{totalExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</h4>
+            <div className="flex justify-between"><span>Ürün Alış:</span> <span className="font-medium text-gray-800">{purchaseExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+            <div className="flex justify-between"><span>Cari Ödeme:</span> <span className="font-medium text-gray-800">{customerExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+            <div className="flex justify-between"><span>Personel:</span> <span className="font-medium text-gray-800">{personnelExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+            <div className="flex justify-between"><span>Diğer Giderler:</span> <span className="font-medium text-gray-800">{otherExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span></div>
+                      {tx.type === 'Gelir' ? '+' : '-'}{tx.amount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                       <span>{selectedTxForPrint.amount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                         {selectedTxForPrint.amount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    Çıktı Tarihi: {new Date().toLocaleString('tr-TR')}
+                    {reportIncomeTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    {reportExpenseTotal.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    {reportBalance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                        <td className="py-2 text-right font-medium">{salesIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                        <td className="py-2 text-right font-medium">{customerIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                        <td className="py-2 text-right font-medium">{otherIncome.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                        <td className="py-2 text-right font-medium">{purchaseExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                        <td className="py-2 text-right font-medium">{customerExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                        <td className="py-2 text-right font-medium">{personnelExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                        <td className="py-2 text-right font-medium">{otherExpense.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                          {tx.type === 'Gelir' ? '+' : '-'}{tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺

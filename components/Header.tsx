@@ -107,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
                             <div className="text-sm font-medium text-gray-800 group-hover:text-emerald-600">{p.name}</div>
                             <div className="text-xs text-gray-500">Stok: {p.stock} adet</div>
                           </div>
-                          <div className="text-sm font-medium text-gray-600">{p.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</div>
+                          <div className="text-sm font-medium text-gray-600">{Number(p.price || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</div>
                         </div>
                       ))}
                     </div>
@@ -143,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
                             <div className="text-sm font-medium text-gray-800 group-hover:text-emerald-600">{o.id}</div>
                             <div className="text-xs text-gray-500">{o.customerName}</div>
                           </div>
-                          <div className="text-sm font-medium text-gray-600">{o.total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</div>
+                          <div className="text-sm font-medium text-gray-600">{Number(o.total || (o as any).totalAmount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</div>
                         </div>
                       ))}
                     </div>
