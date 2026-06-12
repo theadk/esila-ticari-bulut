@@ -70,7 +70,7 @@ export const StokSayim: React.FC = () => {
         "reader",
         { 
           fps: 10, 
-          qrbox: { width: 250, height: 250 },
+          qrbox: { width: 250, height: 150 },
           supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
           rememberLastUsedCamera: true
         },

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer, TrendingUp, Mic, MicOff } from 'lucide-react';
+import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer, TrendingUp, Mic, MicOff, Camera } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Product, Warehouse, Category, Brand } from '../types';
 import { api } from '../lib/api';
 import { useAppStore } from '../lib/store';
 import { Pagination } from '../components/Pagination';
+import { BarcodeScanner } from '../components/BarcodeScanner';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 const INITIAL_FORM: Product = {
@@ -39,6 +40,8 @@ export const Urunler: React.FC = () => {
   const [filterMinPrice, setFilterMinPrice] = useState<number | ''>('');
   const [filterMaxPrice, setFilterMaxPrice] = useState<number | ''>('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [activeScannerTarget, setActiveScannerTarget] = useState<'search' | 'form'>('search');
   const [products, setProducts] = useState<Product[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -754,15 +757,24 @@ export const Urunler: React.FC = () => {
         <>
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
             <div className="p-4 border-b border-gray-100">
-           <div className="relative max-w-full sm:max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input 
-              type="text" 
-              placeholder="Ürün adı, kodu, barkodu veya depo ile ara..." 
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+           <div className="relative max-w-full sm:max-w-md flex gap-2 items-center">
+             <div className="relative flex-1">
+               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+               <input 
+                 type="text" 
+                 placeholder="Ürün adı, kodu, barkodu veya depo ile ara..." 
+                 className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                 value={searchTerm}
+                 onChange={(e) => setSearchTerm(e.target.value)}
+               />
+             </div>
+             <button 
+               onClick={() => { setActiveScannerTarget('search'); setIsScannerOpen(true); }}
+               className="p-2 border border-emerald-500 text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors"
+               title="Barkod Okutarak Ara"
+             >
+               <Camera size={20} />
+             </button>
           </div>
         </div>
 
@@ -1147,12 +1159,22 @@ export const Urunler: React.FC = () => {
                  </div>
                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Barkod</label>
-                  <input 
-                    type="text" 
-                    value={formData.barcode || ''}
-                    onChange={(e) => setFormData({...formData, barcode: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  />
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={formData.barcode || ''}
+                      onChange={(e) => setFormData({...formData, barcode: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => { setActiveScannerTarget('form'); setIsScannerOpen(true); }}
+                      className="px-3 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-200 transition-colors flex items-center justify-center shrink-0"
+                      title="Kamera ile Barkod Oku"
+                    >
+                      <Camera size={20} />
+                    </button>
+                  </div>
                  </div>
                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Birim</label>
@@ -1840,6 +1862,20 @@ export const Urunler: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {isScannerOpen && (
+        <BarcodeScanner
+          onScan={(barcode) => {
+            if (activeScannerTarget === 'search') {
+              setSearchTerm(barcode);
+            } else {
+              setFormData({ ...formData, barcode });
+            }
+            setIsScannerOpen(false);
+          }}
+          onClose={() => setIsScannerOpen(false)}
+        />
       )}
 
     </div>
