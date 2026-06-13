@@ -702,8 +702,13 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
       </div>
       
       {/* Quick Actions Widget */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-        <h3 className="text-sm font-semibold text-gray-500 tracking-wider uppercase mb-4">Tüm Menüler</h3>
+      <div className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 sm:p-6 ring-1 ring-emerald-50">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg">
+            <PlusCircle size={18} />
+          </div>
+          <h3 className="text-base font-semibold text-gray-800 tracking-tight">Hızlı İşlemler</h3>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <button type="button" onClick={() => setActivePage && setActivePage('hizlisatis')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-100 cursor-pointer">
                 <ShoppingCart size={24} className="mb-2" />
