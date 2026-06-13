@@ -72,7 +72,7 @@ export const UserManual: React.FC = () => {
   ];
 
   return (
-    <div id="printable-user-manual" className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden animate-fade-in w-full text-gray-800">
+    <div id="printable-user-manual" className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden animate-fade-in w-full text-gray-800 print-target">
       {/* Header and Quick Actions - HIDE ON PRINT */}
       <div className="bg-gradient-to-r from-emerald-800 to-teal-700 text-white p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print border-b border-emerald-900/35">
         <div>
