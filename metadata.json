@@ -2,5 +2,5 @@
   "name": "Esila Ticari",
   "description": "Kapsamlı ticari yönetim sistemi; cari, stok, sipariş, e-fatura ve pazar yeri entegrasyonu özellikleriyle.",
   "requestFramePermissions": ["camera", "microphone"],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
