@@ -4,7 +4,8 @@ import { ShoppingCart, Search, Plus, Minus, Trash2, CreditCard, Banknote, CheckC
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
-import { Product, Customer, OrderStatus } from '../types';
+import { Product, Customer, OrderStatus, Warehouse } from '../types';
+import { api } from '../lib/api';
 
 export const HizliSatis: React.FC = () => {
   const store = useAppStore();
@@ -17,13 +18,19 @@ export const HizliSatis: React.FC = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
   const [showSuspendedModal, setShowSuspendedModal] = useState(false);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+
+  useEffect(() => {
+    api.getWarehouses().then(setWarehouses).catch(console.error);
+  }, []);
   
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Default parameters
   const rawProducts = store.products || [];
+  const assigned = warehouses.find(w => w.id === currentUser?.assignedWarehouse)?.name || currentUser?.assignedWarehouse;
   const products = currentUser?.assignedWarehouse 
-    ? rawProducts.filter(p => p.warehouseStocks?.some(ws => ws.warehouseId === currentUser.assignedWarehouse) || p.warehouse === currentUser.assignedWarehouse)
+    ? rawProducts.filter(p => p.warehouseStocks?.some(ws => ws.warehouseId === assigned) || p.warehouse === assigned)
     : rawProducts;
     
   const customers = store.customers || [];
@@ -332,7 +339,7 @@ export const HizliSatis: React.FC = () => {
     setCart([]);
     setSelectedCustomerId('');
     handlePrintReceipt(currentCustomer, paymentMethod, totalAmount, cart);
-    alert('Satış başarıyla tamamlandı!');
+    toast.success('Satış başarıyla tamamlandı!');
   };
 
   // Keyboard Shortcuts

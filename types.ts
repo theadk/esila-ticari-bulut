@@ -84,6 +84,7 @@ export interface Customer {
   efaturaScenario?: string;
   efaturaInvoiceType?: string;
   riskLimit?: number;
+  assignedUser?: string;
 }
 
 export interface OrderItem {
@@ -277,6 +278,7 @@ export interface UserPermissions {
   mutabakat: PermissionSet;
   stoksayim: PermissionSet;
   raporlar: PermissionSet;
+  izin_yonetimi?: PermissionSet;
 }
 
 export interface User {

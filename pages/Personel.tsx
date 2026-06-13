@@ -54,6 +54,7 @@ export const Personel: React.FC = () => {
   const canCreate = hasPermission(currentUser, 'personel', 'create');
   const canEdit = hasPermission(currentUser, 'personel', 'edit');
   const canDelete = hasPermission(currentUser, 'personel', 'delete');
+  const canViewLeave = hasPermission(currentUser, 'izin_yonetimi', 'view');
 
   const { personnel, setPersonnel } = store;
   const [searchTerm, setSearchTerm] = useState('');
@@ -837,12 +838,14 @@ export const Personel: React.FC = () => {
           >
             İşe Alım Süreçleri
           </button>
-          <button 
-            onClick={() => setActiveTab('İzin Yönetimi')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'İzin Yönetimi' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-          >
-            İzin Yönetimi
-          </button>
+          {canViewLeave && (
+            <button 
+              onClick={() => setActiveTab('İzin Yönetimi')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'İzin Yönetimi' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              İzin Yönetimi
+            </button>
+          )}
         </div>
       </div>
 
@@ -2051,7 +2054,7 @@ export const Personel: React.FC = () => {
         <RecruitmentView />
       )}
 
-      {activeTab === 'İzin Yönetimi' && (
+      {activeTab === 'İzin Yönetimi' && canViewLeave && (
         <LeaveManagementView />
       )}
     </div>

@@ -18,6 +18,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   mutabakat: { view: true, create: false, edit: false, delete: false },
   stoksayim: { view: true, create: false, edit: false, delete: false },
   raporlar: { view: true, create: false, edit: false, delete: false },
+  izin_yonetimi: { view: false, create: false, edit: false, delete: false },
 };
 
 const INITIAL_FORM: Omit<User, 'id'> = {
@@ -282,10 +283,11 @@ export const UsersSettings: React.FC = () => {
                        efatura: 'E-Fatura',
                        mutabakat: 'Mutabakat',
                        stoksayim: 'Stok Sayım',
-                       raporlar: 'Raporlar'
+                       raporlar: 'Raporlar',
+                       izin_yonetimi: 'Personel İzin Yönetimi'
                      }).map(([key, label]) => {
                        const permKey = key as keyof UserPermissions;
-                       const perms = formData.permissions![permKey];
+                       const perms = formData.permissions?.[permKey] || { view: false, create: false, edit: false, delete: false };
                        return (
                          <div key={key} className="p-3 bg-white border rounded-lg shadow-sm">
                            <div className="font-medium text-gray-800 text-sm mb-2 pb-2 border-b">{label}</div>

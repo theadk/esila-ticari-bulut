@@ -470,7 +470,7 @@ export const Urunler: React.FC = () => {
 
   const filteredProducts = (products || []).filter(p => {
     if (currentUser?.assignedWarehouse) {
-      const assigned = currentUser.assignedWarehouse;
+      const assigned = warehouses.find(w => w.id === currentUser.assignedWarehouse)?.name || currentUser.assignedWarehouse;
       const hasStockInAssigned = p.warehouseStocks?.some(ws => ws.warehouseId === assigned);
       if (!hasStockInAssigned && p.warehouse !== assigned) {
         return false;
@@ -655,7 +655,7 @@ export const Urunler: React.FC = () => {
     try {
       let targetProducts = products;
       if (currentUser?.assignedWarehouse) {
-        const assigned = currentUser.assignedWarehouse;
+        const assigned = warehouses.find(w => w.id === currentUser.assignedWarehouse)?.name || currentUser.assignedWarehouse;
         targetProducts = targetProducts.filter(p => p.warehouseStocks?.some(ws => ws.warehouseId === assigned) || p.warehouse === assigned);
       }
       if (revisionForm.category !== 'all') {

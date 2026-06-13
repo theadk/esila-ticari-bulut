@@ -411,6 +411,13 @@ export const Cariler: React.FC = () => {
   };
 
   const filteredCustomers = customers.filter(c => {
+    // Kendi carilerini görebilsin (Yetki kontrolü)
+    if (currentUser?.role !== 'Admin') {
+      if (c.assignedUser !== currentUser?.id) {
+        return false;
+      }
+    }
+
     const searchStr = searchTerm.toLowerCase();
     const matchName = c.name?.toLowerCase().includes(searchStr);
     const matchTitle = c.companyName?.toLowerCase().includes(searchStr);
@@ -471,7 +478,8 @@ export const Cariler: React.FC = () => {
     if (isEditing) {
       setCustomers(customers.map(c => c.id === formData.id ? formData : c));
     } else {
-      setCustomers([...customers, formData]);
+      const newCustomer = { ...formData, assignedUser: formData.assignedUser || currentUser?.id };
+      setCustomers([...customers, newCustomer]);
       store.setSettings({
         ...store.settings,
         next_customer_id: (store.settings.next_customer_id || 1001) + 1

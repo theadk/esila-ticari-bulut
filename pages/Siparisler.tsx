@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud, MessageCircle, Link, RefreshCw, Mic, MicOff } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction } from '../types';
+import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction, Warehouse } from '../types';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
 import { api } from '../lib/api';
@@ -18,6 +18,11 @@ export const Siparisler: React.FC = () => {
   const canEdit = hasPermission(currentUser, 'siparisler', 'edit');
   const canDelete = hasPermission(currentUser, 'siparisler', 'delete');
 
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  useEffect(() => {
+    api.getWarehouses().then(setWarehouses).catch(console.error);
+  }, []);
+
   const orders = store.orders;
   const setOrders = store.setOrders;
   const customers = store.customers;
@@ -28,8 +33,9 @@ export const Siparisler: React.FC = () => {
   const setCashTransactions = store.setCashTransactions;
 
   const rawProducts = store.products;
+  const assigned = warehouses.find(w => w.id === currentUser?.assignedWarehouse)?.name || currentUser?.assignedWarehouse;
   const products = currentUser?.assignedWarehouse 
-    ? rawProducts.filter(p => p.warehouseStocks?.some(ws => ws.warehouseId === currentUser.assignedWarehouse) || p.warehouse === currentUser.assignedWarehouse)
+    ? rawProducts.filter(p => p.warehouseStocks?.some(ws => ws.warehouseId === assigned) || p.warehouse === assigned)
     : rawProducts;
   const setProducts = store.setProducts;
   
