@@ -150,7 +150,7 @@ export const Ayarlar: React.FC = () => {
 
       {/* Settings Content */}
       <div className="flex-1 p-4 sm:p-6 md:p-4 md:p-8 overflow-y-auto">
-        <div className="max-w-full sm:max-w-3xl">
+        <div className={`w-full ${activeTab === 'kilavuz' ? 'max-w-full' : 'max-w-full sm:max-w-3xl'}`}>
           {activeTab === 'genel' && (
             <div className="space-y-6 animate-fade-in">
               {tenantInfo && (
