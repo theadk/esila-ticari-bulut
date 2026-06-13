@@ -2,11 +2,18 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { FileBadge, Plus, Search, FileText, Printer, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import { Proposal, ProposalStatus, ProposalItem, Customer, Product, Order, OrderStatus } from '../types';
 import { useAppStore } from '../lib/store';
+import { hasPermission } from '../lib/permissions';
 import { api } from '../lib/api';
 import { Pagination } from '../components/Pagination';
 
 export const Teklifler: React.FC = () => {
   const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'teklifler', 'view');
+  const canCreate = hasPermission(currentUser, 'teklifler', 'create');
+  const canEdit = hasPermission(currentUser, 'teklifler', 'edit');
+  const canDelete = hasPermission(currentUser, 'teklifler', 'delete');
+
   const proposals = store.proposals;
   const setProposals = store.setProposals;
   const customers = store.customers;
@@ -223,18 +230,30 @@ export const Teklifler: React.FC = () => {
     window.print();
   };
 
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+        <FileBadge size={48} className="mb-4 opacity-50" />
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Teklifler modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="space-y-6 no-print">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-800">Teklifler</h2>
-          <button 
-            onClick={handleOpenCreateModal}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
-          >
-            <Plus size={20} />
-            Yeni Teklif
-          </button>
+          {canCreate && (
+            <button 
+              onClick={handleOpenCreateModal}
+              className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+            >
+              <Plus size={20} />
+              Yeni Teklif
+            </button>
+          )}
         </div>
 
         {/* Search */}

@@ -255,6 +255,30 @@ export interface Reconciliation {
   responseNotes?: string;
 }
 
+export interface PermissionSet {
+  view: boolean;
+  create: boolean;
+  edit: boolean;
+  delete: boolean;
+}
+
+export interface UserPermissions {
+  ariza: PermissionSet;
+  personel: PermissionSet;
+  hizlisatis: PermissionSet;
+  urunler: PermissionSet;
+  siparisler: PermissionSet;
+  cariler: PermissionSet;
+  kasa: PermissionSet;
+  teklifler: PermissionSet;
+  ajanda: PermissionSet;
+  depo: PermissionSet;
+  efatura: PermissionSet;
+  mutabakat: PermissionSet;
+  stoksayim: PermissionSet;
+  raporlar: PermissionSet;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -263,6 +287,8 @@ export interface User {
   passwordHash: string;
   role: 'Admin' | 'Kullanıcı';
   status: 'Aktif' | 'Pasif';
+  permissions?: UserPermissions;
+  assignedWarehouse?: string;
 }
 
 export interface Settings {

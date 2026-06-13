@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import { Product, Warehouse, Category, Brand } from '../types';
 import { api } from '../lib/api';
 import { useAppStore } from '../lib/store';
+import { hasPermission } from '../lib/permissions';
 import { Pagination } from '../components/Pagination';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
@@ -30,6 +31,12 @@ const INITIAL_FORM: Product = {
 
 export const Urunler: React.FC = () => {
   const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'urunler', 'view');
+  const canCreate = hasPermission(currentUser, 'urunler', 'create');
+  const canEdit = hasPermission(currentUser, 'urunler', 'edit');
+  const canDelete = hasPermission(currentUser, 'urunler', 'delete');
+
   const [activeTab, setActiveTab] = useState<'urunler' | 'kategoriler' | 'markalar'>('urunler');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -462,6 +469,14 @@ export const Urunler: React.FC = () => {
   };
 
   const filteredProducts = (products || []).filter(p => {
+    if (currentUser?.assignedWarehouse) {
+      const assigned = currentUser.assignedWarehouse;
+      const hasStockInAssigned = p.warehouseStocks?.some(ws => ws.warehouseId === assigned);
+      if (!hasStockInAssigned && p.warehouse !== assigned) {
+        return false;
+      }
+    }
+
     const matchesSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.barcode && p.barcode.includes(searchTerm)) ||
@@ -639,6 +654,10 @@ export const Urunler: React.FC = () => {
     setIsRevisionLoading(true);
     try {
       let targetProducts = products;
+      if (currentUser?.assignedWarehouse) {
+        const assigned = currentUser.assignedWarehouse;
+        targetProducts = targetProducts.filter(p => p.warehouseStocks?.some(ws => ws.warehouseId === assigned) || p.warehouse === assigned);
+      }
       if (revisionForm.category !== 'all') {
          targetProducts = targetProducts.filter(p => p.category === revisionForm.category);
       }
@@ -673,6 +692,16 @@ export const Urunler: React.FC = () => {
       setIsRevisionLoading(false);
     }
   };
+
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+        <Package size={48} className="mb-4 opacity-50" />
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Ürünler modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -760,30 +789,36 @@ export const Urunler: React.FC = () => {
                 <TrendingUp size={18} />
                 <span className="hidden lg:inline">Fiyat Revizyon</span>
               </button>
+              {canCreate && (
+                <button 
+                  onClick={handleAddNew}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                >
+                  <Plus size={18} />
+                  <span>Yeni Ürün</span>
+                </button>
+              )}
+            </>
+          ) : activeTab === 'kategoriler' ? (
+            canCreate && (
               <button 
-                onClick={handleAddNew}
+                onClick={handleAddNewCategory}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
               >
                 <Plus size={18} />
-                <span>Yeni Ürün</span>
+                <span>Yeni Kategori</span>
               </button>
-            </>
-          ) : activeTab === 'kategoriler' ? (
-            <button 
-              onClick={handleAddNewCategory}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-            >
-              <Plus size={18} />
-              <span>Yeni Kategori</span>
-            </button>
+            )
           ) : (
-            <button 
-              onClick={handleAddNewBrand}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-            >
-              <Plus size={18} />
-              <span>Yeni Marka</span>
-            </button>
+            canCreate && (
+              <button 
+                onClick={handleAddNewBrand}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+              >
+                <Plus size={18} />
+                <span>Yeni Marka</span>
+              </button>
+            )
           )}
         </div>
       </div>
@@ -1023,18 +1058,22 @@ export const Urunler: React.FC = () => {
                         >
                           <Printer size={18} />
                         </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleEdit(product); }}
-                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDelete(product); }}
-                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-600 transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {canEdit && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleEdit(product); }}
+                            className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleDelete(product); }}
+                            className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                     </div>
                   </td>
                 </tr>

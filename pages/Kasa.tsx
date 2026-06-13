@@ -5,8 +5,17 @@ import { CashTransaction } from '../types';
 import { Pagination } from '../components/Pagination';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
+import { hasPermission } from '../lib/permissions';
+
 export const Kasa: React.FC = () => {
-  const { settings, cashTransactions, setCashTransactions, customers, setCustomers, transactions, setTransactions, personnel, setPersonnel } = useAppStore();
+  const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'kasa', 'view');
+  const canCreate = hasPermission(currentUser, 'kasa', 'create');
+  const canEdit = hasPermission(currentUser, 'kasa', 'edit');
+  const canDelete = hasPermission(currentUser, 'kasa', 'delete');
+
+  const { settings, cashTransactions, setCashTransactions, customers, setCustomers, transactions, setTransactions, personnel, setPersonnel } = store;
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'this_week' | 'this_month'>('all');
   
@@ -161,26 +170,38 @@ export const Kasa: React.FC = () => {
     window.print();
   };
 
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+        <Wallet size={48} className="mb-4 opacity-50" />
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Kasa modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">Kasa Hareketleri</h2>
-        <button 
-          onClick={() => {
-            setFormData({
-              date: new Date().toISOString().split('T')[0],
-              type: 'Gelir',
-              category: 'Diğer Gelir',
-              amount: 0,
-              description: ''
-            });
-            setIsModalOpen(true);
-          }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-        >
-          <Plus size={18} />
-          <span>Yeni İşlem</span>
-        </button>
+        {canCreate && (
+          <button 
+            onClick={() => {
+              setFormData({
+                date: new Date().toISOString().split('T')[0],
+                type: 'Gelir',
+                category: 'Diğer Gelir',
+                amount: 0,
+                description: ''
+              });
+              setIsModalOpen(true);
+            }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <Plus size={18} />
+            <span>Yeni İşlem</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:p-6">

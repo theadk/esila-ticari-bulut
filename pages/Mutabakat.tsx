@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock, Users, MessageCircle, MessageSquare, Mic, MicOff } from 'lucide-react';
+import { RefreshCcw, Search, Plus, Mail, CheckCircle, XCircle, Clock, Users, MessageCircle, MessageSquare, Mic, MicOff, CheckSquare } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Reconciliation, ReconciliationStatus, Customer } from '../types';
 import { apiFetch } from '../lib/api';
@@ -9,13 +9,20 @@ import { Pagination } from '../components/Pagination';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 import { sendSMS } from '../src/utils/smsRequest';
+import { hasPermission } from '../lib/permissions';
 
 export const Mutabakat: React.FC = () => {
+  const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'mutabakat', 'view');
+  const canCreate = hasPermission(currentUser, 'mutabakat', 'create');
+  const canEdit = hasPermission(currentUser, 'mutabakat', 'edit');
+  const canDelete = hasPermission(currentUser, 'mutabakat', 'delete');
+
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const store = useAppStore();
 
   const { isListening, supported, listen, stop } = useSpeechRecognition();
   const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
@@ -253,6 +260,16 @@ export const Mutabakat: React.FC = () => {
     setCurrentPage(1);
   }, [searchTerm, activeTab]);
 
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-gray-500">
+        <CheckSquare size={48} className="mb-4 opacity-50" />
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Mutabakat modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -261,22 +278,26 @@ export const Mutabakat: React.FC = () => {
           <p className="text-gray-500 text-sm mt-1">Müşteri/Tedarikçi bakiye mutabakatlarını yönetin</p>
         </div>
         <div className="flex gap-2">
-          <button 
-            onClick={() => setIsBulkModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-          >
-            <Users size={20} />
-            <span className="hidden sm:inline">Toplu Mutabakat Gönder</span>
-            <span className="sm:hidden">Toplu Gönder</span>
-          </button>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-          >
-            <Plus size={20} />
-            <span className="hidden sm:inline">Yeni Mutabakat Gönder</span>
-            <span className="sm:hidden">Yeni Gönder</span>
-          </button>
+          {canCreate && (
+            <>
+              <button 
+                onClick={() => setIsBulkModalOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+              >
+                <Users size={20} />
+                <span className="hidden sm:inline">Toplu Mutabakat Gönder</span>
+                <span className="sm:hidden">Toplu Gönder</span>
+              </button>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+              >
+                <Plus size={20} />
+                <span className="hidden sm:inline">Yeni Mutabakat Gönder</span>
+                <span className="sm:hidden">Yeni Gönder</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 

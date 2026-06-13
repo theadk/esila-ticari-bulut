@@ -3,10 +3,15 @@ import toast from 'react-hot-toast';
 import { ShoppingCart, Search, Plus, Minus, Trash2, CreditCard, Banknote, CheckCircle, UserPlus, User, Camera, X, PauseCircle, Clock } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useAppStore } from '../lib/store';
+import { hasPermission } from '../lib/permissions';
 import { Product, Customer, OrderStatus } from '../types';
 
 export const HizliSatis: React.FC = () => {
   const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'hizlisatis', 'view');
+  const canCreate = hasPermission(currentUser, 'hizlisatis', 'create');
+
   const [cart, setCart] = useState<{product: Product, quantity: number, discount: number}[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -16,7 +21,11 @@ export const HizliSatis: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Default parameters
-  const products = store.products || [];
+  const rawProducts = store.products || [];
+  const products = currentUser?.assignedWarehouse 
+    ? rawProducts.filter(p => p.warehouseStocks?.some(ws => ws.warehouseId === currentUser.assignedWarehouse) || p.warehouse === currentUser.assignedWarehouse)
+    : rawProducts;
+    
   const customers = store.customers || [];
   const suspendedCarts = store.suspendedCarts || [];
 
@@ -246,7 +255,7 @@ export const HizliSatis: React.FC = () => {
     }
 
     // 2. Reduce Stock
-    let newProducts = [...products];
+    let newProducts = [...rawProducts];
     cart.forEach(item => {
       const idx = newProducts.findIndex(p => p.id === item.product.id);
       if (idx !== -1) {
@@ -411,6 +420,16 @@ export const HizliSatis: React.FC = () => {
       };
     }
   }, [isScanning, products]);
+
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+        <ShoppingCart size={48} className="mb-4 opacity-50" />
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Hızlı Satış modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex gap-6 pb-6">
@@ -583,7 +602,7 @@ export const HizliSatis: React.FC = () => {
           <div className="grid grid-cols-3 gap-3">
              <button 
                onClick={() => handleCheckout('Nakit')}
-               disabled={cart.length === 0}
+               disabled={cart.length === 0 || !canCreate}
                className="flex flex-col items-center justify-center p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm"
              >
                 <Banknote size={24} className="mb-1" />
@@ -591,7 +610,7 @@ export const HizliSatis: React.FC = () => {
              </button>
              <button 
                onClick={() => handleCheckout('Kredi Kartı')}
-               disabled={cart.length === 0}
+               disabled={cart.length === 0 || !canCreate}
                className="flex flex-col items-center justify-center p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
              >
                 <CreditCard size={24} className="mb-1" />
@@ -599,7 +618,7 @@ export const HizliSatis: React.FC = () => {
              </button>
              <button 
                onClick={() => handleCheckout('Cari')}
-               disabled={cart.length === 0}
+               disabled={cart.length === 0 || !canCreate}
                className="flex flex-col items-center justify-center p-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-colors shadow-sm"
              >
                 <User size={24} className="mb-1" />

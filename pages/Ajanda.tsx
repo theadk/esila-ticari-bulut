@@ -4,14 +4,22 @@ import { ReminderNoteType } from '../types';
 import { Calendar, Search, Filter, CheckCircle, Circle, Trash2, CalendarDays, TrendingUp, DollarSign, PlusCircle, X, Mic, MicOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
+import { hasPermission } from '../lib/permissions';
 
 export const Ajanda: React.FC = () => {
+  const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'ajanda', 'view');
+  const canCreate = hasPermission(currentUser, 'ajanda', 'create');
+  const canEdit = hasPermission(currentUser, 'ajanda', 'edit');
+  const canDelete = hasPermission(currentUser, 'ajanda', 'delete');
+
   const { 
     reminderNotes, setReminderNotes, 
     transactions, setTransactions,
     cashTransactions, setCashTransactions,
     customers, setCustomers 
-  } = useAppStore();
+  } = store;
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<ReminderNoteType | 'Tümü'>('Tümü');
   
@@ -222,6 +230,16 @@ export const Ajanda: React.FC = () => {
     }
   };
 
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-12 text-gray-500">
+        <CalendarDays size={48} className="mb-4 opacity-50" />
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Ajanda modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col space-y-6">
       <div className="flex justify-between items-center">
@@ -229,16 +247,18 @@ export const Ajanda: React.FC = () => {
            <CalendarDays className="text-emerald-600" />
            Ajanda & Hatırlatmalar
         </h2>
-        <button 
-           onClick={() => {
-             setNoteForm({ title: '', description: '', date: todayStr, notificationTime: '', type: 'Genel', amount: '' });
-             setShowNoteModal(true);
-           }}
-           className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
-        >
-           <PlusCircle size={20} />
-           <span className="hidden sm:inline">Yeni Hatırlatma</span>
-        </button>
+        {canCreate && (
+          <button 
+             onClick={() => {
+               setNoteForm({ title: '', description: '', date: todayStr, notificationTime: '', type: 'Genel', amount: '' });
+               setShowNoteModal(true);
+             }}
+             className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+          >
+             <PlusCircle size={20} />
+             <span className="hidden sm:inline">Yeni Hatırlatma</span>
+          </button>
+        )}
       </div>
 
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4">
@@ -354,9 +374,11 @@ export const Ajanda: React.FC = () => {
                        </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                       <button onClick={() => deleteNote(note.id)} className="text-gray-400 hover:text-red-500 bg-white hover:bg-red-50 p-2 rounded-lg transition-colors">
-                          <Trash2 size={20} />
-                       </button>
+                       {canDelete && (
+                         <button onClick={() => deleteNote(note.id)} className="text-gray-400 hover:text-red-500 bg-white hover:bg-red-50 p-2 rounded-lg transition-colors">
+                            <Trash2 size={20} />
+                         </button>
+                       )}
                     </td>
                   </tr>
                 ))}

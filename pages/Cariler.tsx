@@ -3,6 +3,7 @@ import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, Us
 import * as XLSX from 'xlsx';
 import { Customer, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
+import { hasPermission } from '../lib/permissions';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/Pagination';
@@ -35,6 +36,12 @@ interface Province {
 
 export const Cariler: React.FC = () => {
   const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'cariler', 'view');
+  const canCreate = hasPermission(currentUser, 'cariler', 'create');
+  const canEdit = hasPermission(currentUser, 'cariler', 'edit');
+  const canDelete = hasPermission(currentUser, 'cariler', 'delete');
+
   const customers = store.customers;
   const setCustomers = store.setCustomers;
   const transactions = store.transactions;
@@ -473,6 +480,16 @@ export const Cariler: React.FC = () => {
     setIsModalOpen(false);
   };
 
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+        <User size={48} className="mb-4 opacity-50" />
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Cariler modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -511,13 +528,15 @@ export const Cariler: React.FC = () => {
             <Download size={18} />
             <span className="hidden sm:inline">Dışa Aktar</span>
           </button>
-          <button 
-            onClick={handleAddNew}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-          >
-            <Plus size={18} />
-            <span>Yeni Cari Ekle</span>
-          </button>
+          {canCreate && (
+            <button 
+              onClick={handleAddNew}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <Plus size={18} />
+              <span>Yeni Cari Ekle</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -685,20 +704,24 @@ export const Cariler: React.FC = () => {
                           <Plus size={18} />
                         </button>
                         <div className="w-px h-6 bg-gray-200 mx-1"></div>
-                        <button 
-                          title="Düzenle"
-                          onClick={() => handleEdit(customer)}
-                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button 
-                          title="Sil"
-                          onClick={(e) => { e.stopPropagation(); handleDelete(customer.id); }}
-                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-600 transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {canEdit && (
+                          <button 
+                            title="Düzenle"
+                            onClick={() => handleEdit(customer)}
+                            className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button 
+                            title="Sil"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(customer.id); }}
+                            className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

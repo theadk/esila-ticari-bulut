@@ -24,9 +24,15 @@ import { useAppStore } from "../lib/store";
 import { api } from "../lib/api";
 import { InvoiceTemplateEditor } from "../components/InvoiceTemplateEditor";
 import { Pagination } from "../components/Pagination";
+import { hasPermission } from '../lib/permissions';
 
 export const EFatura: React.FC = () => {
   const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'efatura', 'view');
+  const canCreate = hasPermission(currentUser, 'efatura', 'create');
+  const canDelete = hasPermission(currentUser, 'efatura', 'delete');
+
   const [activeTab, setActiveTab] = useState<"Taslak" | "Giden" | "Gelen" | "Şablon">(
     "Taslak",
   );
@@ -693,6 +699,15 @@ export const EFatura: React.FC = () => {
       )
     : null;
 
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-gray-500">
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>E-Fatura modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col space-y-4">
       <div className="flex justify-between items-center sm:flex-row flex-col">
@@ -921,20 +936,24 @@ export const EFatura: React.FC = () => {
                           </button>
                           {inv.status === "Taslak" ? (
                             <>
-                              <button
-                                onClick={() => setEditInvoice(inv)}
-                                className="px-2 py-1.5 bg-gray-50 text-emerald-600 hover:bg-emerald-50 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1"
-                                title="Düzenle"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button
-                                onClick={(e) => handleDeleteInvoice(inv, e)}
-                                className="px-2 py-1.5 bg-gray-50 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1"
-                                title="Sil"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              {canEdit && (
+                                <button
+                                  onClick={() => setEditInvoice(inv)}
+                                  className="px-2 py-1.5 bg-gray-50 text-emerald-600 hover:bg-emerald-50 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1"
+                                  title="Düzenle"
+                                >
+                                  <Edit size={16} />
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button
+                                  onClick={(e) => handleDeleteInvoice(inv, e)}
+                                  className="px-2 py-1.5 bg-gray-50 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1"
+                                  title="Sil"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleSendToPortal(inv.id)}
                                 className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1"
@@ -966,7 +985,7 @@ export const EFatura: React.FC = () => {
                                   <FileText size={16} />
                                 </button>
                               )}
-                              {inv.type === 'Gelen Fatura' && (
+                              {canDelete && inv.type === 'Gelen Fatura' && (
                                 <button
                                   onClick={(e) => handleDeleteInvoice(inv, e)}
                                   className="p-1.5 text-red-600 hover:bg-red-50 rounded inline-flex items-center gap-1"

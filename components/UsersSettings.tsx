@@ -1,7 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react';
-import { User } from '../types';
+import { User, UserPermissions, PermissionSet } from '../types';
 import { useAppStore } from '../lib/store';
+
+const DEFAULT_PERMISSIONS: UserPermissions = {
+  ariza: { view: true, create: false, edit: false, delete: false },
+  personel: { view: true, create: false, edit: false, delete: false },
+  hizlisatis: { view: true, create: false, edit: false, delete: false },
+  urunler: { view: true, create: false, edit: false, delete: false },
+  siparisler: { view: true, create: false, edit: false, delete: false },
+  cariler: { view: true, create: false, edit: false, delete: false },
+  kasa: { view: true, create: false, edit: false, delete: false },
+  teklifler: { view: true, create: false, edit: false, delete: false },
+  ajanda: { view: true, create: false, edit: false, delete: false },
+  depo: { view: true, create: false, edit: false, delete: false },
+  efatura: { view: true, create: false, edit: false, delete: false },
+  mutabakat: { view: true, create: false, edit: false, delete: false },
+  stoksayim: { view: true, create: false, edit: false, delete: false },
+  raporlar: { view: true, create: false, edit: false, delete: false },
+};
 
 const INITIAL_FORM: Omit<User, 'id'> = {
   name: '',
@@ -9,8 +26,12 @@ const INITIAL_FORM: Omit<User, 'id'> = {
   email: '',
   passwordHash: '',
   role: 'Kullanıcı',
-  status: 'Aktif'
+  status: 'Aktif',
+  permissions: JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)),
 };
+
+import { api } from '../lib/api';
+import { Warehouse } from '../types';
 
 export const UsersSettings: React.FC = () => {
   const store = useAppStore();
@@ -19,6 +40,11 @@ export const UsersSettings: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<User>({ ...INITIAL_FORM, id: '' });
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+
+  useEffect(() => {
+    api.getWarehouses().then(setWarehouses).catch(console.error);
+  }, []);
 
   const handleAddNew = () => {
     setFormData({ ...INITIAL_FORM, id: Math.random().toString(36).substr(2, 9) });
@@ -27,7 +53,10 @@ export const UsersSettings: React.FC = () => {
   };
 
   const handleEdit = (user: User) => {
-    setFormData(user);
+    setFormData({
+      ...user,
+      permissions: user.permissions || JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS))
+    });
     setIsEditing(true);
     setIsModalOpen(true);
   };
@@ -216,7 +245,92 @@ export const UsersSettings: React.FC = () => {
                     <option value="Pasif">Pasif</option>
                   </select>
                 </div>
+                {formData.role === 'Kullanıcı' && (
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Görevli Depo</label>
+                    <select 
+                      value={formData.assignedWarehouse || ''}
+                      onChange={e => setFormData({ ...formData, assignedWarehouse: e.target.value || undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                    >
+                      <option value="">Tüm Depolar</option>
+                      {warehouses.map((w: any) => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
+
+              {formData.role === 'Kullanıcı' && formData.permissions && (
+                <div className="border border-gray-200 rounded-lg overflow-hidden mt-4">
+                   <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                     <h4 className="text-sm font-semibold text-gray-700">Modül Yetkileri</h4>
+                   </div>
+                   <div className="p-4 space-y-4 max-h-60 overflow-y-auto">
+                     {Object.entries({
+                       ariza: 'Arıza Formu',
+                       personel: 'Personel',
+                       hizlisatis: 'Hızlı Satış',
+                       urunler: 'Ürünler',
+                       siparisler: 'Siparişler',
+                       cariler: 'Cariler',
+                       kasa: 'Kasa',
+                       teklifler: 'Teklifler',
+                       ajanda: 'Ajanda',
+                       depo: 'Depo',
+                       efatura: 'E-Fatura',
+                       mutabakat: 'Mutabakat',
+                       stoksayim: 'Stok Sayım',
+                       raporlar: 'Raporlar'
+                     }).map(([key, label]) => {
+                       const permKey = key as keyof UserPermissions;
+                       const perms = formData.permissions![permKey];
+                       return (
+                         <div key={key} className="p-3 bg-white border rounded-lg shadow-sm">
+                           <div className="font-medium text-gray-800 text-sm mb-2 pb-2 border-b">{label}</div>
+                           <div className="grid grid-cols-2 gap-2 text-sm">
+                             <label className="flex items-center gap-2">
+                               <input type="checkbox" checked={perms.view} onChange={e => {
+                                 const val = e.target.checked;
+                                 setFormData(prev => ({
+                                   ...prev,
+                                   permissions: {
+                                     ...prev.permissions!,
+                                     [permKey]: { ...prev.permissions![permKey], view: val, ...(val ? {} : { create: false, edit: false, delete: false }) }
+                                   }
+                                 }))
+                               }} className="rounded text-emerald-600 focus:ring-emerald-500" />
+                               <span>Görüntüleme</span>
+                             </label>
+                             <label className="flex items-center gap-2">
+                               <input type="checkbox" disabled={!perms.view} checked={perms.create} onChange={e => setFormData(prev => ({
+                                 ...prev,
+                                 permissions: { ...prev.permissions!, [permKey]: { ...prev.permissions![permKey], create: e.target.checked } }
+                               }))} className="rounded text-emerald-600 focus:ring-emerald-500 disabled:opacity-50" />
+                               <span className={!perms.view ? 'text-gray-400' : ''}>Oluşturma</span>
+                             </label>
+                             <label className="flex items-center gap-2">
+                               <input type="checkbox" disabled={!perms.view} checked={perms.edit} onChange={e => setFormData(prev => ({
+                                 ...prev,
+                                 permissions: { ...prev.permissions!, [permKey]: { ...prev.permissions![permKey], edit: e.target.checked } }
+                               }))} className="rounded text-emerald-600 focus:ring-emerald-500 disabled:opacity-50" />
+                               <span className={!perms.view ? 'text-gray-400' : ''}>Düzenleme</span>
+                             </label>
+                             <label className="flex items-center gap-2">
+                               <input type="checkbox" disabled={!perms.view} checked={perms.delete} onChange={e => setFormData(prev => ({
+                                 ...prev,
+                                 permissions: { ...prev.permissions!, [permKey]: { ...prev.permissions![permKey], delete: e.target.checked } }
+                               }))} className="rounded text-emerald-600 focus:ring-emerald-500 disabled:opacity-50" />
+                               <span className={!perms.view ? 'text-gray-400' : ''}>Silme</span>
+                             </label>
+                           </div>
+                         </div>
+                       )
+                     })}
+                   </div>
+                </div>
+              )}
 
               <div className="pt-4 flex justify-end gap-3">
                 <button 

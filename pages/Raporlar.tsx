@@ -6,8 +6,13 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+import { hasPermission } from '../lib/permissions';
+
 export const Raporlar: React.FC = () => {
   const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'raporlar', 'view');
+
   const [activeTab, setActiveTab] = useState<'karlilik' | 'cariler' | 'siparisler' | 'stoklar' | 'finans'>('finans');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
@@ -207,6 +212,15 @@ export const Raporlar: React.FC = () => {
       setIsGeneratingPdf(false);
     }
   };
+
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-gray-500">
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Raporlar modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
 
   return (
     <div ref={printRef} className="space-y-6 print:m-0 print:p-0">

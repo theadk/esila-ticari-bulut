@@ -19,6 +19,7 @@ import {
   ScanLine
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
+import { hasPermission } from '../lib/permissions';
 
 interface SidebarProps {
   activePage: string;
@@ -27,7 +28,10 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, tenantInfo }) => {
-  const { settings } = useAppStore();
+  const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const { settings } = store;
+  
   const allMenuItems = [
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
     { id: 'hizlisatis', label: 'Hızlı Satış', icon: Zap },
@@ -51,10 +55,46 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
     ? (typeof tenantInfo.modules === 'string' ? JSON.parse(tenantInfo.modules) : tenantInfo.modules)
     : ['all'];
 
+  // Map menu IDs to their corresponding permission module names
+  const permissionMap: Record<string, string> = {
+    'hizlisatis': 'hizlisatis',
+    'cariler': 'cariler',
+    'urunler': 'urunler',
+    'siparisler': 'siparisler',
+    'efatura': 'efatura',
+    'depo': 'depo',
+    'sayim': 'stoksayim', // mapped to match types !
+    'kasa': 'kasa',
+    'personel': 'personel',
+    'mutabakat': 'mutabakat',
+    'ariza': 'ariza', // assuming it maps or just pass through if not exist
+    'ajanda': 'ajanda',
+    'raporlar': 'raporlar',
+    'teklif': 'teklifler', // mapped
+    'ayarlar': 'ayarlar',
+  };
+
   const menuItems = allMenuItems.filter(item => {
-    if (allowedModules.includes('all')) return true;
-    if (item.id === 'ayarlar') return true;
-    return allowedModules.includes(item.id);
+    // Check tenant modules
+    if (!allowedModules.includes('all') && item.id !== 'ayarlar') {
+      if (!allowedModules.includes(item.id)) return false;
+    }
+
+    // Check user permissions
+    if (item.id === 'dashboard') return true;
+    
+    // Admin always sees everything
+    if (currentUser?.role === 'admin') return true;
+
+    const moduleName = permissionMap[item.id];
+    if (moduleName && currentUser?.permissions) {
+       // if permission is explicitly missing, consider it true for modules newly added/not configured, 
+       // but since we initialize them, it should exist. 
+       // The hasPermission func handles un-defined gracefully.
+       return hasPermission(currentUser, moduleName as any, 'view');
+    }
+    
+    return true; // allow by default if not mapped
   });
 
   return (

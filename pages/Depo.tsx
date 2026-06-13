@@ -4,9 +4,18 @@ import { Product, Warehouse, StockTransfer } from '../types';
 import { api } from '../lib/api';
 import { Pagination } from '../components/Pagination';
 import { useAppStore } from '../lib/store';
+import { hasPermission } from '../lib/permissions';
 
 export const Depo: React.FC = () => {
+  const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'depo', 'view');
+  const canCreate = hasPermission(currentUser, 'depo', 'create');
+  const canEdit = hasPermission(currentUser, 'depo', 'edit');
+  const canDelete = hasPermission(currentUser, 'depo', 'delete');
+
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [allWarehouses, setAllWarehouses] = useState<Warehouse[]>([]);
   const [activeWarehouse, setActiveWarehouse] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
@@ -19,7 +28,6 @@ export const Depo: React.FC = () => {
   const [transfers, setTransfers] = useState<StockTransfer[]>([]);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [transferForm, setTransferForm] = useState({ productId: '', sourceWarehouse: '', targetWarehouse: '', quantity: 1 });
-  const store = useAppStore();
 
   useEffect(() => {
     loadData();
@@ -28,11 +36,15 @@ export const Depo: React.FC = () => {
   const loadData = async () => {
     try {
       const [whs, prds, trs] = await Promise.all([api.getWarehouses(), api.getProducts(), api.getStockTransfers()]);
-      setWarehouses(whs);
+      const availableWhs = currentUser?.assignedWarehouse 
+        ? whs.filter(w => w.id === currentUser.assignedWarehouse)
+        : whs;
+      setAllWarehouses(whs);
+      setWarehouses(availableWhs);
       setProducts(prds);
       setTransfers(trs);
-      if (whs.length > 0 && !activeWarehouse) {
-        setActiveWarehouse(whs[0].name);
+      if (availableWhs.length > 0 && !activeWarehouse) {
+        setActiveWarehouse(availableWhs[0].name);
       }
     } catch (error) {
       console.error(error);
@@ -183,6 +195,14 @@ export const Depo: React.FC = () => {
     setCurrentPage(1);
   }, [searchTerm, activeWarehouse]);
 
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-gray-500">
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Depo modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -205,26 +225,28 @@ export const Depo: React.FC = () => {
         </div>
 
         <div className="flex gap-2">
-            {activeTab === 'depolar' ? (
-                <button 
-                  onClick={() => {
-                    setNewWh({ id: '', name: '', address: '', capacity: 0 });
-                    setIsEditing(false);
-                    setIsModalOpen(true);
-                  }}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-                >
-                  <Plus size={18} />
-                  <span>Yeni Depo Ekle</span>
-                </button>
-            ) : (
-                <button 
-                  onClick={() => setIsTransferModalOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-                >
-                  <ArrowLeftRight size={18} />
-                  <span>Stok Transferi Yap</span>
-                </button>
+            {canCreate && (
+              activeTab === 'depolar' ? (
+                  <button 
+                    onClick={() => {
+                      setNewWh({ id: '', name: '', address: '', capacity: 0 });
+                      setIsEditing(false);
+                      setIsModalOpen(true);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                  >
+                    <Plus size={18} />
+                    <span>Yeni Depo Ekle</span>
+                  </button>
+              ) : (
+                  <button 
+                    onClick={() => setIsTransferModalOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                  >
+                    <ArrowLeftRight size={18} />
+                    <span>Stok Transferi Yap</span>
+                  </button>
+              )
             )}
         </div>
       </div>
@@ -247,20 +269,24 @@ export const Depo: React.FC = () => {
                 <WarehouseIcon size={24} />
               </div>
               <div className="flex items-center gap-2">
-                <button 
-                  onClick={(e) => openEditModal(stat.name, e)}
-                  className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity ${activeWarehouse === stat.name ? 'hover:bg-emerald-500 text-emerald-100 hover:text-white' : 'hover:bg-gray-100 text-gray-400 hover:text-blue-600'}`}
-                  title="Düzenle"
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button 
-                  onClick={(e) => handleDeleteWarehouse(stat.name, e)}
-                  className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity ${activeWarehouse === stat.name ? 'hover:bg-emerald-500 text-emerald-100 hover:text-white' : 'hover:bg-gray-100 text-gray-400 hover:text-red-600'}`}
-                  title="Sil"
-                >
-                  <Trash2 size={16} />
-                </button>
+                {canEdit && (
+                  <button 
+                    onClick={(e) => openEditModal(stat.name, e)}
+                    className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity ${activeWarehouse === stat.name ? 'hover:bg-emerald-500 text-emerald-100 hover:text-white' : 'hover:bg-gray-100 text-gray-400 hover:text-blue-600'}`}
+                    title="Düzenle"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                )}
+                {canDelete && (
+                  <button 
+                    onClick={(e) => handleDeleteWarehouse(stat.name, e)}
+                    className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity ${activeWarehouse === stat.name ? 'hover:bg-emerald-500 text-emerald-100 hover:text-white' : 'hover:bg-gray-100 text-gray-400 hover:text-red-600'}`}
+                    title="Sil"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
                 {activeWarehouse === stat.name && <ArrowRight size={20} className="hidden sm:block opacity-80" />}
               </div>
             </div>
@@ -511,7 +537,7 @@ export const Depo: React.FC = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="">-- Hedef Depo Seçin --</option>
-                    {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                    {allWarehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
                   </select>
                </div>
                <div>

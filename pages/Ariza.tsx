@@ -34,6 +34,7 @@ import {
   CashTransaction,
 } from "../types";
 import { useAppStore } from "../lib/store";
+import { hasPermission } from "../lib/permissions";
 import toast from "react-hot-toast";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -55,6 +56,12 @@ const INITIAL_FORM: Partial<ServiceTicket> = {
 
 export const Ariza: React.FC = () => {
   const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'ariza', 'view');
+  const canCreate = hasPermission(currentUser, 'ariza', 'create');
+  const canEdit = hasPermission(currentUser, 'ariza', 'edit');
+  const canDelete = hasPermission(currentUser, 'ariza', 'delete');
+
   const serviceTickets = store.serviceTickets;
   const customers = store.customers;
   const products = store.products;
@@ -1183,6 +1190,16 @@ export const Ariza: React.FC = () => {
     }
   };
 
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+        <Wrench size={48} className="mb-4 opacity-50" />
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Arizalar modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1195,16 +1212,18 @@ export const Ariza: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setFormData(INITIAL_FORM);
-            setIsModalOpen(true);
-          }}
-          className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 font-medium"
-        >
-          <Plus size={20} />
-          Yeni Arıza Kaydı
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => {
+              setFormData(INITIAL_FORM);
+              setIsModalOpen(true);
+            }}
+            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 font-medium"
+          >
+            <Plus size={20} />
+            Yeni Arıza Kaydı
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -1380,20 +1399,24 @@ export const Ariza: React.FC = () => {
                               Yönet <ChevronRight size={16} />
                             </button>
                             <div className="w-px h-4 bg-gray-200 mx-1"></div>
-                            <button
-                              onClick={() => openEditTicket(ticket)}
-                              className="text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
-                              title="Düzenle"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteTicket(ticket.id)}
-                              className="text-gray-500 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                              title="Sil"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            {canEdit && (
+                              <button
+                                onClick={() => openEditTicket(ticket)}
+                                className="text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
+                                title="Düzenle"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button
+                                onClick={() => handleDeleteTicket(ticket.id)}
+                                className="text-gray-500 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                title="Sil"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

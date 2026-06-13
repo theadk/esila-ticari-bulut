@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { useAppStore } from '../lib/store';
+import { hasPermission } from '../lib/permissions';
 import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/Pagination';
@@ -48,6 +49,12 @@ const INITIAL_RECORD: PersonnelRecord = {
 
 export const Personel: React.FC = () => {
   const store = useAppStore();
+  const currentUser = store.users.find((u: any) => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'personel', 'view');
+  const canCreate = hasPermission(currentUser, 'personel', 'create');
+  const canEdit = hasPermission(currentUser, 'personel', 'edit');
+  const canDelete = hasPermission(currentUser, 'personel', 'delete');
+
   const { personnel, setPersonnel } = store;
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -803,6 +810,16 @@ export const Personel: React.FC = () => {
   };
 
 
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+        <User size={48} className="mb-4 opacity-50" />
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Personel modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center sm:flex-row flex-col gap-4">
@@ -876,13 +893,15 @@ export const Personel: React.FC = () => {
               <Download size={20} />
               <span>PDF</span>
             </button>
-            <button 
-              onClick={handleAddNew}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-            >
-              <Plus size={20} />
-              <span>Yeni Personel</span>
-            </button>
+            {canCreate && (
+              <button 
+                onClick={handleAddNew}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+              >
+                <Plus size={20} />
+                <span>Yeni Personel</span>
+              </button>
+            )}
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
@@ -990,20 +1009,24 @@ export const Personel: React.FC = () => {
                       >
                         <Package size={18} />
                       </button>
-                      <button 
-                        onClick={(e) => openEditModal(p, e)} 
-                        className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                        title="Düzenle"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button 
-                        onClick={(e) => handleDelete(p.id, e)} 
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Sil"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {canEdit && (
+                        <button 
+                          onClick={(e) => openEditModal(p, e)} 
+                          className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                          title="Düzenle"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button 
+                          onClick={(e) => handleDelete(p.id, e)} 
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Sil"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

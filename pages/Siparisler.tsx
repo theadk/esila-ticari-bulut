@@ -4,6 +4,7 @@ import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X,
 import { QRCodeSVG } from 'qrcode.react';
 import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
+import { hasPermission } from '../lib/permissions';
 import { api } from '../lib/api';
 import { copyToClipboard } from '../lib/utils';
 import { Pagination } from '../components/Pagination';
@@ -11,6 +12,12 @@ import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 export const Siparisler: React.FC = () => {
   const store = useAppStore();
+  const currentUser = store.users.find((u: any) => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'siparisler', 'view');
+  const canCreate = hasPermission(currentUser, 'siparisler', 'create');
+  const canEdit = hasPermission(currentUser, 'siparisler', 'edit');
+  const canDelete = hasPermission(currentUser, 'siparisler', 'delete');
+
   const orders = store.orders;
   const setOrders = store.setOrders;
   const customers = store.customers;
@@ -20,7 +27,10 @@ export const Siparisler: React.FC = () => {
   const cashTransactions = store.cashTransactions;
   const setCashTransactions = store.setCashTransactions;
 
-  const products = store.products;
+  const rawProducts = store.products;
+  const products = currentUser?.assignedWarehouse 
+    ? rawProducts.filter(p => p.warehouseStocks?.some(ws => ws.warehouseId === currentUser.assignedWarehouse) || p.warehouse === currentUser.assignedWarehouse)
+    : rawProducts;
   const setProducts = store.setProducts;
   
   // Modal States
@@ -221,7 +231,7 @@ export const Siparisler: React.FC = () => {
     });
 
     // Reduce Stock
-    let newProducts = [...products];
+    let newProducts = [...rawProducts];
     cartItems.forEach(item => {
       const idx = newProducts.findIndex(p => String(p.id) === String(item.productId));
       if (idx !== -1) {
@@ -310,7 +320,7 @@ export const Siparisler: React.FC = () => {
 
   const handleStatusChange = (status: OrderStatus, targetOrder: Order) => {
     if (status === OrderStatus.COMPLETED && targetOrder.status === OrderStatus.PENDING) {
-       let newProducts = [...products];
+       let newProducts = [...rawProducts];
        let stockErrors: string[] = [];
        (targetOrder.items || []).forEach(item => {
           const product = newProducts.find(p => String(p.id) === String(item.productId));
@@ -376,7 +386,7 @@ export const Siparisler: React.FC = () => {
       
       // Restore stock only if it was completed and stock was actually deducted
       if (targetOrder.status === OrderStatus.COMPLETED || targetOrder.status === OrderStatus.SHIPPED) {
-        let newProducts = [...products];
+        let newProducts = [...rawProducts];
         (targetOrder.items || []).forEach(item => {
           const idx = newProducts.findIndex(p => String(p.id) === String(item.productId));
           if (idx !== -1) {
@@ -468,18 +478,30 @@ export const Siparisler: React.FC = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedOrders = itemsPerPage === -1 ? filteredOrders : filteredOrders.slice(startIndex, startIndex + itemsPerPage);
 
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+        <ShoppingCart size={48} className="mb-4 opacity-50" />
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Siparişler modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="space-y-6 no-print">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-800">Siparişler</h2>
-          <button 
-            onClick={handleOpenCreateModal}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-          >
-            <Plus size={18} />
-            <span>Yeni Sipariş</span>
-          </button>
+          {canCreate && (
+            <button 
+              onClick={handleOpenCreateModal}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <Plus size={18} />
+              <span>Yeni Sipariş</span>
+            </button>
+          )}
         </div>
 
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 items-end">

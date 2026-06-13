@@ -5,6 +5,8 @@ import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
 import { Camera, CheckCircle, AlertTriangle, X, Play, Square, FileText, Search, Plus, Minus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+import { hasPermission } from '../lib/permissions';
+
 interface CountedProduct {
   productId: string;
   code: string;
@@ -15,7 +17,11 @@ interface CountedProduct {
 }
 
 export const StokSayim: React.FC = () => {
-  const { products } = useAppStore();
+  const store = useAppStore();
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'stoksayim', 'view');
+  
+  const { products } = store;
   const [isScanning, setIsScanning] = useState(false);
   const [countedItems, setCountedItems] = useState<CountedProduct[]>([]);
   const [manualBarcode, setManualBarcode] = useState('');
@@ -120,6 +126,16 @@ export const StokSayim: React.FC = () => {
     item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (item.barcode && item.barcode.includes(searchQuery))
   );
+
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-gray-500">
+        <FileText size={48} className="mb-4 opacity-50" />
+        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
+        <p>Stok Sayım modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
