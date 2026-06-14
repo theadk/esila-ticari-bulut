@@ -49,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '' },
         body: JSON.stringify({
-          to: 'bilgi@e-esila.com',
+          to: 'ahdurko@gmail.com',
           subject: `Destek Talebi: ${supportSubject}`,
           html: html,
         })
@@ -62,12 +62,7 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
         setSupportSubject('');
         setSupportMessage('');
       } else {
-        const errorMsg = data.error || 'Bilinmeyen hata';
-        if (errorMsg.includes('550 No Such User Here')) {
-           toast.error('Destek talebi iletilemedi: bilgi@e-esila.com mail adresi sunucuda bulunamadı veya henüz aktif değil. Lütfen mail adresinizi kontrol edin.');
-        } else {
-           toast.error('Destek talebi iletilemedi: ' + errorMsg);
-        }
+        toast.error('Destek talebi iletilemedi: ' + (data.error || 'Bilinmeyen hata'));
       }
     } catch (error: any) {
       toast.error('Bağlantı hatası: ' + error.message);
