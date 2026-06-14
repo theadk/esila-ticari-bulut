@@ -1,26 +1,4 @@
 {
-  "users": [
-    {
-      "id": "u1",
-      "vkn": "1111111111",
-      "name": "Sistem Yöneticisi",
-      "username": "admin",
-      "email": "admin@esila.com",
-      "passwordHash": "admin123",
-      "role": "Admin",
-      "status": "Aktif"
-    },
-    {
-      "id": "admin-9999999999",
-      "vkn": "9999999999",
-      "name": "Test Tenant Admin",
-      "username": "9999999999",
-      "email": "ahdurko@gmail.com",
-      "passwordHash": "9!eRjCD=8E@%",
-      "role": "Admin",
-      "status": "Aktif"
-    }
-  ],
   "tenants": [
     {
       "vkn": "1111111111",
@@ -45,6 +23,28 @@
       "emailLimit": 0,
       "smsCount": 0,
       "emailCount": 0
+    }
+  ],
+  "users": [
+    {
+      "id": "u1",
+      "vkn": "1111111111",
+      "name": "Sistem Yöneticisi",
+      "username": "admin",
+      "email": "admin@esila.com",
+      "passwordHash": "admin123",
+      "role": "Admin",
+      "status": "Aktif"
+    },
+    {
+      "id": "admin-9999999999",
+      "vkn": "9999999999",
+      "name": "Test Tenant Admin",
+      "username": "9999999999",
+      "email": "ahdurko@gmail.com",
+      "passwordHash": "9!eRjCD=8E@%",
+      "role": "Admin",
+      "status": "Aktif"
     }
   ],
   "settings": [
@@ -101,6 +101,8 @@
     }
   ],
   "products": [],
+  "warehouses": [],
+  "stock_transfers": [],
   "customers": [
     {
       "id": "CUS-1781266914276",
@@ -114,13 +116,14 @@
       "vkn": "1111111111"
     }
   ],
-  "warehouses": [],
   "customer_transactions": [],
   "cash_transactions": [],
   "personnel": [],
-  "job_applications": [],
+  "personnel_records": [],
   "orders": [],
   "proposals": [],
+  "reconciliations": [],
+  "service_tickets": [],
   "e_invoices": [
     {
       "id": "BDE2026000000502",
@@ -161,6 +164,7 @@
       "vkn": "1111111111"
     }
   ],
-  "service_tickets": [],
-  "reminder_notes": []
+  "email_logs": [],
+  "reminder_notes": [],
+  "job_applications": []
 }

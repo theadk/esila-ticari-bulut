@@ -2826,6 +2826,77 @@ async function startServer() {
   }
 
   // Vite middleware setup
+  app.get("/api/tenant-backups", (req, res) => {
+    try {
+      const vkn = req.headers["x-tenant-id"] as string;
+      if (!vkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
+
+      const tenantDir = path.join(process.cwd(), 'backups', vkn);
+      if (!fs.existsSync(tenantDir)) {
+        return res.json({ success: true, backups: [] });
+      }
+
+      const files = fs.readdirSync(tenantDir).filter((f: string) => f.startsWith("backup_") && f.endsWith(".json"));
+      files.sort((a: string, b: string) => b.localeCompare(a));
+      res.json({ success: true, backups: files });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ success: false, error: "Hata oluştu: " + e.message });
+    }
+  });
+
+  app.post("/api/restore-tenant-backup", async (req, res) => {
+    try {
+      const vkn = req.headers["x-tenant-id"] as string;
+      if (!vkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
+      
+      const { filename } = req.body;
+      if (!filename || !filename.startsWith("backup_") || !filename.endsWith(".json")) {
+        return res.status(400).json({ success: false, error: "Geçersiz dosya adı." });
+      }
+
+      const backupFile = path.join(process.cwd(), 'backups', vkn, filename);
+      if (!fs.existsSync(backupFile)) {
+        return res.status(404).json({ success: false, error: "Yedek dosyası bulunamadı." });
+      }
+
+      const data = fs.readFileSync(backupFile, "utf-8");
+      let backupJSON = {};
+      try {
+        backupJSON = JSON.parse(data);
+      } catch (err) {
+        return res.status(500).json({ success: false, error: "Yedek dosyası bozuk (JSON Hatası)." });
+      }
+
+      // We only support fallbackDb restore dynamically since the MySQL approach would require mapping
+      // To properly restore for fallbackDb, we need to load current dbData, replace the tenant's rows, and save
+      const DB_FILE = path.join(process.cwd(), 'local_db.json');
+      if (fs.existsSync(DB_FILE)) {
+          const dbDataText = fs.readFileSync(DB_FILE, 'utf-8');
+          const dbData = JSON.parse(dbDataText);
+          
+          Object.keys(backupJSON).forEach((table) => {
+             if (dbData[table]) {
+                 // Remove old rows for this tenant
+                 dbData[table] = dbData[table].filter((row: any) => row.vkn !== vkn);
+                 // Add the rows from backup
+                 const restoredRows = (backupJSON as any)[table] || [];
+                 dbData[table] = [...dbData[table], ...restoredRows];
+             }
+          });
+
+          fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2), "utf-8");
+          reloadFallbackDb();
+          res.json({ success: true, message: "Bağlı hesaba ait yedek başarıyla geri yüklendi." });
+      } else {
+          res.status(500).json({ success: false, error: "Sistem veritabanı dosyası bulunamadı." });
+      }
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ success: false, error: "Geri yükleme sırasında hata oluştu: " + e.message });
+    }
+  });
+
   app.post("/api/restore-nightly-backup", async (req, res) => {
     try {
       const fs = await import('fs');

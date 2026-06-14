@@ -13,6 +13,8 @@ export const Ayarlar: React.FC = () => {
   const [settings, setSettings] = useState<Settings>(store.settings);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
+  const [serverBackups, setServerBackups] = useState<string[]>([]);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   useEffect(() => {
     fetch('/api/tenant-info', {
@@ -20,6 +22,16 @@ export const Ayarlar: React.FC = () => {
         'x-tenant-id': localStorage.getItem('esila_tenant_id') || ''
       }
     }).then(res => res.json()).then(data => setTenantInfo(data)).catch();
+
+    fetch('/api/tenant-backups', {
+      headers: {
+        'x-tenant-id': localStorage.getItem('esila_tenant_id') || ''
+      }
+    }).then(res => res.json()).then(data => {
+      if (data.success) {
+        setServerBackups(data.backups);
+      }
+    }).catch();
   }, []);
 
   const handleChange = (key: keyof Settings, value: string | number) => {
@@ -52,6 +64,35 @@ export const Ayarlar: React.FC = () => {
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
     toast.success('Yedek başarıyla indirildi.');
+  };
+
+  const handleRestoreServerBackup = async (filename: string) => {
+    if (!window.confirm(`DİKKAT: "${filename}" dosyasını geri yüklüyorsunuz. Bu işlem mevcut tüm firma verilerinizi silecek ve seçtiğiniz yedeği yükleyecektir. Emin misiniz?`)) {
+      return;
+    }
+
+    setIsRestoring(true);
+    try {
+      const res = await fetch('/api/restore-tenant-backup', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-tenant-id': localStorage.getItem('esila_tenant_id') || ''
+        },
+        body: JSON.stringify({ filename })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(data.message || 'Yedek başarıyla geri yüklendi.');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        toast.error(data.error || 'Geri yükleme başarısız oldu.');
+      }
+    } catch (e: any) {
+      toast.error('Hata: ' + e.message);
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   const handleImportBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -932,7 +973,7 @@ export const Ayarlar: React.FC = () => {
               <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Veri Yedekleme ve Kurtarma</h3>
               <p className="text-sm text-gray-600 mb-6">Uygulama çökmelerinde veya veri kayıplarında kullanılmak üzere sisteminizin yedeğini alabilir veya mevcut yedeğinizi geri yükleyebilirsiniz.</p>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">
                 <div className="border rounded-xl p-6 bg-blue-50/50">
                   <div className="flex items-center gap-3 mb-4 text-blue-800">
                     <Database size={24} />
@@ -951,7 +992,7 @@ export const Ayarlar: React.FC = () => {
                 <div className="border rounded-xl p-6 bg-rose-50/50">
                   <div className="flex items-center gap-3 mb-4 text-rose-800">
                     <Upload size={24} />
-                    <h4 className="font-semibold text-lg">Veri Kurtar (Yedek Yükle)</h4>
+                    <h4 className="font-semibold text-lg">Manuel Veri Kurtar</h4>
                   </div>
                   <p className="text-sm text-gray-600 mb-6">Daha önce indirdiğiniz yedek dosyasını yükleyerek sistemi o anki duruma geri döndürebilirsiniz. <strong className="text-red-600">Bu işlem geri alınamaz!</strong></p>
                   
@@ -969,6 +1010,33 @@ export const Ayarlar: React.FC = () => {
                     <Upload size={18} />
                     <span>Yedekten Geri Yükle</span>
                   </label>
+                </div>
+
+                <div className="border rounded-xl p-6 bg-amber-50/50">
+                  <div className="flex items-center gap-3 mb-4 text-amber-800">
+                    <Clock size={24} />
+                    <h4 className="font-semibold text-lg">Sunucu Yedekleri</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-6">Sistem tarafından otomatik alınan VKN tabanlı yedekleri listeleyin ve tek tıkla geri dönün. <strong className="text-red-600">Bu işlem geri alınamaz!</strong></p>
+                  
+                  {serverBackups.length === 0 ? (
+                    <div className="text-sm text-gray-500 italic p-3 bg-white/50 rounded-lg text-center">Sunucuda henüz otomatik yedek bulunmuyor.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {serverBackups.map((bkp, i) => (
+                        <div key={i} className="flex items-center justify-between bg-white px-4 py-3 rounded-lg shadow-sm border border-amber-100">
+                          <span className="text-sm font-medium text-gray-700">{bkp.replace('.json', '').replace('backup_', '')}</span>
+                          <button 
+                            disabled={isRestoring}
+                            onClick={() => handleRestoreServerBackup(bkp)}
+                            className="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1.5 rounded-md font-medium transition-colors disabled:opacity-50"
+                          >
+                            Yükle
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
