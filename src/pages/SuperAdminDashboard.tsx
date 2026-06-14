@@ -26,7 +26,8 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   const [activationLogs, setActivationLogs] = useState<any[]>([]);
   const [sessionLogs, setSessionLogs] = useState<any[]>([]);
   const [pendingTimeoutTenants, setPendingTimeoutTenants] = useState<Tenant[]>([]);
-  const [activeTab, setActiveTab] = useState<'tenants' | 'logs' | 'activationLogs' | 'pendingTimeout' | 'sessionLogs'>('tenants');
+  const [inactiveTenants, setInactiveTenants] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'tenants' | 'logs' | 'activationLogs' | 'pendingTimeout' | 'inactiveTenants' | 'sessionLogs'>('tenants');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -112,12 +113,20 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     } catch (e) {}
   };
 
+  const fetchInactiveTenants = async () => {
+    try {
+      const res = await fetch('/api/tenants/inactive');
+      if (res.ok) setInactiveTenants(await res.json());
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetchTenants();
     fetchEmailLogs();
     fetchActivationLogs();
     fetchSessionLogs();
     fetchPendingTimeout();
+    fetchInactiveTenants();
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -278,6 +287,12 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
             className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${activeTab === 'pendingTimeout' ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             30 Gün Gecikenler
+          </button>
+          <button
+            onClick={() => setActiveTab('inactiveTenants')}
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${activeTab === 'inactiveTenants' ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            İnaktif Hesaplar (30 Gün)
           </button>
           <button
             onClick={() => setActiveTab('sessionLogs')}
@@ -548,6 +563,35 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                   </tr>
                 ))}
                 {pendingTimeoutTenants.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-500">Kayıt üzerinden 30 günden fazla zaman geçmiş bekleyen firma bulunmamaktadır.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'inactiveTenants' && (
+          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
+            <h2 className="text-xl font-bold text-gray-800 p-4 border-b flex items-center gap-2">
+               <span className="text-orange-500">30 Gündür Giriş Yapmayan Aktif Hesaplar</span>
+            </h2>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Firma Adı</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">VKN</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">E-Posta</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Son Giriş Tarihi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inactiveTenants.map((t) => (
+                  <tr key={t.vkn} className="border-b hover:bg-gray-50/50">
+                    <td className="p-4 text-sm text-gray-800 font-medium">{t.name}</td>
+                    <td className="p-4 text-sm text-gray-600 font-mono">{t.vkn}</td>
+                    <td className="p-4 text-sm text-gray-600">{t.email}</td>
+                    <td className="p-4 text-sm text-gray-600 truncate">{t.lastLoginDate ? new Date(t.lastLoginDate).toLocaleString('tr-TR') : 'Hiç Giriş Yapılmadı'}</td>
+                  </tr>
+                ))}
+                {inactiveTenants.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-gray-500">30 gündür giriş yapmayan hesap bulunmamaktadır.</td></tr>}
               </tbody>
             </table>
           </div>

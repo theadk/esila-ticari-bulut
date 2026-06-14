@@ -2096,6 +2096,54 @@ async function startServer() {
     }
   });
 
+  app.get("/api/tenants/inactive", async (req, res) => {
+    try {
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const tenants = getFallbackTable("tenants");
+        const sessionLogs = getFallbackTable("session_logs");
+        
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const activeTenants = tenants.filter(t => t.status === 'Aktif');
+        const inactive = activeTenants.filter(t => {
+           const logForTenant = sessionLogs.filter(s => s.vkn === t.vkn && s.action === 'Giriş');
+           if (logForTenant.length === 0) return true;
+           const sortedLogs = logForTenant.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+           const lastLogin = new Date(sortedLogs[0].date);
+           return lastLogin < thirtyDaysAgo;
+        });
+
+        // Add lastLoginDate property
+        const result = inactive.map(t => {
+           const logForTenant = sessionLogs.filter(s => s.vkn === t.vkn && s.action === 'Giriş');
+           let lastLoginDate = null;
+           if (logForTenant.length > 0) {
+              const sortedLogs = logForTenant.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              lastLoginDate = sortedLogs[0].date;
+           }
+           return { ...t, lastLoginDate };
+        });
+
+        return res.json(result);
+      }
+
+      const pool = getPool();
+      const query = `
+        SELECT t.vkn, t.name, t.email, MAX(s.date) as lastLoginDate
+        FROM tenants t
+        LEFT JOIN session_logs s ON t.vkn = s.vkn AND s.action = 'Giriş'
+        WHERE t.status = 'Aktif'
+        GROUP BY t.vkn, t.name, t.email
+        HAVING lastLoginDate IS NULL OR lastLoginDate < DATE_SUB(NOW(), INTERVAL 30 DAY)
+      `;
+      const [rows] = await pool.query(query);
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
   app.get("/api/tenants/pending-timeout", async (req, res) => {
     try {
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {

@@ -51,6 +51,52 @@ const App: React.FC = () => {
   
   const [isSuperAdminAuthenticated, setIsSuperAdminAuthenticated] = useState(false);
 
+  const handleLogout = async () => {
+    try {
+       await fetch('/api/logout', { 
+         method: 'POST', 
+         headers: {'Content-Type': 'application/json'},
+         body: JSON.stringify({
+           vkn: localStorage.getItem('esila_tenant_id'),
+           userId: localStorage.getItem('esila_user_id')
+         }) 
+       }); 
+    } catch(e) {}
+    setIsAuthenticated(false); 
+    localStorage.removeItem('esila_tenant_id'); 
+    localStorage.removeItem('esila_user_id'); 
+    window.location.reload(); 
+  };
+
+  useEffect(() => {
+    let timeoutId: any;
+    
+    const resetTimeout = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (isAuthenticated) {
+          handleLogout();
+        }
+      }, 30 * 60 * 1000); // 30 minutes
+    };
+
+    if (isAuthenticated) {
+      resetTimeout();
+      window.addEventListener('mousemove', resetTimeout);
+      window.addEventListener('keypress', resetTimeout);
+      window.addEventListener('click', resetTimeout);
+      window.addEventListener('scroll', resetTimeout);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('mousemove', resetTimeout);
+      window.removeEventListener('keypress', resetTimeout);
+      window.removeEventListener('click', resetTimeout);
+      window.removeEventListener('scroll', resetTimeout);
+    };
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (isAuthenticated) {
       initializeStore();
@@ -130,22 +176,7 @@ const App: React.FC = () => {
         {/* Header - Hidden on print */}
         <Header 
           setActivePage={setActivePage} 
-          onLogout={async () => { 
-            try {
-               await fetch('/api/logout', { 
-                 method: 'POST', 
-                 headers: {'Content-Type': 'application/json'},
-                 body: JSON.stringify({
-                   vkn: localStorage.getItem('esila_tenant_id'),
-                   userId: localStorage.getItem('esila_user_id')
-                 }) 
-               }); 
-            } catch(e) {}
-            setIsAuthenticated(false); 
-            localStorage.removeItem('esila_tenant_id'); 
-            localStorage.removeItem('esila_user_id'); 
-            window.location.reload(); 
-          }} 
+          onLogout={handleLogout} 
           toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
         />
 
