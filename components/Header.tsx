@@ -62,7 +62,12 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
         setSupportSubject('');
         setSupportMessage('');
       } else {
-        toast.error('Destek talebi iletilemedi: ' + (data.error || 'Bilinmeyen hata'));
+        const errorMsg = data.error || 'Bilinmeyen hata';
+        if (errorMsg.includes('550 No Such User Here')) {
+           toast.error('Destek talebi iletilemedi: bilgi@e-esila.com mail adresi sunucuda bulunamadı veya henüz aktif değil. Lütfen mail adresinizi kontrol edin.');
+        } else {
+           toast.error('Destek talebi iletilemedi: ' + errorMsg);
+        }
       }
     } catch (error: any) {
       toast.error('Bağlantı hatası: ' + error.message);
