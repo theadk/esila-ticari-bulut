@@ -1914,6 +1914,8 @@ async function startServer() {
 
           const termsPdf = await generateCustomPdfBuffer("KULLANIM KOŞULLARI VE HİZMET SÖZLEŞMESİ", kosullarText);
           const privacyPdf = await generateCustomPdfBuffer("GİZLİLİK POLİTİKASI", gizlilikText);
+          
+          console.log("[EMAIL] Attaching PDFs! Terms PDF size:", termsPdf.length, "Privacy PDF size:", privacyPdf.length);
 
           await sendMail(
             tenantEmail,

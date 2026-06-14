@@ -51,7 +51,7 @@ export const sendMail = async (to: string, subject: string, html: string, wrappe
       text: plainText,
       attachments,
     });
-    console.log("Message sent: %s", info.messageId);
+    console.log("Message sent: %s, attachments:", info.messageId, attachments ? attachments.map(a => a.filename) : "None");
 
     // Log success
     try {

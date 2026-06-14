@@ -9,6 +9,16 @@
       "passwordHash": "admin123",
       "role": "Admin",
       "status": "Aktif"
+    },
+    {
+      "id": "admin-9999999999",
+      "vkn": "9999999999",
+      "name": "Test Tenant Admin",
+      "username": "9999999999",
+      "email": "ahdurko@gmail.com",
+      "passwordHash": "9!eRjCD=8E@%",
+      "role": "Admin",
+      "status": "Aktif"
     }
   ],
   "tenants": [
@@ -22,6 +32,19 @@
       "status": "Aktif",
       "package": "Sınırsız",
       "expirationDate": null
+    },
+    {
+      "vkn": "9999999999",
+      "name": "Test Tenant",
+      "email": "ahdurko@gmail.com",
+      "package": "Aylık",
+      "modules": [],
+      "status": "Aktif",
+      "expirationDate": "2026-07-14T16:47:23.572Z",
+      "smsLimit": 0,
+      "emailLimit": 0,
+      "smsCount": 0,
+      "emailCount": 0
     }
   ],
   "settings": [
@@ -30,6 +53,12 @@
       "id": 1,
       "companyName": "Esila Master",
       "email": "admin@firma.com"
+    },
+    {
+      "vkn": "9999999999",
+      "id": 1,
+      "companyName": "Test Tenant",
+      "email": "ahdurko@gmail.com"
     }
   ],
   "categories": [
