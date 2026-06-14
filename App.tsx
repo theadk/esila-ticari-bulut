@@ -26,6 +26,7 @@ import { MutabakatOnayView } from './pages/MutabakatOnayView';
 import { FileText } from 'lucide-react';
 import { initializeStore } from './lib/store';
 import { InstallPrompt } from './src/components/InstallPrompt';
+import { VoiceNavigator } from './components/VoiceNavigator';
 
 const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
   <div className="flex flex-col items-center justify-center h-full text-gray-400">
@@ -193,6 +194,7 @@ const App: React.FC = () => {
           body { overflow: visible !important; }
         }
       `}</style>
+      <VoiceNavigator setActivePage={setActivePage} />
       <InstallPrompt />
     </div>
   );
