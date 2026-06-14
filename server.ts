@@ -79,12 +79,10 @@ async function startServer() {
       // invoice object contains: documentUUID, xmlContent, destinationUrn, documentId, documentDate
 
       if (!invoice || (!invoice.xmlContent && !invoice.documentUUID)) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: "Gönderilecek fatura verisi hatalı.",
-          });
+        return res.status(400).json({
+          success: false,
+          error: "Gönderilecek fatura verisi hatalı.",
+        });
       }
 
       // 1. Generate InputDocumentList xml string
@@ -128,12 +126,10 @@ async function startServer() {
         );
       } catch (ferr) {
         console.error("KolayEntegrasyon Fetch Hatası:", ferr);
-        return res
-          .status(500)
-          .json({
-            success: false,
-            error: "Servise bağlanılamadı. İnternet bağlantınızı kontrol edin.",
-          });
+        return res.status(500).json({
+          success: false,
+          error: "Servise bağlanılamadı. İnternet bağlantınızı kontrol edin.",
+        });
       }
 
       const textResponse = await fetchResponse.text();
@@ -181,12 +177,10 @@ async function startServer() {
       // invoice object contains: documentUUID, xmlContent, destinationUrn, documentId, documentDate
 
       if (!invoice || (!invoice.xmlContent && !invoice.documentUUID)) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: "Gönderilecek fatura verisi hatalı.",
-          });
+        return res.status(400).json({
+          success: false,
+          error: "Gönderilecek fatura verisi hatalı.",
+        });
       }
 
       // 1. Generate InputDocumentList xml string
@@ -231,12 +225,10 @@ async function startServer() {
         );
       } catch (ferr) {
         console.error("KolayEntegrasyon Fetch Hatası (E-Fatura):", ferr);
-        return res
-          .status(500)
-          .json({
-            success: false,
-            error: "Servise bağlanılamadı. İnternet bağlantınızı kontrol edin.",
-          });
+        return res.status(500).json({
+          success: false,
+          error: "Servise bağlanılamadı. İnternet bağlantınızı kontrol edin.",
+        });
       }
 
       const textResponse = await fetchResponse.text();
@@ -322,13 +314,11 @@ async function startServer() {
           const limit = tenantRows[0].emailLimit || 0;
           const count = tenantRows[0].emailCount || 0;
           if (limit > 0 && count >= limit) {
-            return res
-              .status(403)
-              .json({
-                success: false,
-                error:
-                  "E-Posta gönderim limitine ulaştınız. Lütfen paketinizi yükseltin.",
-              });
+            return res.status(403).json({
+              success: false,
+              error:
+                "E-Posta gönderim limitine ulaştınız. Lütfen paketinizi yükseltin.",
+            });
           }
           await pool.query(
             "UPDATE tenants SET emailCount = emailCount + 1 WHERE vkn = ?",
@@ -342,13 +332,11 @@ async function startServer() {
           const limit = t.emailLimit || 0;
           const count = t.emailCount || 0;
           if (limit > 0 && count >= limit) {
-            return res
-              .status(403)
-              .json({
-                success: false,
-                error:
-                  "E-Posta gönderim limitine ulaştınız. Lütfen paketinizi yükseltin.",
-              });
+            return res.status(403).json({
+              success: false,
+              error:
+                "E-Posta gönderim limitine ulaştınız. Lütfen paketinizi yükseltin.",
+            });
           }
           updateFallbackRow("tenants", vkn, vkn, { emailCount: count + 1 });
         }
@@ -394,13 +382,11 @@ async function startServer() {
           const limit = tenantRows[0].smsLimit || 0;
           const count = tenantRows[0].smsCount || 0;
           if (limit > 0 && count >= limit) {
-            return res
-              .status(403)
-              .json({
-                success: false,
-                error:
-                  "SMS gönderim limitine ulaştınız. Lütfen paketinizi yükseltin.",
-              });
+            return res.status(403).json({
+              success: false,
+              error:
+                "SMS gönderim limitine ulaştınız. Lütfen paketinizi yükseltin.",
+            });
           }
           await pool.query(
             "UPDATE tenants SET smsCount = smsCount + 1 WHERE vkn = ?",
@@ -414,13 +400,11 @@ async function startServer() {
           const limit = t.smsLimit || 0;
           const count = t.smsCount || 0;
           if (limit > 0 && count >= limit) {
-            return res
-              .status(403)
-              .json({
-                success: false,
-                error:
-                  "SMS gönderim limitine ulaştınız. Lütfen paketinizi yükseltin.",
-              });
+            return res.status(403).json({
+              success: false,
+              error:
+                "SMS gönderim limitine ulaştınız. Lütfen paketinizi yükseltin.",
+            });
           }
           updateFallbackRow("tenants", vkn, vkn, { smsCount: count + 1 });
         }
@@ -468,11 +452,9 @@ async function startServer() {
             .json({ error: "Bu e-posta adresi sistemde kayıtlı değil." });
         }
         if (user.status === "Pasif") {
-          return res
-            .status(403)
-            .json({
-              error: "Hesabınız pasif durumdadır. Yöneticinize başvurun.",
-            });
+          return res.status(403).json({
+            error: "Hesabınız pasif durumdadır. Yöneticinize başvurun.",
+          });
         }
         return res.json({ success: true, name: user.name });
       }
@@ -489,11 +471,9 @@ async function startServer() {
 
       const user = rows[0];
       if (user.status === "Pasif") {
-        return res
-          .status(403)
-          .json({
-            error: "Hesabınız pasif durumdadır. Yöneticinize başvurun.",
-          });
+        return res.status(403).json({
+          error: "Hesabınız pasif durumdadır. Yöneticinize başvurun.",
+        });
       }
       return res.json({ success: true, name: user.name });
     } catch (e) {
@@ -512,11 +492,9 @@ async function startServer() {
 
       if (userAttempt.lockUntil && userAttempt.lockUntil > now) {
         const remaining = Math.ceil((userAttempt.lockUntil - now) / 60000);
-        return res
-          .status(403)
-          .json({
-            error: `Çok fazla hatalı giriş yaptınız. Hesabınız ${remaining} dakika süreyle kilitlenmiştir.`,
-          });
+        return res.status(403).json({
+          error: `Çok fazla hatalı giriş yaptınız. Hesabınız ${remaining} dakika süreyle kilitlenmiştir.`,
+        });
       }
 
       // If lock has expired, reset it
@@ -530,12 +508,10 @@ async function startServer() {
         if (userAttempt.attempts >= 5) {
           userAttempt.lockUntil = now + 5 * 60 * 1000;
           loginAttempts.set(username, userAttempt);
-          return res
-            .status(403)
-            .json({
-              error:
-                "Çok fazla hatalı giriş yaptınız. Hesabınız 5 dakika süreyle kilitlenmiştir.",
-            });
+          return res.status(403).json({
+            error:
+              "Çok fazla hatalı giriş yaptınız. Hesabınız 5 dakika süreyle kilitlenmiştir.",
+          });
         } else {
           loginAttempts.set(username, userAttempt);
           return res
@@ -1729,6 +1705,62 @@ async function startServer() {
     try {
       const { vkn } = req.params;
 
+      const generateCustomPdfBuffer = async (title: string, contentArray: { type: string, text: string }[]): Promise<Buffer> => {
+        const PDFDocument = (await import('pdfkit')).default;
+        
+        let fontBuffer: Buffer | undefined;
+        let boldFontBuffer: Buffer | undefined;
+        try {
+          const fontRes = await fetch("https://github.com/google/fonts/raw/main/ofl/roboto/Roboto-Regular.ttf");
+          fontBuffer = Buffer.from(await fontRes.arrayBuffer());
+          
+          const boldFontRes = await fetch("https://github.com/google/fonts/raw/main/ofl/roboto/Roboto-Bold.ttf");
+          boldFontBuffer = Buffer.from(await boldFontRes.arrayBuffer());
+        } catch (e) {
+             console.error("Font fetch error", e);
+        }
+
+        return new Promise((resolve, reject) => {
+          const doc = new PDFDocument({ margin: 50 });
+          const chunks: any[] = [];
+          
+          doc.on('data', (chunk) => chunks.push(chunk));
+          doc.on('end', () => resolve(Buffer.concat(chunks)));
+          
+          if (fontBuffer) doc.registerFont('Roboto', fontBuffer);
+          if (boldFontBuffer) doc.registerFont('Roboto-Bold', boldFontBuffer);
+          
+          const regularFont = fontBuffer ? 'Roboto' : 'Helvetica';
+          const boldFont = boldFontBuffer ? 'Roboto-Bold' : 'Helvetica-Bold';
+          
+          // Header
+          doc.font(boldFont).fontSize(14).text("Esila Yazılım Teknolojileri Limited Şirketi", { align: 'center' });
+          doc.font(regularFont).fontSize(10).text("www.esilaticari.com", { align: 'center' });
+          doc.moveDown(2);
+          
+          doc.font(boldFont).fontSize(18).text(title, { align: 'center' });
+          doc.moveDown(2);
+          
+          contentArray.forEach(item => {
+             if (item.type === 'h1') {
+                 doc.font(boldFont).fontSize(14).text(item.text);
+                 doc.moveDown(0.5);
+             } else if (item.type === 'h2') {
+                 doc.font(boldFont).fontSize(12).text(item.text, { align: 'center' });
+                 doc.moveDown(0.5);
+             } else if (item.type === 'p') {
+                 doc.font(regularFont).fontSize(11).text(item.text, { align: item.text.startsWith('Son Günce') || item.text.startsWith('Esila Yazılım |') ? 'right' : 'left' });
+                 doc.moveDown(0.5);
+             } else if (item.type === 'li') {
+                 doc.font(regularFont).fontSize(11).text(`• ${item.text}`, { indent: 20 });
+                 doc.moveDown(0.2);
+             }
+          });
+          
+          doc.end();
+        });
+      };
+
       const sendActivationMail = async (
         tenantEmail: string,
         tenantName: string,
@@ -1755,6 +1787,137 @@ async function startServer() {
         }
 
         if (tenantEmail) {
+          const gizlilikText = [
+              {type: 'h2', text: 'Esila Ticari ERP Platformu – Veri Gizliliği Taahhütlerimiz'},
+              {type: 'p', text: 'Son Güncelleme: 14 Haziran 2026'},
+              {type: 'h1', text: '1. GİRİŞ'},
+              {type: 'p', text: 'Esila Yazılım olarak, kullanıcılarımızın gizliliğine saygı duymakta ve kişisel verilerinin korunmasını öncelikli bir görev olarak kabul etmekteyiz. Bu Gizlilik Politikası, www.esilaticari.com adresi ve Esila Ticari platformu üzerinden toplanan verilerin nasıl işlendiğini açıklamaktadır.'},
+              {type: 'h1', text: '2. TOPLANAN VERİLER'},
+              {type: 'h2', text: '2.1 Doğrudan Sağlanan Veriler'},
+              {type: 'li', text: 'Kayıt sırasında girilen ad, soyad, e-posta, telefon ve şirket bilgileri'},
+              {type: 'li', text: 'Abonelik ve fatura bilgileri'},
+              {type: 'li', text: 'Platformdaki işlem ve içerik verileri'},
+              {type: 'li', text: 'Destek talepleri ve iletişim içerikleri'},
+              {type: 'h2', text: '2.2 Otomatik Toplanan Veriler'},
+              {type: 'li', text: 'IP adresi ve konum bilgisi (şehir düzeyinde)'},
+              {type: 'li', text: 'Tarayıcı türü, işletim sistemi, cihaz bilgisi'},
+              {type: 'li', text: 'Kullanılan özellikler, sayfa görüntüleme geçmişi, oturum süresi'},
+              {type: 'li', text: 'Çerezler ve benzeri izleme teknolojileri aracılığıyla elde edilen veriler'},
+              {type: 'h2', text: '2.3 Üçüncü Taraf Kaynaklardan Alınan Veriler'},
+              {type: 'li', text: 'Entegrasyon sağlanan bankalar veya ödeme sistemlerinden alınan veriler'},
+              {type: 'li', text: 'GİB (Gelir İdaresi Başkanlığı) entegrasyonu kapsamındaki veriler'},
+              {type: 'h1', text: '3. VERİLERİN KULLANIM AMACI'},
+              {type: 'li', text: 'Yazılım hizmetinin sağlanması, bakımı ve iyileştirilmesi'},
+              {type: 'li', text: 'Kullanıcı kimlik doğrulaması ve hesap güvenliği'},
+              {type: 'li', text: 'Müşteri hizmetleri ve teknik destek'},
+              {type: 'li', text: 'Ödeme ve abonelik yönetimi'},
+              {type: 'li', text: 'Yasal yükümlülüklerin yerine getirilmesi'},
+              {type: 'li', text: 'Hizmet bildirimleri ve sistem güncellemeleri'},
+              {type: 'li', text: 'Kullanıcı deneyiminin kişiselleştirilmesi (rıza alındığı hallerde)'},
+              {type: 'li', text: 'Güvenlik izleme ve dolandırıcılık tespiti'},
+              {type: 'h1', text: '4. ÇEREZLER VE İZLEME TEKNOLOJİLERİ'},
+              {type: 'h2', text: '4.1 Zorunlu Çerezler'},
+              {type: 'p', text: 'Platformun çalışması için gerekli olan çerezlerdir. Bu çerezler devre dışı bırakılamaz.'},
+              {type: 'h2', text: '4.2 Analitik Çerezler'},
+              {type: 'p', text: 'Platformun nasıl kullanıldığını anlamamıza yardımcı olan anonim istatistik toplayan çerezlerdir. Kullanıcı tercihine göre devre dışı bırakılabilir.'},
+              {type: 'h2', text: '4.3 Fonksiyonel Çerezler'},
+              {type: 'p', text: 'Dil tercihi, oturum bilgileri gibi kullanıcı tercihlerini hatırlayan çerezlerdir. Çerez tercihlerinizi tarayıcı ayarlarınızdan veya platform ayarlar menüsünden yönetebilirsiniz.'},
+              {type: 'h1', text: '5. VERİ GÜVENLİĞİ'},
+              {type: 'p', text: 'Kişisel verilerinizi korumak için aşağıdaki teknik ve idari önlemleri uyguluyoruz:'},
+              {type: 'li', text: '256-bit SSL/TLS şifreleme ile veri iletimi'},
+              {type: 'li', text: 'Veritabanı şifreleme ve erişim kontrolleri'},
+              {type: 'li', text: 'Düzenli güvenlik testleri ve zafiyet taramaları'},
+              {type: 'li', text: 'Çalışanlar için gizlilik eğitimi ve erişim sınırlandırması'},
+              {type: 'li', text: 'Güvenlik ihlali müdahale planı'},
+              {type: 'li', text: 'Düzenli yedekleme ve felaket kurtarma prosedürleri'},
+              {type: 'h1', text: '6. ÜÇÜNCÜ TARAF HİZMETLER VE BAĞLANTILAR'},
+              {type: 'p', text: 'Platformumuz bazı üçüncü taraf hizmetlerle entegre çalışabilir. Bu hizmetlerin kendi gizlilik politikaları mevcuttur:'},
+              {type: 'li', text: 'Bulut altyapı sağlayıcıları (sunucu ve depolama hizmetleri)'},
+              {type: 'li', text: 'Ödeme altyapısı (güvenli ödeme işleme)'},
+              {type: 'li', text: 'E-fatura entegrasyon sağlayıcıları'},
+              {type: 'li', text: 'Analitik araçlar'},
+              {type: 'p', text: 'Bu üçüncü taraflara yalnızca hizmetin sağlanması için gerekli minimum düzeyde veri aktarılmaktadır.'},
+              {type: 'h1', text: '7. VERİ SAKLAMA VE SİLME'},
+              {type: 'p', text: 'Kişisel verileriniz, hizmet ilişkisinin sona ermesinin ardından yasal zorunluluklar çerçevesinde belirli süreler saklanır. Hesabınızı silmeniz durumunda:'},
+              {type: 'li', text: 'Aktif hizmet verileri 30 gün içinde silinir'},
+              {type: 'li', text: 'Yedek sistemlerden tam silme 90 güne kadar sürebilir'},
+              {type: 'li', text: 'Yasal zorunluluk gerektiren veriler ilgili mevzuat süreleri boyunca tutulur'},
+              {type: 'h1', text: '8. ÇOCUKLARIN GİZLİLİĞİ'},
+              {type: 'p', text: 'Esila Ticari platformu yalnızca ticari kullanıcılara yöneliktir. 18 yaşın altındaki kişilere hizmet sunulmamaktadır. 18 yaşın altındaki bir kişiye ait veri işlediğimizi fark ettiğimizde ilgili veriler derhal silinir.'},
+              {type: 'h1', text: '9. POLİTİKA DEĞİŞİKLİKLERİ'},
+              {type: 'p', text: 'Bu Gizlilik Politikası zaman zaman güncellenebilir. Önemli değişiklikler e-posta veya platform bildirimi aracılığıyla kullanıcılara duyurulur. Güncel politikaya her zaman web sitemizden ulaşabilirsiniz.'},
+              {type: 'h1', text: '10. İLETİŞİM'},
+              {type: 'p', text: 'Gizlilik konusundaki soru ve talepleriniz için:'},
+              {type: 'li', text: 'E-posta: bilgi@esilaticari.com'},
+              {type: 'li', text: 'Adres: Yenişehir Mh. Kardeşler Cd. Cumhuriyet Teknokent No:7/2 Ofis 201 Sivas, Türkiye'},
+              {type: 'p', text: 'Esila Yazılım | 14 Haziran 2026'}
+          ];
+
+          const kosullarText = [
+              {type: 'h2', text: 'Esila Ticari ERP Platformu'},
+              {type: 'p', text: 'Son Güncelleme: 14 Haziran 2026'},
+              {type: 'h1', text: '1. TARAFLAR VE KAPSAM'},
+              {type: 'p', text: 'Bu Kullanım Koşulları ve Hizmet Sözleşmesi ("Sözleşme"), Esila Yazılım ("Esila") ile platforma kaydolan veya hizmetleri kullanan bireysel ya da kurumsal kullanıcı ("Kullanıcı") arasında akdedilmektedir.'},
+              {type: 'p', text: 'Platformu kullanmaya başlamakla bu Sözleşme\'nin tüm hükümlerini okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan edersiniz.'},
+              {type: 'h1', text: '2. HİZMETLERİN TANIMI'},
+              {type: 'p', text: 'Esila Ticari, aşağıdaki hizmetleri içeren bulut tabanlı bir ERP platformudur:'},
+              {type: 'li', text: 'E-Fatura, E-Arşiv, E-İrsaliye düzenleme ve yönetimi'},
+              {type: 'li', text: 'Hızlı satış / POS işlemleri'},
+              {type: 'li', text: 'Cari hesap ve stok yönetimi'},
+              {type: 'li', text: 'Depo ve kasa takibi'},
+              {type: 'li', text: 'Personel yönetimi'},
+              {type: 'li', text: 'Sipariş ve teklif yönetimi'},
+              {type: 'li', text: 'Mutabakat ve arıza formu takibi'},
+              {type: 'li', text: 'Raporlama ve analiz araçları'},
+              {type: 'h1', text: '3. HESAP OLUŞTURMA VE GÜVENLİK'},
+              {type: 'p', text: '3.1 Platforma erişim için gerçek ve doğru bilgilerle kayıt yaptırmanız zorunludur.'},
+              {type: 'p', text: '3.2 Hesap güvenliğinden kullanıcı sorumludur. Şifrenizin gizliliğini korumak ve yetkisiz kullanımı derhal bildirmek sizin yükümlülüğünüzdür.'},
+              {type: 'p', text: '3.3 Hesabınızın yetkisiz kullanımından doğabilecek zararlardan Esila sorumlu tutulamaz.'},
+              {type: 'p', text: '3.4 Bir kurumsal hesap altında birden fazla kullanıcı tanımlanabilir; yönetici kullanıcı tüm alt kullanıcıların eylemlerinden sorumludur.'},
+              {type: 'h1', text: '4. KULLANIM KURALLARI'},
+              {type: 'p', text: 'Aşağıdaki eylemler kesinlikle yasaktır:'},
+              {type: 'li', text: 'Platformu yasa dışı amaçlarla kullanmak'},
+              {type: 'li', text: 'Üçüncü şahısların verilerine yetkisiz erişim sağlamaya çalışmak'},
+              {type: 'li', text: 'Platformun altyapısına zarar verebilecek kötü amaçlı yazılım yüklemek veya yaymak'},
+              {type: 'li', text: 'Platformu tersine mühendislik, kaynak kodu çıkarma veya izinsiz kopyalama amacıyla kullanmak'},
+              {type: 'li', text: 'Başka kullanıcıların hesaplarına erişmeye çalışmak'},
+              {type: 'li', text: 'Platformu spam, dolandırıcılık veya yanıltıcı içerik için kullanmak'},
+              {type: 'li', text: 'Esila\'nın önceden yazılı onayı olmaksızın API\'ye otomatik erişim sağlamak'},
+              {type: 'h1', text: '5. FİKRİ MÜLKİYET'},
+              {type: 'p', text: 'Platform, yazılım, logo, tasarım, içerik ve belgeler dahil tüm materyaller Esila\'ya aittir ve Türk Fikir ve Sanat Eserleri Kanunu ile uluslararası telif hukuku kapsamında korunmaktadır.'},
+              {type: 'p', text: 'Kullanıcıya tanınan lisans; kişisel ve ticari kullanım için, münhasır olmayan, devredilemez ve sınırlı bir kullanım hakkıdır.'},
+              {type: 'h1', text: '6. KULLANICININ VERİ SAHİPLİĞİ'},
+              {type: 'p', text: 'Kullanıcı, platforma yüklediği tüm verilerin münhasır sahibidir. Esila, bu verileri yalnızca hizmetin sağlanması amacıyla kullanır; üçüncü taraflarla paylaşmaz.'},
+              {type: 'p', text: 'Abonelik sona erdiğinde, kullanıcı verilerini dışa aktarma hakkına sahiptir. Veriler, hesap kapandıktan 30 gün sonra sistemden silinir.'},
+              {type: 'h1', text: '7. ÖDEME VE ABONELIK'},
+              {type: 'p', text: '7.1 Ücretlendirme modelleri: Aylık veya yıllık abonelik planları mevcuttur.'},
+              {type: 'p', text: '7.2 Ödeme zamanında yapılmadığı takdirde hizmet askıya alınabilir.'},
+              {type: 'p', text: '7.3 Yıllık planlarda, iptaller bir sonraki yenileme tarihinden önce yapılmalıdır; kalan süre için iade yapılmaz.'},
+              {type: 'p', text: '7.4 Esila, fiyatları önceden 30 gün bildirimde bulunarak değiştirme hakkını saklı tutar.'},
+              {type: 'h1', text: '8. HİZMET KESİNTİLERİ VE SORUMLULUK SINIRI'},
+              {type: 'p', text: '8.1 Esila, %99,5 hizmet erişilebilirliğini hedeflemekle birlikte planlı bakımlar ve teknik nedenlerle hizmet kesintileri yaşanabilir.'},
+              {type: 'p', text: '8.2 Esila\'nın sorumluluğu, herhangi bir takvim yılı içinde kullanıcının ödediği abonelik bedeliyle sınırlıdır.'},
+              {type: 'p', text: '8.3 Esila; dolaylı, özel, arızi, cezai veya sonuçsal zararlardan sorumlu tutulamaz.'},
+              {type: 'h1', text: '9. SÖZLEŞMENİN FESHİ'},
+              {type: 'p', text: 'Her iki taraf da Sözleşme\'yi 30 günlük yazılı bildirimle feshedebilir. Kullanım Koşulları\'na aykırı davranış hâlinde Esila, hesabı derhal askıya alma veya kapatma hakkına sahiptir.'},
+              {type: 'h1', text: '10. GİZLİLİK'},
+              {type: 'p', text: 'Kişisel verilerin işlenmesi, ayrı bir "Gizlilik Politikası" ve "KVKK Aydınlatma Metni" ile düzenlenmiştir. Bu belgeler Sözleşme\'nin ayrılmaz bir parçasını oluşturur.'},
+              {type: 'h1', text: '11. UYGULANACAK HUKUK VE YETKİLİ MAHKEME'},
+              {type: 'p', text: 'Bu Sözleşme, Türkiye Cumhuriyeti hukukuna tabi olup Türk hukukunun emredici hükümleri saklıdır.'},
+              {type: 'p', text: 'Uyuşmazlıkların çözümünde Sivas Mahkemeleri ve İcra Daireleri yetkilidir.'},
+              {type: 'h1', text: '12. DEĞİŞİKLİKLER'},
+              {type: 'p', text: 'Esila, bu Sözleşme\'yi dilediği zaman güncelleme hakkını saklı tutar. Önemli değişiklikler, e-posta veya platform bildirimi ile en az 15 gün önceden duyurulur. Değişiklik sonrası platformu kullanmaya devam etmeniz kabul anlamına gelir.'},
+              {type: 'h1', text: '13. İLETİŞİM'},
+              {type: 'p', text: 'Sözleşme veya hizmetlerimize ilişkin sorularınız için:'},
+              {type: 'li', text: 'E-posta: bilgi@esilaticari.com'},
+              {type: 'li', text: 'Adres: Yenişehir Mh. Kardeşler Cd. Cumhuriyet Teknokent No:7/2 Ofis 201 Sivas'},
+              {type: 'li', text: 'Web: www.esilaticari.com'},
+              {type: 'p', text: 'Esila Yazılım | 14 Haziran 2026'}
+          ];
+
+          const termsPdf = await generateCustomPdfBuffer("KULLANIM KOŞULLARI VE HİZMET SÖZLEŞMESİ", kosullarText);
+          const privacyPdf = await generateCustomPdfBuffer("GİZLİLİK POLİTİKASI", gizlilikText);
+
           await sendMail(
             tenantEmail,
             "Hesabınız Aktive Edildi - Esila Ticari",
@@ -1765,6 +1928,20 @@ async function startServer() {
               <p>Firmamızın dijital ürün ailesine hoş geldiniz. Bütün ön muhasebe ihtiyaçlarınızı hızlı, güvenli ve bulut üzerinden kesintisiz yürütebilirsiniz.</p>
               ${passInfoHTML}
               <p style="color: #6b7280; font-size: 14px;">Güvenliğiniz için ilk girişten sonra şifrenizi sağ üst köşedeki profil veya ayarlar menüsünden değiştirmenizi öneririz.</p>`,
+            true,
+            [
+              {
+                filename: "Esila_Ticari_Kullanim_Kosullari.pdf",
+                content: termsPdf,
+                contentType: "application/pdf",
+              },
+              {
+                filename: "Esila_Ticari_Gizlilik_Politikasi.pdf",
+                content: privacyPdf,
+                contentType: "application/pdf",
+              },
+            ],
+            req.params.vkn
           );
         }
       };
