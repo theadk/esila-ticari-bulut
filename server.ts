@@ -36,6 +36,7 @@ import {
   insertFallbackRow,
   updateFallbackRow,
   deleteFallbackRow,
+  reloadFallbackDb
 } from "./server/fallbackDb.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -2825,6 +2826,25 @@ async function startServer() {
   }
 
   // Vite middleware setup
+  app.post("/api/restore-nightly-backup", async (req, res) => {
+    try {
+      const fs = await import('fs');
+      const BACKUP_FILE = path.join(process.cwd(), 'backup.json');
+      const DB_FILE = path.join(process.cwd(), 'local_db.json');
+
+      if (fs.existsSync(BACKUP_FILE)) {
+        fs.copyFileSync(BACKUP_FILE, DB_FILE);
+        reloadFallbackDb();
+        res.json({ success: true, message: "Yedek başarıyla geri yüklendi." });
+      } else {
+        res.status(404).json({ success: false, error: "Sunucuda otomatik gece yedeği bulunamadı." });
+      }
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ success: false, error: "Geri yükleme sırasında hata oluştu: " + e.message });
+    }
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

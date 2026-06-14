@@ -39,6 +39,18 @@ function save() {
   fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2));
 }
 
+export function reloadFallbackDb() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const data = fs.readFileSync(DB_FILE, 'utf8');
+      dbData = JSON.parse(data);
+    }
+  } catch (err) {
+    console.error("Error reloading local_db.json", err);
+  }
+}
+
+
 export function getFallbackTable(table: string, vkn?: string) {
   if (!dbData[table]) dbData[table] = [];
   if (vkn) {

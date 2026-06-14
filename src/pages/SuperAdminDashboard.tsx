@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Power, Mail, Building, UserCheck, XCircle, RefreshCcw } from 'lucide-react';
+import { Plus, Power, Mail, Building, UserCheck, XCircle, RefreshCcw, Database, Upload } from 'lucide-react';
 
 interface Tenant {
   vkn: string;
@@ -27,7 +27,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   const [sessionLogs, setSessionLogs] = useState<any[]>([]);
   const [pendingTimeoutTenants, setPendingTimeoutTenants] = useState<Tenant[]>([]);
   const [inactiveTenants, setInactiveTenants] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'tenants' | 'logs' | 'activationLogs' | 'pendingTimeout' | 'inactiveTenants' | 'sessionLogs'>('tenants');
+  const [activeTab, setActiveTab] = useState<'tenants' | 'logs' | 'activationLogs' | 'pendingTimeout' | 'inactiveTenants' | 'sessionLogs' | 'backup'>('tenants');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -241,6 +241,26 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     }
   };
 
+  const handleRestoreNightlyBackup = async () => {
+    if (!window.confirm("DİKKAT: Bu işlem sunucudaki tüm sistem verilerini (local_db.json) sıfırlayacak ve en son alınan GECE YEDEĞİNİ (backup.json) yükleyecektir. Emin misiniz?")) {
+      return;
+    }
+    
+    try {
+      const res = await fetch('/api/restore-nightly-backup', {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert("Sistem yedeği başarıyla geri yüklendi. Sayfayı yenileyebilirsiniz.");
+      } else {
+        alert("Geri yükleme başarısız: " + (data.error || "Bilinmeyen hata"));
+      }
+    } catch (e: any) {
+      alert("Hata: " + e.message);
+    }
+  };
+
   const toggleModule = (modId: string) => {
     if (formData.modules.includes(modId)) {
       setFormData({ ...formData, modules: formData.modules.filter(m => m !== modId) });
@@ -299,6 +319,12 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
             className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${activeTab === 'sessionLogs' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             Oturum Logları
+          </button>
+          <button
+            onClick={() => setActiveTab('backup')}
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${activeTab === 'backup' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            Yedekleme
           </button>
         </div>
 
@@ -629,6 +655,27 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                 {sessionLogs.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-500">Oturum geçmişi bulunamadı.</td></tr>}
               </tbody>
             </table>
+          </div>
+        )}
+        {activeTab === 'backup' && (
+          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
+            <h2 className="text-xl font-bold text-gray-800 p-4 border-b">Yedekleme & Kurtarma Sistemi</h2>
+            <div className="p-6 max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="border border-amber-100 rounded-xl p-6 bg-amber-50/50">
+                <div className="flex items-center gap-3 mb-4 text-amber-800">
+                  <Database size={24} />
+                  <h4 className="font-semibold text-lg">Sistem Yedeğini Yükle (Admin)</h4>
+                </div>
+                <p className="text-sm text-gray-600 mb-6">Sunucuda her gece otomatik olarak alınan sistem yedeğini (<code className="bg-white px-1">backup.json</code>) anında geri yükler. Uygulama veritabanı (<code className="bg-white px-1">local_db.json</code>) yedeğin içeriğiyle değiştirilir. <strong className="text-red-600">Dikkat: Bu işlem geri alınamaz!</strong></p>
+                <button 
+                  onClick={handleRestoreNightlyBackup}
+                  className="w-full justify-center bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                >
+                  <Upload size={18} />
+                  <span>Son Alınan Gece Yedeğini Yükle</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>
