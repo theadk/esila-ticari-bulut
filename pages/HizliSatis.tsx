@@ -63,8 +63,20 @@ export const HizliSatis: React.FC = () => {
     store.setSuspendedCarts(suspendedCarts.filter((c: any) => c.id !== id));
   };
 
+  const getAvailableStock = (product: Product) => {
+    if (assigned) {
+      const wStock = product.warehouseStocks?.find(w => w.warehouseId === assigned);
+      if (wStock) return wStock.stock;
+      if (product.warehouse === assigned) return product.stock;
+      return 0; // If assigned to another warehouse, no stock available here unless explicitly in warehouseStocks
+    }
+    return product.stock || 0; // Global fallback
+  };
+
   const handleAddToCart = (product: Product) => {
-    if (product.stock <= 0) {
+    const availableStock = getAvailableStock(product);
+    
+    if (availableStock <= 0) {
       toast.error(`${product.name} stokta yok!`);
       return;
     }
@@ -72,8 +84,8 @@ export const HizliSatis: React.FC = () => {
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stock) {
-          toast.error(`Stok yetersiz! Mevcut stok: ${product.stock}`);
+        if (existing.quantity >= availableStock) {
+          toast.error(`Stok yetersiz! Mevcut stok: ${availableStock}`);
           return prev;
         }
         return prev.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
@@ -87,9 +99,10 @@ export const HizliSatis: React.FC = () => {
   const updateQuantity = (productId: string, delta: number) => {
     setCart(prev => prev.map(item => {
       if (item.product.id === productId) {
+        const availableStock = getAvailableStock(item.product);
         const newQ = item.quantity + delta;
-        if (newQ > item.product.stock) {
-          toast.error(`Stok yetersiz! Mevcut stok: ${item.product.stock}`);
+        if (newQ > availableStock) {
+          toast.error(`Stok yetersiz! Mevcut stok: ${availableStock}`);
           return item;
         }
         return newQ > 0 ? { ...item, quantity: newQ } : item;

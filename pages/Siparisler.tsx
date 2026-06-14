@@ -162,14 +162,26 @@ export const Siparisler: React.FC = () => {
     setIsCreateModalOpen(true);
   };
 
+  const getAvailableStock = (product: Product) => {
+    if (assigned) {
+      const wStock = product.warehouseStocks?.find(w => w.warehouseId === assigned);
+      if (wStock) return wStock.stock;
+      if (product.warehouse === assigned) return product.stock;
+      return 0; // If assigned to another warehouse, no stock available here unless explicitly in warehouseStocks
+    }
+    return product.stock || 0; // Global fallback
+  };
+
   const addItemToCart = () => {
     if (!selectedProductToAdd) return;
     
     const product = products.find(p => String(p.id) === String(selectedProductToAdd));
     if (!product) return;
 
-    if (quantityToAdd > product.stock) {
-      toast.error(`Stok yetersiz! Mevcut stok: ${product.stock}`);
+    const availableStock = getAvailableStock(product);
+
+    if (quantityToAdd > availableStock) {
+      toast.error(`Stok yetersiz! Mevcut stok: ${availableStock}`);
       return;
     }
 
@@ -178,8 +190,8 @@ export const Siparisler: React.FC = () => {
     if (existingItemIndex > -1) {
       const newItems = [...cartItems];
       const newQuantity = newItems[existingItemIndex].quantity + quantityToAdd;
-      if (newQuantity > product.stock) {
-         toast.error(`Stok yetersiz! Mevcut stok: ${product.stock}`);
+      if (newQuantity > availableStock) {
+         toast.error(`Stok yetersiz! Mevcut stok: ${availableStock}`);
          return;
       }
       newItems[existingItemIndex].quantity = newQuantity;
@@ -330,8 +342,11 @@ export const Siparisler: React.FC = () => {
        let stockErrors: string[] = [];
        (targetOrder.items || []).forEach(item => {
           const product = newProducts.find(p => String(p.id) === String(item.productId));
-          if (product && product.stock < item.quantity) {
-             stockErrors.push(`${product.name} (Stok: ${product.stock}, İstenen: ${item.quantity})`);
+          if (product) {
+             const availableStock = getAvailableStock(product);
+             if (availableStock < item.quantity) {
+                stockErrors.push(`${product.name} (Stok: ${availableStock}, İstenen: ${item.quantity})`);
+             }
           }
        });
 
