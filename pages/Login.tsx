@@ -492,7 +492,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               Lisans başvurunuz başarıyla alınmıştır. Sistem yöneticilerimiz başvurunuzu inceledikten sonra onaylayacaktır. 
             </p>
             <p className="text-gray-600 text-sm">
-              Onaylandığında e-posta adresinize bilgilendirme yapılacaktır. Şifreniz VKN numaranızın eklenerek oluşturulur (Örn: {registerForm.vkn}123).
+              Onaylandığında e-posta adresinize bilgilendirme yapılacaktır.
             </p>
 
             <button 

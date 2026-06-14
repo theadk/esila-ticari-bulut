@@ -481,6 +481,34 @@ async function startServer() {
     }
   });
 
+  const logSession = async (vkn: string, userId: string, username: string, action: string) => {
+    try {
+      let tenantName = "";
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+         const fallbackTenants = getFallbackTable("tenants");
+         const t = fallbackTenants.find((x: any) => x.vkn === vkn);
+         if (t) tenantName = t.name;
+         insertFallbackRow("session_logs", {
+             id: Date.now().toString() + Math.random().toString(36).substring(7),
+             vkn,
+             tenantName,
+             userId,
+             username,
+             action,
+             date: new Date().toISOString()
+         });
+      } else {
+         const pool = getPool();
+         const [tRows] = await pool.query("SELECT name FROM tenants WHERE vkn = ?", [vkn]);
+         if (tRows && tRows.length > 0) tenantName = tRows[0].name;
+         await pool.query("INSERT INTO session_logs (id, vkn, tenantName, userId, username, action) VALUES (?, ?, ?, ?, ?, ?)", [
+             Date.now().toString() + Math.random().toString(36).substring(7),
+             vkn, tenantName, userId, username, action
+         ]);
+      }
+    } catch (e) {}
+  };
+
   app.post("/api/login", async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -556,6 +584,7 @@ async function startServer() {
             }
 
             loginAttempts.delete(username);
+            await logSession(matchingUser.vkn, matchingUser.id, matchingUser.username || matchingUser.email, "Giriş");
             return res.json(matchingUser);
           } else {
             return handleFailedLogin();
@@ -598,15 +627,29 @@ async function startServer() {
           }
 
           loginAttempts.delete(username);
+          await logSession(user.vkn, user.id, user.username || user.email, "Giriş");
           return res.json(user);
         } else {
           return handleFailedLogin();
         }
       }
+
       return handleFailedLogin();
     } catch (e) {
       res.status(500).json({ error: String(e) });
     }
+  });
+
+  app.post("/api/logout", async (req, res) => {
+     try {
+       const { vkn, userId, username } = req.body;
+       if (vkn && userId) {
+          await logSession(vkn, userId, username || "Bilinmiyor", "Çıkış");
+       }
+       res.json({ success: true });
+     } catch (e) {
+       res.status(500).json({ error: String(e) });
+     }
   });
 
   app.get("/api/products", async (req, res) => {
@@ -1564,6 +1607,22 @@ async function startServer() {
 <p style="margin-bottom: 8px;">Hesabınızın onay süreci tamamlandığında göndereceğimiz e-posta içerisinde sisteme giriş yapabilmeniz için gereken yönetici şifreniz bulunacaktır.</p>`,
           );
         }
+
+        try {
+          await sendMail(
+             "ahdurko@gmail.com",
+             "Yeni Firma Kayıt Talebi",
+             `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 16px;">Merhaba Süper Admin,</h2>
+<p style="margin-bottom: 16px;">Esila Ticari sistemine yeni bir firma kayıt talebinde bulundu.</p>
+<ul style="margin-bottom: 16px;">
+  <li><b>Firma Adı:</b> ${tenantName}</li>
+  <li><b>E-posta:</b> ${tenantEmail || '-'}</li>
+</ul>
+<p>Lütfen SuperAdmin paneli üzerinden ilgili başvuruyu kontrol edip yönetin.</p>`,
+          );
+        } catch(e) {
+          console.error("Superadmin maili gönderilirken hata oluştu:", e);
+        }
       };
 
       if (
@@ -1589,6 +1648,7 @@ async function startServer() {
           emailLimit: data.emailLimit || 0,
           smsCount: 0,
           emailCount: 0,
+          createdAt: new Date().toISOString(),
         });
         insertFallbackRow("users", {
           id: "admin-" + data.vkn,
@@ -1612,7 +1672,7 @@ async function startServer() {
       }
 
       const pool = getPool();
-      const q = `INSERT INTO tenants (vkn, name, email, modules, status, package, expirationDate, sector, isEsilaCustomer, smsLimit, emailLimit, smsCount, emailCount) VALUES (?, ?, ?, ?, 'Bekliyor', ?, DATE_ADD(NOW(), INTERVAL ${expInterval}), ?, ?, ?, ?, 0, 0)`;
+      const q = `INSERT INTO tenants (vkn, name, email, modules, status, package, expirationDate, sector, isEsilaCustomer, smsLimit, emailLimit, smsCount, emailCount, createdAt) VALUES (?, ?, ?, ?, 'Bekliyor', ?, DATE_ADD(NOW(), INTERVAL ${expInterval}), ?, ?, ?, ?, 0, 0, NOW())`;
       await pool.query(q, [
         data.vkn,
         data.name,
@@ -1945,6 +2005,17 @@ async function startServer() {
         }
       };
 
+      const logActivation = async (tenantEmail: string, tenantName: string, action: string, status: string, details: string) => {
+        try {
+          if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+            insertFallbackRow("activation_logs", { id: Date.now().toString() + Math.random().toString(36).substring(7), vkn, tenantName, action, status, details, date: new Date().toISOString() });
+          } else {
+            const pool = getPool();
+            await pool.query("INSERT INTO activation_logs (id, vkn, tenantName, action, status, details) VALUES (?, ?, ?, ?, ?, ?)", [Date.now().toString() + Math.random().toString(36).substring(7), vkn, tenantName, action, status, details]);
+          }
+        } catch(e) {}
+      };
+
       if (
         !process.env.DATABASE_URL ||
         !process.env.DATABASE_URL.startsWith("mysql")
@@ -1956,7 +2027,12 @@ async function startServer() {
           const au = fallbacksU.find(
             (u) => u.vkn === vkn && u.role === "Admin",
           );
-          await sendActivationMail(t.email, t.name, au ? au.passwordHash : "");
+          try {
+             await sendActivationMail(t.email, t.name, au ? au.passwordHash : "");
+             await logActivation(t.email, t.name, "Aktivasyon", "Başarılı", "E-posta ve PDF ekleri teslim edildi.");
+          } catch(e: any) {
+             await logActivation(t.email, t.name, "Aktivasyon", "Başarısız", e.message || String(e));
+          }
         }
 
         updateFallbackRow("tenants", vkn, vkn, { status: "Aktif" }); // Note: wait, id of tenant is its vkn... fallbackDb searches by id? The tenant has vkn as primary key!
@@ -1975,7 +2051,12 @@ async function startServer() {
         );
         const adminPass =
           uRows && uRows.length > 0 ? uRows[0].passwordHash : "";
-        await sendActivationMail(rows[0].email, rows[0].name, adminPass);
+        try {
+            await sendActivationMail(rows[0].email, rows[0].name, adminPass);
+            await logActivation(rows[0].email, rows[0].name, "Aktivasyon", "Başarılı", "E-posta ve PDF ekleri teslim edildi.");
+        } catch (e: any) {
+            await logActivation(rows[0].email, rows[0].name, "Aktivasyon", "Başarısız", e.message || String(e));
+        }
       }
 
       await pool.query("UPDATE tenants SET status = 'Aktif' WHERE vkn = ?", [
@@ -1987,9 +2068,69 @@ async function startServer() {
     }
   });
 
+  app.get("/api/session-logs", async (req, res) => {
+    try {
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const logs = getFallbackTable("session_logs");
+        return res.json(logs);
+      }
+      const pool = getPool();
+      const [rows] = await pool.query("SELECT * FROM session_logs ORDER BY date DESC");
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.get("/api/activation-logs", async (req, res) => {
+    try {
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const logs = getFallbackTable("activation_logs");
+        return res.json(logs);
+      }
+      const pool = getPool();
+      const [rows] = await pool.query("SELECT * FROM activation_logs ORDER BY date DESC");
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.get("/api/tenants/pending-timeout", async (req, res) => {
+    try {
+      if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+        const fallbacks = getFallbackTable("tenants");
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const expired = fallbacks.filter(t => t.status === 'Bekliyor' && t.createdAt && new Date(t.createdAt) < thirtyDaysAgo);
+        return res.json(expired);
+      }
+
+      const pool = getPool();
+      const [rows] = await pool.query(
+        "SELECT * FROM tenants WHERE status = 'Bekliyor' AND (createdAt < DATE_SUB(NOW(), INTERVAL 30 DAY))"
+      );
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
   app.put("/api/tenants/:vkn/reject", async (req, res) => {
     try {
       const { vkn } = req.params;
+
+      const logActivation = async (tenantEmail: string, tenantName: string, action: string, status: string, details: string) => {
+        try {
+          if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
+            insertFallbackRow("activation_logs", { id: Date.now().toString() + Math.random().toString(36).substring(7), vkn, tenantName, action, status, details, date: new Date().toISOString() });
+          } else {
+            const pool = getPool();
+            await pool.query("INSERT INTO activation_logs (id, vkn, tenantName, action, status, details) VALUES (?, ?, ?, ?, ?, ?)", [Date.now().toString() + Math.random().toString(36).substring(7), vkn, tenantName, action, status, details]);
+          }
+        } catch(e) {}
+      };
 
       const sendRejectionMail = async (
         tenantEmail: string,
@@ -2017,7 +2158,14 @@ async function startServer() {
       ) {
         const fallbacks = getFallbackTable("tenants");
         const t = fallbacks.find((x: any) => x.vkn === vkn);
-        if (t) await sendRejectionMail(t.email, t.name);
+        if (t) {
+            try {
+               await sendRejectionMail(t.email, t.name);
+               await logActivation(t.email, t.name, "Red", "Başarılı", "Ret e-postası teslim edildi.");
+            } catch(e: any) {
+               await logActivation(t.email, t.name, "Red", "Başarısız", e.message || String(e));
+            }
+        }
 
         deleteFallbackRow("tenants", vkn, vkn);
         return res.json({ success: true });
@@ -2028,7 +2176,12 @@ async function startServer() {
         vkn,
       ]);
       if (rows && rows.length > 0) {
-        await sendRejectionMail(rows[0].email, rows[0].name);
+        try {
+            await sendRejectionMail(rows[0].email, rows[0].name);
+            await logActivation(rows[0].email, rows[0].name, "Red", "Başarılı", "Ret e-postası teslim edildi.");
+        } catch(e: any) {
+            await logActivation(rows[0].email, rows[0].name, "Red", "Başarısız", e.message || String(e));
+        }
       }
 
       await pool.query("DELETE FROM tenants WHERE vkn = ?", [vkn]);

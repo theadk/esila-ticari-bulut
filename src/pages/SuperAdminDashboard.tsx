@@ -17,12 +17,16 @@ interface Tenant {
   isEsilaCustomer?: boolean;
   smsLimit?: number;
   emailLimit?: number;
+  createdAt?: string;
 }
 
 export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'tenants' | 'logs'>('tenants');
+  const [activationLogs, setActivationLogs] = useState<any[]>([]);
+  const [sessionLogs, setSessionLogs] = useState<any[]>([]);
+  const [pendingTimeoutTenants, setPendingTimeoutTenants] = useState<Tenant[]>([]);
+  const [activeTab, setActiveTab] = useState<'tenants' | 'logs' | 'activationLogs' | 'pendingTimeout' | 'sessionLogs'>('tenants');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -87,9 +91,33 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     } catch (e) {}
   };
 
+  const fetchActivationLogs = async () => {
+    try {
+      const res = await fetch('/api/activation-logs');
+      if (res.ok) setActivationLogs(await res.json());
+    } catch (e) {}
+  };
+
+  const fetchSessionLogs = async () => {
+    try {
+      const res = await fetch('/api/session-logs');
+      if (res.ok) setSessionLogs(await res.json());
+    } catch (e) {}
+  };
+
+  const fetchPendingTimeout = async () => {
+    try {
+      const res = await fetch('/api/tenants/pending-timeout');
+      if (res.ok) setPendingTimeoutTenants(await res.json());
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetchTenants();
     fetchEmailLogs();
+    fetchActivationLogs();
+    fetchSessionLogs();
+    fetchPendingTimeout();
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -158,6 +186,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
       try {
         await fetch(`/api/tenants/${vkn}/reject`, { method: 'PUT' });
         fetchTenants();
+        fetchActivationLogs();
         alert('Başvuru reddedildi ve mail iletildi.');
       } catch(e) {
         alert("Ret işlemi sırasında hata oluştu.");
@@ -165,7 +194,6 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     }
   };
 
-  
   const handleResetPassword = async (vkn: string) => {
     if (confirm("Bu firmanın yönetici şifresi sıfırlanacak ve e-posta ile gönderilecektir. Onaylıyor musunuz?")) {
       try {
@@ -187,6 +215,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     try {
       await fetch(`/api/tenants/${vkn}/activate`, { method: 'PUT' });
       fetchTenants();
+      fetchActivationLogs();
       alert('Firma başarıyla aktive edildi.');
     } catch(e) {
       alert("Aktivasyon sırasında hata oluştu.");
@@ -237,6 +266,24 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
             className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${activeTab === 'logs' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             Mail Gönderim Logları
+          </button>
+          <button
+            onClick={() => setActiveTab('activationLogs')}
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${activeTab === 'activationLogs' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            Aktivasyon Geçmişi
+          </button>
+          <button
+            onClick={() => setActiveTab('pendingTimeout')}
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${activeTab === 'pendingTimeout' ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            30 Gün Gecikenler
+          </button>
+          <button
+            onClick={() => setActiveTab('sessionLogs')}
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${activeTab === 'sessionLogs' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            Oturum Logları
           </button>
         </div>
 
@@ -397,7 +444,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         )}
 
         {activeTab === 'logs' && (
-          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
+          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto mb-6">
             <h2 className="text-xl font-bold text-gray-800 p-4 border-b">Mail Gönderim Logları</h2>
             <table className="w-full text-left border-collapse">
               <thead>
@@ -426,6 +473,116 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                   </tr>
                 ))}
                 {emailLogs.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">Log kaydı bulunamadı.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'activationLogs' && (
+          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
+            <h2 className="text-xl font-bold text-gray-800 p-4 border-b">Aktivasyon Geçmişi</h2>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  <th className="p-4 font-semibold text-gray-600 text-sm w-44">Tarih</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm w-32">VKN</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm w-48">Firma</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm w-32">İşlem</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm w-32">Durum</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Detay / Hata</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activationLogs.map((log) => (
+                  <tr key={log.id} className="border-b hover:bg-gray-50/50">
+                    <td className="p-4 text-sm text-gray-800">{new Date(log.date).toLocaleString('tr-TR')}</td>
+                    <td className="p-4 text-sm text-gray-600">{log.vkn}</td>
+                    <td className="p-4 text-sm text-gray-800 font-medium">{log.tenantName}</td>
+                    <td className="p-4 text-sm text-gray-700">{log.action}</td>
+                    <td className="p-4 text-sm text-gray-700">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.status === 'Başarılı' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                         {log.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-sm text-gray-500 max-w-md break-words">{log.details || '-'}</td>
+                  </tr>
+                ))}
+                {activationLogs.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">Aktivasyon geçmişi bulunamadı.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'pendingTimeout' && (
+          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
+            <h2 className="text-xl font-bold text-gray-800 p-4 border-b flex items-center gap-2">
+               <span className="text-red-500">30 Günden Fazla Bekleyen Hesaplar</span>
+            </h2>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Firma Adı</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">VKN</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">E-Posta</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Kayıt Tarihi</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Aksiyonlar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingTimeoutTenants.map((t) => (
+                  <tr key={t.vkn} className="border-b hover:bg-gray-50/50">
+                    <td className="p-4 text-sm text-gray-800 font-medium">{t.name}</td>
+                    <td className="p-4 text-sm text-gray-600 font-mono">{t.vkn}</td>
+                    <td className="p-4 text-sm text-gray-600">{t.email}</td>
+                    <td className="p-4 text-sm text-gray-600 truncate">{t.createdAt ? new Date(t.createdAt).toLocaleDateString('tr-TR') : '-'}</td>
+                    <td className="p-4 text-sm text-gray-600">
+                      <div className="flex gap-2">
+                          <button className="text-emerald-600 flex items-center gap-1 hover:underline text-xs bg-emerald-50 px-2 py-1 rounded" onClick={() => handleActivate(t.vkn)}>
+                            Onayla
+                          </button>
+                          <button className="text-red-600 flex items-center gap-1 hover:underline text-xs bg-red-50 px-2 py-1 rounded" onClick={() => handleReject(t.vkn)}>
+                            Reddet
+                          </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {pendingTimeoutTenants.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-500">Kayıt üzerinden 30 günden fazla zaman geçmiş bekleyen firma bulunmamaktadır.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'sessionLogs' && (
+          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
+            <h2 className="text-xl font-bold text-gray-800 p-4 border-b">Oturum Logları (Giriş / Çıkış)</h2>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Tarih</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Zaman</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Firma Adı (VKN)</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">Kullanıcı (E-posta/Ad)</th>
+                  <th className="p-4 font-semibold text-gray-600 text-sm">İşlem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sessionLogs.map((log) => {
+                  const d = new Date(log.date);
+                  return (
+                  <tr key={log.id} className="border-b hover:bg-gray-50/50">
+                    <td className="p-4 text-sm text-gray-800">{d.toLocaleDateString('tr-TR')}</td>
+                    <td className="p-4 text-sm text-gray-600">{d.toLocaleTimeString('tr-TR')}</td>
+                    <td className="p-4 text-sm text-gray-800 font-medium">{log.tenantName || log.vkn} <span className="text-xs text-gray-500 font-normal">({log.vkn})</span></td>
+                    <td className="p-4 text-sm text-gray-600">{log.username}</td>
+                    <td className="p-4 text-sm text-gray-700">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.action === 'Giriş' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                         {log.action}
+                      </span>
+                    </td>
+                  </tr>
+                )})}
+                {sessionLogs.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-500">Oturum geçmişi bulunamadı.</td></tr>}
               </tbody>
             </table>
           </div>

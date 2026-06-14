@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS tenants (
     smsLimit INT DEFAULT 0,
     emailLimit INT DEFAULT 0,
     smsCount INT DEFAULT 0,
-    emailCount INT DEFAULT 0
+    emailCount INT DEFAULT 0,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -284,6 +285,26 @@ CREATE TABLE IF NOT EXISTS email_logs (
     subject VARCHAR(255),
     status ENUM('Başarılı', 'Başarısız'),
     errorMessage TEXT,
+    date DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS activation_logs (
+    id VARCHAR(255) PRIMARY KEY,
+    vkn VARCHAR(50),
+    tenantName VARCHAR(255),
+    action VARCHAR(50),
+    status VARCHAR(50),
+    details TEXT,
+    date DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS session_logs (
+    id VARCHAR(255) PRIMARY KEY,
+    vkn VARCHAR(50),
+    tenantName VARCHAR(255),
+    userId VARCHAR(255),
+    username VARCHAR(255),
+    action VARCHAR(50),
     date DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

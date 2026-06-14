@@ -130,7 +130,22 @@ const App: React.FC = () => {
         {/* Header - Hidden on print */}
         <Header 
           setActivePage={setActivePage} 
-          onLogout={() => { setIsAuthenticated(false); localStorage.removeItem('esila_tenant_id'); window.location.reload(); }} 
+          onLogout={async () => { 
+            try {
+               await fetch('/api/logout', { 
+                 method: 'POST', 
+                 headers: {'Content-Type': 'application/json'},
+                 body: JSON.stringify({
+                   vkn: localStorage.getItem('esila_tenant_id'),
+                   userId: localStorage.getItem('esila_user_id')
+                 }) 
+               }); 
+            } catch(e) {}
+            setIsAuthenticated(false); 
+            localStorage.removeItem('esila_tenant_id'); 
+            localStorage.removeItem('esila_user_id'); 
+            window.location.reload(); 
+          }} 
           toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
         />
 
