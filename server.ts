@@ -1708,56 +1708,53 @@ async function startServer() {
       const generateCustomPdfBuffer = async (title: string, contentArray: { type: string, text: string }[]): Promise<Buffer> => {
         const PDFDocument = (await import('pdfkit')).default;
         
-        let fontBuffer: Buffer | undefined;
-        let boldFontBuffer: Buffer | undefined;
-        try {
-          const fontRes = await fetch("https://github.com/google/fonts/raw/main/ofl/roboto/Roboto-Regular.ttf");
-          fontBuffer = Buffer.from(await fontRes.arrayBuffer());
-          
-          const boldFontRes = await fetch("https://github.com/google/fonts/raw/main/ofl/roboto/Roboto-Bold.ttf");
-          boldFontBuffer = Buffer.from(await boldFontRes.arrayBuffer());
-        } catch (e) {
-             console.error("Font fetch error", e);
-        }
+        const replaceTR = (t: string) => t
+          .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+          .replace(/ş/g, 's').replace(/Ş/g, 'S')
+          .replace(/ı/g, 'i').replace(/İ/g, 'I')
+          .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+          .replace(/ç/g, 'c').replace(/Ç/g, 'C')
+          .replace(/ü/g, 'u').replace(/Ü/g, 'U');
 
         return new Promise((resolve, reject) => {
-          const doc = new PDFDocument({ margin: 50 });
-          const chunks: any[] = [];
-          
-          doc.on('data', (chunk) => chunks.push(chunk));
-          doc.on('end', () => resolve(Buffer.concat(chunks)));
-          
-          if (fontBuffer) doc.registerFont('Roboto', fontBuffer);
-          if (boldFontBuffer) doc.registerFont('Roboto-Bold', boldFontBuffer);
-          
-          const regularFont = fontBuffer ? 'Roboto' : 'Helvetica';
-          const boldFont = boldFontBuffer ? 'Roboto-Bold' : 'Helvetica-Bold';
-          
-          // Header
-          doc.font(boldFont).fontSize(14).text("Esila Yazılım Teknolojileri Limited Şirketi", { align: 'center' });
-          doc.font(regularFont).fontSize(10).text("www.esilaticari.com", { align: 'center' });
-          doc.moveDown(2);
-          
-          doc.font(boldFont).fontSize(18).text(title, { align: 'center' });
-          doc.moveDown(2);
-          
-          contentArray.forEach(item => {
-             if (item.type === 'h1') {
-                 doc.font(boldFont).fontSize(14).text(item.text);
-                 doc.moveDown(0.5);
-             } else if (item.type === 'h2') {
-                 doc.font(boldFont).fontSize(12).text(item.text, { align: 'center' });
-                 doc.moveDown(0.5);
-             } else if (item.type === 'p') {
-                 doc.font(regularFont).fontSize(11).text(item.text, { align: item.text.startsWith('Son Günce') || item.text.startsWith('Esila Yazılım |') ? 'right' : 'left' });
-                 doc.moveDown(0.5);
-             } else if (item.type === 'li') {
-                 doc.font(regularFont).fontSize(11).text(`• ${item.text}`, { indent: 20 });
-                 doc.moveDown(0.2);
-             }
-          });
-          
-          doc.end();
+          try {
+            const doc = new PDFDocument({ margin: 50 });
+            const chunks: any[] = [];
+            
+            doc.on('data', (chunk) => chunks.push(chunk));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+            
+            const regularFont = 'Helvetica';
+            const boldFont = 'Helvetica-Bold';
+            
+            // Header
+            doc.font(boldFont).fontSize(14).text(replaceTR("Esila Yazılım Teknolojileri Limited Şirketi"), { align: 'center' });
+            doc.font(regularFont).fontSize(10).text("www.esilaticari.com", { align: 'center' });
+            doc.moveDown(2);
+            
+            doc.font(boldFont).fontSize(18).text(replaceTR(title), { align: 'center' });
+            doc.moveDown(2);
+            
+            contentArray.forEach(item => {
+               if (item.type === 'h1') {
+                   doc.font(boldFont).fontSize(14).text(replaceTR(item.text));
+                   doc.moveDown(0.5);
+               } else if (item.type === 'h2') {
+                   doc.font(boldFont).fontSize(12).text(replaceTR(item.text), { align: 'center' });
+                   doc.moveDown(0.5);
+               } else if (item.type === 'p') {
+                   doc.font(regularFont).fontSize(11).text(replaceTR(item.text), { align: item.text.startsWith('Son Günce') || item.text.startsWith('Esila Yazılım |') ? 'right' : 'left' });
+                   doc.moveDown(0.5);
+               } else if (item.type === 'li') {
+                   doc.font(regularFont).fontSize(11).text(replaceTR(`• ${item.text}`), { indent: 20 });
+                   doc.moveDown(0.2);
+               }
+            });
+            
+            doc.end();
+          } catch(e) {
+            reject(e);
+          }
         });
       };
 
