@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, User, LogOut, Settings as SettingsIcon, Package, FileText, ShoppingCart, Users, Menu } from 'lucide-react';
+import { Bell, Search, User, LogOut, Settings as SettingsIcon, Package, FileText, ShoppingCart, Users, Menu, LifeBuoy, X } from 'lucide-react';
 import { useAppStore } from '../lib/store';
+import { toast } from 'react-hot-toast';
 
 interface HeaderProps {
   setActivePage: (page: string) => void;
@@ -14,10 +15,61 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
   const [showResults, setShowResults] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [isSubmittingSupport, setIsSubmittingSupport] = useState(false);
   
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+
+  const handleSupportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supportSubject || !supportMessage) {
+      toast.error('Lütfen konu ve mesaj alanlarını doldurunuz.');
+      return;
+    }
+    
+    setIsSubmittingSupport(true);
+    try {
+      const html = `
+        <div style="font-family: sans-serif; p-4;">
+          <h2 style="color: #059669;">Yeni Destek Talebi</h2>
+          <p><strong>Firma VKN:</strong> ${localStorage.getItem('esila_tenant_id')}</p>
+          <p><strong>Firma Adı:</strong> ${store.settings.companyName}</p>
+          <p><strong>Kullanıcı:</strong> admin@esila.com</p>
+          <hr/>
+          <p><strong>Konu:</strong> ${supportSubject}</p>
+          <p><strong>Mesaj:</strong><br/>${supportMessage.replace(/\n/g, '<br/>')}</p>
+        </div>
+      `;
+      // Destek taleplerini şirkete veya destek ekibine (admin email vb.) gönder
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '' },
+        body: JSON.stringify({
+          to: 'bilgi@e-esila.com',
+          subject: `Destek Talebi: ${supportSubject}`,
+          html: html,
+        })
+      });
+      
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success('Destek talebiniz başarıyla iletildi.');
+        setShowSupportModal(false);
+        setSupportSubject('');
+        setSupportMessage('');
+      } else {
+        toast.error('Destek talebi iletilemedi: ' + (data.error || 'Bilinmeyen hata'));
+      }
+    } catch (error: any) {
+      toast.error('Bağlantı hatası: ' + error.message);
+    } finally {
+      setIsSubmittingSupport(false);
+    }
+  };
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -229,6 +281,13 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
                >
                  <SettingsIcon size={16} /> Firma Ayarları
                </button>
+
+               <button 
+                 onClick={() => { setShowSupportModal(true); setShowUserMenu(false); }}
+                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 flex items-center gap-2 transition-colors"
+               >
+                 <LifeBuoy size={16} /> Destek Talebi
+               </button>
                
                <div className="border-t border-gray-100 mt-1 pt-1">
                  <button 
@@ -242,6 +301,69 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
            )}
          </div>
       </div>
+
+      {showSupportModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-fade-in relative z-50">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <LifeBuoy size={24} className="text-blue-600" /> Destek Talebi
+              </h2>
+              <button onClick={() => setShowSupportModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSupportSubmit} className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Konu</label>
+                  <input
+                    type="text"
+                    required
+                    value={supportSubject}
+                    onChange={(e) => setSupportSubject(e.target.value)}
+                    className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Talebinizin konusu"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mesajınız</label>
+                  <textarea
+                    required
+                    value={supportMessage}
+                    onChange={(e) => setSupportMessage(e.target.value)}
+                    rows={5}
+                    className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Yaşadığınız sorunu veya talebinizi detaylıca açıklayınız..."
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSupportModal(false)}
+                  className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingSupport}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 flex items-center gap-2"
+                >
+                  {isSubmittingSupport ? (
+                    'Gönderiliyor...'
+                  ) : (
+                    <>Talebi Gönder</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
