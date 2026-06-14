@@ -2885,9 +2885,11 @@ async function startServer() {
              }
           });
 
-          fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2), "utf-8");
-          reloadFallbackDb();
           res.json({ success: true, message: "Bağlı hesaba ait yedek başarıyla geri yüklendi." });
+          setTimeout(() => {
+            fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2), "utf-8");
+            reloadFallbackDb();
+          }, 500);
       } else {
           res.status(500).json({ success: false, error: "Sistem veritabanı dosyası bulunamadı." });
       }
@@ -2904,9 +2906,11 @@ async function startServer() {
       const DB_FILE = path.join(process.cwd(), 'local_db.json');
 
       if (fs.existsSync(BACKUP_FILE)) {
-        fs.copyFileSync(BACKUP_FILE, DB_FILE);
-        reloadFallbackDb();
         res.json({ success: true, message: "Yedek başarıyla geri yüklendi." });
+        setTimeout(() => {
+          fs.copyFileSync(BACKUP_FILE, DB_FILE);
+          reloadFallbackDb();
+        }, 500);
       } else {
         res.status(404).json({ success: false, error: "Sunucuda otomatik gece yedeği bulunamadı." });
       }
