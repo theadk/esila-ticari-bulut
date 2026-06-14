@@ -31,6 +31,7 @@ export const EFatura: React.FC = () => {
   const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'efatura', 'view');
   const canCreate = hasPermission(currentUser, 'efatura', 'create');
+  const canEdit = hasPermission(currentUser, 'efatura', 'edit');
   const canDelete = hasPermission(currentUser, 'efatura', 'delete');
 
   const [activeTab, setActiveTab] = useState<"Taslak" | "Giden" | "Gelen" | "Şablon">(
@@ -397,23 +398,121 @@ export const EFatura: React.FC = () => {
     setCurrentPage(1);
   }, [activeTab]);
 
-  const handleSendToPortal = (invId: string) => {
-    const updated = invoices.map((i) =>
-      i.id === invId ? { ...i, status: "Gönderildi" } : i,
-    );
-    if (store.setEInvoices) store.setEInvoices(updated);
-    alert("Fatura başarıyla e-Dönüşüm portalına iletildi.");
+  const handleSendToPortal = async (invId: string) => {
+    const invToP = invoices.find((i) => i.id === invId);
+    if (!invToP) return;
+
+    try {
+      const order = store.orders?.find((o) => o.id === invToP.orderId);
+      const customer = store.customers?.find(
+        (c) => c.name === invToP.customerName || c.id === order?.customerId,
+      );
+
+      const ublObj = {
+        GIB_UBL_TR: {
+          Invoice: {
+            ID: invToP.id,
+            IssueDate: new Date(invToP.date).toISOString().split("T")[0],
+            InvoiceTypeCode: invToP.invoiceType || "SATIS",
+            ProfileID: invToP.scenario,
+            DocumentCurrencyCode: order?.currency || "TRY",
+          },
+        },
+      };
+
+      const isEFatura = invToP.type === "E-Fatura";
+      const apiUrl = isEFatura ? "/api/efatura/send" : "/api/earsiv/send";
+
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: store.settings.efatura_username || "",
+          password: store.settings.efatura_password || "",
+          invoice: {
+            documentUUID: invToP.id + "-" + Date.now(),
+            xmlContent: JSON.stringify(ublObj), // sending fake xml (json formatted) payload for test purposes
+            destinationUrn: customer?.email || "",
+            documentDate: new Date(invToP.date).toISOString().split("T")[0],
+            documentId: invToP.id,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        const updated = invoices.map((i) =>
+          i.id === invId ? { ...i, status: "Gönderildi" } : i,
+        );
+        if (store.setEInvoices) store.setEInvoices(updated);
+        alert(`${invToP.type} başarıyla entegratör servisine iletildi.`);
+      } else {
+        alert("Gönderim Hatası: " + data.error);
+      }
+    } catch (error: any) {
+      alert("Sunucuya bağlanılamadı: " + error.message);
+    }
   };
 
-  const handleBulkSend = () => {
+  const handleBulkSend = async () => {
     if (selectedIds.length === 0) return;
-    const updated = invoices.map((i) =>
-      selectedIds.includes(i.id) && i.status === "Taslak"
-        ? { ...i, status: "Gönderildi" }
-        : i,
-    );
-    if (store.setEInvoices) store.setEInvoices(updated);
-    alert(`${selectedIds.length} adet fatura başarıyla portala iletildi.`);
+    
+    let successCount = 0;
+    let failCount = 0;
+    let newInvoices = [...invoices];
+
+    for (const invId of selectedIds) {
+        const invToP = newInvoices.find(i => i.id === invId);
+        if (!invToP || invToP.status !== 'Taslak') continue;
+
+        try {
+           const order = store.orders?.find((o) => o.id === invToP.orderId);
+           const customer = store.customers?.find((c) => c.name === invToP.customerName || c.id === order?.customerId);
+             
+           const ublObj = {
+               "GIB_UBL_TR": {
+                   "Invoice": {
+                       "ID": invToP.id,
+                       "IssueDate": new Date(invToP.date).toISOString().split('T')[0],
+                       "InvoiceTypeCode": invToP.invoiceType || "SATIS"
+                   }
+               }
+           };
+
+           const isEFatura = invToP.type === "E-Fatura";
+           const apiUrl = isEFatura ? "/api/efatura/send" : "/api/earsiv/send";
+
+           const res = await fetch(apiUrl, {
+               method: 'POST',
+               headers: {'Content-Type': 'application/json'},
+               body: JSON.stringify({
+                   username: store.settings.efatura_username || '',
+                   password: store.settings.efatura_password || '',
+                   invoice: {
+                       documentUUID: invToP.id + "-" + Date.now(),
+                       xmlContent: JSON.stringify(ublObj),
+                       destinationUrn: customer?.email || '',
+                       documentDate: new Date(invToP.date).toISOString().split('T')[0],
+                       documentId: invToP.id
+                   }
+               })
+           });
+           const data = await res.json();
+           if (data.success) {
+               successCount++;
+               newInvoices = newInvoices.map((i) => i.id === invId ? { ...i, status: "Gönderildi" } : i);
+           } else {
+               failCount++;
+               console.error(`Bulk ${invToP.type} Hatası:`, data.error);
+           }
+        } catch(e) {
+           failCount++;
+           console.error("Bulk error:", e);
+        }
+    }
+
+    if (store.setEInvoices) store.setEInvoices(newInvoices);
+    alert(`${successCount} adet fatura başarıyla portala iletildi. ${failCount > 0 ? failCount + ' adet fatura hatalı.' : ''}`);
     setSelectedIds([]);
   };
 
@@ -1263,7 +1362,7 @@ export const EFatura: React.FC = () => {
                           className={`w-[33%] flex flex-col ${alignmentClass} items-center`}
                         >
                           <img 
-                            src="/gib-logo.png" 
+                            src="https://upload.wikimedia.org/wikipedia/tr/b/bf/Gelir_%C4%B0daresi_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_Amblemi.png" 
                             alt="GİB Logo" 
                             className="w-24 object-contain mix-blend-multiply flex-shrink-0" 
                           />
@@ -1761,44 +1860,32 @@ export const EFatura: React.FC = () => {
                   </div>
                 </div>
                 {/* Notes */}
-                <div className="border border-black p-2 mb-4 text-[10px] whitespace-pre-wrap">
-                  {store.settings?.invoiceTemplate_notes ? (
-                    store.settings.invoiceTemplate_notes
-                      .split("\n")
-                      .map((line, i) => (
-                        <div key={i} className="font-bold">
-                          {line ? `Not: ${line}` : ""}
-                        </div>
-                      ))
-                  ) : (
-                    <>
-                      <div className="font-bold">
-                        Not: "Bu fatura, düzenleme tarihinden itibaren 7 gün
-                        içerisinde ödenmelidir. Süresinde ödenmeyen tutarlar
-                        için 6102 sayılı TTK ve 6098 sayılı TBK kapsamında yasal
-                        faiz işletilecektir."
-                      </div>
-                      <div className="font-bold">
-                        Not: 4000 TL HAVALE YAPILMIŞTIR. KALAN BAKİYE 2940TL'DİR
-                      </div>
-                      <div className="font-bold">Not: Yalnız #--- TL#</div>
-                    </>
-                  )}
-                  {store.settings?.invoiceTemplate_banks &&
-                    store.settings.invoiceTemplate_banks.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-black border-dashed">
-                        <div className="font-bold mb-1 underline mt-1">
-                          BANKA HESAP BİLGİLERİMİZ
-                        </div>
-                        {store.settings.invoiceTemplate_banks.map((b, i) => (
+                {(store.settings?.invoiceTemplate_notes || (store.settings?.invoiceTemplate_banks && store.settings.invoiceTemplate_banks.length > 0)) && (
+                  <div className="border border-black p-2 mb-4 text-[10px] whitespace-pre-wrap">
+                    {store.settings?.invoiceTemplate_notes &&
+                      store.settings.invoiceTemplate_notes
+                        .split("\n")
+                        .map((line, i) => (
                           <div key={i} className="font-bold">
-                            Banka: {b.bankName} | Alıcı: {b.accountName} | IBAN:{" "}
-                            {b.iban}
+                            {line ? `Not: ${line}` : ""}
                           </div>
                         ))}
-                      </div>
-                    )}
-                </div>
+                    {store.settings?.invoiceTemplate_banks &&
+                      store.settings.invoiceTemplate_banks.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-black border-dashed">
+                          <div className="font-bold mb-1 underline mt-1">
+                            BANKA HESAP BİLGİLERİMİZ
+                          </div>
+                          {store.settings.invoiceTemplate_banks.map((b, i) => (
+                            <div key={i} className="font-bold">
+                              Banka: {b.bankName} | Alıcı: {b.accountName} | IBAN:{" "}
+                              {b.iban}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                  </div>
+                )}
                 \n\n {/* Footer */}
                 <div className="border border-black p-2 flex font-bold text-[10px]">
                   <div

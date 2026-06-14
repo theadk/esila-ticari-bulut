@@ -313,16 +313,21 @@ export const Cariler: React.FC = () => {
   };
 
   useEffect(() => {
-    fetch('https://turkiyeapi.dev/api/v1/provinces')
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'OK') {
-          // Sort alphabetically
-          const sorted = data.data.sort((a: Province, b: Province) => a.name.localeCompare(b.name, 'tr'));
-          setProvinces(sorted);
-        }
-      })
-      .catch(err => console.error("Could not fetch provinces:", err));
+    import('turkey-neighbourhoods').then(({ getCities, getDistrictsByCityCode }) => {
+      const cities = getCities();
+      const formattedProvinces: Province[] = cities.map(city => ({
+        id: parseInt(city.code, 10),
+        name: city.name,
+        districts: getDistrictsByCityCode(city.code).map((dName: string, idx: number) => ({
+          id: idx + 1,
+          name: dName
+        }))
+      }));
+      const sorted = formattedProvinces.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+      setProvinces(sorted);
+    }).catch(err => {
+      console.error("Could not load provinces via turkey-neighbourhoods:", err);
+    });
   }, []);
 
   useEffect(() => {

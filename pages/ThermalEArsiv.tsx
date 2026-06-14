@@ -23,7 +23,7 @@ export const ThermalEArsiv = ({ previewInvoice, invoiceOrder, store, invoiceCust
     <div className="bg-white p-4 mx-auto w-[300px] text-[11px] font-sans text-black shadow-sm print:shadow-none print:m-0 print-target" id="invoice-preview-80mm" style={{ fontSize: '11px' }}>
       <div className="flex flex-col items-center mb-4 text-center">
         <img 
-          src="/gib-logo.png" 
+          src="https://upload.wikimedia.org/wikipedia/tr/b/bf/Gelir_%C4%B0daresi_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_Amblemi.png" 
           alt="GİB Logo" 
           className="w-16 object-contain mix-blend-multiply flex-shrink-0 mb-1" 
         />
@@ -109,12 +109,13 @@ export const ThermalEArsiv = ({ previewInvoice, invoiceOrder, store, invoiceCust
         </div>
       </div>
 
-      <div className="text-center font-bold mb-4">
-        Yalnız: {/* Just a placeholder for written amount */} ---- TL'dir.
-      </div>
+      {store.settings?.invoiceTemplate_notes && (
+        <div className="text-center text-[10px] whitespace-pre-line mt-4">
+          <p>{store.settings.invoiceTemplate_notes}</p>
+        </div>
+      )}
 
-      <div className="text-center text-[10px] whitespace-pre-line mt-4">
-        <p>{store.settings?.invoiceTemplate_notes || "Bu fatura elektronik ortamda Maliye Bakanlığı sistemlerine iletilmiştir."}</p>
+      <div className="text-center text-[10px] whitespace-pre-line mt-4 border-t border-dashed border-gray-300 pt-2">
         <p className="mt-2 font-bold uppercase tracking-widest text-xs">esila e-fatura</p>
       </div>
 
