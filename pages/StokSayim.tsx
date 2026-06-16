@@ -128,6 +128,50 @@ export const StokSayim: React.FC = () => {
     setCountedItems(prev => prev.filter(item => item.productId !== productId));
   };
 
+  const handleSaveCount = () => {
+    if (countedItems.length === 0) {
+      toast.error('Kaydedilecek sayım bulunamadı.');
+      return;
+    }
+
+    const newProducts = [...store.products];
+
+    countedItems.forEach(item => {
+      const idx = newProducts.findIndex(p => p.id === item.productId);
+      if (idx > -1) {
+        const product = newProducts[idx];
+        const assignedWarehouse = currentUser?.assignedWarehouse;
+        let newWarehouseStocks = product.warehouseStocks ? [...product.warehouseStocks] : [];
+
+        if (assignedWarehouse) {
+            const wIdx = newWarehouseStocks.findIndex(ws => ws.warehouseId === assignedWarehouse);
+            if (wIdx > -1) {
+                newWarehouseStocks[wIdx] = { ...newWarehouseStocks[wIdx], stock: item.countedStock };
+            } else {
+                newWarehouseStocks.push({ warehouseId: assignedWarehouse, stock: item.countedStock });
+            }
+            
+            const totalStock = newWarehouseStocks.reduce((sum, w) => sum + (Number(w.stock) || 0), 0);
+            newProducts[idx] = { ...product, stock: totalStock, warehouseStocks: newWarehouseStocks };
+        } else {
+            if (newWarehouseStocks.length > 0) {
+                const globalWh = newWarehouseStocks.find(w => w.warehouseId === product.warehouse || w.warehouseId === 'Merkez');
+                if (globalWh) {
+                   globalWh.stock = item.countedStock;
+                } else if (newWarehouseStocks.length === 1) {
+                   newWarehouseStocks[0].stock = item.countedStock;
+                }
+            }
+            newProducts[idx] = { ...product, stock: item.countedStock, warehouseStocks: newWarehouseStocks };
+        }
+      }
+    });
+
+    if(store.setProducts) store.setProducts(newProducts);
+    toast.success('Stok sayımı başarıyla kaydedildi! Farklar ürünlere yansıtıldı.');
+    setCountedItems([]);
+  };
+
   const filteredItems = countedItems.filter(item => 
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -158,7 +202,7 @@ export const StokSayim: React.FC = () => {
             >
                 <X size={18} /> Sıfırla
             </button>
-            <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm">
+            <button onClick={handleSaveCount} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm">
                 <FileText size={18} /> Sayımı Kaydet
             </button>
         </div>
