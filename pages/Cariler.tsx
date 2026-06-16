@@ -69,6 +69,10 @@ export const Cariler: React.FC = () => {
   // Payment Modal States
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentForm, setPaymentForm] = useState<{ amount: number, description: string, type: 'Tahsilat' | 'Ödeme' | 'Borçlandırma', date: string }>({ amount: 0, description: '', type: 'Tahsilat', date: new Date().toISOString().split('T')[0] });
+  
+  // Edit Transaction States
+  const [editingTransaction, setEditingTransaction] = useState<CustomerTransaction | null>(null);
+  const [editingTransactionForm, setEditingTransactionForm] = useState<Partial<CustomerTransaction>>({});
 
   const { isListening, supported, listen, stop } = useSpeechRecognition();
   const [activeSpeechField, setActiveSpeechField] = useState<string | null>(null);
@@ -140,6 +144,103 @@ export const Cariler: React.FC = () => {
     }
     
     setIsPaymentModalOpen(false);
+  };
+
+  const handleDeleteTransaction = (tx: CustomerTransaction) => {
+    if (!window.confirm("Bu işlemi silmek istediğinize emin misiniz? Bakiye otomatik güncellenecektir.")) return;
+
+    if (customers && setCustomers) {
+      const customer = customers.find(c => c.id === tx.customerId);
+      if (customer) {
+        setCustomers(customers.map(c => c.id === customer.id ? {...c, balance: c.balance - tx.amount} : c));
+        
+        if (isHistoryModalOpen && selectedCustomerForHistory?.id === customer.id) {
+          setSelectedCustomerForHistory({...customer, balance: customer.balance - tx.amount});
+        }
+      }
+    }
+
+    if ((tx.type === 'Tahsilat' || tx.type === 'Ödeme') && cashTransactions && setCashTransactions) {
+      const relatedCTx = cashTransactions.find(c => 
+           c.customerId === tx.customerId && 
+           c.date === tx.date && 
+           c.amount === Math.abs(tx.amount) &&
+           c.description.startsWith(tx.description || '')
+      );
+      if (relatedCTx) {
+          setCashTransactions(cashTransactions.filter(c => c.id !== relatedCTx.id));
+      }
+    }
+
+    if (setTransactions) {
+      setTransactions(transactions.filter(t => t.id !== tx.id));
+    }
+    toast.success('İşlem başarıyla silindi ve bakiye güncellendi.');
+  };
+
+  const handleEditTransactionSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTransaction) return;
+
+    const oldTx = transactions.find(t => t.id === editingTransaction.id);
+    if (!oldTx) return;
+
+    let newAmount = Math.abs(Number(editingTransactionForm.amount) || 0);
+    const newType = editingTransactionForm.type || oldTx.type;
+    if (newType === 'Tahsilat' || newType === 'Alış') newAmount = -Math.abs(newAmount);
+
+    if (customers && setCustomers) {
+      const customer = customers.find(c => c.id === oldTx.customerId);
+      if (customer) {
+        const newBalance = customer.balance - oldTx.amount + newAmount;
+        setCustomers(customers.map(c => c.id === customer.id ? {...c, balance: newBalance} : c));
+        
+        if (isHistoryModalOpen && selectedCustomerForHistory?.id === customer.id) {
+          setSelectedCustomerForHistory({...customer, balance: newBalance});
+        }
+      }
+    }
+
+    if ((oldTx.type === 'Tahsilat' || oldTx.type === 'Ödeme') && cashTransactions && setCashTransactions) {
+      const relatedCTx = cashTransactions.find(c => 
+           c.customerId === oldTx.customerId && 
+           c.date === oldTx.date && 
+           c.amount === Math.abs(oldTx.amount) &&
+           c.description.startsWith(oldTx.description || '')
+      );
+      if (relatedCTx) {
+         setCashTransactions(cashTransactions.map(c => c.id === relatedCTx.id ? { 
+           ...c, 
+           type: newType === 'Tahsilat' ? 'Gelir' : 'Gider',
+           category: newType === 'Tahsilat' ? 'Cari Tahsilat' : 'Cari Ödeme',
+           amount: Math.abs(newAmount), 
+           description: (editingTransactionForm.description || '') + ' (' + ((customers.find(cx => cx.id === oldTx.customerId))?.companyName || '') + ')' ,
+           date: editingTransactionForm.date || oldTx.date
+         } : c));
+      } else if (newType === 'Tahsilat' || newType === 'Ödeme') {
+         // Create it if missed
+         setCashTransactions([...cashTransactions, {
+            id: Math.random().toString(36).substr(2, 9),
+            date: editingTransactionForm.date || oldTx.date,
+            type: newType === 'Tahsilat' ? 'Gelir' : 'Gider',
+            category: newType === 'Tahsilat' ? 'Cari Tahsilat' : 'Cari Ödeme',
+            amount: Math.abs(newAmount),
+            description: (editingTransactionForm.description || '') + ' (' + ((customers.find(cx => cx.id === oldTx.customerId))?.companyName || '') + ')',
+            customerId: oldTx.customerId
+         }]);
+      }
+    }
+
+    if (setTransactions) {
+      setTransactions(transactions.map(t => t.id === oldTx.id ? { 
+        ...t, 
+        ...editingTransactionForm, 
+        amount: newAmount 
+      } : t));
+    }
+    
+    setEditingTransaction(null);
+    toast.success('İşlem başarıyla güncellendi.');
   };
 
   const [printEkstreModalOpen, setPrintEkstreModalOpen] = useState(false);
@@ -1267,13 +1368,14 @@ export const Cariler: React.FC = () => {
                     <th className="px-6 py-4 rounded-tl-lg">Tarih</th>
                     <th className="px-6 py-4">Açıklama</th>
                     <th className="px-6 py-4">İşlem Türü</th>
-                    <th className="px-6 py-4 text-right rounded-tr-lg">Tutar</th>
+                    <th className="px-6 py-4 text-right">Tutar</th>
+                    <th className="px-6 py-4 text-center rounded-tr-lg">İşlemler</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {transactions.filter(t => t.customerId === selectedCustomerForHistory.id).length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                         Herhangi bir işlem bulunamadı.
                       </td>
                     </tr>
@@ -1289,6 +1391,19 @@ export const Cariler: React.FC = () => {
                         </td>
                         <td className={`px-6 py-4 text-right font-medium ${t.amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                           {t.amount >= 0 ? '+' : ''}{(t.amount || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex justify-center flex-row gap-2">
+                            <button onClick={() => {
+                              setEditingTransaction(t);
+                              setEditingTransactionForm(t);
+                            }} className="text-blue-600 hover:text-blue-800 transition-colors" title="Düzenle">
+                              <Edit2 size={16} />
+                            </button>
+                            <button onClick={() => handleDeleteTransaction(t)} className="text-red-600 hover:text-red-800 transition-colors" title="Sil">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -1490,6 +1605,7 @@ export const Cariler: React.FC = () => {
                       <th className="p-3 border w-32" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>İşlem Tipi</th>
                       <th className="p-3 border" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>Açıklama</th>
                       <th className="p-3 border text-right w-36" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>Tutar</th>
+                      <th className="p-3 border text-center w-24 print:hidden" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>İşlemler</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1509,11 +1625,24 @@ export const Cariler: React.FC = () => {
                         <td className={`p-3 border-x text-right font-bold whitespace-nowrap ${tx.type === 'Satış' || tx.type === 'Alış' ? 'text-red-700 print:text-black' : 'text-emerald-700 print:text-black'}`} style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                           {(tx.amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                         </td>
+                        <td className="p-3 border-x text-center print:hidden" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
+                          <div className="flex justify-center items-center gap-2">
+                             <button onClick={() => {
+                               setEditingTransaction(tx);
+                               setEditingTransactionForm(tx);
+                             }} className="text-blue-600 hover:text-blue-800 transition-colors" title="Düzenle">
+                               <Edit2 size={16} />
+                             </button>
+                             <button onClick={() => handleDeleteTransaction(tx)} className="text-red-600 hover:text-red-800 transition-colors" title="Sil">
+                               <Trash2 size={16} />
+                             </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                     {transactions.filter(t => t.customerId === selectedCustomerForHistory.id).length === 0 && (
                       <tr>
-                        <td colSpan={4} className="p-6 text-center text-gray-500 border" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
+                        <td colSpan={5} className="p-6 text-center text-gray-500 border" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                           Kayıtlı hesap hareketi bulunmuyor.
                         </td>
                       </tr>
@@ -1543,6 +1672,91 @@ export const Cariler: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Transaction Modal */}
+      {editingTransaction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 60 }}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center rounded-t-xl">
+              <h3 className="font-bold text-lg text-gray-800">İşlem Düzenle</h3>
+              <button onClick={() => setEditingTransaction(null)} className="text-gray-500 hover:text-gray-700 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditTransactionSubmit} className="p-4 sm:p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
+                <input
+                  type="date"
+                  required
+                  value={editingTransactionForm.date || ''}
+                  onChange={e => setEditingTransactionForm({...editingTransactionForm, date: e.target.value})}
+                  className="w-full border rounded-lg px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">İşlem Tipi</label>
+                <select
+                  required
+                  value={editingTransactionForm.type || ''}
+                  onChange={e => setEditingTransactionForm({...editingTransactionForm, type: e.target.value as any})}
+                  className="w-full border rounded-lg px-3 py-2 bg-white"
+                >
+                  <option value="Satış">Satış</option>
+                  <option value="Alış">Alış</option>
+                  <option value="Tahsilat">Tahsilat</option>
+                  <option value="Ödeme">Ödeme</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tutar</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    min="0"
+                    value={Math.abs(Number(editingTransactionForm.amount) || 0)}
+                    onChange={e => setEditingTransactionForm({...editingTransactionForm, amount: Number(e.target.value)})}
+                    className="w-full border rounded-lg pl-3 pr-8 py-2 text-right"
+                  />
+                  <span className="absolute right-3 top-2 text-gray-500">₺</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={editingTransactionForm.description || ''}
+                  onChange={e => setEditingTransactionForm({...editingTransactionForm, description: e.target.value})}
+                  className="w-full border rounded-lg px-3 py-2"
+                ></textarea>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setEditingTransaction(null)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Kaydet
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
