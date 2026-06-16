@@ -92,8 +92,15 @@ export const Raporlar: React.FC = () => {
     return { totalRevenue, totalCost, netProfit, profitMargin };
   }, [store.orders, store.products]);
 
+  const getProductTotalStockMemo = (p: Product) => {
+    if (p.warehouseStocks && p.warehouseStocks.length > 0) {
+      return p.warehouseStocks.reduce((sum, w) => sum + (Number(w.stock) || 0), 0);
+    }
+    return Number(p.stock) || 0;
+  };
+
   // Derived Data
-  const outOfStockProducts = useMemo(() => store.products.filter(p => p.stock <= 0), [store.products]);
+  const outOfStockProducts = useMemo(() => store.products.filter(p => getProductTotalStockMemo(p) <= 0), [store.products]);
   
   const inactiveProducts = useMemo(() => {
     const orderedProductIds = new Set(store.orders.flatMap(o => o.items.map(i => i.productId)));
@@ -149,15 +156,25 @@ export const Raporlar: React.FC = () => {
     const orderSheet = XLSX.utils.json_to_sheet(orderData);
     XLSX.utils.book_append_sheet(wb, orderSheet, "Siparisler");
 
+    const getProductTotalStock = (p: Product) => {
+      if (p.warehouseStocks && p.warehouseStocks.length > 0) {
+        return p.warehouseStocks.reduce((sum, w) => sum + (Number(w.stock) || 0), 0);
+      }
+      return Number(p.stock) || 0;
+    };
+
     // 4. Stok Raporu
-    const stockData = store.products.map(p => ({
-      'Kodu': p.code,
-      'Ürün Adı': p.name,
-      'Stok': p.stock,
-      'Kategori': p.category,
-      'Durum': p.stock <= 0 ? 'Tükendi' : p.stock < 10 ? 'Kritik' : 'Stokta',
-      'Hareket': inactiveProducts.some(ip => ip.id === p.id) ? 'Hareketsiz' : 'Hareketli'
-    }));
+    const stockData = store.products.map(p => {
+      const ts = getProductTotalStock(p);
+      return {
+        'Kodu': p.code,
+        'Ürün Adı': p.name,
+        'Stok': ts,
+        'Kategori': p.category,
+        'Durum': ts <= 0 ? 'Tükendi' : ts < 10 ? 'Kritik' : 'Stokta',
+        'Hareket': inactiveProducts.some(ip => ip.id === p.id) ? 'Hareketsiz' : 'Hareketli'
+      };
+    });
     const stockSheet = XLSX.utils.json_to_sheet(stockData);
     XLSX.utils.book_append_sheet(wb, stockSheet, "Stok Durumu");
 
@@ -537,7 +554,7 @@ export const Raporlar: React.FC = () => {
                       <tr key={p.id} className="hover:bg-red-50 transition-colors">
                         <td className="py-3 px-4 font-mono text-gray-500">{p.code}</td>
                         <td className="py-3 px-4 font-medium text-gray-800">{p.name}</td>
-                        <td className="py-3 px-4 text-right text-red-600 font-bold">{p.stock}</td>
+                        <td className="py-3 px-4 text-right text-red-600 font-bold">{getProductTotalStockMemo(p)}</td>
                       </tr>
                     ))}
                     {outOfStockProducts.length === 0 && (

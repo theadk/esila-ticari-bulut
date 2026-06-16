@@ -70,6 +70,9 @@ export const HizliSatis: React.FC = () => {
       if (product.warehouse === assigned) return product.stock;
       return 0; // If assigned to another warehouse, no stock available here unless explicitly in warehouseStocks
     }
+    if (product.warehouseStocks && product.warehouseStocks.length > 0) {
+      return product.warehouseStocks.reduce((sum, w) => sum + (Number(w.stock) || 0), 0);
+    }
     return product.stock || 0; // Global fallback
   };
 

@@ -468,6 +468,13 @@ export const Urunler: React.FC = () => {
     setIsBarcodePrintModalOpen(false);
   };
 
+  const getProductTotalStock = (p: Product) => {
+    if (p.warehouseStocks && p.warehouseStocks.length > 0) {
+      return p.warehouseStocks.reduce((sum, w) => sum + (Number(w.stock) || 0), 0);
+    }
+    return Number(p.stock) || 0;
+  };
+
   const filteredProducts = (products || []).filter(p => {
     if (currentUser?.assignedWarehouse) {
       const assigned = warehouses.find(w => w.id === currentUser.assignedWarehouse)?.name || currentUser.assignedWarehouse;
@@ -485,12 +492,14 @@ export const Urunler: React.FC = () => {
     const matchesCategory = filterCategory ? p.category === filterCategory : true;
     const matchesBrand = filterBrand ? p.brand === filterBrand : true;
     
+    const totalStock = getProductTotalStock(p);
+    
     let matchesStockStatus = true;
-    if (filterStockStatus === 'out_of_stock') matchesStockStatus = p.stock === 0;
-    if (filterStockStatus === 'low_stock') matchesStockStatus = p.stock > 0 && p.stock <= 10;
+    if (filterStockStatus === 'out_of_stock') matchesStockStatus = totalStock <= 0;
+    if (filterStockStatus === 'low_stock') matchesStockStatus = totalStock > 0 && totalStock <= 10;
 
-    const matchesMinStock = (filterMinStock !== '') ? p.stock >= Number(filterMinStock) : true;
-    const matchesMaxStock = (filterMaxStock !== '') ? p.stock <= Number(filterMaxStock) : true;
+    const matchesMinStock = (filterMinStock !== '') ? totalStock >= Number(filterMinStock) : true;
+    const matchesMaxStock = (filterMaxStock !== '') ? totalStock <= Number(filterMaxStock) : true;
     
     const matchesMinPrice = (filterMinPrice !== '') ? p.price >= Number(filterMinPrice) : true;
     const matchesMaxPrice = (filterMaxPrice !== '') ? p.price <= Number(filterMaxPrice) : true;
@@ -1041,13 +1050,16 @@ export const Urunler: React.FC = () => {
                     {Number(product.price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                   </td>
                   <td className="px-6 py-4">
-                    {product.stock === 0 ? (
-                      <span className="text-red-600 text-sm font-medium bg-red-50 px-2 py-1 rounded">Tükendi</span>
-                    ) : product.stock < 10 ? (
-                      <span className="text-orange-600 text-sm font-medium bg-orange-50 px-2 py-1 rounded">Kritik ({product.stock} {product.unit || 'Adet'})</span>
-                    ) : (
-                      <span className="text-emerald-600 text-sm font-medium bg-emerald-50 px-2 py-1 rounded">Stokta ({product.stock} {product.unit || 'Adet'})</span>
-                    )}
+                    {(() => {
+                      const totalStock = getProductTotalStock(product);
+                      return totalStock <= 0 ? (
+                        <span className="text-red-600 text-sm font-medium bg-red-50 px-2 py-1 rounded">Tükendi</span>
+                      ) : totalStock < 10 ? (
+                        <span className="text-orange-600 text-sm font-medium bg-orange-50 px-2 py-1 rounded">Kritik ({totalStock} {product.unit || 'Adet'})</span>
+                      ) : (
+                        <span className="text-emerald-600 text-sm font-medium bg-emerald-50 px-2 py-1 rounded">Stokta ({totalStock} {product.unit || 'Adet'})</span>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">

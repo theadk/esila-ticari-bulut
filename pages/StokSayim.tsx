@@ -57,12 +57,19 @@ export const StokSayim: React.FC = () => {
             : item
         );
       } else {
+        const getProductTotalStock = (p: Product) => {
+          if (p.warehouseStocks && p.warehouseStocks.length > 0) {
+            return p.warehouseStocks.reduce((sum, w) => sum + (Number(w.stock) || 0), 0);
+          }
+          return Number(p.stock) || 0;
+        };
+
         return [...prev, {
           productId: product.id,
           code: product.code,
           barcode: product.barcode,
           name: product.name,
-          systemStock: product.stock,
+          systemStock: getProductTotalStock(product),
           countedStock: 1
         }];
       }
