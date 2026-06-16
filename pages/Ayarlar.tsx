@@ -95,6 +95,28 @@ export const Ayarlar: React.FC = () => {
     }
   };
 
+  const handleTakeServerBackup = async () => {
+    try {
+      const res = await fetch('/api/take-tenant-backup', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-tenant-id': localStorage.getItem('esila_tenant_id') || ''
+        }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(data.message || 'Yedek başarıyla alındı.');
+        fetchServerBackups(); // Refresh the list
+      } else {
+        toast.error(data.error || 'Yedekleme başarısız oldu.');
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Yedekleme sırasında bir hata oluştu.');
+    }
+  };
+
   const handleImportBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -1013,11 +1035,19 @@ export const Ayarlar: React.FC = () => {
                 </div>
 
                 <div className="border rounded-xl p-6 bg-amber-50/50">
-                  <div className="flex items-center gap-3 mb-4 text-amber-800">
-                    <Clock size={24} />
-                    <h4 className="font-semibold text-lg">Sunucu Yedekleri</h4>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3 text-amber-800">
+                      <Clock size={24} />
+                      <h4 className="font-semibold text-lg">Sunucu Yedekleri</h4>
+                    </div>
+                    <button
+                      onClick={handleTakeServerBackup}
+                      className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Şimdi Yedek Al
+                    </button>
                   </div>
-                  <p className="text-sm text-gray-600 mb-6">Sistem tarafından otomatik alınan VKN tabanlı yedekleri listeleyin ve tek tıkla geri dönün. <strong className="text-red-600">Bu işlem geri alınamaz!</strong></p>
+                  <p className="text-sm text-gray-600 mb-6">Sistem tarafından otomatik alınan VKN tabanlı yedekleri listeleyin ve tek tıkla geri dönün. Veya manuel olarak sunucuya yedek alabilirsiniz. <strong className="text-red-600">Bu işlem geri alınamaz!</strong></p>
                   
                   {serverBackups.length === 0 ? (
                     <div className="text-sm text-gray-500 italic p-3 bg-white/50 rounded-lg text-center">Sunucuda henüz otomatik yedek bulunmuyor.</div>

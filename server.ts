@@ -2845,6 +2845,64 @@ async function startServer() {
     }
   });
 
+  app.post("/api/take-tenant-backup", async (req, res) => {
+    try {
+      const vkn = req.headers["x-tenant-id"] as string;
+      if (!vkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
+
+      const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
+      const tenantDir = path.join(process.cwd(), 'backups', vkn);
+      
+      const fs = await import('fs');
+      if (!fs.existsSync(tenantDir)) {
+          fs.mkdirSync(tenantDir, { recursive: true });
+      }
+
+      const backupData: Record<string, any[]> = {};
+      const ALL_TABLES = [
+        "users", "settings", "categories", "brands", "products", "warehouses", "stock_transfers",
+        "customers", "customer_transactions", "cash_transactions", "personnel", "personnel_records", 
+        "orders", "proposals", "reconciliations", "service_tickets", "e_invoices", 
+        "email_logs", "reminder_notes", "job_applications"
+      ];
+
+      if (!isMySQL) {
+          for (const table of ALL_TABLES) {
+              backupData[table] = getFallbackTable(table as any, vkn);
+          }
+      } else {
+          const pool = getPool();
+          for (const table of ALL_TABLES) {
+              try {
+                  const [rows] = await pool.query(`SELECT * FROM ${table} WHERE vkn = ?`, [vkn]);
+                  backupData[table] = rows as any[];
+              } catch (e) {
+                  // ignore
+              }
+          }
+      }
+
+      const timestamp = new Date().toISOString().replace(/:/g, '-');
+      const backupFile = path.join(tenantDir, `backup_${timestamp}.json`);
+      fs.writeFileSync(backupFile, JSON.stringify(backupData, null, 2), 'utf-8');
+
+      // Keep only the last 5 backups
+      const files = fs.readdirSync(tenantDir).filter((f: string) => f.startsWith('backup_') && f.endsWith('.json'));
+      if (files.length > 5) {
+          files.sort();
+          const filesToDelete = files.slice(0, files.length - 5);
+          for (const fileToDelete of filesToDelete) {
+              fs.unlinkSync(path.join(tenantDir, fileToDelete));
+          }
+      }
+
+      res.json({ success: true, message: "Manuel yedekleme başarıyla tamamlandı." });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ success: false, error: "Yedekleme sırasında hata oluştu: " + e.message });
+    }
+  });
+
   app.post("/api/restore-tenant-backup", async (req, res) => {
     try {
       const vkn = req.headers["x-tenant-id"] as string;
