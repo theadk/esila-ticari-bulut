@@ -51,6 +51,8 @@ async function startServer() {
   startMailScheduler();
   startBackupScheduler();
 
+  let activeConnectionsCount = 0;
+
   const app = express();
   const PORT = process.env.PORT || 3000;
 
@@ -651,6 +653,48 @@ async function startServer() {
      } catch (e) {
        res.status(500).json({ error: String(e) });
      }
+  });
+
+  app.get("/api/system-stats", (req, res) => {
+    try {
+      const os = require("os");
+      const cpus = os.cpus();
+      let totalIdle = 0, totalTick = 0;
+
+      for (var i = 0, len = cpus.length; i < len; i++) {
+        var cpu = cpus[i];
+        for (let type in cpu.times) {
+          totalTick += (cpu.times as any)[type];
+        }
+        totalIdle += cpu.times.idle;
+      }
+      
+      const idle = totalIdle / cpus.length;
+      const total = totalTick / cpus.length;
+      const usage = 100 - Math.floor(100 * idle / total);
+
+      const totalMem = os.totalmem();
+      const freeMem = os.freemem();
+      const usedMem = totalMem - freeMem;
+      const memUsage = (usedMem / totalMem) * 100;
+
+      res.json({
+        cpu: {
+          usage: usage,
+          cores: cpus.length
+        },
+        memory: {
+          total: +(totalMem / 1024 / 1024 / 1024).toFixed(2),
+          used: +(usedMem / 1024 / 1024 / 1024).toFixed(2),
+          free: +(freeMem / 1024 / 1024 / 1024).toFixed(2),
+          usagePercentage: +memUsage.toFixed(2)
+        },
+        uptime: os.uptime(),
+        activeConnections: activeConnectionsCount
+      });
+    } catch(e) {
+      res.status(500).json({ error: String(e) });
+    }
   });
 
   app.get("/api/products", async (req, res) => {
@@ -2992,8 +3036,15 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+  });
+
+  server.on('connection', (conn) => {
+    activeConnectionsCount++;
+    conn.on('close', () => {
+      activeConnectionsCount--;
+    });
   });
 }
 

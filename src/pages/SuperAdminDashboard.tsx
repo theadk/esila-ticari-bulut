@@ -28,6 +28,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   const [pendingTimeoutTenants, setPendingTimeoutTenants] = useState<Tenant[]>([]);
   const [inactiveTenants, setInactiveTenants] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'tenants' | 'logs' | 'activationLogs' | 'pendingTimeout' | 'inactiveTenants' | 'sessionLogs' | 'backup'>('tenants');
+  const [systemStats, setSystemStats] = useState<any>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -120,6 +121,13 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     } catch (e) {}
   };
 
+  const fetchSystemStats = async () => {
+    try {
+      const res = await fetch('/api/system-stats');
+      if (res.ok) setSystemStats(await res.json());
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetchTenants();
     fetchEmailLogs();
@@ -127,6 +135,10 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     fetchSessionLogs();
     fetchPendingTimeout();
     fetchInactiveTenants();
+    fetchSystemStats();
+
+    const interval = setInterval(fetchSystemStats, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -283,6 +295,34 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
 
       <main className="flex-1 max-w-[98%] w-full mx-auto p-6">
         
+        {systemStats && (
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-wrap gap-6 items-center">
+             <div className="flex items-center gap-3">
+                <div className="bg-blue-100 p-2 rounded-lg text-blue-600"><Database size={20} /></div>
+                <div>
+                   <p className="text-xs text-gray-500 font-medium uppercase">RAM Kullanımı</p>
+                   <p className="text-lg font-bold text-gray-800">{systemStats.memory.usagePercentage}% <span className="text-sm font-normal text-gray-500">({systemStats.memory.used} / {systemStats.memory.total} GB)</span></p>
+                </div>
+             </div>
+             <div className="w-px h-10 bg-gray-200 hidden sm:block"></div>
+             <div className="flex items-center gap-3">
+                <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600"><RefreshCcw size={20} /></div>
+                <div>
+                   <p className="text-xs text-gray-500 font-medium uppercase">CPU Kullanımı</p>
+                   <p className="text-lg font-bold text-gray-800">{systemStats.cpu.usage}% <span className="text-sm font-normal text-gray-500">({systemStats.cpu.cores} Çekirdek)</span></p>
+                </div>
+             </div>
+             <div className="w-px h-10 bg-gray-200 hidden sm:block"></div>
+             <div className="flex items-center gap-3">
+                <div className="bg-purple-100 p-2 rounded-lg text-purple-600"><UserCheck size={20} /></div>
+                <div>
+                   <p className="text-xs text-gray-500 font-medium uppercase">Aktif Bağlantılar</p>
+                   <p className="text-lg font-bold text-gray-800">{systemStats.activeConnections}</p>
+                </div>
+             </div>
+          </div>
+        )}
+
         <div className="flex space-x-1 mb-6 bg-white p-1 rounded-lg shadow-sm border border-gray-200 inline-flex">
           <button
             onClick={() => setActiveTab('tenants')}
