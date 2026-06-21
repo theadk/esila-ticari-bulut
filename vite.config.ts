@@ -8,7 +8,8 @@ export default defineConfig(({ mode }) => {
     return {
       server: {
         port: 3000,
-        host: 'bulut.esilaticari.com',
+        host: '0.0.0.0',
+        allowedHosts: true,
       },
       plugins: [
         react(),

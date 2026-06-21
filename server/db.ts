@@ -10,7 +10,10 @@ export function getPool() {
       // Dummy pool if no url provided, though this will throw on query
       pool = mysql.createPool({ uri: 'mysql://dummy' });
     } else {
-      pool = mysql.createPool(process.env.DATABASE_URL);
+      pool = mysql.createPool({
+        uri: process.env.DATABASE_URL,
+        connectTimeout: 10000 // 10 seconds timeout
+      });
     }
   }
   return pool;

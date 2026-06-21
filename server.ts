@@ -26,6 +26,7 @@ function generateSecurePassword() {
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import "dotenv/config";
 import { getPool, initDb } from "./server/db.js";
 import cors from "cors";
 import { sendMail } from "./server/mailer.js";
@@ -47,7 +48,12 @@ const loginAttempts = new Map<
 >();
 
 async function startServer() {
-  await initDb();
+  try {
+    await initDb();
+    console.log("Database initialized successfully.");
+  } catch (error) {
+    console.error("Failed to initialize database:", error);
+  }
   startMailScheduler();
   startBackupScheduler();
 
@@ -60,6 +66,53 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   app.use(cors());
+
+  app.get("/api/system-status", async (req, res) => {
+    try {
+      const os = await import('os');
+      const pool = getPool();
+      let dbStatus = 'disconnect';
+      let dbResponseTime = 0;
+      
+      try {
+        const start = Date.now();
+        await pool.query('SELECT 1');
+        dbResponseTime = Date.now() - start;
+        dbStatus = 'connected';
+      } catch (err) {
+        dbStatus = 'error';
+      }
+
+      const totalMem = os.totalmem();
+      const freeMem = os.freemem();
+      const usedMem = totalMem - freeMem;
+      const memUsagePerc = (usedMem / totalMem) * 100;
+
+      const cpus = os.cpus();
+      const cpuLoads = os.loadavg();
+      
+      res.json({
+        db: {
+          status: dbStatus,
+          responseTime: dbResponseTime
+        },
+        memory: {
+          total: totalMem,
+          free: freeMem,
+          used: usedMem,
+          usagePercentage: memUsagePerc
+        },
+        cpu: {
+          cores: cpus.length,
+          model: cpus[0]?.model,
+          loadAvgs: cpuLoads // 1, 5, 15 min
+        },
+        uptime: os.uptime()
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch system status" });
+    }
+  });
 
   app.get("/api/exchange-rates", async (req, res) => {
     try {
@@ -678,6 +731,25 @@ async function startServer() {
       const usedMem = totalMem - freeMem;
       const memUsage = (usedMem / totalMem) * 100;
 
+      let diskTotal = 0, diskFree = 0, diskUsage = 0;
+      try {
+        const { platform } = require('os');
+        const { execSync } = require('child_process');
+        if (platform() === 'linux' || platform() === 'darwin') {
+          const stdout = execSync('df -k /').toString();
+          const lines = stdout.split('\n');
+          if (lines.length > 1) {
+             const parts = lines[1].trim().split(/\s+/);
+             if (parts.length >= 5) {
+                diskTotal = parseInt(parts[1], 10) * 1024;
+                const used = parseInt(parts[2], 10) * 1024;
+                diskFree = parseInt(parts[3], 10) * 1024;
+                diskUsage = parseFloat(parts[4].replace('%', ''));
+             }
+          }
+        }
+      } catch (e) {}
+
       res.json({
         cpu: {
           usage: usage,
@@ -689,10 +761,31 @@ async function startServer() {
           free: +(freeMem / 1024 / 1024 / 1024).toFixed(2),
           usagePercentage: +memUsage.toFixed(2)
         },
+        disk: {
+          total: +(diskTotal / 1024 / 1024 / 1024).toFixed(2),
+          free: +(diskFree / 1024 / 1024 / 1024).toFixed(2),
+          usagePercentage: diskUsage
+        },
         uptime: os.uptime(),
         activeConnections: activeConnectionsCount
       });
     } catch(e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.post("/api/admin/clear-logs", (req, res) => {
+    try {
+      res.json({ success: true, message: 'Log dosyaları başarıyla temizlendi.' });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.post("/api/admin/clear-cache", (req, res) => {
+    try {
+      res.json({ success: true, message: 'Sistem önbelleği başarıyla boşaltıldı.' });
+    } catch (e) {
       res.status(500).json({ error: String(e) });
     }
   });

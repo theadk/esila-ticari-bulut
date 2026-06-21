@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X, Hash, Users, Clock, FileText, Database, Download, BookOpen } from 'lucide-react';
+import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X, Hash, Users, Clock, FileText, Database, Download, BookOpen, Activity } from 'lucide-react';
 import { Settings } from '../types';
 import { useAppStore } from '../lib/store';
 import { copyToClipboard } from '../lib/utils';
 import { UsersSettings } from '../components/UsersSettings';
 import { UserManual } from '../components/UserManual';
+import { SystemStatus } from '../components/SystemStatus';
 import toast from 'react-hot-toast';
 
 export const Ayarlar: React.FC = () => {
@@ -181,6 +182,7 @@ export const Ayarlar: React.FC = () => {
     { id: 'kullanicilar', label: 'Kullanıcılar', icon: Users },
     { id: 'efatura', label: 'E-Fatura', icon: FileText },
     { id: 'yedekleme', label: 'Yedekleme & Kurtarma', icon: Database },
+    { id: 'sistem', label: 'Sistem Durumu', icon: Activity },
     { id: 'kilavuz', label: 'Kullanım Kılavuzu', icon: BookOpen },
   ];
 
@@ -1075,6 +1077,12 @@ export const Ayarlar: React.FC = () => {
           {activeTab === 'kilavuz' && (
             <div className="space-y-6 animate-fade-in">
               <UserManual />
+            </div>
+          )}
+
+          {activeTab === 'sistem' && (
+            <div className="space-y-6 animate-fade-in">
+              <SystemStatus />
             </div>
           )}
 
