@@ -3070,7 +3070,15 @@ async function startServer() {
                         const columnsSet = new Set<string>();
                         rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
                         columnsSet.add('vkn'); // Ensure vkn is there
-                        const columns = Array.from(columnsSet);
+                        let columns = Array.from(columnsSet);
+                        
+                        try {
+                          const [colRows]: any = await pool.query(`SHOW COLUMNS FROM \`${table}\``);
+                          const validColumns = colRows.map((c: any) => c.Field);
+                          columns = columns.filter(c => validColumns.includes(c));
+                        } catch (colErr) {}
+
+                        if (columns.length === 0) continue;
                         
                         const chunk_size = 50;
                         for (let i = 0; i < rows.length; i += chunk_size) {
@@ -3158,7 +3166,15 @@ async function startServer() {
                       const columnsSet = new Set<string>();
                       rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
                       columnsSet.add('vkn'); // Ensure vkn is there
-                      const columns = Array.from(columnsSet);
+                      let columns = Array.from(columnsSet);
+                      
+                      try {
+                        const [colRows]: any = await pool.query(`SHOW COLUMNS FROM \`${table}\``);
+                        const validColumns = colRows.map((c: any) => c.Field);
+                        columns = columns.filter(c => validColumns.includes(c));
+                      } catch (colErr) {}
+
+                      if (columns.length === 0) continue;
                       
                       const chunk_size = 50;
                       for (let i = 0; i < rows.length; i += chunk_size) {
@@ -3236,8 +3252,19 @@ async function startServer() {
                 if (rows && rows.length > 0) {
                   const columnsSet = new Set<string>();
                   rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
-                  const columns = Array.from(columnsSet);
+                  let columns = Array.from(columnsSet);
                   
+                  // Keep only valid columns from the DB schema
+                  try {
+                    const [colRows]: any = await pool.query(`SHOW COLUMNS FROM \`${table}\``);
+                    const validColumns = colRows.map((c: any) => c.Field);
+                    columns = columns.filter(c => validColumns.includes(c));
+                  } catch (colErr) {
+                    // Ignore column check errors, assume original columns
+                  }
+                  
+                  if (columns.length === 0) continue;
+
                   const chunk_size = 50;
                   for (let i = 0; i < rows.length; i += chunk_size) {
                     const chunk = rows.slice(i, i + chunk_size);
