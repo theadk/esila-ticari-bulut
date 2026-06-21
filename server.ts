@@ -3040,6 +3040,79 @@ async function startServer() {
     }
   });
 
+  app.post("/api/restore-tenant-upload", async (req, res) => {
+    try {
+        const vkn = req.headers["x-tenant-id"] as string;
+        if (!vkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
+
+        const backupJSON = req.body;
+        if (!backupJSON || typeof backupJSON !== 'object') return res.status(400).json({ success: false, error: "Veri eksik." });
+
+        const fs = await import('fs');
+        const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
+        const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes'];
+
+        if (isMySQL) {
+            const pool = getPool();
+            await pool.query('SET FOREIGN_KEY_CHECKS = 0');
+            for (const table of allowedTables) {
+                const rows = backupJSON[table];
+                if (rows && Array.isArray(rows)) {
+                    await pool.query(`DELETE FROM \`${table}\` WHERE vkn = ?`, [vkn]);
+                    
+                    if (rows.length > 0) {
+                        const columnsSet = new Set<string>();
+                        rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
+                        columnsSet.add('vkn'); // Ensure vkn is there
+                        const columns = Array.from(columnsSet);
+                        
+                        const chunk_size = 50;
+                        for (let i = 0; i < rows.length; i += chunk_size) {
+                            const chunk = rows.slice(i, i + chunk_size);
+                            const placeholders = chunk.map(() => `(${columns.map(() => '?').join(',')})`).join(',');
+                            const values = chunk.flatMap((r: any) => columns.map(c => {
+                                if (c === 'vkn') return vkn;
+                                let val = r[c];
+                                if (val === undefined) return null;
+                                if (typeof val === 'object' && val !== null && !(val instanceof Date)) return JSON.stringify(val);
+                                return val;
+                            }));
+                            
+                            const sql = `INSERT INTO \`${table}\` (${columns.map(c => `\`${c}\``).join(',')}) VALUES ${placeholders}`;
+                            await pool.query(sql, values);
+                        }
+                    }
+                }
+            }
+            await pool.query('SET FOREIGN_KEY_CHECKS = 1');
+            res.json({ success: true, message: "Bağlı hesaba ait yedek başarıyla geri yüklendi." });
+        } else {
+            const DB_FILE = path.join(process.cwd(), 'local_db.json');
+            if (fs.existsSync(DB_FILE)) {
+                const dbData = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+                
+                allowedTables.forEach((table) => {
+                    if (dbData[table] && backupJSON[table] && Array.isArray(backupJSON[table])) {
+                        dbData[table] = dbData[table].filter((row: any) => row.vkn !== vkn);
+                        const restoredRows = backupJSON[table] || [];
+                        restoredRows.forEach((r:any) => r.vkn = vkn);
+                        dbData[table] = [...dbData[table], ...restoredRows];
+                    }
+                });
+                
+                fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2), "utf-8");
+                reloadFallbackDb();
+                res.json({ success: true, message: "Bağlı hesaba ait yedek başarıyla geri yüklendi." });
+            } else {
+                res.status(500).json({ success: false, error: "Sistem veritabanı bulunamadı." });
+            }
+        }
+    } catch (e: any) {
+        console.error("Upload restore error:", e);
+        res.status(500).json({ success: false, error: "Geri yükleme sırasında hata oluştu: " + e.message });
+    }
+  });
+
   app.post("/api/restore-tenant-backup", async (req, res) => {
     try {
       const vkn = req.headers["x-tenant-id"] as string;
@@ -3120,13 +3193,21 @@ async function startServer() {
                 await pool.query(`DELETE FROM \`${table}\``);
                 const rows = data[table];
                 if (rows && rows.length > 0) {
-                  const columns = Object.keys(rows[0]);
-                  const chunk_size = 100;
+                  const columnsSet = new Set<string>();
+                  rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
+                  const columns = Array.from(columnsSet);
+                  
+                  const chunk_size = 50;
                   for (let i = 0; i < rows.length; i += chunk_size) {
                     const chunk = rows.slice(i, i + chunk_size);
                     const placeholders = chunk.map(() => `(${columns.map(() => '?').join(',')})`).join(',');
-                    const values = chunk.flatMap(r => columns.map(c => (typeof r[c] === 'object' && r[c] !== null && !(r[c] instanceof Date)) ? JSON.stringify(r[c]) : r[c]));
-                    // Handle case where some values could be missing or undefined
+                    const values = chunk.flatMap((r: any) => columns.map(c => {
+                      let val = r[c];
+                      if (val === undefined) return null;
+                      if (typeof val === 'object' && val !== null && !(val instanceof Date)) return JSON.stringify(val);
+                      return val;
+                    }));
+                    
                     const sql = `INSERT INTO \`${table}\` (${columns.map(c => `\`${c}\``).join(',')}) VALUES ${placeholders}`;
                     await pool.query(sql, values);
                   }

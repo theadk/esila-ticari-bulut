@@ -127,28 +127,30 @@ export const Ayarlar: React.FC = () => {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const result = e.target?.result as string;
         const data = JSON.parse(result);
         
-        if (data.users && Array.isArray(data.users)) store.setUsers(data.users);
-        if (data.settings) store.setSettings(data.settings);
-        if (data.customers && Array.isArray(data.customers)) store.setCustomers(data.customers);
-        if (data.products && Array.isArray(data.products)) store.setProducts(data.products);
-        if (data.transactions && Array.isArray(data.transactions)) store.setTransactions(data.transactions);
-        if (data.cashTransactions && Array.isArray(data.cashTransactions)) store.setCashTransactions(data.cashTransactions);
-        if (data.personnel && Array.isArray(data.personnel)) store.setPersonnel(data.personnel);
-        if (data.orders && Array.isArray(data.orders)) store.setOrders(data.orders);
-        if (data.proposals && Array.isArray(data.proposals)) store.setProposals(data.proposals);
-        if (data.eInvoices && Array.isArray(data.eInvoices)) store.setEInvoices(data.eInvoices);
-        if (data.serviceTickets && Array.isArray(data.serviceTickets)) store.setServiceTickets(data.serviceTickets);
+        toast.loading('Yedek yükleniyor...', { id: 'restore' });
+        const res = await fetch('/api/restore-tenant-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+             'x-tenant-id': localStorage.getItem('esila_tenant_id') || ''
+          },
+          body: JSON.stringify(data)
+        });
         
-        toast.success('Veriler kurtarıldı. Sisteme başarıyla yedek yüklendi.');
-        // Refresh page to clean UI state
-        setTimeout(() => window.location.reload(), 1500);
+        const resData = await res.json();
+        if (res.ok && resData.success) {
+          toast.success('Veriler kurtarıldı. Sisteme başarıyla yedek yüklendi.', { id: 'restore' });
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          toast.error(resData.error || 'Yükleme başarısız oldu.', { id: 'restore' });
+        }
       } catch (err) {
-        toast.error('Geçersiz yedek dosyası.');
+        toast.error('Geçersiz yedek dosyası.', { id: 'restore' });
       }
     };
     reader.readAsText(file);
