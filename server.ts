@@ -3143,30 +3143,64 @@ async function startServer() {
         return res.status(500).json({ success: false, error: "Yedek dosyası bozuk (JSON Hatası)." });
       }
 
-      // We only support fallbackDb restore dynamically since the MySQL approach would require mapping
-      // To properly restore for fallbackDb, we need to load current dbData, replace the tenant's rows, and save
-      const DB_FILE = path.join(process.cwd(), 'local_db.json');
-      if (fs.existsSync(DB_FILE)) {
-          const dbDataText = fs.readFileSync(DB_FILE, 'utf-8');
-          const dbData = JSON.parse(dbDataText);
-          
-          Object.keys(backupJSON).forEach((table) => {
-             if (dbData[table]) {
-                 // Remove old rows for this tenant
-                 dbData[table] = dbData[table].filter((row: any) => row.vkn !== vkn);
-                 // Add the rows from backup
-                 const restoredRows = (backupJSON as any)[table] || [];
-                 dbData[table] = [...dbData[table], ...restoredRows];
-             }
-          });
+      const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
+      const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes'];
 
+      if (isMySQL) {
+          const pool = getPool();
+          await pool.query('SET FOREIGN_KEY_CHECKS = 0');
+          for (const table of allowedTables) {
+              const rows = (backupJSON as any)[table];
+              if (rows && Array.isArray(rows)) {
+                  await pool.query(`DELETE FROM \`${table}\` WHERE vkn = ?`, [vkn]);
+                  
+                  if (rows.length > 0) {
+                      const columnsSet = new Set<string>();
+                      rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
+                      columnsSet.add('vkn'); // Ensure vkn is there
+                      const columns = Array.from(columnsSet);
+                      
+                      const chunk_size = 50;
+                      for (let i = 0; i < rows.length; i += chunk_size) {
+                          const chunk = rows.slice(i, i + chunk_size);
+                          const placeholders = chunk.map(() => `(${columns.map(() => '?').join(',')})`).join(',');
+                          const values = chunk.flatMap((r: any) => columns.map(c => {
+                              if (c === 'vkn') return vkn;
+                              let val = r[c];
+                              if (val === undefined) return null;
+                              if (typeof val === 'object' && val !== null && !(val instanceof Date)) return JSON.stringify(val);
+                              return val;
+                          }));
+                          
+                          const sql = `INSERT INTO \`${table}\` (${columns.map(c => `\`${c}\``).join(',')}) VALUES ${placeholders}`;
+                          await pool.query(sql, values);
+                      }
+                  }
+              }
+          }
+          await pool.query('SET FOREIGN_KEY_CHECKS = 1');
           res.json({ success: true, message: "Bağlı hesaba ait yedek başarıyla geri yüklendi." });
-          setTimeout(() => {
-            fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2), "utf-8");
-            reloadFallbackDb();
-          }, 500);
       } else {
-          res.status(500).json({ success: false, error: "Sistem veritabanı dosyası bulunamadı." });
+          const DB_FILE = path.join(process.cwd(), 'local_db.json');
+          if (fs.existsSync(DB_FILE)) {
+              const dbData = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+              
+              allowedTables.forEach((table) => {
+                  if ((backupJSON as any)[table] && Array.isArray((backupJSON as any)[table])) {
+                      if (!dbData[table]) dbData[table] = [];
+                      dbData[table] = dbData[table].filter((row: any) => row.vkn !== vkn);
+                      const restoredRows = (backupJSON as any)[table] || [];
+                      restoredRows.forEach((r:any) => r.vkn = vkn);
+                      dbData[table] = [...dbData[table], ...restoredRows];
+                  }
+              });
+              
+              fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2), "utf-8");
+              reloadFallbackDb();
+              res.json({ success: true, message: "Bağlı hesaba ait yedek başarıyla geri yüklendi." });
+          } else {
+              res.status(500).json({ success: false, error: "Sistem veritabanı bulunamadı." });
+          }
       }
     } catch (e: any) {
       console.error(e);
