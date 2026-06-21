@@ -68,6 +68,7 @@ async function startServer() {
   app.use(cors());
 
   app.get("/api/system-status", async (req, res) => {
+    console.log("DB URL inside system-status:", process.env.DATABASE_URL);
     try {
       const os = await import('os');
       const pool = getPool();
@@ -3048,6 +3049,11 @@ async function startServer() {
         const backupJSON = req.body;
         if (!backupJSON || typeof backupJSON !== 'object') return res.status(400).json({ success: false, error: "Veri eksik." });
 
+        if (backupJSON.transactions) { backupJSON.customer_transactions = backupJSON.transactions; }
+        if (backupJSON.cashTransactions) { backupJSON.cash_transactions = backupJSON.cashTransactions; }
+        if (backupJSON.eInvoices) { backupJSON.e_invoices = backupJSON.eInvoices; }
+        if (backupJSON.serviceTickets) { backupJSON.service_tickets = backupJSON.serviceTickets; }
+
         const fs = await import('fs');
         const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
         const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes'];
@@ -3092,7 +3098,8 @@ async function startServer() {
                 const dbData = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
                 
                 allowedTables.forEach((table) => {
-                    if (dbData[table] && backupJSON[table] && Array.isArray(backupJSON[table])) {
+                    if (backupJSON[table] && Array.isArray(backupJSON[table])) {
+                        if (!dbData[table]) dbData[table] = [];
                         dbData[table] = dbData[table].filter((row: any) => row.vkn !== vkn);
                         const restoredRows = backupJSON[table] || [];
                         restoredRows.forEach((r:any) => r.vkn = vkn);
