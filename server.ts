@@ -3100,15 +3100,53 @@ async function startServer() {
       const BACKUP_FILE = path.join(process.cwd(), 'backup.json');
       const DB_FILE = path.join(process.cwd(), 'local_db.json');
 
-      if (fs.existsSync(BACKUP_FILE)) {
-        res.json({ success: true, message: "Yedek başarıyla geri yüklendi." });
-        setTimeout(() => {
-          fs.copyFileSync(BACKUP_FILE, DB_FILE);
-          reloadFallbackDb();
-        }, 500);
-      } else {
-        res.status(404).json({ success: false, error: "Sunucuda otomatik gece yedeği bulunamadı." });
+      if (!fs.existsSync(BACKUP_FILE)) {
+        return res.status(404).json({ success: false, error: "Sunucuda otomatik gece yedeği bulunamadı." });
       }
+
+      res.json({ success: true, message: "Yedek başarıyla geri yüklendi." });
+
+      setTimeout(async () => {
+        try {
+          const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
+          if (isMySQL) {
+            const pool = getPool();
+            const data = JSON.parse(fs.readFileSync(BACKUP_FILE, "utf-8"));
+            await pool.query('SET FOREIGN_KEY_CHECKS = 0');
+            for (const table of Object.keys(data)) {
+              try {
+                // TRUNCATE is faster than DELETE FROM, but requires DROP privilege.
+                // DELETE FROM is generally safer syntax-wise.
+                await pool.query(`DELETE FROM \`${table}\``);
+                const rows = data[table];
+                if (rows && rows.length > 0) {
+                  const columns = Object.keys(rows[0]);
+                  const chunk_size = 100;
+                  for (let i = 0; i < rows.length; i += chunk_size) {
+                    const chunk = rows.slice(i, i + chunk_size);
+                    const placeholders = chunk.map(() => `(${columns.map(() => '?').join(',')})`).join(',');
+                    const values = chunk.flatMap(r => columns.map(c => (typeof r[c] === 'object' && r[c] !== null && !(r[c] instanceof Date)) ? JSON.stringify(r[c]) : r[c]));
+                    // Handle case where some values could be missing or undefined
+                    const sql = `INSERT INTO \`${table}\` (${columns.map(c => `\`${c}\``).join(',')}) VALUES ${placeholders}`;
+                    await pool.query(sql, values);
+                  }
+                }
+              } catch (err) {
+                console.error(`Tablo geri yükleme hatası (${table}):`, err);
+              }
+            }
+            await pool.query('SET FOREIGN_KEY_CHECKS = 1');
+            console.log("MySQL yedeği başarıyla yüklendi.");
+          } else {
+            // Local fallbackDb
+            fs.copyFileSync(BACKUP_FILE, DB_FILE);
+            reloadFallbackDb();
+          }
+        } catch (restoreErr) {
+          console.error("Nightly backup loading error:", restoreErr);
+        }
+      }, 500);
+
     } catch (e: any) {
       console.error(e);
       res.status(500).json({ success: false, error: "Geri yükleme sırasında hata oluştu: " + e.message });
