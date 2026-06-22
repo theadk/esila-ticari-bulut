@@ -2901,7 +2901,8 @@ async function startServer() {
           return res.json(req.body);
         }
         const pool = getPool();
-        const data = req.body;
+        const data = { ...req.body };
+        if (data.vkn) delete data.vkn;
         const keys = Object.keys(data);
         const values = Object.values(data).map((v) =>
           typeof v === "object" && v !== null ? JSON.stringify(v) : v,
@@ -2929,8 +2930,9 @@ async function startServer() {
           return res.json({ id: req.params.id, ...req.body });
         }
         const pool = getPool();
-        const data = req.body;
+        const data = { ...req.body };
         if (data.id) delete data.id; // Don't update id
+        if (data.vkn) delete data.vkn; // Don't update vkn
         const keys = Object.keys(data);
         const values = keys.map((k) =>
           typeof data[k] === "object" && data[k] !== null

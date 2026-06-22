@@ -10,7 +10,7 @@ async function importDb() {
   
   const data = JSON.parse(fs.readFileSync(BACKUP_FILE, "utf-8"));
   
-  const connectionString = "mysql://esilayaz_esilaticari:Korkmaz66%2A%2A@esilayazilim.com:3306/esilayaz_esilaticari";
+  const connectionString = "mysql://esilayaz_esilaticari:q7D6%24ry84@esilayazilim.com:3306/esilayaz_esilaticari";
   const pool = mysql.createPool(connectionString);
   
   await pool.query('SET FOREIGN_KEY_CHECKS = 0');
