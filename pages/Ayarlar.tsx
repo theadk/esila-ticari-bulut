@@ -997,6 +997,14 @@ export const Ayarlar: React.FC = () => {
           {activeTab === 'yedekleme' && (
             <div className="space-y-6 animate-fade-in md:p-8">
               <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Veri Yedekleme ve Kurtarma</h3>
+              
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 shadow-sm text-amber-800 mb-6">
+                <div className="font-semibold mb-2 flex items-center gap-2"><Activity size={18} /> Canlı Ortam Uyarısı!</div>
+                <p className="text-sm">
+                  <strong>Eğer sistemi aktif ticari bir şekilde canlı ortamda kullanacaksanız mutlaka harici bir MySQL/PostgreSQL veritabanına ihtiyacınız vardır</strong> (Örn. uzak bir hosting firmasındaki MySQL sunucunuz, Supabase veya Google Cloud SQL). Yerel (local) veritabanı yedeği silinebilir, dışa aktarırken eksik olabilir.
+                </p>
+              </div>
+
               <p className="text-sm text-gray-600 mb-6">Uygulama çökmelerinde veya veri kayıplarında kullanılmak üzere sisteminizin yedeğini alabilir veya mevcut yedeğinizi geri yükleyebilirsiniz.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">

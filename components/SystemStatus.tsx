@@ -5,6 +5,7 @@ interface SystemStatusData {
   db: {
     status: string;
     responseTime: number;
+    isFallback?: boolean;
   };
   memory: {
     total: number;
@@ -84,16 +85,16 @@ export const SystemStatus: React.FC = () => {
         {/* Database Status */}
         <div className="bg-white border rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-3 mb-4 text-emerald-600">
-            <div className="p-2 bg-emerald-50 rounded-lg">
-              <Database size={24} />
+            <div className={`p-2 rounded-lg ${status.db.isFallback ? 'bg-amber-50' : 'bg-emerald-50'}`}>
+              <Database size={24} className={status.db.isFallback ? 'text-amber-500' : 'text-emerald-600'} />
             </div>
             <h4 className="font-medium text-gray-900">Veritabanı</h4>
           </div>
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-500">Durum:</span>
-              <span className={`font-semibold ${status.db.status === 'connected' ? 'text-emerald-600' : 'text-red-500'}`}>
-                {status.db.status === 'connected' ? 'Bağlı' : 'Bağlantı Hatası'}
+              <span className={`font-semibold ${status.db.status === 'connected' ? 'text-emerald-600' : status.db.status === 'fallback' ? 'text-amber-500' : 'text-red-500'}`}>
+                {status.db.status === 'connected' ? 'Bağlı (MySQL)' : status.db.status === 'fallback' ? 'Yerel Demo DB' : 'Bağlantı Hatası'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -102,6 +103,15 @@ export const SystemStatus: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {status.db.isFallback && (
+          <div className="md:col-span-2 bg-amber-50 border border-amber-200 rounded-xl p-5 shadow-sm text-amber-800">
+            <div className="font-semibold mb-2">Canlı Ortam Uyarısı!</div>
+            <p className="text-sm">
+              Şu anda geçici (fallback) yerel veritabanını kullanıyorsunuz. <strong>Eğer sistemi aktif ticari bir şekilde canlı ortamda kullanacaksanız mutlaka harici bir MySQL/PostgreSQL veritabanına ihtiyacınız vardır</strong> (Örn. uzak bir hosting firmasındaki MySQL sunucunuz, Supabase veya Google Cloud SQL). Gece bazlı yedeklemeler bu moddayken sağlıklı çalışmayabilir.
+            </p>
+          </div>
+        )}
 
         {/* CPU Status */}
         <div className="bg-white border rounded-xl p-5 shadow-sm">

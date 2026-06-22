@@ -68,20 +68,23 @@ async function startServer() {
   app.use(cors());
 
   app.get("/api/system-status", async (req, res) => {
-    console.log("DB URL inside system-status:", process.env.DATABASE_URL);
     try {
       const os = await import('os');
-      const pool = getPool();
-      let dbStatus = 'disconnect';
+      const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
+      let dbStatus = isMySQL ? 'disconnect' : 'fallback';
       let dbResponseTime = 0;
+      let isFallback = !isMySQL;
       
-      try {
-        const start = Date.now();
-        await pool.query('SELECT 1');
-        dbResponseTime = Date.now() - start;
-        dbStatus = 'connected';
-      } catch (err) {
-        dbStatus = 'error';
+      if (isMySQL) {
+        const pool = getPool();
+        try {
+          const start = Date.now();
+          await pool.query('SELECT 1');
+          dbResponseTime = Date.now() - start;
+          dbStatus = 'connected';
+        } catch (err) {
+          dbStatus = 'error';
+        }
       }
 
       const totalMem = os.totalmem();
@@ -95,7 +98,8 @@ async function startServer() {
       res.json({
         db: {
           status: dbStatus,
-          responseTime: dbResponseTime
+          responseTime: dbResponseTime,
+          isFallback: isFallback
         },
         memory: {
           total: totalMem,
@@ -106,7 +110,7 @@ async function startServer() {
         cpu: {
           cores: cpus.length,
           model: cpus[0]?.model,
-          loadAvgs: cpuLoads // 1, 5, 15 min
+          loadAvgs: cpuLoads
         },
         uptime: os.uptime()
       });
