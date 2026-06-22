@@ -26,7 +26,13 @@ function generateSecurePassword() {
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import "dotenv/config";
+import { config as dotenvConfig } from "dotenv";
+import fs from "fs";
+
+if (fs.existsSync(".env")) {
+  dotenvConfig({ override: true });
+}
+
 import { getPool, initDb } from "./server/db.js";
 import cors from "cors";
 import { sendMail } from "./server/mailer.js";
@@ -60,7 +66,7 @@ async function startServer() {
   let activeConnectionsCount = 0;
 
   const app = express();
-  const PORT = process.env.PORT || 3000;
+  const PORT = 3000;
 
   // 50mb is a lot, but handles large payload images and PDFs
   app.use(express.json({ limit: "50mb" }));
