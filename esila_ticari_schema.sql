@@ -25,10 +25,12 @@ CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     username VARCHAR(100) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255),
     passwordHash VARCHAR(255) NOT NULL,
     role ENUM('Admin', 'Kullanıcı') DEFAULT 'Kullanıcı',
-    status ENUM('Aktif', 'Pasif') DEFAULT 'Aktif'
+    status ENUM('Aktif', 'Pasif') DEFAULT 'Aktif',
+    permissions JSON,
+    assignedWarehouse VARCHAR(50)
 );
 
 CREATE TABLE IF NOT EXISTS settings (
@@ -40,7 +42,7 @@ CREATE TABLE IF NOT EXISTS settings (
     email VARCHAR(255),
     taxOffice VARCHAR(255),
     taxNumber VARCHAR(255),
-    companyLogo TEXT,
+    companyLogo LONGTEXT,
     smtp_host VARCHAR(255),
     smtp_port VARCHAR(50),
     smtp_user VARCHAR(255),

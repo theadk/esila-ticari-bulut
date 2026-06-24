@@ -2,13 +2,15 @@
   "users": [
     {
       "vkn": "1111111111",
-      "id": "u1",
+      "id": "admin-1",
       "name": "Sistem Yöneticisi",
       "username": "admin",
-      "email": "admin@esila.com",
+      "email": "admin@firma.com",
       "passwordHash": "admin123",
       "role": "Admin",
-      "status": "Aktif"
+      "status": "Aktif",
+      "permissions": null,
+      "assignedWarehouse": null
     }
   ],
   "settings": [
@@ -19,7 +21,7 @@
       "address": null,
       "phone": null,
       "email": "admin@firma.com",
-      "taxOffice": null,
+      "taxOffice": "adk vergi dairesi",
       "taxNumber": null,
       "companyLogo": null,
       "smtp_host": null,
@@ -43,72 +45,70 @@
       "efatura_username": null,
       "efatura_password": null,
       "efatura_apikey": null,
-      "plumbingChecklistTemplate": null
-    }
-  ],
-  "categories": [
-    {
-      "vkn": "1111111111",
-      "id": "1",
-      "name": "Elektronik",
-      "sub_categories": [
-        "Telefon",
-        "Bilgisayar",
-        "Aksesuar"
-      ]
-    },
-    {
-      "vkn": "1111111111",
-      "id": "2",
-      "name": "Giyim",
-      "sub_categories": [
-        "Erkek",
-        "Kadın",
-        "Çocuk"
+      "plumbingChecklistTemplate": [
+        "Filtre Kontrolü",
+        "Boru Sızıntı Kontrolü",
+        "Su Basıncı Testi",
+        "Vana Kontrolü",
+        "Ekipman Temizliği"
       ]
     }
   ],
-  "brands": [
-    {
-      "vkn": "1111111111",
-      "id": "1",
-      "name": "Sony"
-    },
-    {
-      "vkn": "1111111111",
-      "id": "2",
-      "name": "Apple"
-    },
-    {
-      "vkn": "1111111111",
-      "id": "3",
-      "name": "Samsung"
-    }
-  ],
+  "categories": [],
+  "brands": [],
   "products": [],
   "warehouses": [],
   "stock_transfers": [],
   "customers": [
     {
       "vkn": "1111111111",
-      "id": "CUS-1781266914276",
+      "id": "TEST11",
       "type": null,
-      "name": "Bilinmeyen Satıcı",
-      "companyName": "Bilinmeyen Satıcı",
-      "taxOffice": "SARAYLAR",
-      "taxNumber": "16570889914",
+      "name": "Test",
+      "companyName": null,
+      "taxOffice": null,
+      "taxNumber": null,
       "tcNo": null,
-      "email": "",
-      "phone": "",
+      "email": null,
+      "phone": null,
       "address": null,
       "groupName": null,
       "riskLimit": null,
       "customerType": null,
-      "city": null,
+      "city": "Istanbul",
       "district": null,
       "iban": null,
       "balance": "0.00",
-      "status": "Aktif"
+      "status": "Aktif",
+      "efaturaType": null,
+      "efaturaScenario": null,
+      "efaturaInvoiceType": null,
+      "assignedUser": null
+    },
+    {
+      "vkn": "1111111111",
+      "id": "TEST_LAST",
+      "type": null,
+      "name": "Test",
+      "companyName": null,
+      "taxOffice": null,
+      "taxNumber": null,
+      "tcNo": null,
+      "email": null,
+      "phone": null,
+      "address": null,
+      "groupName": null,
+      "riskLimit": null,
+      "customerType": null,
+      "city": "Istanbul",
+      "district": null,
+      "iban": null,
+      "balance": "0.00",
+      "status": "Aktif",
+      "efaturaType": null,
+      "efaturaScenario": null,
+      "efaturaInvoiceType": null,
+      "assignedUser": null
     }
   ],
   "customer_transactions": [],
@@ -119,20 +119,63 @@
   "proposals": [],
   "reconciliations": [],
   "service_tickets": [],
-  "e_invoices": [
+  "e_invoices": [],
+  "email_logs": [
     {
+      "id": "17821132347026sg4de",
       "vkn": "1111111111",
-      "id": "BDE2026000000502",
-      "orderId": "",
-      "customerName": "Bilinmeyen Satıcı",
-      "amount": "2400.00",
-      "type": "Gelen Fatura",
-      "scenario": "TICARIFATURA",
-      "date": "2026-03-26T00:00:00.000Z",
-      "status": ""
+      "recipient": "test5@test.com",
+      "subject": "Yeni Kayıt Talebi - Esila Ticari",
+      "status": "Başarısız",
+      "errorMessage": "Error: Can't send mail - all recipients were rejected: 550-The mail server could not deliver mail to test5@test.com.  The account or\n550-domain may not exist, they may be blacklisted, or missing the proper dns\n550 entries.",
+      "date": "2026-06-22T10:27:13.000Z"
+    },
+    {
+      "id": "1782113235965378an",
+      "vkn": "1111111111",
+      "recipient": "ahdurko@gmail.com",
+      "subject": "Yeni Firma Kayıt Talebi",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-22T10:27:14.000Z"
+    },
+    {
+      "id": "1782113354479kq4nbb",
+      "vkn": "1111111111",
+      "recipient": "ui@ui.com",
+      "subject": "Yeni Kayıt Talebi - Esila Ticari",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-22T10:29:12.000Z"
+    },
+    {
+      "id": "1782113355755ib1o5h",
+      "vkn": "1111111111",
+      "recipient": "ahdurko@gmail.com",
+      "subject": "Yeni Firma Kayıt Talebi",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-22T10:29:14.000Z"
+    },
+    {
+      "id": "1782113498618fvstp5",
+      "vkn": "1111111111",
+      "recipient": "ahdurko@gmail.com",
+      "subject": "Yeni Kayıt Talebi - Esila Ticari",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-22T10:31:37.000Z"
+    },
+    {
+      "id": "1782113498824spelwk",
+      "vkn": "1111111111",
+      "recipient": "ahdurko@gmail.com",
+      "subject": "Yeni Firma Kayıt Talebi",
+      "status": "Başarısız",
+      "errorMessage": "Error: Can't send mail - all recipients were rejected: 451 Temporary local problem - please try later",
+      "date": "2026-06-22T10:31:37.000Z"
     }
   ],
-  "email_logs": [],
   "reminder_notes": [],
   "job_applications": []
 }

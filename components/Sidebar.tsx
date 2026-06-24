@@ -4,6 +4,8 @@ import {
   Users, 
   Package, 
   ShoppingCart, 
+  ShoppingBag,
+  Factory,
   Warehouse, 
   Wallet, 
   Truck, 
@@ -16,7 +18,8 @@ import {
   Zap,
   Wrench,
   CalendarDays,
-  ScanLine
+  ScanLine,
+  CreditCard
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
@@ -35,9 +38,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
   const allMenuItems = [
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
     { id: 'hizlisatis', label: 'Hızlı Satış', icon: Zap },
+    { id: 'terminal', label: 'El Terminali', icon: ScanLine },
     { id: 'cariler', label: 'Cariler', icon: Users },
+    { id: 'crm', label: 'CRM & Kampanya', icon: Users },
     { id: 'urunler', label: 'Ürünler', icon: Package },
     { id: 'siparisler', label: 'Siparişler', icon: ShoppingCart },
+    { id: 'satinalma', label: 'Satın Alma', icon: ShoppingBag },
+    { id: 'uretim', label: 'Üretim', icon: Factory },
     { id: 'efatura', label: 'E-Fatura', icon: FileText },
     { id: 'depo', label: 'Depo', icon: Warehouse },
     { id: 'sayim', label: 'Stok Sayım', icon: ScanLine },
@@ -58,9 +65,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
   // Map menu IDs to their corresponding permission module names
   const permissionMap: Record<string, string> = {
     'hizlisatis': 'hizlisatis',
+    'terminal': 'terminal',
     'cariler': 'cariler',
+    'crm': 'crm',
     'urunler': 'urunler',
     'siparisler': 'siparisler',
+    'satinalma': 'satinalma',
+    'uretim': 'uretim',
+    'ceksenet': 'ceksenet',
     'efatura': 'efatura',
     'depo': 'depo',
     'sayim': 'stoksayim', // mapped to match types !

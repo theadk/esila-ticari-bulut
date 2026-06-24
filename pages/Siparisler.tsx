@@ -45,6 +45,9 @@ export const Siparisler: React.FC = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [printType, setPrintType] = useState<'80mm' | 'A4'>('80mm');
+  
+  const [isShippingModalOpen, setIsShippingModalOpen] = useState(false);
+  const [shippingForm, setShippingForm] = useState({ provider: 'Yurtiçi Kargo', trackingNumber: '' });
   const [eFaturaModalOpen, setEFaturaModalOpen] = useState(false);
   const [eFaturaOrder, setEFaturaOrder] = useState<Order | null>(null);
   const [eFaturaType, setEFaturaType] = useState('E-Fatura');
@@ -339,6 +342,22 @@ export const Siparisler: React.FC = () => {
     setPrintModalOpen(true);
   };
 
+  const handleShipSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrder) return;
+    
+    const newOrder: Order = {
+      ...selectedOrder,
+      status: OrderStatus.SHIPPED,
+      cargoProvider: shippingForm.provider,
+      cargoTrackingNumber: shippingForm.trackingNumber
+    };
+    const updatedOrders = orders.map(o => o.id === selectedOrder.id ? newOrder : o);
+    setOrders(updatedOrders);
+    setIsShippingModalOpen(false);
+    setSelectedOrder(null);
+  };
+
   const handleStatusChange = (status: OrderStatus, targetOrder: Order) => {
     if (status === OrderStatus.COMPLETED && targetOrder.status === OrderStatus.PENDING) {
        let newProducts = [...rawProducts];
@@ -502,6 +521,19 @@ export const Siparisler: React.FC = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedOrders = itemsPerPage === -1 ? filteredOrders : filteredOrders.slice(startIndex, startIndex + itemsPerPage);
 
+  const exportToExcel = () => {
+    import('../lib/utils').then(({ exportToCSV }) => {
+      const data = filteredOrders.map(o => ({
+        'Sipariş No': o.id,
+        'Müşteri': o.customerName,
+        'Tarih': o.date,
+        'Durum': o.status,
+        'Toplam Tutar': o.total
+      }));
+      exportToCSV(data, 'siparisler_listesi');
+    });
+  };
+
   if (!canView) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -517,15 +549,23 @@ export const Siparisler: React.FC = () => {
       <div className="space-y-6 no-print">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-800">Siparişler</h2>
-          {canCreate && (
-            <button 
-              onClick={handleOpenCreateModal}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportToExcel}
+              className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg flex items-center gap-2 transition-colors border border-gray-200"
             >
-              <Plus size={18} />
-              <span>Yeni Sipariş</span>
+              Dışa Aktar
             </button>
-          )}
+            {canCreate && (
+              <button 
+                onClick={handleOpenCreateModal}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+              >
+                <Plus size={18} />
+                <span className="hidden sm:inline">Yeni Sipariş</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 items-end">
@@ -708,6 +748,12 @@ export const Siparisler: React.FC = () => {
                       {selectedOrder.status}
                     </span>
                   </p>
+                  {selectedOrder.cargoTrackingNumber && (
+                    <div className="mt-3 bg-blue-50 border border-blue-100 rounded-lg p-2 text-sm">
+                      <p className="font-semibold text-blue-800">{selectedOrder.cargoProvider}</p>
+                      <p className="text-blue-600">Takip No: {selectedOrder.cargoTrackingNumber}</p>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -763,6 +809,14 @@ export const Siparisler: React.FC = () => {
                      className="px-3 py-1.5 text-sm bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors font-medium flex items-center gap-2"
                    >
                      <XCircle size={16} /> İptal Et
+                   </button>
+                 )}
+                 {selectedOrder.status === OrderStatus.COMPLETED && (
+                   <button 
+                     onClick={() => setIsShippingModalOpen(true)}
+                     className="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium flex items-center gap-2"
+                   >
+                     <Truck size={16} /> Kargola
                    </button>
                  )}
                </div>
@@ -1137,6 +1191,53 @@ export const Siparisler: React.FC = () => {
                 Siparişi Tamamla
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shipping Modal */}
+      {isShippingModalOpen && selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in no-print">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden">
+            <div className="p-4 border-b bg-blue-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-blue-900 flex items-center gap-2">
+                <Truck className="text-blue-600" />
+                Kargolama İşlemi
+              </h3>
+              <button onClick={() => setIsShippingModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleShipSubmit} className="p-4 space-y-4">
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kargo Firması</label>
+                  <select 
+                    value={shippingForm.provider}
+                    onChange={(e) => setShippingForm({...shippingForm, provider: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="Yurtiçi Kargo">Yurtiçi Kargo</option>
+                    <option value="Aras Kargo">Aras Kargo</option>
+                    <option value="MNG Kargo">MNG Kargo</option>
+                    <option value="Sürat Kargo">Sürat Kargo</option>
+                    <option value="PTT Kargo">PTT Kargo</option>
+                  </select>
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Takip Numarası (Opsiyonel)</label>
+                  <input 
+                    type="text" 
+                    value={shippingForm.trackingNumber}
+                    onChange={(e) => setShippingForm({...shippingForm, trackingNumber: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Gönderi takip kodu"
+                  />
+               </div>
+               <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button type="button" onClick={() => setIsShippingModalOpen(false)} className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">İptal</button>
+                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Siparişi Kargola</button>
+               </div>
+            </form>
           </div>
         </div>
       )}

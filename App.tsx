@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { Dashboard } from './pages/Dashboard';
 import { Cariler } from './pages/Cariler';
 import { Urunler } from './pages/Urunler';
+import { ElTerminali } from './pages/ElTerminali';
 import { Depo } from './pages/Depo';
 import { StokSayim } from './pages/StokSayim';
 import { Siparisler } from './pages/Siparisler';
@@ -15,6 +16,9 @@ import { Kasa } from './pages/Kasa';
 import { Personel } from './pages/Personel';
 import { Teklifler } from './pages/Teklifler';
 import { Mutabakat } from './pages/Mutabakat';
+import { SatinAlma } from './pages/SatinAlma';
+import { Uretim } from './pages/Uretim';
+import { CRM } from './pages/CRM';
 import { Raporlar } from './pages/Raporlar';
 import { Ariza } from './pages/Ariza';
 import { EFatura } from './pages/EFatura';
@@ -23,10 +27,13 @@ import { SuperAdminLogin } from './src/pages/SuperAdminLogin';
 import { SuperAdminDashboard } from './src/pages/SuperAdminDashboard';
 import { PublicFormView } from './pages/PublicFormView';
 import { MutabakatOnayView } from './pages/MutabakatOnayView';
+import { PublicProposalView } from './pages/PublicProposalView';
 import { FileText } from 'lucide-react';
 import { initializeStore } from './lib/store';
 import { InstallPrompt } from './src/components/InstallPrompt';
 import { VoiceNavigator } from './components/VoiceNavigator';
+import { CommandPalette } from './components/CommandPalette';
+import { useKeyboardShortcuts } from './lib/useKeyboardShortcuts';
 
 const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
   <div className="flex flex-col items-center justify-center h-full text-gray-400">
@@ -40,6 +47,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activePage, setActivePage] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
 
   // Checks via URL params
@@ -107,6 +115,12 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated]);
 
+  useKeyboardShortcuts({
+    'ctrl+k': () => setIsCommandPaletteOpen(true),
+    'ctrl+b': () => setIsMobileMenuOpen(prev => !prev),
+    'ctrl+h': () => setActivePage('dashboard'),
+  });
+
   if (publicFormToken) {
     return <PublicFormView token={publicFormToken} />;
   }
@@ -119,6 +133,12 @@ const App: React.FC = () => {
     const mutabakatId = window.location.pathname.split('/').pop() || '';
     const mutabakatVkn = searchParams.get('vkn') || '';
     return <MutabakatOnayView id={mutabakatId} vkn={mutabakatVkn} />;
+  }
+
+  if (window.location.pathname.startsWith('/teklif-onay/')) {
+    const teklifId = window.location.pathname.split('/').pop() || '';
+    const tenantId = searchParams.get('tenantId') || '';
+    return <PublicProposalView id={teklifId} tenantId={tenantId} />;
   }
 
   if (isSuperAdminRoute) {
@@ -147,6 +167,10 @@ const App: React.FC = () => {
       case 'kasa': return <Kasa />;
       case 'personel': return <Personel />;
       case 'mutabakat': return <Mutabakat />;
+      case 'satinalma': return <SatinAlma />;
+      case 'uretim': return <Uretim />;
+      case 'crm': return <CRM />;
+      case 'terminal': return <ElTerminali />;
       case 'raporlar': return <Raporlar />;
       case 'efatura': return <EFatura />;
       case 'teklif': return <Teklifler />;
@@ -186,6 +210,12 @@ const App: React.FC = () => {
            {renderContent()}
         </main>
       </div>
+
+      <CommandPalette 
+        isOpen={isCommandPaletteOpen} 
+        onClose={() => setIsCommandPaletteOpen(false)} 
+        setActivePage={setActivePage} 
+      />
 
       <style>{`
         @media print {

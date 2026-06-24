@@ -29,6 +29,15 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   const [inactiveTenants, setInactiveTenants] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'tenants' | 'logs' | 'activationLogs' | 'pendingTimeout' | 'inactiveTenants' | 'sessionLogs' | 'backup'>('tenants');
   const [systemStats, setSystemStats] = useState<any>(null);
+  
+  const [sessionLogPage, setSessionLogPage] = useState(1);
+  const [sessionLogPageSize, setSessionLogPageSize] = useState<number | 'all'>(20);
+  
+  const [emailLogPage, setEmailLogPage] = useState(1);
+  const [emailLogPageSize, setEmailLogPageSize] = useState<number | 'all'>(20);
+  
+  const [activationLogPage, setActivationLogPage] = useState(1);
+  const [activationLogPageSize, setActivationLogPageSize] = useState<number | 'all'>(20);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -69,12 +78,18 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     { id: 'kasa', name: 'Kasa / Banka' },
     { id: 'personel', name: 'Personel' },
     { id: 'siparisler', name: 'Siparişler' },
+    { id: 'satinalma', name: 'Satın Alma' },
+    { id: 'ceksenet', name: 'Çek & Senet' },
     { id: 'efatura', name: 'E-Fatura' },
     { id: 'teklif', name: 'Teklifler' },
     { id: 'mutabakat', name: 'Mutabakat' },
     { id: 'raporlar', name: 'Raporlar' },
     { id: 'ariza', name: 'Arıza Formları' },
-    { id: 'ajanda', name: 'Ajanda' }
+    { id: 'ajanda', name: 'Ajanda' },
+    { id: 'crm', name: 'CRM & Kampanya' },
+    { id: 'terminal', name: 'El Terminali' },
+    { id: 'uretim', name: 'Üretim' },
+    { id: 'satinalma', name: 'Satın Alma' }
   ];
 
   const fetchTenants = async () => {
@@ -570,72 +585,172 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         )}
 
         {activeTab === 'logs' && (
-          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto mb-6">
-            <h2 className="text-xl font-bold text-gray-800 p-4 border-b">Mail Gönderim Logları</h2>
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-b">
-                  <th className="p-4 font-semibold text-gray-600 text-sm">Tarih</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">VKN</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">Alıcı</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">Konu</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">Durum</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">Hata Mesajı</th>
-                </tr>
-              </thead>
-              <tbody>
-                {emailLogs.map((log) => (
-                  <tr key={log.id} className="border-b hover:bg-gray-50/50">
-                    <td className="p-4 text-sm text-gray-800">{new Date(log.date).toLocaleString('tr-TR')}</td>
-                    <td className="p-4 text-sm text-gray-600">{log.vkn}</td>
-                    <td className="p-4 text-sm text-gray-800 font-medium">{log.recipient}</td>
-                    <td className="p-4 text-sm text-gray-700">{log.subject}</td>
-                    <td className="p-4 text-sm text-gray-700">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.status === 'Başarılı' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                         {log.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-sm text-gray-500 max-w-xs truncate" title={log.errorMessage || ''}>{log.errorMessage || '-'}</td>
+          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden mb-6 flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+              <h2 className="text-xl font-bold text-gray-800">Mail Gönderim Logları</h2>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-600">Sayfa Başına:</span>
+                <select 
+                  value={emailLogPageSize} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEmailLogPageSize(val === 'all' ? 'all' : Number(val));
+                    setEmailLogPage(1);
+                  }}
+                  className="border rounded px-2 py-1 outline-none"
+                >
+                  <option value={20}>20</option>
+                  <option value={40}>40</option>
+                  <option value="all">Tümü</option>
+                </select>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 border-b">
+                    <th className="p-4 font-semibold text-gray-600 text-sm">Tarih</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm">VKN</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm">Alıcı</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm">Konu</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm">Durum</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm">Hata Mesajı</th>
                   </tr>
-                ))}
-                {emailLogs.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">Log kaydı bulunamadı.</td></tr>}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(() => {
+                    let displayedLogs = emailLogs;
+                    if (emailLogPageSize !== 'all') {
+                      const startIndex = (emailLogPage - 1) * (emailLogPageSize as number);
+                      displayedLogs = emailLogs.slice(startIndex, startIndex + (emailLogPageSize as number));
+                    }
+                    return displayedLogs.map((log) => (
+                    <tr key={log.id} className="border-b hover:bg-gray-50/50">
+                      <td className="p-4 text-sm text-gray-800">{new Date(log.date).toLocaleString('tr-TR')}</td>
+                      <td className="p-4 text-sm text-gray-600">{log.vkn}</td>
+                      <td className="p-4 text-sm text-gray-800 font-medium">{log.recipient}</td>
+                      <td className="p-4 text-sm text-gray-700">{log.subject}</td>
+                      <td className="p-4 text-sm text-gray-700">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.status === 'Başarılı' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                           {log.status}
+                        </span>
+                      </td>
+                      <td className="p-4 text-sm text-gray-500 max-w-xs truncate" title={log.errorMessage || ''}>{log.errorMessage || '-'}</td>
+                    </tr>
+                    ));
+                  })()}
+                  {emailLogs.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">Log kaydı bulunamadı.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            {emailLogPageSize !== 'all' && emailLogs.length > (emailLogPageSize as number) && (
+              <div className="p-4 border-t flex justify-between items-center bg-gray-50">
+                <span className="text-sm text-gray-600">
+                  Toplam {emailLogs.length} kayıttan {(emailLogPage - 1) * (emailLogPageSize as number) + 1} - {Math.min(emailLogPage * (emailLogPageSize as number), emailLogs.length)} arası gösteriliyor.
+                </span>
+                <div className="flex gap-2">
+                  <button 
+                    disabled={emailLogPage === 1}
+                    onClick={() => setEmailLogPage(p => Math.max(1, p - 1))}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-white"
+                  >
+                    Önceki
+                  </button>
+                  <button 
+                    disabled={emailLogPage * (emailLogPageSize as number) >= emailLogs.length}
+                    onClick={() => setEmailLogPage(p => p + 1)}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-white"
+                  >
+                    Sonraki
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'activationLogs' && (
-          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
-            <h2 className="text-xl font-bold text-gray-800 p-4 border-b">Aktivasyon Geçmişi</h2>
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-b">
-                  <th className="p-4 font-semibold text-gray-600 text-sm w-44">Tarih</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm w-32">VKN</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm w-48">Firma</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm w-32">İşlem</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm w-32">Durum</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">Detay / Hata</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activationLogs.map((log) => (
-                  <tr key={log.id} className="border-b hover:bg-gray-50/50">
-                    <td className="p-4 text-sm text-gray-800">{new Date(log.date).toLocaleString('tr-TR')}</td>
-                    <td className="p-4 text-sm text-gray-600">{log.vkn}</td>
-                    <td className="p-4 text-sm text-gray-800 font-medium">{log.tenantName}</td>
-                    <td className="p-4 text-sm text-gray-700">{log.action}</td>
-                    <td className="p-4 text-sm text-gray-700">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.status === 'Başarılı' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                         {log.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-sm text-gray-500 max-w-md break-words">{log.details || '-'}</td>
+          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+              <h2 className="text-xl font-bold text-gray-800">Aktivasyon Geçmişi</h2>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-600">Sayfa Başına:</span>
+                <select 
+                  value={activationLogPageSize} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setActivationLogPageSize(val === 'all' ? 'all' : Number(val));
+                    setActivationLogPage(1);
+                  }}
+                  className="border rounded px-2 py-1 outline-none"
+                >
+                  <option value={20}>20</option>
+                  <option value={40}>40</option>
+                  <option value="all">Tümü</option>
+                </select>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 border-b">
+                    <th className="p-4 font-semibold text-gray-600 text-sm w-44">Tarih</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm w-32">VKN</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm w-48">Firma</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm w-32">İşlem</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm w-32">Durum</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm">Detay / Hata</th>
                   </tr>
-                ))}
-                {activationLogs.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">Aktivasyon geçmişi bulunamadı.</td></tr>}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(() => {
+                    let displayedLogs = activationLogs;
+                    if (activationLogPageSize !== 'all') {
+                      const startIndex = (activationLogPage - 1) * (activationLogPageSize as number);
+                      displayedLogs = activationLogs.slice(startIndex, startIndex + (activationLogPageSize as number));
+                    }
+                    return displayedLogs.map((log) => (
+                    <tr key={log.id} className="border-b hover:bg-gray-50/50">
+                      <td className="p-4 text-sm text-gray-800">{new Date(log.date).toLocaleString('tr-TR')}</td>
+                      <td className="p-4 text-sm text-gray-600">{log.vkn}</td>
+                      <td className="p-4 text-sm text-gray-800 font-medium">{log.tenantName}</td>
+                      <td className="p-4 text-sm text-gray-700">{log.action}</td>
+                      <td className="p-4 text-sm text-gray-700">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.status === 'Başarılı' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                           {log.status}
+                        </span>
+                      </td>
+                      <td className="p-4 text-sm text-gray-500 max-w-md break-words">{log.details || '-'}</td>
+                    </tr>
+                    ));
+                  })()}
+                  {activationLogs.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">Aktivasyon geçmişi bulunamadı.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            {activationLogPageSize !== 'all' && activationLogs.length > (activationLogPageSize as number) && (
+              <div className="p-4 border-t flex justify-between items-center bg-gray-50">
+                <span className="text-sm text-gray-600">
+                  Toplam {activationLogs.length} kayıttan {(activationLogPage - 1) * (activationLogPageSize as number) + 1} - {Math.min(activationLogPage * (activationLogPageSize as number), activationLogs.length)} arası gösteriliyor.
+                </span>
+                <div className="flex gap-2">
+                  <button 
+                    disabled={activationLogPage === 1}
+                    onClick={() => setActivationLogPage(p => Math.max(1, p - 1))}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-white"
+                  >
+                    Önceki
+                  </button>
+                  <button 
+                    disabled={activationLogPage * (activationLogPageSize as number) >= activationLogs.length}
+                    onClick={() => setActivationLogPage(p => p + 1)}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-white"
+                  >
+                    Sonraki
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -709,37 +824,90 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         )}
 
         {activeTab === 'sessionLogs' && (
-          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
-            <h2 className="text-xl font-bold text-gray-800 p-4 border-b">Oturum Logları (Giriş / Çıkış)</h2>
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-b">
-                  <th className="p-4 font-semibold text-gray-600 text-sm">Tarih</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">Zaman</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">Firma Adı (VKN)</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">Kullanıcı (E-posta/Ad)</th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">İşlem</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sessionLogs.map((log) => {
-                  const d = new Date(log.date);
-                  return (
-                  <tr key={log.id} className="border-b hover:bg-gray-50/50">
-                    <td className="p-4 text-sm text-gray-800">{d.toLocaleDateString('tr-TR')}</td>
-                    <td className="p-4 text-sm text-gray-600">{d.toLocaleTimeString('tr-TR')}</td>
-                    <td className="p-4 text-sm text-gray-800 font-medium">{log.tenantName || log.vkn} <span className="text-xs text-gray-500 font-normal">({log.vkn})</span></td>
-                    <td className="p-4 text-sm text-gray-600">{log.username}</td>
-                    <td className="p-4 text-sm text-gray-700">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.action === 'Giriş' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                         {log.action}
-                      </span>
-                    </td>
+          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+              <h2 className="text-xl font-bold text-gray-800">Oturum Logları (Giriş / Çıkış)</h2>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-600">Sayfa Başına:</span>
+                <select 
+                  value={sessionLogPageSize} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSessionLogPageSize(val === 'all' ? 'all' : Number(val));
+                    setSessionLogPage(1);
+                  }}
+                  className="border rounded px-2 py-1 outline-none"
+                >
+                  <option value={20}>20</option>
+                  <option value={40}>40</option>
+                  <option value="all">Tümü</option>
+                </select>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 border-b">
+                    <th className="p-4 font-semibold text-gray-600 text-sm">Tarih</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm">Zaman</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm">Firma Adı (VKN)</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm">Kullanıcı (E-posta/Ad)</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm">IP Adresi</th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm">İşlem</th>
                   </tr>
-                )})}
-                {sessionLogs.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-500">Oturum geçmişi bulunamadı.</td></tr>}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(() => {
+                    let displayedLogs = sessionLogs;
+                    if (sessionLogPageSize !== 'all') {
+                      const startIndex = (sessionLogPage - 1) * (sessionLogPageSize as number);
+                      displayedLogs = sessionLogs.slice(startIndex, startIndex + (sessionLogPageSize as number));
+                    }
+                    return displayedLogs.map((log) => {
+                      const d = new Date(log.date);
+                      return (
+                      <tr key={log.id} className="border-b hover:bg-gray-50/50">
+                        <td className="p-4 text-sm text-gray-800">{d.toLocaleDateString('tr-TR')}</td>
+                        <td className="p-4 text-sm text-gray-600">{d.toLocaleTimeString('tr-TR')}</td>
+                        <td className="p-4 text-sm text-gray-800 font-medium">{log.tenantName || log.vkn} <span className="text-xs text-gray-500 font-normal">({log.vkn})</span></td>
+                        <td className="p-4 text-sm text-gray-600">{log.username}</td>
+                        <td className="p-4 text-sm text-gray-600 font-mono text-xs">{log.ipAddress || '-'}</td>
+                        <td className="p-4 text-sm text-gray-700">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.action === 'Giriş' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                             {log.action}
+                          </span>
+                        </td>
+                      </tr>
+                      );
+                    });
+                  })()}
+                  {sessionLogs.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">Oturum geçmişi bulunamadı.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            {sessionLogPageSize !== 'all' && sessionLogs.length > (sessionLogPageSize as number) && (
+              <div className="p-4 border-t flex justify-between items-center bg-gray-50">
+                <span className="text-sm text-gray-600">
+                  Toplam {sessionLogs.length} kayıttan {(sessionLogPage - 1) * (sessionLogPageSize as number) + 1} - {Math.min(sessionLogPage * (sessionLogPageSize as number), sessionLogs.length)} arası gösteriliyor.
+                </span>
+                <div className="flex gap-2">
+                  <button 
+                    disabled={sessionLogPage === 1}
+                    onClick={() => setSessionLogPage(p => Math.max(1, p - 1))}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-white"
+                  >
+                    Önceki
+                  </button>
+                  <button 
+                    disabled={sessionLogPage * (sessionLogPageSize as number) >= sessionLogs.length}
+                    onClick={() => setSessionLogPage(p => p + 1)}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-white"
+                  >
+                    Sonraki
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
         {activeTab === 'backup' && (

@@ -6,6 +6,7 @@ import { Pagination } from '../components/Pagination';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 import { hasPermission } from '../lib/permissions';
+import { CekSenet } from './CekSenet';
 
 export const Kasa: React.FC = () => {
   const store = useAppStore();
@@ -16,6 +17,7 @@ export const Kasa: React.FC = () => {
   const canDelete = hasPermission(currentUser, 'kasa', 'delete');
 
   const { settings, cashTransactions, setCashTransactions, customers, setCustomers, transactions, setTransactions, personnel, setPersonnel } = store;
+  const [activeTab, setActiveTab] = useState<'kasa' | 'banka' | 'cek_senet' | 'masraf'>('kasa');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'this_week' | 'this_month'>('all');
   
@@ -170,6 +172,19 @@ export const Kasa: React.FC = () => {
     window.print();
   };
 
+  const exportToExcel = () => {
+    import('../lib/utils').then(({ exportToCSV }) => {
+      const data = filteredTransactions.map(tx => ({
+        'Tarih': new Date(tx.date).toLocaleDateString('tr-TR'),
+        'İşlem Tipi': tx.type,
+        'Kategori': tx.category,
+        'Açıklama': tx.description,
+        'Tutar': tx.amount
+      }));
+      exportToCSV(data, 'kasa_hareketleri');
+    });
+  };
+
   if (!canView) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -183,28 +198,70 @@ export const Kasa: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-800">Kasa Hareketleri</h2>
-        {canCreate && (
-          <button 
-            onClick={() => {
-              setFormData({
-                date: new Date().toISOString().split('T')[0],
-                type: 'Gelir',
-                category: 'Diğer Gelir',
-                amount: 0,
-                description: ''
-              });
-              setIsModalOpen(true);
-            }}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-          >
-            <Plus size={18} />
-            <span>Yeni İşlem</span>
-          </button>
-        )}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Finans ve Muhasebe</h2>
+          <p className="text-gray-500 text-sm mt-1">Kasa, banka, çek, senet ve masraflarınızı yönetin.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {activeTab === 'kasa' && (
+            <button
+              onClick={exportToExcel}
+              className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg flex items-center gap-2 transition-colors border border-gray-200"
+            >
+              Dışa Aktar
+            </button>
+          )}
+          {canCreate && activeTab === 'kasa' && (
+            <button 
+              onClick={() => {
+                setFormData({
+                  date: new Date().toISOString().split('T')[0],
+                  type: 'Gelir',
+                  category: 'Diğer Gelir',
+                  amount: 0,
+                  description: ''
+                });
+                setIsModalOpen(true);
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <Plus size={18} />
+              <span className="hidden sm:inline">Yeni İşlem</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:p-6">
+      <div className="flex space-x-1 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('kasa')}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'kasa' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Kasa Hareketleri
+        </button>
+        <button
+          onClick={() => setActiveTab('banka')}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'banka' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Banka Hesapları
+        </button>
+        <button
+          onClick={() => setActiveTab('cek_senet')}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'cek_senet' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Çek ve Senet
+        </button>
+        <button
+          onClick={() => setActiveTab('masraf')}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'masraf' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Gider/Masraf Takibi
+        </button>
+      </div>
+
+      {activeTab === 'kasa' && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:p-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 flex flex-col items-center justify-center relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
             <Wallet size={120} />
@@ -779,6 +836,39 @@ export const Kasa: React.FC = () => {
           </div>
         </div>
       )}
+      </>
+      )}
+
+      {activeTab === 'banka' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center animate-in fade-in">
+           <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Wallet size={32} />
+           </div>
+           <h3 className="text-xl font-bold text-gray-800 mb-2">Banka Hesapları</h3>
+           <p className="text-gray-500 max-w-md mx-auto mb-6">Farklı bankalardaki hesaplarınızı, kredi kartlarınızı ve POS cihazı tahsilatlarınızı buradan takip edebilirsiniz.</p>
+           <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2">
+             <Plus size={18} /> Yeni Banka Hesabı
+           </button>
+        </div>
+      )}
+
+      {activeTab === 'cek_senet' && (
+        <CekSenet />
+      )}
+
+      {activeTab === 'masraf' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center animate-in fade-in">
+           <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <TrendingDown size={32} />
+           </div>
+           <h3 className="text-xl font-bold text-gray-800 mb-2">Detaylı Masraf Yönetimi</h3>
+           <p className="text-gray-500 max-w-md mx-auto mb-6">Kira, faturalar, araç yakıtları ve diğer operasyonel işletme giderlerinizi departman/personel bazlı kategorize edin.</p>
+           <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2">
+             <Plus size={18} /> Yeni Masraf Fişi
+           </button>
+        </div>
+      )}
+
     </div>
   );
 };

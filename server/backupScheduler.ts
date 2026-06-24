@@ -31,8 +31,13 @@ async function runBackup() {
             tenants = getFallbackTable('tenants');
         } else {
             const pool = getPool();
-            const [rows] = await pool.query(`SELECT vkn FROM tenants`);
-            tenants = rows as any[];
+            try {
+                const [rows] = await pool.query(`SELECT vkn FROM tenants`);
+                tenants = rows as any[];
+            } catch (dbError: any) {
+                console.error(`[Backup] Veritabanı bağlantı hatası: ${dbError.message}. Yedekleme atlandı.`);
+                return;
+            }
         }
 
         for (const tenant of tenants) {

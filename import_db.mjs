@@ -10,7 +10,15 @@ async function importDb() {
   
   const data = JSON.parse(fs.readFileSync(BACKUP_FILE, "utf-8"));
   
-  const connectionString = "mysql://esilayaz_esilaticari:q7D6%24ry84@esilayazilim.com:3306/esilayaz_esilaticari";
+  const dotenv = await import('dotenv');
+  dotenv.config();
+  let connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    const envFile = fs.readFileSync('.env', 'utf-8');
+    const match = envFile.match(/DATABASE_URL="(.*)"/);
+    if (match) connectionString = match[1];
+  }
+  
   const pool = mysql.createPool(connectionString);
   
   await pool.query('SET FOREIGN_KEY_CHECKS = 0');

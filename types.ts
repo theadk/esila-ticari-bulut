@@ -5,6 +5,31 @@ export enum OrderStatus {
   SHIPPED = 'Kargolandı'
 }
 
+export type PurchaseRequestStatus = 'Bekliyor' | 'Onaylandı' | 'Reddedildi' | 'Siparişe Dönüştü';
+
+export interface PurchaseRequestItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unit?: string;
+  estimatedPrice?: number;
+  supplierId?: string;
+  supplierName?: string;
+}
+
+export interface PurchaseRequest {
+  id: string;
+  date: string;
+  requestedBy: string; // Personnel ID or Name
+  department?: string;
+  items: PurchaseRequestItem[];
+  status: PurchaseRequestStatus;
+  notes?: string;
+  approvedBy?: string; // Personnel ID
+  approvalDate?: string;
+  expectedDeliveryDate?: string;
+}
+
 export interface Product {
   id: string;
   code: string;
@@ -24,6 +49,10 @@ export interface Product {
   taxRate?: number;
   variants?: string[];
   showInQuickSale?: boolean;
+  minStock?: number;
+  hasSerialTracking?: boolean;
+  hasLotTracking?: boolean;
+  hasExpirationTracking?: boolean;
 }
 
 export interface Warehouse {
@@ -80,6 +109,9 @@ export interface Customer {
   type: 'Alıcı' | 'Satıcı';
   balance: number;
   status: 'Aktif' | 'Pasif';
+  isLead?: boolean;
+  leadStatus?: 'Yeni' | 'Görüşülüyor' | 'Teklif Verildi' | 'Kazanıldı' | 'Kaybedildi';
+  customerGroup?: string; // e.g. 'B2B', 'Perakende', vb.
   efaturaType?: string;
   efaturaScenario?: string;
   efaturaInvoiceType?: string;
@@ -110,6 +142,9 @@ export interface Order {
   items: OrderItem[];
   proposalId?: string;
   notes?: string;
+  cargoProvider?: string;
+  cargoTrackingNumber?: string;
+  cargoBarcodeUrl?: string;
 }
 
 export enum ProposalStatus {
@@ -264,6 +299,9 @@ export interface PermissionSet {
 }
 
 export interface UserPermissions {
+  uretim: PermissionSet;
+  satinalma: PermissionSet;
+  ceksenet: PermissionSet;
   ariza: PermissionSet;
   personel: PermissionSet;
   hizlisatis: PermissionSet;
@@ -279,6 +317,8 @@ export interface UserPermissions {
   stoksayim: PermissionSet;
   raporlar: PermissionSet;
   izin_yonetimi?: PermissionSet;
+  crm: PermissionSet;
+  terminal: PermissionSet;
 }
 
 export interface User {
@@ -403,6 +443,49 @@ export interface ServiceTicket {
 
 export type ReminderNoteType = 'Teklif' | 'Ödeme' | 'Tahsilat' | 'Personel' | 'Sipariş' | 'Banka' | 'Genel';
 
+export interface BOMItem {
+  productId: string;
+  quantity: number;
+  unit: string;
+}
+
+export interface BOM {
+  id: string;
+  targetProductId: string;
+  name: string;
+  items: BOMItem[];
+  instructions?: string;
+  estimatedTimeMinutes?: number;
+  isActive: boolean;
+}
+
+export type WorkOrderStatus = 'Planlandı' | 'Üretimde' | 'Kalite Kontrol' | 'Tamamlandı' | 'İptal';
+
+export interface WorkOrder {
+  id: string;
+  bomId: string;
+  targetProductId: string;
+  plannedQuantity: number;
+  producedQuantity: number;
+  status: WorkOrderStatus;
+  startDate?: string;
+  endDate?: string;
+  assignedTo?: string; // Personnel or Station
+  lotNumber?: string;
+  priority: 'Düşük' | 'Normal' | 'Yüksek' | 'Kritik (Savunma/Havacılık)';
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  link?: string;
+}
+
 export interface ReminderNote {
   id: string;
   title: string;
@@ -414,4 +497,74 @@ export interface ReminderNote {
   isCompleted: boolean;
   relatedId?: string; // ID referencing a proposal, customer, personnel, etc.
   amount?: number;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  personnelId: string;
+  date: string;
+  status: 'Geldi' | 'Gelmedi' | 'İzinli' | 'Raporlu';
+  entryTime?: string;
+  exitTime?: string;
+  overtimeHours?: number;
+}
+
+export interface SalaryAdjustment {
+  id: string;
+  personnelId: string;
+  date: string;
+  type: 'Avans' | 'Kesinti' | 'Prim';
+  amount: number;
+  description: string;
+}
+
+export interface PersonnelKPI {
+  id: string;
+  personnelId: string;
+  month: string; // 'YYYY-MM'
+  targetSalesAmount: number;
+  actualSalesAmount: number;
+  targetNewLeads: number;
+  actualNewLeads: number;
+}
+
+export interface MeetingNote {
+  id: string;
+  customerId: string;
+  date: string;
+  notes: string;
+  nextContactDate?: string;
+  personnelId?: string;
+}
+
+export type ChequeNoteStatus = 'Portföyde' | 'Tahsilde' | 'Ciro Edildi' | 'Tahsil Edildi' | 'Ödendi' | 'Karşılıksız/Ödenmedi' | 'İade Edildi';
+
+export interface ChequeNote {
+  id: string;
+  type: 'Çek' | 'Senet';
+  isGiven: boolean; // false = Alınan (Müşteriden), true = Verilen (Tedarikçiye)
+  documentNumber: string;
+  customerId?: string;
+  customerName?: string;
+  amount: number;
+  issueDate: string;
+  dueDate: string;
+  bankName?: string;
+  branchName?: string;
+  accountNumber?: string;
+  drawer?: string;
+  endorser?: string;
+  status: ChequeNoteStatus;
+  notes?: string;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  description?: string;
+  customerGroup?: string;
+  discountPercentage: number;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
 }

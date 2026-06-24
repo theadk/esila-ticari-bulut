@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, User, LogOut, Settings as SettingsIcon, Package, FileText, ShoppingCart, Users, Menu, LifeBuoy, X } from 'lucide-react';
+import { Bell, Search, User, LogOut, Settings as SettingsIcon, Package, FileText, ShoppingCart, Users, Menu, LifeBuoy, X, Maximize, Minimize } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { toast } from 'react-hot-toast';
 
@@ -16,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [supportSubject, setSupportSubject] = useState('');
   const [supportMessage, setSupportMessage] = useState('');
   const [isSubmittingSupport, setIsSubmittingSupport] = useState(false);
@@ -23,6 +24,26 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        toast.error(`Tam ekran moduna geçilemedi: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const handleSupportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +103,53 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Get current user
+  const currentUser = store.users?.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users?.[0];
+
+  // Track previous tickets for instant toast notifications
+  const prevTicketsRef = useRef(store.serviceTickets);
+  
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const prevTickets = prevTicketsRef.current || [];
+    const currentTickets = store.serviceTickets || [];
+    
+    if (prevTickets !== currentTickets) {
+      currentTickets.forEach(ticket => {
+        const prevTicket = prevTickets.find(t => t.id === ticket.id);
+        
+        // Match ticket assignment to current user (checking ID or Name loosely)
+        const isAssignedToMe = ticket.personnelId === currentUser.id || 
+                               (ticket.personnelName && currentUser.name && ticket.personnelName.toLowerCase().includes(currentUser.name.toLowerCase()));
+                               
+        if (isAssignedToMe) {
+          if (!prevTicket && ticket.personnelId) {
+            // New ticket assigned to me
+            toast.success(`Size yeni bir görev atandı: ${ticket.deviceType}`, {
+              icon: '📋',
+              duration: 5000,
+            });
+          } else if (prevTicket && prevTicket.status !== ticket.status) {
+            // My ticket's status changed
+            toast.success(`Görev durumu güncellendi: ${ticket.deviceType} (${ticket.status})`, {
+              icon: '🔄',
+              duration: 4000,
+            });
+          } else if (prevTicket && prevTicket.personnelId !== ticket.personnelId) {
+             // Reassigned to me
+             toast.success(`Bir görev size devredildi: ${ticket.deviceType}`, {
+              icon: '📋',
+              duration: 5000,
+            });
+          }
+        }
+      });
+      
+      prevTicketsRef.current = currentTickets;
+    }
+  }, [store.serviceTickets, currentUser]);
+
   // Generate notifications
   const lowStockProducts = store.products.filter(p => p.stock < 10);
   const stockNotifications = lowStockProducts.map(p => ({
@@ -104,7 +172,36 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
     onClick: () => setActivePage('ajanda')
   }));
 
-  const notifications = [...reminderNotifications, ...stockNotifications];
+  const ticketNotifications = (store.serviceTickets || [])
+    .filter(t => {
+      const isAssignedToMe = t.personnelId === currentUser?.id || 
+                             (t.personnelName && currentUser?.name && t.personnelName.toLowerCase().includes(currentUser.name.toLowerCase()));
+      return isAssignedToMe && t.status !== 'Tamamlandı' && t.status !== 'İptal';
+    })
+    .map(t => ({
+      id: `ticket-${t.id}`,
+      title: `Aktif Görev: ${t.status}`,
+      message: `${t.customerName} - ${t.deviceType}`,
+      time: 'Yeni',
+      type: 'info',
+      onClick: () => setActivePage('ariza')
+    }));
+
+  const appNotifications = (store.notifications || [])
+    .filter(n => n.userId === currentUser?.id && !n.isRead)
+    .map(n => ({
+      id: `app-${n.id}`,
+      title: n.title,
+      message: n.message,
+      time: new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: n.type,
+      onClick: () => {
+        store.setNotifications(store.notifications.map(x => x.id === n.id ? { ...x, isRead: true } : x));
+        if (n.link === 'uretim') setActivePage('uretim');
+      }
+    }));
+
+  const notifications = [...appNotifications, ...reminderNotifications, ...stockNotifications, ...ticketNotifications];
 
   // Global search implementation
   const searchResults = {
@@ -208,6 +305,15 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
       </div>
       
       <div className="flex items-center gap-4">
+         {/* Fullscreen Toggle */}
+         <button 
+           onClick={toggleFullscreen}
+           className="hidden sm:flex p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors items-center justify-center"
+           title="Tam Ekran"
+         >
+           {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+         </button>
+
          {/* Notifications */}
          <div className="relative" ref={notifRef}>
            <button 

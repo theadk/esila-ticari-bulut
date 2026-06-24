@@ -629,19 +629,62 @@ export const Ariza: React.FC = () => {
     toast.success("Servis formu başarıyla tamamlandı.");
   };
 
-  const generateHTML = (format: "a4" | "thermal") => {
-    if (!selectedTicket) return "";
+  const generateHTML = (format: "a4" | "thermal" | "barcode", ticketToPrint?: ServiceTicket) => {
+    const tkt = ticketToPrint || selectedTicket;
+    if (!tkt) return "";
     const isA4 = format === "a4";
 
-    const taxRate = selectedTicket.taxRate || 20;
-    const materialsTotal = selectedTicket.materialsUsed.reduce(
+    const isBarcode = format === "barcode";
+    const qrUrl = encodeURIComponent(
+      `${window.location.origin}?public_form=${tkt.id}&type=ticket&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`
+    );
+
+    if (isBarcode) {
+      return `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <style>
+              @page { size: 50mm 30mm; margin: 0; }
+              body { 
+                font-family: 'Inter', sans-serif; 
+                margin: 0; 
+                padding: 2mm; 
+                width: 50mm; 
+                height: 30mm; 
+                box-sizing: border-box; 
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+              }
+              .ticket-id { font-size: 10px; font-weight: bold; margin-bottom: 2px; }
+              .qr-code { text-align: center; }
+              .qr-code img { width: 18mm; height: 18mm; display: block; margin: 0 auto; }
+              .customer-name { font-size: 8px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
+            </style>
+          </head>
+          <body>
+            <div class="ticket-id">${tkt.id}</div>
+            <div class="qr-code">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${qrUrl}" alt="QR Kod" />
+            </div>
+            <div class="customer-name">${tkt.customerName}</div>
+          </body>
+        </html>
+      `;
+    }
+
+
+    const taxRate = tkt.taxRate || 20;
+    const materialsTotal = tkt.materialsUsed.reduce(
       (acc, m) => acc + m.quantity * m.unitPrice,
       0,
     );
-    const subtotal = materialsTotal + (selectedTicket.laborFee || 0);
+    const subtotal = materialsTotal + (tkt.laborFee || 0);
     const vatAmount = subtotal * (taxRate / 100);
 
-    const materialsHtml = selectedTicket.materialsUsed
+    const materialsHtml = tkt.materialsUsed
       .map(
         (m) => `
       <tr>
@@ -655,22 +698,22 @@ export const Ariza: React.FC = () => {
       .join("");
 
     const laborHtml =
-      selectedTicket.laborFee > 0
+      tkt.laborFee > 0
         ? `
       <tr>
         <td colspan="${isA4 ? "3" : "2"}" style="padding: 4px 0; border-top: 1px dashed #ccc; font-weight: bold;">İşçilik Ücreti</td>
-        <td style="padding: 4px 0; text-align: right; border-top: 1px dashed #ccc; font-weight: bold;">${selectedTicket.laborFee.toLocaleString("tr-TR")} ₺</td>
+        <td style="padding: 4px 0; text-align: right; border-top: 1px dashed #ccc; font-weight: bold;">${tkt.laborFee.toLocaleString("tr-TR")} ₺</td>
       </tr>
     `
         : "";
 
     const checklistHtml =
-      selectedTicket.plumbingChecklist &&
-      selectedTicket.plumbingChecklist.length > 0
+      tkt.plumbingChecklist &&
+      tkt.plumbingChecklist.length > 0
         ? `
         <div class="desc-title">Bakım / Kontrol Listesi:</div>
         <div style="margin-top: 5px;">
-          ${selectedTicket.plumbingChecklist
+          ${tkt.plumbingChecklist
             .map(
               (item) => `
             <div style="margin-bottom: 3px;">
@@ -683,18 +726,15 @@ export const Ariza: React.FC = () => {
     `
         : "";
 
-    const resolutionHtml = selectedTicket.resolutionNotes
+    const resolutionHtml = tkt.resolutionNotes
       ? `
       <div class="desc">
         <div class="desc-title">Yapılan İşlemler / Çözüm Detayı:</div>
-        <div class="desc-text">${selectedTicket.resolutionNotes}</div>
+        <div class="desc-text">${tkt.resolutionNotes}</div>
       </div>
     `
       : "";
 
-    const qrUrl = encodeURIComponent(
-      `${window.location.origin}?public_form=${selectedTicket.id}&type=ticket&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`
-    );
     const qrCodeHtml = `
       <div style="text-align: center; margin-top: 20px;">
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${qrUrl}" alt="QR Kod" style="width: 100px; height: 100px;" />
@@ -706,7 +746,7 @@ export const Ariza: React.FC = () => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Servis Formu - ${selectedTicket.id}</title>
+          <title>Servis Formu - ${tkt.id}</title>
           <style>
             @page { size: ${isA4 ? "A4 portrait" : "80mm auto"}; margin: ${isA4 ? "10mm" : "0"}; }
             body { 
@@ -756,8 +796,8 @@ export const Ariza: React.FC = () => {
             <h1>ARIZA / SERVİS FORMU</h1>
             ${isA4 && store.settings?.companyName ? `<p>${store.settings.companyName}</p>` : ""}
             <div class="header-info">
-              Kayıt No: ${(selectedTicket.id.length > 20 ? selectedTicket.id.split("-")[0].toUpperCase() : selectedTicket.id)} &nbsp;|&nbsp; 
-              Kayıt: ${new Date(selectedTicket.dateCreated).toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })} &nbsp;|&nbsp; 
+              Kayıt No: ${(tkt.id.length > 20 ? tkt.id.split("-")[0].toUpperCase() : tkt.id)} &nbsp;|&nbsp; 
+              Kayıt: ${new Date(tkt.dateCreated).toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })} &nbsp;|&nbsp; 
               Çıktı: ${new Date().toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
             </div>
           </div>
@@ -765,20 +805,20 @@ export const Ariza: React.FC = () => {
           <div class="info-grid">
             <div class="info-card">
               <div class="desc-title" style="margin-bottom: 10px; ${isA4 ? "" : "display:none;"}">Müşteri Bilgileri</div>
-              <div class="info-row"><strong>Müşteri:</strong> <span>${selectedTicket.customerName}</span></div>
-              <div class="info-row"><strong>Personel:</strong> <span>${selectedTicket.personnelName || "-"}</span></div>
-              <div class="info-row"><strong>Durum:</strong> <span>${selectedTicket.status}</span></div>
+              <div class="info-row"><strong>Müşteri:</strong> <span>${tkt.customerName}</span></div>
+              <div class="info-row"><strong>Personel:</strong> <span>${tkt.personnelName || "-"}</span></div>
+              <div class="info-row"><strong>Durum:</strong> <span>${tkt.status}</span></div>
             </div>
             
             <div class="info-card">
               <div class="desc-title" style="margin-bottom: 10px; ${isA4 ? "" : "display:none;"}">Cihaz Bilgileri</div>
-              <div class="info-row"><strong>Cihaz:</strong> <span>${selectedTicket.deviceType}</span></div>
-              ${selectedTicket.serialNumber ? `<div class="info-row"><strong>Seri No:</strong> <span>${selectedTicket.serialNumber}</span></div>` : ""}
+              <div class="info-row"><strong>Cihaz:</strong> <span>${tkt.deviceType}</span></div>
+              ${tkt.serialNumber ? `<div class="info-row"><strong>Seri No:</strong> <span>${tkt.serialNumber}</span></div>` : ""}
               ${
-                selectedTicket.maintenancePeriodMonths
+                tkt.maintenancePeriodMonths
                   ? `
-                 <div class="info-row"><strong>Pr. Bakım:</strong> <span>${selectedTicket.maintenancePeriodMonths} Ay</span></div>
-                 ${selectedTicket.nextMaintenanceDate ? `<div class="info-row"><strong>Snr. Bakım:</strong> <span>${new Date(selectedTicket.nextMaintenanceDate).toLocaleDateString("tr-TR")}</span></div>` : ""}
+                 <div class="info-row"><strong>Pr. Bakım:</strong> <span>${tkt.maintenancePeriodMonths} Ay</span></div>
+                 ${tkt.nextMaintenanceDate ? `<div class="info-row"><strong>Snr. Bakım:</strong> <span>${new Date(tkt.nextMaintenanceDate).toLocaleDateString("tr-TR")}</span></div>` : ""}
               `
                   : ""
               }
@@ -788,7 +828,7 @@ export const Ariza: React.FC = () => {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: ${isA4 ? "15px" : "10px"};">
             <div class="desc" style="margin-top: 10px;">
               <div class="desc-title">Şikayet / Arıza Detayı:</div>
-              <div class="desc-text">${selectedTicket.issueDescription}</div>
+              <div class="desc-text">${tkt.issueDescription}</div>
             </div>
             ${checklistHtml ? `
             <div class="desc" style="margin-top: 10px;">
@@ -799,8 +839,8 @@ export const Ariza: React.FC = () => {
           ${resolutionHtml}
           
           ${
-            selectedTicket.materialsUsed.length > 0 ||
-            selectedTicket.laborFee > 0
+            tkt.materialsUsed.length > 0 ||
+            tkt.laborFee > 0
               ? `
           <table>
             <thead>
@@ -827,7 +867,7 @@ export const Ariza: React.FC = () => {
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 5px; border-top: 1px dotted #ccc; padding-top: 8px;">
               <span style="color: #111827;">Genel Toplam:</span>
-              <span style="color: #111827;">${selectedTicket.totalCost.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</span>
+              <span style="color: #111827;">${tkt.totalCost.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</span>
             </div>
           </div>
           `
@@ -859,9 +899,10 @@ export const Ariza: React.FC = () => {
     `;
   };
 
-  const handlePrint = (format: "a4" | "thermal") => {
-    if (!selectedTicket) return;
-    const html = generateHTML(format);
+  const handlePrint = (format: "a4" | "thermal" | "barcode", ticketToPrint?: ServiceTicket) => {
+    const tkt = ticketToPrint || selectedTicket;
+    if (!tkt) return;
+    const html = generateHTML(format, tkt);
 
     const iframe = document.createElement("iframe");
     iframe.style.position = "fixed";
@@ -1772,6 +1813,13 @@ export const Ariza: React.FC = () => {
                 >
                   <Printer size={16} />
                   Fiş (80mm)
+                </button>
+                <button
+                  onClick={() => handlePrint("barcode")}
+                  className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-gray-200"
+                >
+                  <Printer size={16} />
+                  Barkod
                 </button>
                 <button
                   onClick={() => handlePrint("a4")}

@@ -548,8 +548,9 @@ async function startServer() {
     }
   });
 
-  const logSession = async (vkn: string, userId: string, username: string, action: string) => {
+  const logSession = async (req: any, vkn: string, userId: string, username: string, action: string) => {
     try {
+      const ipAddress = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || "").toString().split(',')[0].trim();
       let tenantName = "";
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
          const fallbackTenants = getFallbackTable("tenants");
@@ -562,15 +563,21 @@ async function startServer() {
              userId,
              username,
              action,
+             ipAddress,
              date: new Date().toISOString()
          });
       } else {
          const pool = getPool();
          const [tRows] = await pool.query("SELECT name FROM tenants WHERE vkn = ?", [vkn]);
          if (tRows && tRows.length > 0) tenantName = tRows[0].name;
-         await pool.query("INSERT INTO session_logs (id, vkn, tenantName, userId, username, action) VALUES (?, ?, ?, ?, ?, ?)", [
+         
+         try {
+             await pool.query("ALTER TABLE session_logs ADD COLUMN ipAddress VARCHAR(255) DEFAULT ''");
+         } catch(e) {}
+         
+         await pool.query("INSERT INTO session_logs (id, vkn, tenantName, userId, username, action, ipAddress) VALUES (?, ?, ?, ?, ?, ?, ?)", [
              Date.now().toString() + Math.random().toString(36).substring(7),
-             vkn, tenantName, userId, username, action
+             vkn, tenantName, userId, username, action, ipAddress
          ]);
       }
     } catch (e) {}
@@ -651,7 +658,7 @@ async function startServer() {
             }
 
             loginAttempts.delete(username);
-            await logSession(matchingUser.vkn, matchingUser.id, matchingUser.username || matchingUser.email, "Giriş");
+            await logSession(req, matchingUser.vkn, matchingUser.id, matchingUser.username || matchingUser.email, "Giriş");
             return res.json(matchingUser);
           } else {
             return handleFailedLogin();
@@ -694,7 +701,7 @@ async function startServer() {
           }
 
           loginAttempts.delete(username);
-          await logSession(user.vkn, user.id, user.username || user.email, "Giriş");
+          await logSession(req, user.vkn, user.id, user.username || user.email, "Giriş");
           return res.json(user);
         } else {
           return handleFailedLogin();
@@ -711,7 +718,7 @@ async function startServer() {
      try {
        const { vkn, userId, username } = req.body;
        if (vkn && userId) {
-          await logSession(vkn, userId, username || "Bilinmiyor", "Çıkış");
+          await logSession(req, vkn, userId, username || "Bilinmiyor", "Çıkış");
        }
        res.json({ success: true });
      } catch (e) {
@@ -2516,6 +2523,29 @@ async function startServer() {
     }
   });
 
+  app.get("/api/purchase-recommendations", async (req, res) => {
+    try {
+      const vkn = req.headers["x-tenant-id"] || "1111111111";
+      if (
+        !process.env.DATABASE_URL ||
+        !process.env.DATABASE_URL.startsWith("mysql")
+      ) {
+         const products = getFallbackTable("products", vkn);
+         const recommendations = products.filter((p: any) => p.stock <= (p.minStock || 0));
+         return res.json(recommendations);
+      }
+      
+      const pool = getPool();
+      const [rows] = await pool.query(
+        "SELECT * FROM `products` WHERE vkn = ? AND stock <= COALESCE(minStock, 0)",
+        [vkn]
+      );
+      res.json(rows);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/tenant-info", async (req, res) => {
     try {
       const vkn = req.headers["x-tenant-id"] || "1111111111";
@@ -2868,8 +2898,21 @@ async function startServer() {
     "e_invoices",
     "job_applications",
     "reminder_notes",
+    "purchase_requests",
+    "cheque_notes"
   ];
   for (const table of tables) {
+    const tableColumnsCache: Record<string, string[]> = {};
+    async function getTableColumns(pool: any, table: string) {
+      if (tableColumnsCache[table]) return tableColumnsCache[table];
+      try {
+        const [rows] = await pool.query(`SHOW COLUMNS FROM \`${table}\``);
+        const cols = rows.map((r: any) => r.Field);
+        tableColumnsCache[table] = cols;
+        return cols;
+      } catch(e) { return null; }
+    }
+
     app.get(`/api/${table}`, async (req, res) => {
       try {
         const vkn = req.headers["x-tenant-id"] || "1111111111";
@@ -2903,6 +2946,16 @@ async function startServer() {
         const pool = getPool();
         const data = { ...req.body };
         if (data.vkn) delete data.vkn;
+
+        const validCols = await getTableColumns(pool, table);
+        if (validCols) {
+           for (const k of Object.keys(data)) {
+               if (!validCols.includes(k)) {
+                   delete data[k];
+               }
+           }
+        }
+
         const keys = Object.keys(data);
         const values = Object.values(data).map((v) =>
           typeof v === "object" && v !== null ? JSON.stringify(v) : v,
@@ -2933,7 +2986,21 @@ async function startServer() {
         const data = { ...req.body };
         if (data.id) delete data.id; // Don't update id
         if (data.vkn) delete data.vkn; // Don't update vkn
+
+        const validCols = await getTableColumns(pool, table);
+        if (validCols) {
+           for (const k of Object.keys(data)) {
+               if (!validCols.includes(k)) {
+                   delete data[k];
+               }
+           }
+        }
+
         const keys = Object.keys(data);
+        if (keys.length === 0) {
+            return res.json({ id: req.params.id, ...req.body });
+        }
+
         const values = keys.map((k) =>
           typeof data[k] === "object" && data[k] !== null
             ? JSON.stringify(data[k])
@@ -3068,7 +3135,7 @@ async function startServer() {
 
         const fs = await import('fs');
         const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
-        const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes'];
+        const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes', 'purchase_requests', 'cheque_notes'];
 
         if (isMySQL) {
             const pool = getPool();
@@ -3164,7 +3231,7 @@ async function startServer() {
       }
 
       const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
-      const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes'];
+      const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes', 'purchase_requests', 'cheque_notes'];
 
       if (isMySQL) {
           const pool = getPool();

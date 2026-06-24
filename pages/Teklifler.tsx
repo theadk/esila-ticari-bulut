@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileBadge, Plus, Search, FileText, Printer, CheckCircle, XCircle, Trash2 } from 'lucide-react';
+import { FileBadge, Plus, Search, FileText, Printer, CheckCircle, XCircle, Trash2, Share2, Mail, MessageCircle } from 'lucide-react';
 import { Proposal, ProposalStatus, ProposalItem, Customer, Product, Order, OrderStatus } from '../types';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
@@ -161,6 +161,23 @@ export const Teklifler: React.FC = () => {
       next_offer_id: (store.settings.next_offer_id || 1001) + 1
     });
     setIsCreateModalOpen(false);
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!selectedProposal) return;
+    const tenantId = localStorage.getItem('esila_tenant_id');
+    const url = `${window.location.origin}/teklif-onay/${selectedProposal.id}?tenantId=${tenantId}`;
+    const text = `Merhaba,\n\n${selectedProposal.id} numaralı teklifiniz hazır. Aşağıdaki bağlantıya tıklayarak teklif detaylarını inceleyebilir ve onaylayabilirsiniz:\n\n${url}\n\nİyi günler dileriz.`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleShareEmail = () => {
+    if (!selectedProposal) return;
+    const tenantId = localStorage.getItem('esila_tenant_id');
+    const url = `${window.location.origin}/teklif-onay/${selectedProposal.id}?tenantId=${tenantId}`;
+    const subject = `${selectedProposal.id} Numaralı Teklifiniz`;
+    const body = `Merhaba,\n\n${selectedProposal.id} numaralı teklifiniz hazır. Aşağıdaki bağlantıya tıklayarak teklif detaylarını inceleyebilir ve onaylayabilirsiniz:\n\n${url}\n\nİyi günler dileriz.`;
+    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
   const handleStatusChange = (status: ProposalStatus) => {
@@ -454,7 +471,23 @@ export const Teklifler: React.FC = () => {
                  </div>
                )}
             </div>
-            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+            <div className="p-4 border-t bg-gray-50 flex flex-wrap justify-end gap-3 rounded-b-xl">
+               <button 
+                 onClick={handleShareWhatsApp}
+                 className="px-4 py-2 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 rounded-lg transition-colors font-medium flex items-center gap-2"
+                 title="WhatsApp İle Paylaş"
+               >
+                 <MessageCircle size={18} />
+                 WhatsApp
+               </button>
+               <button 
+                 onClick={handleShareEmail}
+                 className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium flex items-center gap-2"
+                 title="E-posta İle Paylaş"
+               >
+                 <Mail size={18} />
+                 E-posta
+               </button>
                <button 
                  onClick={() => {
                    setPrintType('80mm');

@@ -1,0 +1,130 @@
+{
+  "users": [
+    {
+      "vkn": "14531453",
+      "id": "admin-14531453",
+      "name": "adk",
+      "username": "14531453",
+      "email": "test@asd.com",
+      "passwordHash": "testtest",
+      "role": "Admin",
+      "status": "Aktif",
+      "permissions": {
+        "ariza": {
+          "view": true
+        }
+      },
+      "assignedWarehouse": null
+    },
+    {
+      "vkn": "14531453",
+      "id": "u-2",
+      "name": "",
+      "username": "mynewuser",
+      "email": "",
+      "passwordHash": "newpass",
+      "role": "Kullanıcı",
+      "status": "Aktif",
+      "permissions": null,
+      "assignedWarehouse": null
+    }
+  ],
+  "settings": [
+    {
+      "vkn": "14531453",
+      "id": 1,
+      "companyName": "adk aş",
+      "address": "",
+      "phone": "",
+      "email": "ahdurko@gmail.com",
+      "taxOffice": null,
+      "taxNumber": null,
+      "companyLogo": null,
+      "smtp_host": null,
+      "smtp_port": null,
+      "smtp_user": null,
+      "smtp_pass": null,
+      "sms_token": null,
+      "sms_sender_id": null,
+      "printer_header_text": null,
+      "printer_footer_text": null,
+      "prefix_customer": null,
+      "next_customer_id": null,
+      "prefix_order": null,
+      "next_order_id": null,
+      "prefix_offer": null,
+      "next_offer_id": null,
+      "prefix_product": null,
+      "next_product_id": null,
+      "prefix_personnel": null,
+      "next_personnel_id": null,
+      "efatura_username": "Test User",
+      "efatura_password": "TestPassword",
+      "efatura_apikey": null,
+      "plumbingChecklistTemplate": null
+    }
+  ],
+  "categories": [],
+  "brands": [],
+  "products": [],
+  "warehouses": [],
+  "stock_transfers": [],
+  "customers": [
+    {
+      "vkn": "14531453",
+      "id": "",
+      "type": "Alıcı",
+      "name": "Ahmet",
+      "companyName": "",
+      "taxOffice": "",
+      "taxNumber": "",
+      "tcNo": null,
+      "email": "",
+      "phone": "",
+      "address": "",
+      "groupName": null,
+      "riskLimit": null,
+      "customerType": null,
+      "city": "",
+      "district": "",
+      "iban": "",
+      "balance": "0.00",
+      "status": "Aktif",
+      "efaturaType": null,
+      "efaturaScenario": null,
+      "efaturaInvoiceType": null,
+      "assignedUser": null
+    }
+  ],
+  "customer_transactions": [],
+  "cash_transactions": [],
+  "personnel": [],
+  "personnel_records": [],
+  "orders": [],
+  "proposals": [],
+  "reconciliations": [],
+  "service_tickets": [],
+  "e_invoices": [],
+  "email_logs": [
+    {
+      "id": "17821135141375mgbn",
+      "vkn": "14531453",
+      "recipient": "ahdurko@gmail.com",
+      "subject": "Hesabınız Aktive Edildi - Esila Ticari",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-22T10:31:52.000Z"
+    },
+    {
+      "id": "1782113514725qpzh6",
+      "vkn": "14531453",
+      "recipient": "ahdurko@gmail.com",
+      "subject": "Hesabınız Aktive Edildi - Esila Ticari",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-22T10:31:53.000Z"
+    }
+  ],
+  "reminder_notes": [],
+  "job_applications": []
+}

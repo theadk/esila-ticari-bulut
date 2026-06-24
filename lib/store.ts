@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MOCK_CUSTOMERS, MOCK_TRANSACTIONS, MOCK_CASH_TRANSACTIONS, MOCK_PERSONNEL, MOCK_PRODUCTS, MOCK_USERS } from '../mockData';
-import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote } from '../types';
+import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote, BOM, WorkOrder, AppNotification, AttendanceRecord, SalaryAdjustment, PersonnelKPI, MeetingNote, Campaign } from '../types';
 
 let globalSettings: Settings = {
   companyName: 'Esila Örnek Şirket Ltd. Şti.',
@@ -32,7 +32,37 @@ let globalSettings: Settings = {
   plumbingChecklistTemplate: ['Filtre Kontrolü', 'Boru Sızıntı Kontrolü', 'Su Basıncı Testi', 'Vana Kontrolü', 'Ekipman Temizliği'],
 };
 
-let globalCustomers = [...MOCK_CUSTOMERS];
+let globalCustomers = [
+  ...MOCK_CUSTOMERS,
+  {
+    id: 'LEAD-001',
+    customerType: 'Tüzel',
+    name: 'Mustafa Demir',
+    companyName: 'Demir Mimarlık A.Ş.',
+    email: 'mustafa@demirmimarlik.com',
+    phone: '0532 999 88 77',
+    address: 'Beşiktaş, İstanbul',
+    type: 'Alıcı',
+    balance: 0,
+    status: 'Aktif',
+    isLead: true,
+    leadStatus: 'Yeni'
+  },
+  {
+    id: 'LEAD-002',
+    customerType: 'Tüzel',
+    name: 'Selin Kaya',
+    companyName: 'Kaya Lojistik',
+    email: 'selin@kayalojistik.com',
+    phone: '0555 444 33 22',
+    address: 'Kadıköy, İstanbul',
+    type: 'Alıcı',
+    balance: 0,
+    status: 'Aktif',
+    isLead: true,
+    leadStatus: 'Görüşülüyor'
+  }
+];
 let globalUsers = [...MOCK_USERS];
 let globalProducts = [...MOCK_PRODUCTS];
 let globalTransactions = [...MOCK_TRANSACTIONS];
@@ -41,6 +71,46 @@ let globalPersonnel = [...MOCK_PERSONNEL];
 let globalJobApplications: JobApplication[] = [];
 let globalServiceTickets: ServiceTicket[] = [];
 let globalReminderNotes: ReminderNote[] = [];
+let globalNotifications: AppNotification[] = [];
+let globalAttendance: AttendanceRecord[] = [
+  { id: 'att-1', personnelId: 'p1', date: '2026-06-01', status: 'Geldi', overtimeHours: 2 },
+  { id: 'att-2', personnelId: 'p1', date: '2026-06-02', status: 'Geldi', overtimeHours: 0 },
+  { id: 'att-3', personnelId: 'p1', date: '2026-06-03', status: 'Geldi', overtimeHours: 0 },
+  { id: 'att-4', personnelId: 'p1', date: '2026-06-04', status: 'İzinli', overtimeHours: 0 },
+  { id: 'att-5', personnelId: 'p1', date: '2026-06-05', status: 'Geldi', overtimeHours: 1 }
+];
+let globalSalaryAdjustments: SalaryAdjustment[] = [
+  { id: 'adj-1', personnelId: 'p1', date: '2026-06-10', type: 'Avans', amount: 1000, description: 'Nakit Avans' },
+  { id: 'adj-2', personnelId: 'p1', date: '2026-06-15', type: 'Prim', amount: 500, description: 'Performans Primi' }
+];
+let globalPersonnelKPIs: PersonnelKPI[] = [
+  { id: 'kpi-1', personnelId: 'p1', month: '2026-06', targetSalesAmount: 500000, actualSalesAmount: 350000, targetNewLeads: 20, actualNewLeads: 12 }
+];
+let globalMeetingNotes: MeetingNote[] = [];
+let globalChequeNotes: any[] = [];
+
+let globalCampaigns: Campaign[] = [
+  {
+    id: 'CAMP-001',
+    name: 'Yaz Başlangıcı İndirimi',
+    description: 'Tüm perakende müşterilerinde geçerli %15 net iskonto.',
+    customerGroup: 'Perakende',
+    discountPercentage: 15,
+    startDate: '2026-06-01',
+    endDate: '2026-06-30',
+    isActive: true
+  },
+  {
+    id: 'CAMP-002',
+    name: 'B2B Bayi Destek Kampanyası',
+    description: 'Toptan alımlarda geçerli özel bayi iskontosu.',
+    customerGroup: 'B2B',
+    discountPercentage: 25,
+    startDate: '2026-01-01',
+    endDate: '2026-12-31',
+    isActive: true
+  }
+];
 export interface SuspendedCart {
   id: string;
   name: string;
@@ -92,6 +162,30 @@ let globalOrders: Order[] = [
     ]
   }
 ];
+
+let globalBoms: BOM[] = [
+  {
+    id: 'BOM-1001',
+    name: 'Endüstriyel Sensör V1 Montajı',
+    targetProductId: '1',
+    items: [{ productId: '2', quantity: 1, unit: 'Adet' }],
+    isActive: true,
+    estimatedTimeMinutes: 120
+  }
+];
+let globalWorkOrders: WorkOrder[] = [
+  {
+    id: 'WO-10001',
+    bomId: 'BOM-1001',
+    targetProductId: '1',
+    plannedQuantity: 10,
+    producedQuantity: 0,
+    status: 'Planlandı',
+    priority: 'Yüksek'
+  }
+];
+
+let globalPurchaseRequests: any[] = [];
 
 type Listener = () => void;
 const listeners = new Set<Listener>();
@@ -221,6 +315,12 @@ export async function initializeStore() {
             ...d,
             isCompleted: d.isCompleted == 1 || d.isCompleted === true
         }));
+      } },
+      { name: 'notifications', ref: (data: any) => {
+          globalNotifications = data.map((d: any) => ({
+              ...d,
+              isRead: d.isRead == 1 || d.isRead === true
+          }));
       } }
     ];
     
@@ -342,9 +442,65 @@ export const useAppStore = () => {
       syncArray('reminder_notes', old, globalReminderNotes);
       emit();
     },
+    get notifications() { return globalNotifications; },
+    setNotifications(updater: any) {
+      const old = [...globalNotifications];
+      globalNotifications = typeof updater === 'function' ? updater(globalNotifications) : updater;
+      syncArray('notifications', old, globalNotifications);
+      emit();
+    },
+    get boms() { return globalBoms; },
+    setBoms(updater: any) {
+      globalBoms = typeof updater === 'function' ? updater(globalBoms) : updater;
+      emit();
+    },
+    get workOrders() { return globalWorkOrders; },
+    setWorkOrders(updater: any) {
+      globalWorkOrders = typeof updater === 'function' ? updater(globalWorkOrders) : updater;
+      emit();
+    },
     get suspendedCarts() { return globalSuspendedCarts; },
     setSuspendedCarts(updater: any) {
       globalSuspendedCarts = typeof updater === 'function' ? updater(globalSuspendedCarts) : updater;
+      emit();
+    },
+    get attendance() { return globalAttendance; },
+    setAttendance(updater: any) {
+      globalAttendance = typeof updater === 'function' ? updater(globalAttendance) : updater;
+      emit();
+    },
+    get salaryAdjustments() { return globalSalaryAdjustments; },
+    setSalaryAdjustments(updater: any) {
+      globalSalaryAdjustments = typeof updater === 'function' ? updater(globalSalaryAdjustments) : updater;
+      emit();
+    },
+    get personnelKPIs() { return globalPersonnelKPIs; },
+    setPersonnelKPIs(updater: any) {
+      globalPersonnelKPIs = typeof updater === 'function' ? updater(globalPersonnelKPIs) : updater;
+      emit();
+    },
+    get meetingNotes() { return globalMeetingNotes; },
+    setMeetingNotes(updater: any) {
+      globalMeetingNotes = typeof updater === 'function' ? updater(globalMeetingNotes) : updater;
+      emit();
+    },
+    get campaigns() { return globalCampaigns; },
+    setCampaigns(updater: any) {
+      globalCampaigns = typeof updater === 'function' ? updater(globalCampaigns) : updater;
+      emit();
+    },
+    get purchaseRequests() { return globalPurchaseRequests; },
+    setPurchaseRequests(updater: any) {
+      const old = [...globalPurchaseRequests];
+      globalPurchaseRequests = typeof updater === 'function' ? updater(globalPurchaseRequests) : updater;
+      syncArray('purchase_requests', old, globalPurchaseRequests);
+      emit();
+    },
+    get chequeNotes() { return globalChequeNotes; },
+    setChequeNotes(updater: any) {
+      const old = [...globalChequeNotes];
+      globalChequeNotes = typeof updater === 'function' ? updater(globalChequeNotes) : updater;
+      syncArray('cheque_notes', old, globalChequeNotes);
       emit();
     }
   };

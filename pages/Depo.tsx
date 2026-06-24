@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Warehouse as WarehouseIcon, Package, Search, Box, ArrowRight, Plus, X, Edit2, Trash2, ArrowLeftRight } from 'lucide-react';
+import { Warehouse as WarehouseIcon, Package, Search, Box, ArrowRight, Plus, X, Edit2, Trash2, ArrowLeftRight, ScanBarcode, Truck, MapPin, Map, Navigation, Layers, CheckSquare } from 'lucide-react';
 import { Product, Warehouse, StockTransfer } from '../types';
 import { api } from '../lib/api';
 import { Pagination } from '../components/Pagination';
@@ -24,10 +24,63 @@ export const Depo: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [newWh, setNewWh] = useState<Warehouse>({ id: '', name: '', address: '', capacity: 0 });
 
-  const [activeTab, setActiveTab] = useState<'depolar'|'transferler'>('depolar');
+  const [activeTab, setActiveTab] = useState<'depolar'|'transferler'|'akilli_depo'|'el_terminali'>('depolar');
+  const [smartWarehouseView, setSmartWarehouseView] = useState<'barkod'|'sevkiyat'|'yerlesim'>('barkod');
+  const [barcodeScan, setBarcodeScan] = useState('');
+  const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   const [transfers, setTransfers] = useState<StockTransfer[]>([]);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [transferForm, setTransferForm] = useState({ productId: '', sourceWarehouse: '', targetWarehouse: '', quantity: 1 });
+
+  // Akıllı Toplama Rotası State
+  const [pickingList, setPickingList] = useState([
+    { id: '1', name: 'Ürün XYZ', aisle: 'A', shelf: 3, qty: 2, picked: false },
+    { id: '2', name: 'Ürün ABC', aisle: 'C', shelf: 2, qty: 5, picked: false },
+    { id: '3', name: 'Kutu KMN', aisle: 'C', shelf: 5, qty: 1, picked: false },
+    { id: '4', name: 'Yedek Parça', aisle: 'B', shelf: 1, qty: 10, picked: false },
+    { id: '5', name: 'Kablo 2m', aisle: 'A', shelf: 1, qty: 3, picked: false },
+  ]);
+  const [isRouteOptimized, setIsRouteOptimized] = useState(false);
+
+  const optimizeRoute = () => {
+    const aisleOrder: Record<string, number> = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+    const sorted = [...pickingList].sort((a, b) => {
+      if (a.aisle !== b.aisle) {
+        return aisleOrder[a.aisle] - aisleOrder[b.aisle];
+      }
+      const isEvenAisle = aisleOrder[a.aisle] % 2 === 0;
+      return isEvenAisle ? a.shelf - b.shelf : b.shelf - a.shelf;
+    });
+    setPickingList(sorted);
+    setIsRouteOptimized(true);
+  };
+
+  const togglePicked = (id: string) => {
+    setPickingList(list => list.map(item => item.id === id ? { ...item, picked: !item.picked } : item));
+  };
+
+  const getAisleShelfCoords = (aisle: string, shelf: number) => {
+     // Aisle centers: A:75, B:225, C:375, D:525 (Approximate based on grid layout 600px width / 4)
+     const xMap: Record<string, number> = { 'A': 75, 'B': 225, 'C': 375, 'D': 525 };
+     // Shelf centers (1-5 top to bottom)
+     const yMap: Record<number, number> = { 1: 50, 2: 120, 3: 190, 4: 260, 5: 330 };
+     return { x: xMap[aisle] || 0, y: yMap[shelf] || 0 };
+  };
+
+  const generateDynamicPath = () => {
+    const unpicked = pickingList.filter(p => !p.picked);
+    if (unpicked.length === 0) return '';
+    let path = `M 40,380`; 
+    let currentX = 40;
+    let currentY = 380;
+    unpicked.forEach(item => {
+      const { x, y } = getAisleShelfCoords(item.aisle, item.shelf);
+      path += ` L ${x},${currentY} L ${x},${y}`;
+      currentX = x;
+      currentY = y;
+    });
+    return path;
+  };
 
   useEffect(() => {
     loadData();
@@ -120,6 +173,19 @@ export const Depo: React.FC = () => {
     } catch(err) {
       alert('Stok transferi sırasında hata oluştu.');
     }
+  };
+
+  const handleBarcodeScan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!barcodeScan.trim()) return;
+    const found = products.find(p => p.barcode === barcodeScan.trim() || p.code === barcodeScan.trim());
+    if (found) {
+      setScannedProduct(found);
+    } else {
+      setScannedProduct(null);
+      alert('Bu barkoda ait ürün bulunamadı.');
+    }
+    setBarcodeScan('');
   };
 
   const openEditModal = (whStatName: string, e: React.MouseEvent) => {
@@ -221,6 +287,18 @@ export const Depo: React.FC = () => {
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'transferler' ? 'bg-emerald-100 text-emerald-700' : 'bg-white border text-gray-600 hover:bg-gray-50'}`}
             >
               Stok Transferleri
+            </button>
+            <button 
+              onClick={() => setActiveTab('akilli_depo')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'akilli_depo' ? 'bg-emerald-100 text-emerald-700' : 'bg-white border text-gray-600 hover:bg-gray-50'}`}
+            >
+              Akıllı Depo
+            </button>
+            <button 
+              onClick={() => setActiveTab('el_terminali')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'el_terminali' ? 'bg-emerald-100 text-emerald-700' : 'bg-white border text-gray-600 hover:bg-gray-50'}`}
+            >
+              El Terminali (WMS)
             </button>
         </div>
 
@@ -381,7 +459,7 @@ export const Depo: React.FC = () => {
         totalItems={filteredProducts.length}
       />
       </>
-      ) : (
+      ) : activeTab === 'transferler' ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-4 border-b border-gray-100">
             <h3 className="font-bold text-lg text-gray-800">Geçmiş Stok Transferleri</h3>
@@ -431,7 +509,321 @@ export const Depo: React.FC = () => {
             </tbody>
           </table>
         </div>
-      )}
+      ) : activeTab === 'akilli_depo' ? (
+        <div className="space-y-6 animate-fade-in">
+          {/* Smart Warehouse Sub Nav */}
+          <div className="flex border-b border-gray-200 overflow-x-auto hide-scrollbar">
+            <button
+              onClick={() => setSmartWarehouseView('barkod')}
+              className={`pb-4 px-6 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${smartWarehouseView === 'barkod' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            >
+              <div className="flex items-center gap-2">
+                <ScanBarcode size={18} />
+                Barkod İşlemleri
+              </div>
+            </button>
+            <button
+              onClick={() => setSmartWarehouseView('sevkiyat')}
+              className={`pb-4 px-6 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${smartWarehouseView === 'sevkiyat' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            >
+              <div className="flex items-center gap-2">
+                <Truck size={18} />
+                Sevkiyat Yönetimi
+              </div>
+            </button>
+            <button
+              onClick={() => setSmartWarehouseView('yerlesim')}
+              className={`pb-4 px-6 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${smartWarehouseView === 'yerlesim' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            >
+              <div className="flex items-center gap-2">
+                <MapPin size={18} />
+                Raf ve Yerleşim
+              </div>
+            </button>
+          </div>
+
+          {smartWarehouseView === 'barkod' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -z-10"></div>
+                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><ScanBarcode className="text-emerald-600" /> Ürün Sorgula (Barkod Okuyucu)</h3>
+                <form onSubmit={handleBarcodeScan} className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Barkod okutun veya kod girin..."
+                    value={barcodeScan}
+                    onChange={(e) => setBarcodeScan(e.target.value)}
+                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 font-mono text-lg"
+                  />
+                  <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-bold transition-colors">Sorgula</button>
+                </form>
+                <div className="mt-4 text-sm text-gray-500 bg-blue-50 p-3 rounded-lg border border-blue-100 flex gap-3 items-start">
+                   <div className="mt-0.5 text-blue-500"><Search size={16}/></div>
+                   <p>Barkod okuyucunuzu bağlayın ve imleci kutucuğa bırakın. Okuma tamamlandığında ürün bilgileri otomatik olarak aranacaktır.</p>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10"></div>
+                <h3 className="font-bold text-gray-800 mb-4 text-lg flex items-center gap-2"><Package className="text-blue-600" /> Sorgu Sonucu</h3>
+                {scannedProduct ? (
+                  <div className="space-y-4 animate-in fade-in zoom-in duration-300">
+                    <div className="flex justify-between pb-3 border-b border-gray-100">
+                      <span className="text-gray-500">Ürün Adı:</span>
+                      <span className="font-bold text-gray-800 text-right">{scannedProduct.name}</span>
+                    </div>
+                    <div className="flex justify-between pb-3 border-b border-gray-100">
+                      <span className="text-gray-500">Barkod / Kod:</span>
+                      <span className="font-mono text-emerald-600 font-bold">{scannedProduct.barcode || scannedProduct.code || '-'}</span>
+                    </div>
+                    <div className="flex justify-between pb-3 border-b border-gray-100">
+                      <span className="text-gray-500">Toplam Stok:</span>
+                      <span className="font-bold text-lg bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg">{scannedProduct.stock} {scannedProduct.unit}</span>
+                    </div>
+                    <div className="pt-2">
+                      <h4 className="font-medium text-sm text-gray-600 mb-2">Depo Dağılımı:</h4>
+                      {scannedProduct.warehouseStocks && scannedProduct.warehouseStocks.length > 0 ? (
+                        <div className="space-y-2">
+                          {scannedProduct.warehouseStocks.map((ws, i) => (
+                            <div key={i} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                              <div className="flex items-center gap-2">
+                                <WarehouseIcon size={16} className="text-gray-400" />
+                                <span className="font-medium text-gray-700">{ws.warehouseId}</span>
+                              </div>
+                              <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-sm">{ws.stock}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                          <div className="flex items-center gap-2">
+                             <WarehouseIcon size={16} className="text-gray-400" />
+                             <span className="font-medium text-gray-700">{scannedProduct.warehouse || 'Varsayılan Depo'}</span>
+                          </div>
+                          <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-sm">{scannedProduct.stock}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-40 flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+                    <ScanBarcode size={48} className="mb-2 opacity-50" />
+                    <p>Henüz ürün okutulmadı</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {smartWarehouseView === 'sevkiyat' && (
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm text-center py-16 animate-in fade-in">
+              <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                 <Truck size={40} className="text-blue-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Sevkiyat Yönetimi</h3>
+              <p className="text-gray-500 max-w-md mx-auto">Sevkiyat modülü ile depodan çıkan ürünlerin araçlara yüklenmesi, irsaliye oluşturulması ve teslimat takibini yapabilirsiniz. Yakında aktif edilecektir.</p>
+            </div>
+          )}
+
+          {smartWarehouseView === 'yerlesim' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in">
+              <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden flex flex-col">
+                <div className="flex justify-between items-center mb-6">
+                   <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                     <Map className="text-emerald-600" /> Depo Haritası (2D Görünüm)
+                   </h3>
+                   <div className="flex gap-2">
+                     <button className="px-3 py-1.5 text-xs font-medium bg-emerald-100 text-emerald-700 rounded border border-emerald-200">2D Plan</button>
+                     <button className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-600 rounded border border-gray-200 hover:bg-gray-200 transition-colors">3D Görünüm (Pro)</button>
+                   </div>
+                </div>
+                
+                {/* Simulated 2D Map */}
+                <div className="flex-1 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 p-4 min-h-[400px] relative overflow-x-auto">
+                   <div className="absolute top-4 left-4 text-xs font-bold text-gray-400">GİRİŞ / SEVKİYAT ALANI</div>
+                   
+                   {/* Map Grid Container */}
+                   <div className="mt-8 grid grid-cols-4 gap-6 h-[400px] min-w-[600px] pb-8 pt-4 relative">
+                     {/* Route Line Overlay */}
+                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" style={{ filter: 'drop-shadow(0 2px 4px rgba(16, 185, 129, 0.4))' }}>
+                        <path 
+                           d={generateDynamicPath()} 
+                           fill="none" 
+                           stroke="#10b981" 
+                           strokeWidth="4" 
+                           strokeDasharray="8,8" 
+                           className="animate-[dash_20s_linear_infinite]" 
+                        />
+                        <circle cx="40" cy="380" r="6" fill="#10b981" />
+                        {pickingList.filter(p => !p.picked).map(item => {
+                           const coords = getAisleShelfCoords(item.aisle, item.shelf);
+                           return <circle key={`dot-${item.id}`} cx={coords.x} cy={coords.y} r="8" fill="#3b82f6" className="animate-pulse" />
+                        })}
+                     </svg>
+                     <style dangerouslySetInnerHTML={{__html: `
+                        @keyframes dash {
+                          to {
+                            stroke-dashoffset: -1000;
+                          }
+                        }
+                     `}} />
+
+                     {/* Koridor A */}
+                     <div className="flex flex-col h-full gap-2 relative">
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-500">Koridor A</div>
+                        {[1, 2, 3, 4, 5].map(raf => {
+                           const items = pickingList.filter(p => p.aisle === 'A' && p.shelf === raf && !p.picked);
+                           const hasItems = items.length > 0;
+                           return (
+                              <div key={raf} className={`flex-1 rounded border-2 flex flex-col items-center justify-center text-xs font-bold cursor-pointer transition-all hover:scale-[1.02] ${hasItems ? 'bg-emerald-100 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-white border-gray-300 text-gray-400 hover:border-gray-400 hover:bg-gray-50'}`}>
+                                 A-{raf}
+                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1 animate-pulse">{items.length}</span>}
+                              </div>
+                           )
+                        })}
+                     </div>
+                     {/* Koridor B */}
+                     <div className="flex flex-col h-full gap-2 relative">
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-500">Koridor B</div>
+                        {[1, 2, 3, 4, 5].map(raf => {
+                           const items = pickingList.filter(p => p.aisle === 'B' && p.shelf === raf && !p.picked);
+                           const hasItems = items.length > 0;
+                           return (
+                              <div key={raf} className={`flex-1 rounded border-2 flex flex-col items-center justify-center text-xs font-bold cursor-pointer transition-all hover:scale-[1.02] ${hasItems ? 'bg-emerald-100 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-white border-gray-300 text-gray-400 hover:border-gray-400 hover:bg-gray-50'}`}>
+                                 B-{raf}
+                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1 animate-pulse">{items.length}</span>}
+                              </div>
+                           )
+                        })}
+                     </div>
+                     {/* Koridor C */}
+                     <div className="flex flex-col h-full gap-2 relative">
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-500">Koridor C</div>
+                        {[1, 2, 3, 4, 5].map(raf => {
+                           const items = pickingList.filter(p => p.aisle === 'C' && p.shelf === raf && !p.picked);
+                           const hasItems = items.length > 0;
+                           return (
+                              <div key={raf} className={`flex-1 rounded border-2 flex flex-col items-center justify-center text-xs font-bold cursor-pointer transition-all hover:scale-[1.02] ${hasItems ? 'bg-emerald-100 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-white border-gray-300 text-gray-400 hover:border-gray-400 hover:bg-gray-50'}`}>
+                                 C-{raf}
+                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1 animate-pulse">{items.length}</span>}
+                              </div>
+                           )
+                        })}
+                     </div>
+                     {/* Koridor D */}
+                     <div className="flex flex-col h-full gap-2 relative">
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-500">Koridor D</div>
+                        {[1, 2, 3, 4, 5].map(raf => {
+                           const items = pickingList.filter(p => p.aisle === 'D' && p.shelf === raf && !p.picked);
+                           const hasItems = items.length > 0;
+                           return (
+                              <div key={raf} className={`flex-1 rounded border-2 flex flex-col items-center justify-center text-xs font-bold cursor-pointer transition-all hover:scale-[1.02] ${hasItems ? 'bg-emerald-100 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-white border-gray-300 text-gray-400 hover:border-gray-400 hover:bg-gray-50'}`}>
+                                 D-{raf}
+                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1 animate-pulse">{items.length}</span>}
+                              </div>
+                           )
+                        })}
+                     </div>
+                   </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-6">
+                {/* Search & Detail */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                   <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Search className="text-blue-600" size={20} /> Konum Sorgula</h3>
+                   <input type="text" placeholder="Ürün adı, kodu veya raf no..." className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm mb-4" />
+                   
+                   <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 animate-in zoom-in duration-300">
+                      <div className="flex justify-between items-start mb-2">
+                         <div>
+                            <h4 className="font-bold text-gray-800">Seçili Raf: A-3</h4>
+                            <p className="text-xs text-gray-500 mt-1">Kapasite: %85 Dolu</p>
+                         </div>
+                         <span className="bg-emerald-500 text-white px-2 py-1 rounded text-xs font-bold shadow-sm">Aktif</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mt-4">
+                         <div className="bg-white border border-emerald-200 rounded-lg p-3 text-center shadow-sm">
+                            <span className="block text-[10px] text-gray-400 font-bold uppercase mb-1">Koridor</span>
+                            <span className="font-bold text-gray-800 text-xl">A</span>
+                         </div>
+                         <div className="bg-white border border-emerald-200 rounded-lg p-3 text-center shadow-sm">
+                            <span className="block text-[10px] text-gray-400 font-bold uppercase mb-1">Raf</span>
+                            <span className="font-bold text-gray-800 text-xl">3</span>
+                         </div>
+                         <div className="bg-white border border-emerald-200 rounded-lg p-3 text-center shadow-sm">
+                            <span className="block text-[10px] text-gray-400 font-bold uppercase mb-1">Kat</span>
+                            <span className="font-bold text-gray-800 text-xl">2</span>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Route Optimization */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex-1 flex flex-col">
+                   <div className="flex justify-between items-center mb-2">
+                     <h3 className="font-bold text-gray-800 flex items-center gap-2"><Navigation className="text-purple-600" size={20} /> Toplama Rotası</h3>
+                     {!isRouteOptimized && (
+                        <button onClick={optimizeRoute} className="px-3 py-1 bg-purple-100 text-purple-700 font-bold text-xs rounded border border-purple-200 hover:bg-purple-200 transition-colors">
+                          Rotayı Optimize Et
+                        </button>
+                     )}
+                   </div>
+                   <p className="text-xs text-gray-500 mb-6">S-Shape Algoritması ile en kısa yürüme rotası.</p>
+                   
+                   <div className="space-y-4 relative before:absolute before:inset-0 before:ml-[15px] before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-gray-200 before:via-gray-200 before:to-transparent flex-1 overflow-y-auto pr-2 max-h-[300px] hide-scrollbar">
+                      {pickingList.map((item, idx) => (
+                        <div key={item.id} className="relative flex items-center gap-4 group cursor-pointer" onClick={() => togglePicked(item.id)}>
+                           <div className={`flex items-center justify-center w-8 h-8 rounded-full border-4 border-white shadow shrink-0 z-10 transition-colors ${item.picked ? 'bg-gray-200 text-gray-400' : 'bg-blue-500 text-white'}`}>
+                              {item.picked ? <CheckSquare size={14} /> : <Layers size={14} />}
+                           </div>
+                           <div className={`flex-1 p-3 rounded-lg border shadow-sm transition-all ${item.picked ? 'border-gray-100 bg-gray-50 opacity-60' : 'border-gray-200 bg-white hover:border-blue-300'}`}>
+                              <div className="flex items-center justify-between mb-1">
+                                 <span className={`font-bold text-sm ${item.picked ? 'text-gray-400 line-through' : 'text-gray-800'}`}>Hedef {idx + 1} ({item.aisle}-{item.shelf})</span>
+                              </div>
+                              <div className={`text-xs ${item.picked ? 'text-gray-400' : 'text-gray-500 font-medium'}`}>{item.qty}x {item.name}</div>
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                   
+                   <button className="w-full mt-6 py-3 bg-gray-900 text-white font-medium rounded-lg text-sm hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20">
+                     Toplama İşlemini Başlat
+                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      ) : activeTab === 'el_terminali' ? (
+        <div className="bg-gray-900 rounded-xl overflow-hidden shadow-2xl p-4 min-h-[600px] flex flex-col items-center justify-center text-white relative">
+          <div className="absolute top-4 left-4 bg-red-600 px-3 py-1 text-xs font-bold uppercase rounded-full shadow-lg border border-red-500 animate-pulse">
+            El Terminali Modu
+          </div>
+          <div className="w-full max-w-sm space-y-6">
+             <div className="text-center space-y-2 mb-8">
+               <ScanBarcode size={64} className="mx-auto text-emerald-400 mb-4" />
+               <h3 className="text-2xl font-black tracking-tight">WMS Mobil</h3>
+               <p className="text-gray-400 text-sm">Seri/Lot okutmak için barkod tarayın.</p>
+             </div>
+             
+             <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-6 rounded-2xl shadow-xl border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
+                <ArrowRight size={24} /> Mal Kabul (SKT/Lot)
+             </button>
+             <button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-6 rounded-2xl shadow-xl border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
+                <Truck size={24} /> Sipariş Toplama
+             </button>
+             <button className="w-full bg-amber-500 hover:bg-amber-400 text-white font-bold py-6 rounded-2xl shadow-xl border-b-4 border-amber-700 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
+                <Box size={24} /> Kargo Fişi / Barkod Yazdır
+             </button>
+             <button className="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold py-6 rounded-2xl shadow-xl border-b-4 border-gray-900 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
+                <Layers size={24} /> Sayım Fişi
+             </button>
+          </div>
+        </div>
+      ) : null}
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex flex-col items-center justify-center p-4">

@@ -153,7 +153,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-800 to-emerald-900 p-4">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ 
+        backgroundImage: 'url("/login-bg.png"), linear-gradient(to bottom right, #065f46, #064e3b)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
       <div className="bg-white w-full max-w-full sm:max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         <div className="p-4 md:p-8 bg-emerald-50 border-b border-emerald-100 flex flex-col items-center">
           <h1 className="text-4xl font-sans font-bold tracking-tight text-emerald-700 drop-shadow-sm mb-2 cursor-default">Esila Ticari</h1>

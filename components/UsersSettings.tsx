@@ -4,6 +4,9 @@ import { User, UserPermissions, PermissionSet } from '../types';
 import { useAppStore } from '../lib/store';
 
 const DEFAULT_PERMISSIONS: UserPermissions = {
+  uretim: { view: true, create: false, edit: false, delete: false },
+  satinalma: { view: true, create: false, edit: false, delete: false },
+  ceksenet: { view: true, create: false, edit: false, delete: false },
   ariza: { view: true, create: false, edit: false, delete: false },
   personel: { view: true, create: false, edit: false, delete: false },
   hizlisatis: { view: true, create: false, edit: false, delete: false },
@@ -19,6 +22,8 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   stoksayim: { view: true, create: false, edit: false, delete: false },
   raporlar: { view: true, create: false, edit: false, delete: false },
   izin_yonetimi: { view: false, create: false, edit: false, delete: false },
+  crm: { view: true, create: false, edit: false, delete: false },
+  terminal: { view: true, create: false, edit: false, delete: false },
 };
 
 const INITIAL_FORM: Omit<User, 'id'> = {
@@ -56,6 +61,7 @@ export const UsersSettings: React.FC = () => {
   const handleEdit = (user: User) => {
     setFormData({
       ...user,
+      passwordHash: '',
       permissions: user.permissions || JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS))
     });
     setIsEditing(true);
@@ -71,7 +77,12 @@ export const UsersSettings: React.FC = () => {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (isEditing) {
-      setUsers(users.map(u => (u.id === formData.id ? formData : u)));
+      const originalUser = users.find(u => u.id === formData.id);
+      const toSave = { ...formData };
+      if (!toSave.passwordHash && originalUser) {
+        toSave.passwordHash = originalUser.passwordHash;
+      }
+      setUsers(users.map(u => (u.id === formData.id ? toSave : u)));
     } else {
       setUsers([...users, formData]);
     }
@@ -270,6 +281,9 @@ export const UsersSettings: React.FC = () => {
                    </div>
                    <div className="p-4 space-y-4 max-h-60 overflow-y-auto">
                      {Object.entries({
+                       uretim: 'Üretim (Ar-Ge & İmalat)',
+                       satinalma: 'Satın Alma',
+                       ceksenet: 'Çek & Senet',
                        ariza: 'Arıza Formu',
                        personel: 'Personel',
                        hizlisatis: 'Hızlı Satış',
@@ -284,7 +298,9 @@ export const UsersSettings: React.FC = () => {
                        mutabakat: 'Mutabakat',
                        stoksayim: 'Stok Sayım',
                        raporlar: 'Raporlar',
-                       izin_yonetimi: 'Personel İzin Yönetimi'
+                       izin_yonetimi: 'Personel İzin Yönetimi',
+                       crm: 'CRM & Kampanya',
+                       terminal: 'El Terminali'
                      }).map(([key, label]) => {
                        const permKey = key as keyof UserPermissions;
                        const perms = formData.permissions?.[permKey] || { view: false, create: false, edit: false, delete: false };

@@ -9,7 +9,9 @@ import { parseEmailTemplate, defaultTemplates } from '../lib/emailUtils';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/Pagination';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download, Printer, Package, MessageSquare, Mic, MicOff } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, User, Briefcase, FileText, Calendar, Building, DollarSign, Paperclip, Download, Printer, Package, MessageSquare, Mic, MicOff, List, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PuantajMaasView } from '../components/PuantajMaasView';
+import { KPIView } from '../components/KPIView';
 import { Personnel, PersonnelRecord, Payroll } from '../types';
 import { sendSMS } from '../src/utils/smsRequest';
 
@@ -803,7 +805,7 @@ export const Personel: React.FC = () => {
   const [printBordroModalOpen, setPrintBordroModalOpen] = useState(false);
   const [selectedBordroToPrint, setSelectedBordroToPrint] = useState<Payroll | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'Personeller' | 'İşe Alım' | 'İzin Yönetimi'>('Personeller');
+  const [activeTab, setActiveTab] = useState<'Personeller' | 'İşe Alım' | 'İzin Yönetimi' | 'Görev Takibi' | 'Puantaj & Maaş' | 'KPI & Performans'>('Personeller');
 
   const downloadPayrollPDF = (payroll: Payroll) => {
     setSelectedBordroToPrint(payroll);
@@ -846,6 +848,24 @@ export const Personel: React.FC = () => {
               İzin Yönetimi
             </button>
           )}
+          <button 
+            onClick={() => setActiveTab('Görev Takibi')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'Görev Takibi' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            Görev Takibi
+          </button>
+          <button 
+            onClick={() => setActiveTab('Puantaj & Maaş')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'Puantaj & Maaş' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            Puantaj & Maaş
+          </button>
+          <button 
+            onClick={() => setActiveTab('KPI & Performans')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'KPI & Performans' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            KPI & Performans
+          </button>
         </div>
       </div>
 
@@ -976,38 +996,38 @@ export const Personel: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-2 transition-opacity">
                       <button 
                         onClick={(e) => { e.stopPropagation(); exportPersonnelDossier(p); }} 
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                         title="PDF Dosyası Yazdır"
                       >
                         <Printer size={18} />
                       </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleOpenLeave(p); }} 
-                        className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                        className="p-2 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
                         title="İzin Yönetimi"
                       >
                         <Calendar size={18} />
                       </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleOpenPayroll(p); }} 
-                        className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
                         title="Puantaj & Bordro"
                       >
                         <DollarSign size={18} />
                       </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleOpenRecords(p); }} 
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                         title="Özlük Dosyası"
                       >
                         <FileText size={18} />
                       </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleOpenFixtures(p); }} 
-                        className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                        className="p-2 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
                         title="Zimmetler"
                       >
                         <Package size={18} />
@@ -1015,7 +1035,7 @@ export const Personel: React.FC = () => {
                       {canEdit && (
                         <button 
                           onClick={(e) => openEditModal(p, e)} 
-                          className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                          className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
                           title="Düzenle"
                         >
                           <Edit2 size={18} />
@@ -1024,7 +1044,7 @@ export const Personel: React.FC = () => {
                       {canDelete && (
                         <button 
                           onClick={(e) => handleDelete(p.id, e)} 
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
                           title="Sil"
                         >
                           <Trash2 size={18} />
@@ -1562,9 +1582,35 @@ export const Personel: React.FC = () => {
                            <p className="text-sm text-gray-500">{selectedPersonnel.firstName} {selectedPersonnel.lastName} • {selectedPersonnel.position}</p>
                        </div>
                     </div>
-                    <button onClick={() => setIsRecordModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100">
-                      <X size={24} />
-                    </button>
+                    <div className="flex items-center gap-6">
+                        <div className="hidden sm:flex items-center gap-4 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                           <div className="text-center px-3 border-r border-gray-200">
+                               <p className="text-xs text-gray-500 font-medium">Tamamlanan Görev</p>
+                               <p className="text-lg font-bold text-emerald-600">
+                                  {(store.serviceTickets || []).filter((t: any) => t.personnelId === selectedPersonnel.id && t.status === 'Tamamlandı').length}
+                               </p>
+                           </div>
+                           <div className="text-center px-3">
+                               <p className="text-xs text-gray-500 font-medium">Ort. Süre (Gün)</p>
+                               <p className="text-lg font-bold text-blue-600">
+                                  {(() => {
+                                      const pTickets = (store.serviceTickets || []).filter((t: any) => t.personnelId === selectedPersonnel.id && t.status === 'Tamamlandı' && t.dateCompleted);
+                                      if (pTickets.length === 0) return "-";
+                                      let totalDays = 0;
+                                      pTickets.forEach((t: any) => {
+                                          const start = new Date(t.dateCreated).getTime();
+                                          const end = new Date(t.dateCompleted!).getTime();
+                                          totalDays += (end - start) / (1000 * 60 * 60 * 24);
+                                      });
+                                      return (totalDays / pTickets.length).toFixed(1);
+                                  })()}
+                               </p>
+                           </div>
+                        </div>
+                        <button onClick={() => setIsRecordModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100">
+                          <X size={24} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex-1 flex overflow-hidden">
@@ -2056,6 +2102,210 @@ export const Personel: React.FC = () => {
 
       {activeTab === 'İzin Yönetimi' && canViewLeave && (
         <LeaveManagementView />
+      )}
+
+      {activeTab === 'Görev Takibi' && (
+        <TaskTrackingView />
+      )}
+
+      {activeTab === 'Puantaj & Maaş' && (
+        <PuantajMaasView />
+      )}
+
+      {activeTab === 'KPI & Performans' && (
+        <KPIView />
+      )}
+    </div>
+  );
+};
+
+const TaskTrackingView: React.FC = () => {
+  const store = useAppStore();
+  const { serviceTickets, personnel } = store;
+
+  const assignedTickets = serviceTickets.filter(t => t.personnelId);
+
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = getFirstDayOfMonth(year, month);
+  const startDay = firstDay === 0 ? 6 : firstDay - 1; // Adjust for Monday start (0=Monday, 6=Sunday)
+
+  const monthNames = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div>
+          <h3 className="font-bold text-lg text-gray-800">Görev Takip Paneli</h3>
+          <p className="text-gray-500 text-sm">Personellere atanan servis ve arıza görevlerinin durumları</p>
+        </div>
+        <div className="flex bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors ${viewMode === 'list' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
+          >
+            <List size={16} />
+            Liste
+          </button>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors ${viewMode === 'calendar' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
+          >
+            <Calendar size={16} />
+            Takvim
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'list' ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-gray-50 text-gray-600 font-medium text-sm">
+                <tr>
+                  <th className="px-6 py-4">Görev ID</th>
+                  <th className="px-6 py-4">Personel</th>
+                  <th className="px-6 py-4">Müşteri</th>
+                  <th className="px-6 py-4">Konu / Cihaz</th>
+                  <th className="px-6 py-4">Tarih</th>
+                  <th className="px-6 py-4">Durum</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {assignedTickets.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">Atanmış görev bulunmamaktadır.</td>
+                  </tr>
+                ) : (
+                  assignedTickets.map(ticket => {
+                    const p = personnel.find(p => p.id === ticket.personnelId);
+                    
+                    let statusColor = "bg-gray-100 text-gray-800 border-gray-200";
+                    if (ticket.status === 'Bekliyor') statusColor = "bg-yellow-100 text-yellow-800 border-yellow-200";
+                    if (ticket.status === 'İşlemde') statusColor = "bg-blue-100 text-blue-800 border-blue-200";
+                    if (ticket.status === 'Tamamlandı') statusColor = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                    if (ticket.status === 'İptal') statusColor = "bg-red-100 text-red-800 border-red-200";
+
+                    return (
+                      <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{ticket.id}</td>
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-gray-800">{p ? `${p.firstName} ${p.lastName}` : ticket.personnelName}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{ticket.customerName}</td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-800">{ticket.deviceType}</div>
+                          <div className="text-xs text-gray-500 truncate max-w-xs">{ticket.issueDescription}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {new Date(ticket.dateCreated).toLocaleDateString('tr-TR')}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColor}`}>
+                            {ticket.status}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h4 className="text-xl font-bold text-gray-800">{monthNames[month]} {year}</h4>
+            <div className="flex gap-2">
+              <button onClick={handlePrevMonth} className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-600 hover:text-gray-900">
+                <ChevronLeft size={20} />
+              </button>
+              <button onClick={() => setCurrentDate(new Date())} className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                Bugün
+              </button>
+              <button onClick={handleNextMonth} className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-600 hover:text-gray-900">
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden border border-gray-200">
+            {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(day => (
+              <div key={day} className="bg-gray-50 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                {day}
+              </div>
+            ))}
+            
+            {Array.from({ length: startDay }).map((_, i) => (
+              <div key={`empty-${i}`} className="bg-white/50 min-h-[100px] p-2" />
+            ))}
+            
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const dayTickets = assignedTickets.filter(t => t.dateCreated.startsWith(dateStr));
+              
+              const isToday = new Date().toISOString().split('T')[0] === dateStr;
+              
+              return (
+                <div key={day} className={`bg-white min-h-[120px] p-2 border-t border-gray-100 ${isToday ? 'bg-emerald-50/30' : ''}`}>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${isToday ? 'bg-emerald-600 text-white' : 'text-gray-700'}`}>
+                      {day}
+                    </span>
+                    {dayTickets.length > 0 && (
+                      <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                        {dayTickets.length}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-1.5 overflow-y-auto max-h-[80px] custom-scrollbar">
+                    {dayTickets.map(ticket => {
+                      const p = personnel.find(p => p.id === ticket.personnelId);
+                      let statusBg = "bg-gray-100 border-gray-200 text-gray-800";
+                      if (ticket.status === 'Bekliyor') statusBg = "bg-yellow-50 border-yellow-200 text-yellow-800";
+                      if (ticket.status === 'İşlemde') statusBg = "bg-blue-50 border-blue-200 text-blue-800";
+                      if (ticket.status === 'Tamamlandı') statusBg = "bg-emerald-50 border-emerald-200 text-emerald-800";
+                      if (ticket.status === 'İptal') statusBg = "bg-red-50 border-red-200 text-red-800";
+                      
+                      return (
+                        <div key={ticket.id} className={`text-xs p-1.5 rounded border ${statusBg} truncate`} title={`${ticket.customerName} - ${ticket.deviceType}\nPersonel: ${p ? p.firstName + ' ' + p.lastName : ticket.personnelName}`}>
+                          <div className="font-semibold truncate">{p ? p.firstName : ticket.personnelName?.split(' ')[0]}</div>
+                          <div className="truncate opacity-80">{ticket.deviceType}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {Array.from({ length: (7 - ((startDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
+              <div key={`empty-end-${i}`} className="bg-white/50 min-h-[100px] p-2 border-t border-gray-100" />
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

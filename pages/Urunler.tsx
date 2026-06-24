@@ -1407,17 +1407,55 @@ export const Urunler: React.FC = () => {
                     <option value={20}>%20</option>
                   </select>
                 </div>
-                <div className="flex items-center space-x-2 mt-7">
-                  <input
-                    type="checkbox"
-                    id="showInQuickSale"
-                    checked={formData.showInQuickSale || false}
-                    onChange={(e) => setFormData({...formData, showInQuickSale: e.target.checked})}
-                    className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 focus:ring-2"
-                  />
-                  <label htmlFor="showInQuickSale" className="text-sm font-medium text-gray-700">
-                    Hızlı Satışta Göster
-                  </label>
+                <div className="flex flex-col space-y-2 mt-7">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="showInQuickSale"
+                      checked={formData.showInQuickSale || false}
+                      onChange={(e) => setFormData({...formData, showInQuickSale: e.target.checked})}
+                      className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 focus:ring-2"
+                    />
+                    <label htmlFor="showInQuickSale" className="text-sm font-medium text-gray-700">
+                      Hızlı Satışta Göster
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="hasSerialTracking"
+                      checked={formData.hasSerialTracking || false}
+                      onChange={(e) => setFormData({...formData, hasSerialTracking: e.target.checked})}
+                      className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 focus:ring-2"
+                    />
+                    <label htmlFor="hasSerialTracking" className="text-sm font-medium text-gray-700">
+                      Seri No Takibi
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="hasLotTracking"
+                      checked={formData.hasLotTracking || false}
+                      onChange={(e) => setFormData({...formData, hasLotTracking: e.target.checked})}
+                      className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 focus:ring-2"
+                    />
+                    <label htmlFor="hasLotTracking" className="text-sm font-medium text-gray-700">
+                      Lot Takibi
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="hasExpirationTracking"
+                      checked={formData.hasExpirationTracking || false}
+                      onChange={(e) => setFormData({...formData, hasExpirationTracking: e.target.checked})}
+                      className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 focus:ring-2"
+                    />
+                    <label htmlFor="hasExpirationTracking" className="text-sm font-medium text-gray-700">
+                      SKT Takibi
+                    </label>
+                  </div>
                 </div>
               </div>
 
