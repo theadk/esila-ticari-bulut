@@ -23,6 +23,7 @@ import { Raporlar } from './pages/Raporlar';
 import { Ariza } from './pages/Ariza';
 import { EFatura } from './pages/EFatura';
 import { Ajanda } from './pages/Ajanda';
+import { Dokumanlar } from './pages/Dokumanlar';
 import { SuperAdminLogin } from './src/pages/SuperAdminLogin';
 import { SuperAdminDashboard } from './src/pages/SuperAdminDashboard';
 import { PublicFormView } from './pages/PublicFormView';
@@ -34,6 +35,7 @@ import { InstallPrompt } from './src/components/InstallPrompt';
 import { VoiceNavigator } from './components/VoiceNavigator';
 import { CommandPalette } from './components/CommandPalette';
 import { useKeyboardShortcuts } from './lib/useKeyboardShortcuts';
+import { ToastSpeaker } from './components/ToastSpeaker';
 
 const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
   <div className="flex flex-col items-center justify-center h-full text-gray-400">
@@ -175,6 +177,7 @@ const App: React.FC = () => {
       case 'efatura': return <EFatura />;
       case 'teklif': return <Teklifler />;
       case 'ajanda': return <Ajanda />;
+      case 'dokumanlar': return <Dokumanlar />;
       default: return <ComingSoon title={activePage} />;
     }
   };
@@ -182,6 +185,7 @@ const App: React.FC = () => {
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       <Toaster position="top-right" />
+      <ToastSpeaker />
       {/* Sidebar - Hidden on print */}
       <div className={`fixed inset-y-0 left-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-200 ease-in-out no-print`}>
         <Sidebar activePage={activePage} setActivePage={(page) => { setActivePage(page); setIsMobileMenuOpen(false); }} tenantInfo={tenantInfo} />

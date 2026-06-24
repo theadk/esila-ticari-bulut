@@ -186,6 +186,7 @@ let globalWorkOrders: WorkOrder[] = [
 ];
 
 let globalPurchaseRequests: any[] = [];
+let globalDocuments: any[] = [];
 
 type Listener = () => void;
 const listeners = new Set<Listener>();
@@ -494,6 +495,13 @@ export const useAppStore = () => {
       const old = [...globalPurchaseRequests];
       globalPurchaseRequests = typeof updater === 'function' ? updater(globalPurchaseRequests) : updater;
       syncArray('purchase_requests', old, globalPurchaseRequests);
+      emit();
+    },
+    get documents() { return globalDocuments; },
+    setDocuments(updater: any) {
+      const old = [...globalDocuments];
+      globalDocuments = typeof updater === 'function' ? updater(globalDocuments) : updater;
+      syncArray('documents', old, globalDocuments);
       emit();
     },
     get chequeNotes() { return globalChequeNotes; },

@@ -42,7 +42,9 @@ export interface Product {
   subCategory?: string;
   image?: string;
   warehouse?: string;
-  warehouseStocks?: { warehouseId: string; stock: number }[];
+  aisle?: string;
+  shelf?: string;
+  warehouseStocks?: { warehouseId: string; stock: number; aisle?: string; shelf?: string; }[];
   barcode?: string;
   description?: string;
   brand?: string;
@@ -319,6 +321,7 @@ export interface UserPermissions {
   izin_yonetimi?: PermissionSet;
   crm: PermissionSet;
   terminal: PermissionSet;
+  dokumanlar?: PermissionSet;
 }
 
 export interface User {
@@ -568,3 +571,17 @@ export interface Campaign {
   endDate: string;
   isActive: boolean;
 }
+
+export interface Document {
+  id: string;
+  name: string;
+  category: 'Fatura' | 'Teklif' | 'İrsaliye' | 'Sözleşme' | 'Diğer';
+  tags: string[];
+  uploadDate: string;
+  size: number; // in bytes
+  type: string; // mime type
+  url?: string;
+  uploadedBy?: string;
+  relatedEntityId?: string;
+}
+

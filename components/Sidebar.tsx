@@ -19,7 +19,8 @@ import {
   Wrench,
   CalendarDays,
   ScanLine,
-  CreditCard
+  CreditCard,
+  Folder
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
@@ -53,6 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
     { id: 'mutabakat', label: 'Mutabakat', icon: Handshake },
     { id: 'ariza', label: 'Arıza Formları', icon: Wrench },
     { id: 'ajanda', label: 'Ajanda & Notlar', icon: CalendarDays },
+    { id: 'dokumanlar', label: 'Dökümanlar', icon: Folder },
     { id: 'raporlar', label: 'Raporlar', icon: FileText },
     { id: 'teklif', label: 'Teklifler', icon: FileBadge },
     { id: 'ayarlar', label: 'Ayarlar', icon: SettingsIcon },

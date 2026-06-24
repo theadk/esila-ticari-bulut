@@ -24,6 +24,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   izin_yonetimi: { view: false, create: false, edit: false, delete: false },
   crm: { view: true, create: false, edit: false, delete: false },
   terminal: { view: true, create: false, edit: false, delete: false },
+  dokumanlar: { view: true, create: false, edit: false, delete: false },
 };
 
 const INITIAL_FORM: Omit<User, 'id'> = {
@@ -300,7 +301,8 @@ export const UsersSettings: React.FC = () => {
                        raporlar: 'Raporlar',
                        izin_yonetimi: 'Personel İzin Yönetimi',
                        crm: 'CRM & Kampanya',
-                       terminal: 'El Terminali'
+                       terminal: 'El Terminali',
+                       dokumanlar: 'Dökümanlar'
                      }).map(([key, label]) => {
                        const permKey = key as keyof UserPermissions;
                        const perms = formData.permissions?.[permKey] || { view: false, create: false, edit: false, delete: false };

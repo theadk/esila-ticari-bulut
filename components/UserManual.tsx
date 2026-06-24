@@ -31,13 +31,19 @@ export const UserManual: React.FC = () => {
   const [activeSection, setActiveSection] = useState<
     | 'dashboard'
     | 'hizlisatis'
+    | 'terminal'
     | 'cariler'
+    | 'crm'
     | 'urunler'
     | 'siparisler'
+    | 'satinalma'
+    | 'uretim'
     | 'efatura'
     | 'depo'
     | 'sayim'
     | 'kasa'
+    | 'ceksenet'
+    | 'dokumanlar'
     | 'personel'
     | 'mutabakat'
     | 'ariza'
@@ -45,6 +51,7 @@ export const UserManual: React.FC = () => {
     | 'raporlar'
     | 'teklif'
     | 'ayarlar'
+    | 'sesliasistan'
   >('dashboard');
 
   const handlePrint = () => {
@@ -55,20 +62,27 @@ export const UserManual: React.FC = () => {
   const sectionsList = [
     { id: 'dashboard', label: '1. Panel (Dashboard)', icon: LayoutDashboard },
     { id: 'hizlisatis', label: '2. Hızlı Satış (POS)', icon: Zap },
-    { id: 'cariler', label: '3. Cari Yönetimi', icon: Users },
-    { id: 'urunler', label: '4. Ürün Envanteri (Stok)', icon: Package },
-    { id: 'siparisler', label: '5. Sipariş Yönetimi', icon: ShoppingCart },
-    { id: 'efatura', label: '6. E-Fatura & E-Arşiv', icon: FileText },
-    { id: 'depo', label: '7. Çoklu Depo & Sevk', icon: Warehouse },
-    { id: 'sayim', label: '8. Stok Sayım & Denetim', icon: ScanLine },
-    { id: 'kasa', label: '9. Kasa & Nakit Akışı', icon: Wallet },
-    { id: 'personel', label: '10. Personel & Granüler İzin', icon: UserCheck },
-    { id: 'mutabakat', label: '11. Cari Mutabakat (Dijital)', icon: Handshake },
-    { id: 'ariza', label: '12. Arıza & Teknik Servis', icon: Wrench },
-    { id: 'ajanda', label: '13. Ajanda & Hatırlatıcı', icon: CalendarDays },
-    { id: 'raporlar', label: '14. Gelişmiş Finansal Raporlar', icon: FileText },
-    { id: 'teklif', label: '15. Teklif & Bulut Onay', icon: FileBadge },
-    { id: 'ayarlar', label: '16. Ayarlar, SMTP & Yedekleme', icon: SettingsIcon },
+    { id: 'terminal', label: '3. El Terminali', icon: ScanLine },
+    { id: 'cariler', label: '4. Cari Yönetimi', icon: Users },
+    { id: 'crm', label: '5. CRM & Kampanya', icon: Users },
+    { id: 'urunler', label: '6. Ürün Envanteri (Stok)', icon: Package },
+    { id: 'siparisler', label: '7. Sipariş Yönetimi', icon: ShoppingCart },
+    { id: 'satinalma', label: '8. Satın Alma', icon: ShoppingBag },
+    { id: 'uretim', label: '9. Üretim', icon: Factory },
+    { id: 'efatura', label: '10. E-Fatura & E-Arşiv', icon: FileText },
+    { id: 'depo', label: '11. Çoklu Depo & Sevk', icon: Warehouse },
+    { id: 'sayim', label: '12. Stok Sayım & Denetim', icon: ScanLine },
+    { id: 'kasa', label: '13. Kasa & Nakit Akışı', icon: Wallet },
+    { id: 'ceksenet', label: '14. Çek & Senet Takibi', icon: DollarSign },
+    { id: 'dokumanlar', label: '15. Döküman Yönetimi', icon: BookOpen },
+    { id: 'personel', label: '16. Personel & Granüler İzin', icon: UserCheck },
+    { id: 'mutabakat', label: '17. Cari Mutabakat (Dijital)', icon: Handshake },
+    { id: 'ariza', label: '18. Arıza & Teknik Servis', icon: Wrench },
+    { id: 'ajanda', label: '19. Ajanda & Hatırlatıcı', icon: CalendarDays },
+    { id: 'raporlar', label: '20. Gelişmiş Finansal Raporlar', icon: FileText },
+    { id: 'teklif', label: '21. Teklif & Bulut Onay', icon: FileBadge },
+    { id: 'ayarlar', label: '22. Ayarlar, SMTP & Yedekleme', icon: SettingsIcon },
+    { id: 'sesliasistan', label: '23. Sesli Asistan (TTS Bildirim)', icon: AlertCircle },
   ];
 
   return (
@@ -81,7 +95,7 @@ export const UserManual: React.FC = () => {
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-sans">ESİLA TİCARİ MODÜLER KULLANIM REHBERİ</h1>
           </div>
           <p className="text-emerald-100 text-sm md:text-base mt-2 max-w-2xl">
-            Sistem içindeki tüm <strong>16 ana menünün</strong> detaylı çalışma prensipleri, görsel arayüz simülasyonları ve kurumsal akış ayarları aşağıda modüler olarak listelenmiştir.
+            Sistem içindeki tüm <strong>19 ana modülün</strong> detaylı çalışma prensipleri, görsel arayüz simülasyonları ve kurumsal akış ayarları aşağıda modüler olarak listelenmiştir.
           </p>
         </div>
         <button
@@ -332,14 +346,29 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 3. CARİ YÖNETİMİ (CARİLER) */}
+          {/* 3. EL TERMİNALİ */}
+          {/* ========================================================= */}
+          <section className={`section-block transition-opacity duration-200 ${activeSection === 'terminal' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
+            <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
+              <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
+                <ScanLine className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">3. El Terminali Entegrasyonu</h2>
+            </div>
+            <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+              Depo içerisindeki mal kabul, sevk, sayım ve sipariş toplama süreçlerini barkod okuyuculu endüstriyel mobil cihazlar üzerinden hatasız ve hızlı şekilde gerçekleştirmenizi sağlayan modüldür.
+            </p>
+          </section>
+
+          {/* ========================================================= */}
+          {/* 4. CARİ YÖNETİMİ (CARİLER) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'cariler' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Users className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">3. Cari Kart Yönetimi (Müşteri & Tedarikçi Finans Defteri)</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">4. Cari Kart Yönetimi (Müşteri & Tedarikçi Finans Defteri)</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -416,14 +445,29 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 4. ÜRÜN ENVANTERİ (ÜRÜNLER) */}
+          {/* 5. CRM & KAMPANYA */}
+          {/* ========================================================= */}
+          <section className={`section-block transition-opacity duration-200 ${activeSection === 'crm' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
+            <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
+              <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
+                <Users className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">5. CRM & Kampanya Yönetimi</h2>
+            </div>
+            <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+              Müşteri ilişkilerini yönettiğiniz, fırsatları takip ettiğiniz ve pazarlama kampanyaları (SMS, E-Posta vb.) düzenleyerek satışlarınızı artırmanızı sağlayan araçlar bütünüdür.
+            </p>
+          </section>
+
+          {/* ========================================================= */}
+          {/* 6. ÜRÜN ENVANTERİ (ÜRÜNLER) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'urunler' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Package className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">4. Ürün Envanter Kaydı (Mal, Stok & Barkod Kartları)</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">6. Ürün Envanter Kaydı (Mal, Stok & Barkod Kartları)</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -477,14 +521,14 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 5. SİPARİŞ YÖNETİMİ (SİPARİŞLER) */}
+          {/* 7. SİPARİŞ YÖNETİMİ (SİPARİŞLER) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'siparisler' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <ShoppingCart className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">5. Sipariş Yönetim Modülü (Alış & Satış Siparişleri)</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">7. Sipariş Yönetim Modülü (Alış & Satış Siparişleri)</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -526,14 +570,44 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 6. E-FATURA & E-ARŞİV (EFATURA) */}
+          {/* 8. SATIN ALMA */}
+          {/* ========================================================= */}
+          <section className={`section-block transition-opacity duration-200 ${activeSection === 'satinalma' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
+            <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
+              <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
+                <ShoppingBag className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">8. Satın Alma Yönetimi</h2>
+            </div>
+            <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+              Kurum içi satın alma taleplerini onay süreçleriyle yönetebileceğiniz, teklifleri değerlendirip tedarikçi siparişlerine dönüştürebileceğiniz otomasyondur.
+            </p>
+          </section>
+
+          {/* ========================================================= */}
+          {/* 9. ÜRETİM */}
+          {/* ========================================================= */}
+          <section className={`section-block transition-opacity duration-200 ${activeSection === 'uretim' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
+            <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
+              <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
+                <Factory className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">9. Üretim Yönetimi (Reçete & İş Emirleri)</h2>
+            </div>
+            <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+              Hammadde ve yarı mamullerinizi ürün reçeteleri (BOM) altında tanımlayarak iş emirleri oluşturabileceğiniz ve maliyet analizi yapabileceğiniz ileri seviye üretim modülüdür.
+            </p>
+          </section>
+
+          {/* ========================================================= */}
+          {/* 10. E-FATURA & E-ARŞİV (EFATURA) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'efatura' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <FileText className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">6. Esila E-Fatura Entegrasyonu ve E-Arşiv Portalı</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">10. Esila E-Fatura Entegrasyonu ve E-Arşiv Portalı</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -590,14 +664,14 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 7. ÇOKLU DEPO & SEVK (DEPO) */}
+          {/* 11. ÇOKLU DEPO & SEVK (DEPO) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'depo' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Warehouse className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-855 my-0">7. Çoklu Depo Yönetimi & Depolar Arası Sevk (Transfer)</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-855 my-0">11. Çoklu Depo Yönetimi & Depolar Arası Sevk (Transfer)</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -647,14 +721,14 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 8. STOK SAYIM & DENETİM (SAYIM) */}
+          {/* 12. STOK SAYIM & DENETİM (SAYIM) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'sayim' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <ScanLine className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-855 my-0">8. Stok Sayımı ve Fiili Envanter Sapma Denetimi</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-855 my-0">12. Stok Sayımı ve Fiili Envanter Sapma Denetimi</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -715,14 +789,14 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 9. KASA & NAKİT AKIŞI (KASA) */}
+          {/* 13. KASA & NAKİT AKIŞI (KASA) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'kasa' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Wallet className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">9. Finansal Kasa ve Genel Nakit Akışı Yönetimi</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">13. Finansal Kasa ve Genel Nakit Akışı Yönetimi</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -762,14 +836,60 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 10. PERSONEL & GRANÜLER İZİN (PERSONEL) */}
+          {/* 14. ÇEK & SENET TAKİBİ */}
+          {/* ========================================================= */}
+          <section className={`section-block transition-opacity duration-200 ${activeSection === 'ceksenet' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
+            <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
+              <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
+                <DollarSign className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">14. Çek & Senet Takibi</h2>
+            </div>
+            
+            <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+              Alınan ve verilen çeklerin/senetlerin vade, portföy durumu, ciro ve banka tahsilat gibi aşamalarını dijital olarak yönetebileceğiniz finansal evrak takip merkezidir.
+            </p>
+
+            <h3 className="text-base font-bold text-gray-800 mt-4">10.1 Portföy & Ciro İşlemleri</h3>
+            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc mt-1.5">
+              <li>Müşterilerden tahsilat olarak alınan çekler sistemde "Portföyde" durumunda saklanır.</li>
+              <li>Alınan çekleri ödeme olarak tedarikçinize verebilir, tek tıkla "Ciro Edildi" konumuna güncelleyebilirsiniz.</li>
+              <li>Kendi firmanıza ait keşide ettiğiniz evrakların takibini ayrı bir ekrandan görüntüleyerek vade günlerinde finansal akışınızı planlayabilirsiniz.</li>
+            </ul>
+          </section>
+
+          {/* ========================================================= */}
+          {/* 15. DÖKÜMAN YÖNETİMİ */}
+          {/* ========================================================= */}
+          <section className={`section-block transition-opacity duration-200 ${activeSection === 'dokumanlar' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
+            <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
+              <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
+                <BookOpen className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">15. Döküman Yönetimi</h2>
+            </div>
+            
+            <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+              Fatura, teklif, irsaliye, sözleşme gibi kurum içi veya carilerle ilgili resmi belgeleri bulut depolama mantığıyla saklayan, etiket ve kategori tabanlı akıllı dosya arşiv modülüdür.
+            </p>
+
+            <h3 className="text-base font-bold text-gray-800 mt-4">11.1 Akıllı Kategorilendirme ve Hızlı Arama</h3>
+            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc mt-1.5">
+              <li>Dosyaları türlerine göre (Fatura, Teklif, Sözleşme, vb.) otomatik simgelerle görüntüleyebilirsiniz.</li>
+              <li>Eklediğiniz dosyalara anlık etiketler (örn. "2026", "Acil", "Onaylı") ekleyerek, sonrasında binlerce dosya arasından saniyeler içinde süzme işlemi yapabilirsiniz.</li>
+              <li>Bulut tabanlı mimarisi sayesinde tüm cihazlardan dosyalarınıza anlık erişim ve indirme imkanı sunar.</li>
+            </ul>
+          </section>
+
+          {/* ========================================================= */}
+          {/* 16. PERSONEL & GRANÜLER İZİN (PERSONEL) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'personel' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <UserCheck className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-855 my-0">10. Personel Kartları ve Granüler Modül İzin Yetkileri</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-855 my-0">16. Personel Kartları ve Granüler Modül İzin Yetkileri</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -833,14 +953,14 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 11. CARİ MUTABAKAT (MUTABAKAT) */}
+          {/* 17. CARİ MUTABAKAT (MUTABAKAT) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'mutabakat' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Handshake className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">11. Dijital Cari Mutabakat ve Online Bulut Onaylama</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">17. Dijital Cari Mutabakat ve Online Bulut Onaylama</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -891,14 +1011,14 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 12. ARIZA & TEKNİK SERVİS (ARIZA) */}
+          {/* 18. ARIZA & TEKNİK SERVİS (ARIZA) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'ariza' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Wrench className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">12. Arıza Kayıtları ve Teknik Servis Takip Modülü</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">18. Arıza Kayıtları ve Teknik Servis Takip Modülü</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -960,14 +1080,14 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 13. AJANDA & HATIRLATICI (AJANDA) */}
+          {/* 19. AJANDA & HATIRLATICI (AJANDA) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'ajanda' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <CalendarDays className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">13. Ajanda, Randevu Planlayıcı ve Görev Takvimi</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">19. Ajanda, Randevu Planlayıcı ve Görev Takvimi</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -1005,14 +1125,14 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 14. RAPORLAR (RAPORLAR) */}
+          {/* 20. RAPORLAR (RAPORLAR) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'raporlar' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <FileText className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">14. Gelişmiş Finansal Hacim ve KDV Raporlama Modülü</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">20. Gelişmiş Finansal Hacim ve KDV Raporlama Modülü</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -1081,14 +1201,14 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 15. TEKLİF YÖNETİMİ (TEKLİF) */}
+          {/* 21. TEKLİF YÖNETİMİ (TEKLİF) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'teklif' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <FileBadge className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">15. Teklif Hazırlama ve İnteraktif Müşteri Bulut linki</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">21. Teklif Hazırlama ve İnteraktif Müşteri Bulut linki</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -1138,14 +1258,14 @@ export const UserManual: React.FC = () => {
           </section>
 
           {/* ========================================================= */}
-          {/* 16. AYARLAR & SİSTEM YEDEKLEME (AYARLAR) */}
+          {/* 22. AYARLAR & SİSTEM YEDEKLEME (AYARLAR) */}
           {/* ========================================================= */}
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'ayarlar' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <SettingsIcon className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">16. Sistem Ayarları, SMTP & Kritik Kurtarma Yedekleme</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">22. Sistem Ayarları, SMTP & Kritik Kurtarma Yedekleme</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -1234,12 +1354,36 @@ export const UserManual: React.FC = () => {
             </ul>
 
             {/* Support footer */}
-            <div className="mt-12 pt-6 border-t border-gray-200 flex flex-col items-center text-center">
-              <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Esila Ticari Pro Otomasyonu - Versiyon 4.2</span>
-              <p className="text-xs text-gray-500 m-1">Bulut veri tescili Esila Ticari kurumsal sözleşmesi kapsamında koruma altındadır.</p>
-              <p className="text-[9px] text-gray-405 mt-1">Esila E-Fatura entegrasyon lisans ortağı tarafından tescil edilmiştir.</p>
-            </div>
           </section>
+
+          {/* ========================================================= */}
+          {/* 23. SESLİ ASİSTAN & TTS BİLDİRİM */}
+          {/* ========================================================= */}
+          <section className={`section-block transition-opacity duration-200 ${activeSection === 'sesliasistan' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
+            <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
+              <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">23. Sesli Asistan (TTS Bildirim ve Uyarılar)</h2>
+            </div>
+            
+            <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+              Esila Ticari Pro sistemi sadece görsel uyarılarla kalmaz; anlık hata, başarı ve bilgi bildirimlerini (toast mesajlarını) Web Speech API kullanarak <strong>kadın sesiyle Türkçe olarak okur.</strong>
+            </p>
+
+            <h3 className="text-base font-bold text-gray-800 mt-4">19.1 Çalışma Mantığı</h3>
+            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
+              <li>Sistemde gerçekleşen stok yetersizliği, müşteri kayıt onayı, veya tahsilat başarıları gibi tüm uyarı metinleri ekranda belirdiği an otomatik olarak cihazınızın hoparlöründen seslendirilir.</li>
+              <li>TTS (Text-to-Speech) modülü arka planda Türkçe dil ve kadın ses profillerini (Zeynep, Yelda vb.) arayarak en uyumlu sesi seçer.</li>
+              <li>Aynı anda gelen bildirimler arka arkaya, karışıklığa yol açmadan sırayla okunur.</li>
+            </ul>
+          </section>
+
+          <div className="mt-12 pt-6 border-t border-gray-200 flex flex-col items-center text-center">
+            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Esila Ticari Pro Otomasyonu - Versiyon 4.2</span>
+            <p className="text-xs text-gray-500 m-1">Bulut veri tescili Esila Ticari kurumsal sözleşmesi kapsamında koruma altındadır.</p>
+            <p className="text-[9px] text-gray-405 mt-1">Esila E-Fatura entegrasyon lisans ortağı tarafından tescil edilmiştir.</p>
+          </div>
         </div>
       </div>
 

@@ -31,6 +31,7 @@ export const Depo: React.FC = () => {
   const [transfers, setTransfers] = useState<StockTransfer[]>([]);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [transferForm, setTransferForm] = useState({ productId: '', sourceWarehouse: '', targetWarehouse: '', quantity: 1 });
+  const [locationForm, setLocationForm] = useState({ productId: '', aisle: 'A', shelf: '1' });
 
   // Akıllı Toplama Rotası State
   const [pickingList, setPickingList] = useState([
@@ -122,6 +123,28 @@ export const Depo: React.FC = () => {
       setIsEditing(false);
     } catch (e) {
       console.error('Failed to save warehouse', e);
+    }
+  };
+
+  const handleUpdateLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!locationForm.productId) {
+      alert('Lütfen bir ürün seçin.');
+      return;
+    }
+    const prd = products.find(p => p.id === locationForm.productId);
+    if (!prd) return;
+
+    try {
+      const updatedProduct = { ...prd, aisle: locationForm.aisle, shelf: locationForm.shelf };
+      await api.updateProduct(prd.id, updatedProduct);
+      
+      // Update local state directly for immediate feedback
+      setProducts(products.map(p => p.id === prd.id ? updatedProduct : p));
+      alert('Ürün konumu başarıyla güncellendi.');
+    } catch (error) {
+      console.error(error);
+      alert('Konum güncellenirken bir hata oluştu.');
     }
   };
 
@@ -646,39 +669,24 @@ export const Depo: React.FC = () => {
                    {/* Map Grid Container */}
                    <div className="mt-8 grid grid-cols-4 gap-6 h-[400px] min-w-[600px] pb-8 pt-4 relative">
                      {/* Route Line Overlay */}
-                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" style={{ filter: 'drop-shadow(0 2px 4px rgba(16, 185, 129, 0.4))' }}>
-                        <path 
-                           d={generateDynamicPath()} 
-                           fill="none" 
-                           stroke="#10b981" 
-                           strokeWidth="4" 
-                           strokeDasharray="8,8" 
-                           className="animate-[dash_20s_linear_infinite]" 
-                        />
+                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
                         <circle cx="40" cy="380" r="6" fill="#10b981" />
-                        {pickingList.filter(p => !p.picked).map(item => {
-                           const coords = getAisleShelfCoords(item.aisle, item.shelf);
+                        {(products || []).filter(p => p.aisle && p.shelf && (!activeWarehouse || p.warehouse === activeWarehouse || p.warehouseStocks?.some(ws => ws.warehouseId === activeWarehouse))).map(item => {
+                           const coords = getAisleShelfCoords(item.aisle!, parseInt(item.shelf!));
                            return <circle key={`dot-${item.id}`} cx={coords.x} cy={coords.y} r="8" fill="#3b82f6" className="animate-pulse" />
                         })}
                      </svg>
-                     <style dangerouslySetInnerHTML={{__html: `
-                        @keyframes dash {
-                          to {
-                            stroke-dashoffset: -1000;
-                          }
-                        }
-                     `}} />
 
                      {/* Koridor A */}
                      <div className="flex flex-col h-full gap-2 relative">
                         <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-500">Koridor A</div>
                         {[1, 2, 3, 4, 5].map(raf => {
-                           const items = pickingList.filter(p => p.aisle === 'A' && p.shelf === raf && !p.picked);
+                           const items = (products || []).filter(p => p.aisle === 'A' && p.shelf === raf.toString() && (!activeWarehouse || p.warehouse === activeWarehouse || p.warehouseStocks?.some(ws => ws.warehouseId === activeWarehouse)));
                            const hasItems = items.length > 0;
                            return (
                               <div key={raf} className={`flex-1 rounded border-2 flex flex-col items-center justify-center text-xs font-bold cursor-pointer transition-all hover:scale-[1.02] ${hasItems ? 'bg-emerald-100 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-white border-gray-300 text-gray-400 hover:border-gray-400 hover:bg-gray-50'}`}>
                                  A-{raf}
-                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1 animate-pulse">{items.length}</span>}
+                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1">{items.length}</span>}
                               </div>
                            )
                         })}
@@ -687,12 +695,12 @@ export const Depo: React.FC = () => {
                      <div className="flex flex-col h-full gap-2 relative">
                         <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-500">Koridor B</div>
                         {[1, 2, 3, 4, 5].map(raf => {
-                           const items = pickingList.filter(p => p.aisle === 'B' && p.shelf === raf && !p.picked);
+                           const items = (products || []).filter(p => p.aisle === 'B' && p.shelf === raf.toString() && (!activeWarehouse || p.warehouse === activeWarehouse || p.warehouseStocks?.some(ws => ws.warehouseId === activeWarehouse)));
                            const hasItems = items.length > 0;
                            return (
                               <div key={raf} className={`flex-1 rounded border-2 flex flex-col items-center justify-center text-xs font-bold cursor-pointer transition-all hover:scale-[1.02] ${hasItems ? 'bg-emerald-100 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-white border-gray-300 text-gray-400 hover:border-gray-400 hover:bg-gray-50'}`}>
                                  B-{raf}
-                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1 animate-pulse">{items.length}</span>}
+                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1">{items.length}</span>}
                               </div>
                            )
                         })}
@@ -701,12 +709,12 @@ export const Depo: React.FC = () => {
                      <div className="flex flex-col h-full gap-2 relative">
                         <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-500">Koridor C</div>
                         {[1, 2, 3, 4, 5].map(raf => {
-                           const items = pickingList.filter(p => p.aisle === 'C' && p.shelf === raf && !p.picked);
+                           const items = (products || []).filter(p => p.aisle === 'C' && p.shelf === raf.toString() && (!activeWarehouse || p.warehouse === activeWarehouse || p.warehouseStocks?.some(ws => ws.warehouseId === activeWarehouse)));
                            const hasItems = items.length > 0;
                            return (
                               <div key={raf} className={`flex-1 rounded border-2 flex flex-col items-center justify-center text-xs font-bold cursor-pointer transition-all hover:scale-[1.02] ${hasItems ? 'bg-emerald-100 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-white border-gray-300 text-gray-400 hover:border-gray-400 hover:bg-gray-50'}`}>
                                  C-{raf}
-                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1 animate-pulse">{items.length}</span>}
+                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1">{items.length}</span>}
                               </div>
                            )
                         })}
@@ -715,12 +723,12 @@ export const Depo: React.FC = () => {
                      <div className="flex flex-col h-full gap-2 relative">
                         <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-500">Koridor D</div>
                         {[1, 2, 3, 4, 5].map(raf => {
-                           const items = pickingList.filter(p => p.aisle === 'D' && p.shelf === raf && !p.picked);
+                           const items = (products || []).filter(p => p.aisle === 'D' && p.shelf === raf.toString() && (!activeWarehouse || p.warehouse === activeWarehouse || p.warehouseStocks?.some(ws => ws.warehouseId === activeWarehouse)));
                            const hasItems = items.length > 0;
                            return (
                               <div key={raf} className={`flex-1 rounded border-2 flex flex-col items-center justify-center text-xs font-bold cursor-pointer transition-all hover:scale-[1.02] ${hasItems ? 'bg-emerald-100 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-white border-gray-300 text-gray-400 hover:border-gray-400 hover:bg-gray-50'}`}>
                                  D-{raf}
-                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1 animate-pulse">{items.length}</span>}
+                                 {hasItems && <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full mt-1">{items.length}</span>}
                               </div>
                            )
                         })}
@@ -730,67 +738,80 @@ export const Depo: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-6">
-                {/* Search & Detail */}
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                   <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Search className="text-blue-600" size={20} /> Konum Sorgula</h3>
-                   <input type="text" placeholder="Ürün adı, kodu veya raf no..." className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm mb-4" />
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex-1">
+                   <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><MapPin className="text-emerald-600" size={20} /> Ürün Konum Yönetimi</h3>
+                   <p className="text-xs text-gray-500 mb-6">Ürünlerinizi depo içerisindeki koridor ve raf koordinatlarına atayarak harita üzerinde görselleştirin.</p>
                    
-                   <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 animate-in zoom-in duration-300">
-                      <div className="flex justify-between items-start mb-2">
+                   <form onSubmit={handleUpdateLocation} className="space-y-4">
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">Ürün Seçin</label>
+                         <select
+                           required
+                           value={locationForm.productId}
+                           onChange={(e) => setLocationForm({...locationForm, productId: e.target.value})}
+                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                         >
+                           <option value="">-- Ürün Seçin --</option>
+                           {(products || []).filter(p => !activeWarehouse || p.warehouse === activeWarehouse || p.warehouseStocks?.some(ws => ws.warehouseId === activeWarehouse)).map(p => (
+                             <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                           ))}
+                         </select>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
                          <div>
-                            <h4 className="font-bold text-gray-800">Seçili Raf: A-3</h4>
-                            <p className="text-xs text-gray-500 mt-1">Kapasite: %85 Dolu</p>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Koridor</label>
+                            <select
+                              required
+                              value={locationForm.aisle}
+                              onChange={(e) => setLocationForm({...locationForm, aisle: e.target.value})}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                            >
+                              <option value="A">Koridor A</option>
+                              <option value="B">Koridor B</option>
+                              <option value="C">Koridor C</option>
+                              <option value="D">Koridor D</option>
+                            </select>
                          </div>
-                         <span className="bg-emerald-500 text-white px-2 py-1 rounded text-xs font-bold shadow-sm">Aktif</span>
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Raf No</label>
+                            <select
+                              required
+                              value={locationForm.shelf}
+                              onChange={(e) => setLocationForm({...locationForm, shelf: e.target.value})}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                            >
+                              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n.toString()}>{n}</option>)}
+                            </select>
+                         </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 mt-4">
-                         <div className="bg-white border border-emerald-200 rounded-lg p-3 text-center shadow-sm">
-                            <span className="block text-[10px] text-gray-400 font-bold uppercase mb-1">Koridor</span>
-                            <span className="font-bold text-gray-800 text-xl">A</span>
-                         </div>
-                         <div className="bg-white border border-emerald-200 rounded-lg p-3 text-center shadow-sm">
-                            <span className="block text-[10px] text-gray-400 font-bold uppercase mb-1">Raf</span>
-                            <span className="font-bold text-gray-800 text-xl">3</span>
-                         </div>
-                         <div className="bg-white border border-emerald-200 rounded-lg p-3 text-center shadow-sm">
-                            <span className="block text-[10px] text-gray-400 font-bold uppercase mb-1">Kat</span>
-                            <span className="font-bold text-gray-800 text-xl">2</span>
-                         </div>
-                      </div>
-                   </div>
-                </div>
 
-                {/* Route Optimization */}
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex-1 flex flex-col">
-                   <div className="flex justify-between items-center mb-2">
-                     <h3 className="font-bold text-gray-800 flex items-center gap-2"><Navigation className="text-purple-600" size={20} /> Toplama Rotası</h3>
-                     {!isRouteOptimized && (
-                        <button onClick={optimizeRoute} className="px-3 py-1 bg-purple-100 text-purple-700 font-bold text-xs rounded border border-purple-200 hover:bg-purple-200 transition-colors">
-                          Rotayı Optimize Et
-                        </button>
-                     )}
+                      <button type="submit" className="w-full py-2.5 bg-emerald-600 text-white font-medium rounded-lg text-sm hover:bg-emerald-700 transition-colors shadow-sm mt-4">
+                        Konumu Kaydet
+                      </button>
+                   </form>
+
+                   <div className="mt-8 border-t border-gray-100 pt-6">
+                      <h4 className="font-bold text-sm text-gray-800 mb-4">Haritadaki Ürünler</h4>
+                      <div className="space-y-3 max-h-[300px] overflow-y-auto hide-scrollbar pr-2">
+                        {(products || []).filter(p => p.aisle && p.shelf && (!activeWarehouse || p.warehouse === activeWarehouse || p.warehouseStocks?.some(ws => ws.warehouseId === activeWarehouse))).map(p => (
+                          <div key={p.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+                             <div>
+                                <div className="font-medium text-sm text-gray-800">{p.name}</div>
+                                <div className="text-xs text-gray-500">{p.code}</div>
+                             </div>
+                             <div className="bg-white border border-gray-200 px-2 py-1 rounded shadow-sm text-xs font-bold text-gray-700 flex items-center gap-1">
+                               {p.aisle}-{p.shelf}
+                             </div>
+                          </div>
+                        ))}
+                        {!(products || []).some(p => p.aisle && p.shelf && (!activeWarehouse || p.warehouse === activeWarehouse || p.warehouseStocks?.some(ws => ws.warehouseId === activeWarehouse))) && (
+                          <div className="text-center p-4 text-xs text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                            Henüz konumu belirlenmiş ürün yok.
+                          </div>
+                        )}
+                      </div>
                    </div>
-                   <p className="text-xs text-gray-500 mb-6">S-Shape Algoritması ile en kısa yürüme rotası.</p>
-                   
-                   <div className="space-y-4 relative before:absolute before:inset-0 before:ml-[15px] before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-gray-200 before:via-gray-200 before:to-transparent flex-1 overflow-y-auto pr-2 max-h-[300px] hide-scrollbar">
-                      {pickingList.map((item, idx) => (
-                        <div key={item.id} className="relative flex items-center gap-4 group cursor-pointer" onClick={() => togglePicked(item.id)}>
-                           <div className={`flex items-center justify-center w-8 h-8 rounded-full border-4 border-white shadow shrink-0 z-10 transition-colors ${item.picked ? 'bg-gray-200 text-gray-400' : 'bg-blue-500 text-white'}`}>
-                              {item.picked ? <CheckSquare size={14} /> : <Layers size={14} />}
-                           </div>
-                           <div className={`flex-1 p-3 rounded-lg border shadow-sm transition-all ${item.picked ? 'border-gray-100 bg-gray-50 opacity-60' : 'border-gray-200 bg-white hover:border-blue-300'}`}>
-                              <div className="flex items-center justify-between mb-1">
-                                 <span className={`font-bold text-sm ${item.picked ? 'text-gray-400 line-through' : 'text-gray-800'}`}>Hedef {idx + 1} ({item.aisle}-{item.shelf})</span>
-                              </div>
-                              <div className={`text-xs ${item.picked ? 'text-gray-400' : 'text-gray-500 font-medium'}`}>{item.qty}x {item.name}</div>
-                           </div>
-                        </div>
-                      ))}
-                   </div>
-                   
-                   <button className="w-full mt-6 py-3 bg-gray-900 text-white font-medium rounded-lg text-sm hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20">
-                     Toplama İşlemini Başlat
-                   </button>
                 </div>
               </div>
             </div>

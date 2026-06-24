@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
-import { Users, Filter, Plus, FileText, Phone, Mail, Calendar, TrendingUp, Tag, Percent } from 'lucide-react';
+import { Users, Filter, Plus, FileText, Phone, Mail, Calendar, TrendingUp, Tag, Percent, X, Save, Edit2, Trash2 } from 'lucide-react';
 import { Customer, MeetingNote, Campaign } from '../types';
 
 export const CRM: React.FC = () => {
@@ -11,6 +11,42 @@ export const CRM: React.FC = () => {
   
   // Basic states for UI interaction
   const [showAddLead, setShowAddLead] = useState(false);
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+  const [newCampaign, setNewCampaign] = useState<Campaign>({
+    id: '',
+    name: '',
+    description: '',
+    customerGroup: '',
+    discountPercentage: 0,
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+    isActive: true
+  });
+
+  const handleSaveCampaign = (e: React.FormEvent) => {
+    e.preventDefault();
+    const campaignToSave = {
+      ...newCampaign,
+      id: newCampaign.id || `CAMP-${Date.now()}`,
+      discountPercentage: Number(newCampaign.discountPercentage)
+    };
+    
+    if (newCampaign.id) {
+       setCampaigns(campaigns.map(c => c.id === newCampaign.id ? campaignToSave : c));
+    } else {
+       setCampaigns([...campaigns, campaignToSave]);
+    }
+    setIsCampaignModalOpen(false);
+  };
+
+  const handleEditCampaign = (c: Campaign) => {
+    setNewCampaign({
+        ...c,
+        startDate: new Date(c.startDate).toISOString().split('T')[0],
+        endDate: new Date(c.endDate).toISOString().split('T')[0]
+    });
+    setIsCampaignModalOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -84,15 +120,39 @@ export const CRM: React.FC = () => {
              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <Percent className="text-indigo-600" /> Aktif Kampanyalar ve İskontolar
              </h3>
-             <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+             <button 
+               onClick={() => {
+                 setNewCampaign({
+                    id: '', name: '', description: '', customerGroup: '', discountPercentage: 0,
+                    startDate: new Date().toISOString().split('T')[0],
+                    endDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+                    isActive: true
+                 });
+                 setIsCampaignModalOpen(true);
+               }}
+               className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                + Yeni Kampanya Tanımla
              </button>
            </div>
            
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {campaigns.map(c => (
-               <div key={c.id} className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-2">
+               <div key={c.id} className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow relative group">
+                  <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleEditCampaign(c)} className="text-gray-400 hover:text-indigo-600 bg-white p-1 rounded-md shadow-sm border border-gray-100">
+                      <Edit2 size={14} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if(window.confirm('Bu kampanyayı silmek istediğinize emin misiniz?')) {
+                          setCampaigns(campaigns.filter(cam => cam.id !== c.id));
+                        }
+                      }}
+                      className="text-gray-400 hover:text-red-600 bg-white p-1 rounded-md shadow-sm border border-gray-100">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <div className="flex justify-between items-start mb-2 pr-16">
                      <h4 className="font-bold text-gray-800 text-lg">{c.name}</h4>
                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${c.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
                         {c.isActive ? 'Aktif' : 'Pasif'}
@@ -123,6 +183,132 @@ export const CRM: React.FC = () => {
                </div>
              )}
            </div>
+        </div>
+      )}
+
+      {isCampaignModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <Tag className="text-indigo-600" />
+                {newCampaign.id ? 'Kampanyayı Düzenle' : 'Yeni Kampanya Tanımla'}
+              </h3>
+              <button onClick={() => setIsCampaignModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveCampaign} className="p-6 overflow-y-auto flex-1">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kampanya Adı <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={newCampaign.name}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Örn: B2B Bahar İndirimi"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+                  <textarea
+                    rows={2}
+                    value={newCampaign.description}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, description: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Kampanya detayları ve şartları..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Müşteri Grubu (Opsiyonel)</label>
+                    <select
+                      value={newCampaign.customerGroup || ''}
+                      onChange={(e) => setNewCampaign({ ...newCampaign, customerGroup: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">Tüm Müşteriler</option>
+                      <option value="B2B Bayi">B2B Bayi</option>
+                      <option value="Perakende">Perakende</option>
+                      <option value="Toptancı">Toptancı</option>
+                      <option value="VIP">VIP Müşteriler</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">İskonto Oranı (%) <span className="text-red-500">*</span></label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={newCampaign.discountPercentage}
+                      onChange={(e) => setNewCampaign({ ...newCampaign, discountPercentage: parseFloat(e.target.value) })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Başlangıç Tarihi <span className="text-red-500">*</span></label>
+                    <input
+                      type="date"
+                      required
+                      value={newCampaign.startDate}
+                      onChange={(e) => setNewCampaign({ ...newCampaign, startDate: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Bitiş Tarihi <span className="text-red-500">*</span></label>
+                    <input
+                      type="date"
+                      required
+                      value={newCampaign.endDate}
+                      onChange={(e) => setNewCampaign({ ...newCampaign, endDate: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 bg-gray-50 p-3 rounded-lg border border-gray-200 mt-2">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={newCampaign.isActive}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, isActive: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <label htmlFor="isActive" className="text-sm font-medium text-gray-800 cursor-pointer">
+                    Kampanyayı Aktifleştir
+                  </label>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCampaignModalOpen(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <Save size={18} />
+                  Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
