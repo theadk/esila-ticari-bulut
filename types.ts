@@ -530,6 +530,17 @@ export interface SalaryAdjustment {
   description: string;
 }
 
+export interface PersonnelTask {
+  id: string;
+  personnelId: string;
+  title: string;
+  description: string;
+  status: 'Bekliyor' | 'Devam Ediyor' | 'Tamamlandı' | 'İptal';
+  dueDate: string;
+  createdAt: string;
+  priority: 'Düşük' | 'Normal' | 'Yüksek';
+}
+
 export interface PersonnelKPI {
   id: string;
   personnelId: string;

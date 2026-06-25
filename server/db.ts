@@ -258,6 +258,42 @@ export async function initDb() {
           priority VARCHAR(50) DEFAULT 'Normal'
         );
       `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS attendance (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          personnelId VARCHAR(255),
+          date VARCHAR(50),
+          status VARCHAR(50),
+          entryTime VARCHAR(50),
+          exitTime VARCHAR(50),
+          overtimeHours REAL
+        );
+      `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS salary_adjustments (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          personnelId VARCHAR(255),
+          date VARCHAR(50),
+          type VARCHAR(50),
+          amount REAL,
+          description TEXT
+        );
+      `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS personnel_tasks (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          personnelId VARCHAR(255),
+          title VARCHAR(255),
+          description TEXT,
+          status VARCHAR(50),
+          dueDate VARCHAR(50),
+          createdAt VARCHAR(50),
+          priority VARCHAR(50)
+        );
+      `);
     } catch (e: any) {
       console.error('CREATE job_applications or new tables:', e.message);
     }

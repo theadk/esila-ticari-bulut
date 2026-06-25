@@ -8,6 +8,20 @@ export const PuantajMaasView: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().substring(0, 7));
   const [selectedPersonnel, setSelectedPersonnel] = useState<string>('');
 
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [attendanceForm, setAttendanceForm] = useState<Partial<AttendanceRecord>>({
+    date: new Date().toISOString().substring(0, 10),
+    status: 'Geldi',
+    overtimeHours: 0
+  });
+
+  const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
+  const [adjustmentForm, setAdjustmentForm] = useState<Partial<SalaryAdjustment>>({
+    date: new Date().toISOString().substring(0, 10),
+    type: 'Avans',
+    amount: 0
+  });
+
   const personnelList = personnel.filter(p => p.status === 'Aktif');
 
   const getAttendanceStats = (personnelId: string, month: string) => {
@@ -117,7 +131,7 @@ export const PuantajMaasView: React.FC = () => {
         <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6">
             <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2"><Plus size={18}/> Toplu Puantaj Girişi</h3>
             <p className="text-sm text-indigo-600 mb-4">Günün puantajını girmek için personel listesinden seçim yapabilirsiniz.</p>
-            <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+            <button onClick={() => setIsAttendanceModalOpen(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
                + Günlük Puantaj Ekle
             </button>
         </div>
@@ -125,11 +139,128 @@ export const PuantajMaasView: React.FC = () => {
         <div className="bg-amber-50 border border-amber-100 rounded-xl p-6">
             <h3 className="font-bold text-amber-800 mb-2 flex items-center gap-2"><DollarSign size={18}/> Avans ve Prim Girişi</h3>
             <p className="text-sm text-amber-600 mb-4">Personel avans taleplerini ve performans primlerini buradan işleyebilirsiniz.</p>
-            <button className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors">
+            <button onClick={() => setIsAdjustmentModalOpen(true)} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors">
                + Ek Ödeme / Kesinti İşle
             </button>
         </div>
       </div>
+
+      {isAttendanceModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+             <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+               <h3 className="font-bold text-lg text-gray-800">Günlük Puantaj Girişi</h3>
+               <button onClick={() => setIsAttendanceModalOpen(false)} className="text-gray-500 hover:text-red-500">✕</button>
+             </div>
+             <form className="p-4 space-y-4" onSubmit={(e) => {
+               e.preventDefault();
+               if (!attendanceForm.personnelId) return alert('Personel seçiniz.');
+               const newRecord: AttendanceRecord = {
+                 id: 'ATT-' + Math.floor(Math.random()*10000),
+                 personnelId: attendanceForm.personnelId!,
+                 date: attendanceForm.date!,
+                 status: attendanceForm.status as any,
+                 overtimeHours: Number(attendanceForm.overtimeHours) || 0
+               };
+               setAttendance([...attendance, newRecord]);
+               setIsAttendanceModalOpen(false);
+               setAttendanceForm({
+                 date: new Date().toISOString().substring(0, 10),
+                 status: 'Geldi',
+                 overtimeHours: 0
+               });
+             }}>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Personel</label>
+                 <select required className="w-full border border-gray-300 rounded-lg p-2" value={attendanceForm.personnelId || ''} onChange={e => setAttendanceForm({...attendanceForm, personnelId: e.target.value})}>
+                   <option value="">Seçiniz...</option>
+                   {personnelList.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
+                 </select>
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
+                 <input required type="date" className="w-full border border-gray-300 rounded-lg p-2" value={attendanceForm.date} onChange={e => setAttendanceForm({...attendanceForm, date: e.target.value})} />
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Durum</label>
+                 <select required className="w-full border border-gray-300 rounded-lg p-2" value={attendanceForm.status} onChange={e => setAttendanceForm({...attendanceForm, status: e.target.value as any})}>
+                   <option value="Geldi">Geldi (Tam Gün)</option>
+                   <option value="Gelmedi">Gelmedi</option>
+                   <option value="İzinli">İzinli</option>
+                   <option value="Raporlu">Raporlu</option>
+                 </select>
+               </div>
+               {attendanceForm.status === 'Geldi' && (
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Fazla Mesai (Saat)</label>
+                   <input type="number" min="0" step="0.5" className="w-full border border-gray-300 rounded-lg p-2" value={attendanceForm.overtimeHours} onChange={e => setAttendanceForm({...attendanceForm, overtimeHours: Number(e.target.value)})} />
+                 </div>
+               )}
+               <div className="pt-4 flex justify-end gap-3">
+                 <button type="button" onClick={() => setIsAttendanceModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">İptal</button>
+                 <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Kaydet</button>
+               </div>
+             </form>
+          </div>
+        </div>
+      )}
+
+      {isAdjustmentModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+             <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+               <h3 className="font-bold text-lg text-gray-800">Ek Ödeme / Kesinti İşle</h3>
+               <button onClick={() => setIsAdjustmentModalOpen(false)} className="text-gray-500 hover:text-red-500">✕</button>
+             </div>
+             <form className="p-4 space-y-4" onSubmit={(e) => {
+               e.preventDefault();
+               if (!adjustmentForm.personnelId) return alert('Personel seçiniz.');
+               const newAdj: SalaryAdjustment = {
+                 id: 'ADJ-' + Math.floor(Math.random()*10000),
+                 personnelId: adjustmentForm.personnelId!,
+                 date: adjustmentForm.date!,
+                 type: adjustmentForm.type as any,
+                 amount: Number(adjustmentForm.amount) || 0
+               };
+               setSalaryAdjustments([...salaryAdjustments, newAdj]);
+               setIsAdjustmentModalOpen(false);
+               setAdjustmentForm({
+                 date: new Date().toISOString().substring(0, 10),
+                 type: 'Avans',
+                 amount: 0
+               });
+             }}>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Personel</label>
+                 <select required className="w-full border border-gray-300 rounded-lg p-2" value={adjustmentForm.personnelId || ''} onChange={e => setAdjustmentForm({...adjustmentForm, personnelId: e.target.value})}>
+                   <option value="">Seçiniz...</option>
+                   {personnelList.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
+                 </select>
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
+                 <input required type="date" className="w-full border border-gray-300 rounded-lg p-2" value={adjustmentForm.date} onChange={e => setAdjustmentForm({...adjustmentForm, date: e.target.value})} />
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">İşlem Türü</label>
+                 <select required className="w-full border border-gray-300 rounded-lg p-2" value={adjustmentForm.type} onChange={e => setAdjustmentForm({...adjustmentForm, type: e.target.value as any})}>
+                   <option value="Avans">Avans</option>
+                   <option value="Kesinti">Diğer Kesinti</option>
+                   <option value="Prim">Performans Primi</option>
+                 </select>
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Tutar (₺)</label>
+                 <input required type="number" min="0.01" step="0.01" className="w-full border border-gray-300 rounded-lg p-2" value={adjustmentForm.amount || ''} onChange={e => setAdjustmentForm({...adjustmentForm, amount: Number(e.target.value)})} />
+               </div>
+               <div className="pt-4 flex justify-end gap-3">
+                 <button type="button" onClick={() => setIsAdjustmentModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">İptal</button>
+                 <button type="submit" className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">Kaydet</button>
+               </div>
+             </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MOCK_CUSTOMERS, MOCK_TRANSACTIONS, MOCK_CASH_TRANSACTIONS, MOCK_PERSONNEL, MOCK_PRODUCTS, MOCK_USERS } from '../mockData';
-import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote, BOM, WorkOrder, AppNotification, AttendanceRecord, SalaryAdjustment, PersonnelKPI, MeetingNote, Campaign } from '../types';
+import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote, BOM, WorkOrder, AppNotification, AttendanceRecord, SalaryAdjustment, PersonnelKPI, PersonnelTask, MeetingNote, Campaign } from '../types';
 
 let globalSettings: Settings = {
   companyName: 'Esila Örnek Şirket Ltd. Şti.',
@@ -86,6 +86,9 @@ let globalAttendance: AttendanceRecord[] = [
 let globalSalaryAdjustments: SalaryAdjustment[] = [
   { id: 'adj-1', personnelId: 'p1', date: '2026-06-10', type: 'Avans', amount: 1000, description: 'Nakit Avans' },
   { id: 'adj-2', personnelId: 'p1', date: '2026-06-15', type: 'Prim', amount: 500, description: 'Performans Primi' }
+];
+let globalPersonnelTasks: PersonnelTask[] = [
+  { id: 'tsk-1', personnelId: 'p1', title: 'Müşteri Görüşmesi', description: 'A firması ile toplantı.', status: 'Devam Ediyor', dueDate: '2026-06-26', createdAt: '2026-06-25', priority: 'Yüksek' }
 ];
 let globalPersonnelKPIs: PersonnelKPI[] = [
   { id: 'kpi-1', personnelId: 'p1', month: '2026-06', targetSalesAmount: 500000, actualSalesAmount: 350000, targetNewLeads: 20, actualNewLeads: 12 }
@@ -294,6 +297,9 @@ export async function initializeStore() {
       { name: 'bank_accounts', ref: (data: any) => { globalBankAccounts = data; } },
       { name: 'personnel', ref: (data: any) => { globalPersonnel = data; } },
       { name: 'job_applications', ref: (data: any) => { globalJobApplications = data; } },
+      { name: 'attendance', ref: (data: any) => { globalAttendance = data; } },
+      { name: 'salary_adjustments', ref: (data: any) => { globalSalaryAdjustments = data; } },
+      { name: 'personnel_tasks', ref: (data: any) => { globalPersonnelTasks = data; } },
       { name: 'orders', ref: (data: any) => { 
         globalOrders = data.map((d:any)=>{
            const parsedItems = typeof d.items === 'string' ? JSON.parse(d.items): (d.items||[]);
@@ -500,12 +506,23 @@ export const useAppStore = () => {
     },
     get attendance() { return globalAttendance; },
     setAttendance(updater: any) {
+      const old = [...globalAttendance];
       globalAttendance = typeof updater === 'function' ? updater(globalAttendance) : updater;
+      syncArray('attendance', old, globalAttendance);
       emit();
     },
     get salaryAdjustments() { return globalSalaryAdjustments; },
     setSalaryAdjustments(updater: any) {
+      const old = [...globalSalaryAdjustments];
       globalSalaryAdjustments = typeof updater === 'function' ? updater(globalSalaryAdjustments) : updater;
+      syncArray('salary_adjustments', old, globalSalaryAdjustments);
+      emit();
+    },
+    get personnelTasks() { return globalPersonnelTasks; },
+    setPersonnelTasks(updater: any) {
+      const old = [...globalPersonnelTasks];
+      globalPersonnelTasks = typeof updater === 'function' ? updater(globalPersonnelTasks) : updater;
+      syncArray('personnel_tasks', old, globalPersonnelTasks);
       emit();
     },
     get personnelKPIs() { return globalPersonnelKPIs; },

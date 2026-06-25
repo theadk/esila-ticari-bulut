@@ -2905,7 +2905,10 @@ async function startServer() {
     "cheque_notes",
     "notifications",
     "campaigns",
-    "meeting_notes"
+    "meeting_notes",
+    "attendance",
+    "salary_adjustments",
+    "personnel_tasks"
   ];
   for (const table of tables) {
     const tableColumnsCache: Record<string, string[]> = {};
@@ -3142,7 +3145,7 @@ async function startServer() {
 
         const fs = await import('fs');
         const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
-        const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes', 'purchase_requests', 'cheque_notes'];
+        const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes', 'purchase_requests', 'cheque_notes', 'boms', 'work_orders', 'bank_accounts', 'attendance', 'salary_adjustments', 'personnel_tasks'];
 
         if (isMySQL) {
             const pool = getPool();
@@ -3238,7 +3241,7 @@ async function startServer() {
       }
 
       const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
-      const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes', 'purchase_requests', 'cheque_notes'];
+      const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes', 'purchase_requests', 'cheque_notes', 'boms', 'work_orders', 'bank_accounts', 'attendance', 'salary_adjustments', 'personnel_tasks'];
 
       if (isMySQL) {
           const pool = getPool();

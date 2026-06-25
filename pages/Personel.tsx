@@ -2121,12 +2121,48 @@ export const Personel: React.FC = () => {
 
 const TaskTrackingView: React.FC = () => {
   const store = useAppStore();
-  const { serviceTickets, personnel } = store;
+  const { serviceTickets, personnel, personnelTasks = [], setPersonnelTasks } = store;
 
   const assignedTickets = serviceTickets.filter(t => t.personnelId);
+  
+  const allTasks = [
+    ...assignedTickets.map(t => ({
+      id: t.id,
+      type: 'Servis',
+      personnelId: t.personnelId,
+      personnelName: t.personnelName,
+      customerName: t.customerName,
+      title: t.deviceType,
+      description: t.issueDescription,
+      date: t.dateCreated,
+      status: t.status,
+      priority: t.priority
+    })),
+    ...personnelTasks.map(t => ({
+      id: t.id,
+      type: 'Manuel',
+      personnelId: t.personnelId,
+      personnelName: '',
+      customerName: '-',
+      title: t.title,
+      description: t.description,
+      date: t.createdAt,
+      status: t.status,
+      priority: t.priority
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [taskForm, setTaskForm] = useState<Partial<PersonnelTask>>({
+    title: '',
+    description: '',
+    status: 'Bekliyor',
+    dueDate: new Date().toISOString().substring(0, 10),
+    priority: 'Normal'
+  });
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -2157,9 +2193,13 @@ const TaskTrackingView: React.FC = () => {
       <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div>
           <h3 className="font-bold text-lg text-gray-800">Görev Takip Paneli</h3>
-          <p className="text-gray-500 text-sm">Personellere atanan servis ve arıza görevlerinin durumları</p>
+          <p className="text-gray-500 text-sm">Personellere atanan servis arıza görevleri ve manuel görevler</p>
         </div>
-        <div className="flex bg-gray-100 p-1 rounded-lg">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setIsTaskModalOpen(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+            + Manuel Görev Ata
+          </button>
+          <div className="flex bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => setViewMode('list')}
             className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors ${viewMode === 'list' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
@@ -2174,6 +2214,7 @@ const TaskTrackingView: React.FC = () => {
             <Calendar size={16} />
             Takvim
           </button>
+        </div>
         </div>
       </div>
 
@@ -2192,38 +2233,56 @@ const TaskTrackingView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {assignedTickets.length === 0 ? (
+                {allTasks.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-gray-500">Atanmış görev bulunmamaktadır.</td>
                   </tr>
                 ) : (
-                  assignedTickets.map(ticket => {
-                    const p = personnel.find(p => p.id === ticket.personnelId);
+                  allTasks.map(task => {
+                    const p = personnel.find(p => p.id === task.personnelId);
                     
                     let statusColor = "bg-gray-100 text-gray-800 border-gray-200";
-                    if (ticket.status === 'Bekliyor') statusColor = "bg-yellow-100 text-yellow-800 border-yellow-200";
-                    if (ticket.status === 'İşlemde') statusColor = "bg-blue-100 text-blue-800 border-blue-200";
-                    if (ticket.status === 'Tamamlandı') statusColor = "bg-emerald-100 text-emerald-800 border-emerald-200";
-                    if (ticket.status === 'İptal') statusColor = "bg-red-100 text-red-800 border-red-200";
+                    if (task.status === 'Bekliyor') statusColor = "bg-yellow-100 text-yellow-800 border-yellow-200";
+                    if (task.status === 'İşlemde' || task.status === 'Devam Ediyor') statusColor = "bg-blue-100 text-blue-800 border-blue-200";
+                    if (task.status === 'Tamamlandı') statusColor = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                    if (task.status === 'İptal') statusColor = "bg-red-100 text-red-800 border-red-200";
 
                     return (
-                      <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{ticket.id}</td>
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-gray-800">{p ? `${p.firstName} ${p.lastName}` : ticket.personnelName}</div>
+                      <tr key={task.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          {task.id}
+                          {task.type === 'Manuel' && <span className="ml-2 text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">Manuel</span>}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{ticket.customerName}</td>
                         <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-800">{ticket.deviceType}</div>
-                          <div className="text-xs text-gray-500 truncate max-w-xs">{ticket.issueDescription}</div>
+                          <div className="font-medium text-gray-800">{p ? `${p.firstName} ${p.lastName}` : task.personnelName}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{task.customerName}</td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-800">{task.title}</div>
+                          <div className="text-xs text-gray-500 truncate max-w-xs">{task.description}</div>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
-                          {new Date(ticket.dateCreated).toLocaleDateString('tr-TR')}
+                          {new Date(task.date).toLocaleDateString('tr-TR')}
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColor}`}>
-                            {ticket.status}
-                          </span>
+                          <select 
+                            className={`px-3 py-1 rounded-full text-xs font-medium border appearance-none outline-none cursor-pointer ${statusColor}`}
+                            value={task.status}
+                            onChange={(e) => {
+                              const newStatus = e.target.value as any;
+                              if (task.type === 'Servis') {
+                                store.setServiceTickets(store.serviceTickets.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+                              } else {
+                                setPersonnelTasks(personnelTasks.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+                              }
+                            }}
+                          >
+                            <option value="Bekliyor">Bekliyor</option>
+                            <option value="İşlemde">İşlemde (Servis)</option>
+                            <option value="Devam Ediyor">Devam Ediyor (Manuel)</option>
+                            <option value="Tamamlandı">Tamamlandı</option>
+                            <option value="İptal">İptal</option>
+                          </select>
                         </td>
                       </tr>
                     )
@@ -2264,7 +2323,7 @@ const TaskTrackingView: React.FC = () => {
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const dayTickets = assignedTickets.filter(t => t.dateCreated.startsWith(dateStr));
+              const dayTasks = allTasks.filter(t => t.date.startsWith(dateStr));
               
               const isToday = new Date().toISOString().split('T')[0] === dateStr;
               
@@ -2274,25 +2333,25 @@ const TaskTrackingView: React.FC = () => {
                     <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${isToday ? 'bg-emerald-600 text-white' : 'text-gray-700'}`}>
                       {day}
                     </span>
-                    {dayTickets.length > 0 && (
+                    {dayTasks.length > 0 && (
                       <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                        {dayTickets.length}
+                        {dayTasks.length}
                       </span>
                     )}
                   </div>
                   <div className="space-y-1.5 overflow-y-auto max-h-[80px] custom-scrollbar">
-                    {dayTickets.map(ticket => {
-                      const p = personnel.find(p => p.id === ticket.personnelId);
+                    {dayTasks.map(task => {
+                      const p = personnel.find(p => p.id === task.personnelId);
                       let statusBg = "bg-gray-100 border-gray-200 text-gray-800";
-                      if (ticket.status === 'Bekliyor') statusBg = "bg-yellow-50 border-yellow-200 text-yellow-800";
-                      if (ticket.status === 'İşlemde') statusBg = "bg-blue-50 border-blue-200 text-blue-800";
-                      if (ticket.status === 'Tamamlandı') statusBg = "bg-emerald-50 border-emerald-200 text-emerald-800";
-                      if (ticket.status === 'İptal') statusBg = "bg-red-50 border-red-200 text-red-800";
+                      if (task.status === 'Bekliyor') statusBg = "bg-yellow-50 border-yellow-200 text-yellow-800";
+                      if (task.status === 'İşlemde' || task.status === 'Devam Ediyor') statusBg = "bg-blue-50 border-blue-200 text-blue-800";
+                      if (task.status === 'Tamamlandı') statusBg = "bg-emerald-50 border-emerald-200 text-emerald-800";
+                      if (task.status === 'İptal') statusBg = "bg-red-50 border-red-200 text-red-800";
                       
                       return (
-                        <div key={ticket.id} className={`text-xs p-1.5 rounded border ${statusBg} truncate`} title={`${ticket.customerName} - ${ticket.deviceType}\nPersonel: ${p ? p.firstName + ' ' + p.lastName : ticket.personnelName}`}>
-                          <div className="font-semibold truncate">{p ? p.firstName : ticket.personnelName?.split(' ')[0]}</div>
-                          <div className="truncate opacity-80">{ticket.deviceType}</div>
+                        <div key={task.id} className={`text-xs p-1.5 rounded border ${statusBg} truncate`} title={`${task.customerName !== '-' ? task.customerName + ' - ' : ''}${task.title}\nPersonel: ${p ? p.firstName + ' ' + p.lastName : task.personnelName}`}>
+                          <div className="font-semibold truncate">{p ? p.firstName : task.personnelName?.split(' ')[0]}</div>
+                          <div className="truncate opacity-80">{task.title}</div>
                         </div>
                       );
                     })}
@@ -2304,6 +2363,76 @@ const TaskTrackingView: React.FC = () => {
             {Array.from({ length: (7 - ((startDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
               <div key={`empty-end-${i}`} className="bg-white/50 min-h-[100px] p-2 border-t border-gray-100" />
             ))}
+          </div>
+        </div>
+      )}
+
+      {isTaskModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+             <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+               <h3 className="font-bold text-lg text-gray-800">Manuel Görev Ata</h3>
+               <button onClick={() => setIsTaskModalOpen(false)} className="text-gray-500 hover:text-red-500">✕</button>
+             </div>
+             <form className="p-6 space-y-4" onSubmit={(e) => {
+               e.preventDefault();
+               if (!taskForm.personnelId) return alert('Lütfen personel seçin.');
+               if (!taskForm.title) return alert('Lütfen görev başlığı girin.');
+               
+               const newTask: PersonnelTask = {
+                 id: 'TSK-' + Math.floor(Math.random() * 1000000),
+                 personnelId: taskForm.personnelId,
+                 title: taskForm.title,
+                 description: taskForm.description || '',
+                 status: taskForm.status as any,
+                 dueDate: taskForm.dueDate || new Date().toISOString().substring(0, 10),
+                 createdAt: new Date().toISOString(),
+                 priority: taskForm.priority as any
+               };
+               setPersonnelTasks([...personnelTasks, newTask]);
+               setIsTaskModalOpen(false);
+               setTaskForm({
+                 title: '',
+                 description: '',
+                 status: 'Bekliyor',
+                 dueDate: new Date().toISOString().substring(0, 10),
+                 priority: 'Normal'
+               });
+             }}>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Personel</label>
+                 <select required className="w-full border border-gray-300 rounded-lg p-2" value={taskForm.personnelId || ''} onChange={e => setTaskForm({...taskForm, personnelId: e.target.value})}>
+                   <option value="">Seçiniz...</option>
+                   {personnel.filter(p => p.status === 'Aktif').map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
+                 </select>
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Görev Başlığı</label>
+                 <input required type="text" className="w-full border border-gray-300 rounded-lg p-2" value={taskForm.title} onChange={e => setTaskForm({...taskForm, title: e.target.value})} placeholder="Örn: Hafta Sonu Bakım Çalışması" />
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
+                 <textarea className="w-full border border-gray-300 rounded-lg p-2 h-20" value={taskForm.description} onChange={e => setTaskForm({...taskForm, description: e.target.value})} placeholder="Görev detayları..."></textarea>
+               </div>
+               <div className="grid grid-cols-2 gap-4">
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Bitiş Tarihi</label>
+                   <input required type="date" className="w-full border border-gray-300 rounded-lg p-2" value={taskForm.dueDate} onChange={e => setTaskForm({...taskForm, dueDate: e.target.value})} />
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Öncelik</label>
+                   <select required className="w-full border border-gray-300 rounded-lg p-2" value={taskForm.priority} onChange={e => setTaskForm({...taskForm, priority: e.target.value as any})}>
+                     <option value="Düşük">Düşük</option>
+                     <option value="Normal">Normal</option>
+                     <option value="Yüksek">Yüksek</option>
+                   </select>
+                 </div>
+               </div>
+               <div className="pt-4 flex justify-end gap-3">
+                 <button type="button" onClick={() => setIsTaskModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">İptal</button>
+                 <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Görevi Ata</button>
+               </div>
+             </form>
           </div>
         </div>
       )}
