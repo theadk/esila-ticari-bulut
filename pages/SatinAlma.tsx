@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 export const SatinAlma: React.FC = () => {
   const store = useAppStore();
   const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
-  const canView = currentUser?.role === 'admin' || currentUser?.role === 'manager'; // Assume standard check
+  const canView = hasPermission(currentUser, 'satinalma', 'view');
 
   const [activeTab, setActiveTab] = useState<'talepler' | 'malkabul' | 'oneriler'>('talepler');
   const [isModalOpen, setIsModalOpen] = useState(false);

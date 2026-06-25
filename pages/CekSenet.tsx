@@ -8,8 +8,8 @@ import { hasPermission } from '../lib/permissions';
 
 export const CekSenet: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.username === localStorage.getItem('esila_username') || u.id === localStorage.getItem('esila_userId'));
-  const canView = currentUser?.role === 'Admin' || hasPermission(currentUser, 'kasa', 'view');
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'ceksenet', 'view');
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'alinan' | 'verilen'>('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);

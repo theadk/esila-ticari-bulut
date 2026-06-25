@@ -2899,7 +2899,10 @@ async function startServer() {
     "job_applications",
     "reminder_notes",
     "purchase_requests",
-    "cheque_notes"
+    "cheque_notes",
+    "notifications",
+    "campaigns",
+    "meeting_notes"
   ];
   for (const table of tables) {
     const tableColumnsCache: Record<string, string[]> = {};
@@ -3080,7 +3083,8 @@ async function startServer() {
         "users", "settings", "categories", "brands", "products", "warehouses", "stock_transfers",
         "customers", "customer_transactions", "cash_transactions", "personnel", "personnel_records", 
         "orders", "proposals", "reconciliations", "service_tickets", "e_invoices", 
-        "email_logs", "reminder_notes", "job_applications"
+        "email_logs", "reminder_notes", "job_applications", "purchase_requests", "cheque_notes",
+        "notifications", "campaigns", "meeting_notes"
       ];
 
       if (!isMySQL) {

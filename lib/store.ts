@@ -322,6 +322,15 @@ export async function initializeStore() {
               ...d,
               isRead: d.isRead == 1 || d.isRead === true
           }));
+      } },
+      { name: 'campaigns', ref: (data: any) => {
+          globalCampaigns = data.map((d: any) => ({
+              ...d,
+              isActive: d.isActive == 1 || d.isActive === true
+          }));
+      } },
+      { name: 'meeting_notes', ref: (data: any) => {
+          globalMeetingNotes = data;
       } }
     ];
     
@@ -482,12 +491,16 @@ export const useAppStore = () => {
     },
     get meetingNotes() { return globalMeetingNotes; },
     setMeetingNotes(updater: any) {
+      const old = [...globalMeetingNotes];
       globalMeetingNotes = typeof updater === 'function' ? updater(globalMeetingNotes) : updater;
+      syncArray('meeting_notes', old, globalMeetingNotes);
       emit();
     },
     get campaigns() { return globalCampaigns; },
     setCampaigns(updater: any) {
+      const old = [...globalCampaigns];
       globalCampaigns = typeof updater === 'function' ? updater(globalCampaigns) : updater;
+      syncArray('campaigns', old, globalCampaigns);
       emit();
     },
     get purchaseRequests() { return globalPurchaseRequests; },

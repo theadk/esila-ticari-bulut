@@ -11,11 +11,11 @@ import { hasPermission } from '../lib/permissions';
 
 export const Dokumanlar: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.username === localStorage.getItem('esila_username') || u.id === localStorage.getItem('esila_userId'));
-  const canView = currentUser?.role === 'Admin' || hasPermission(currentUser, 'dokumanlar', 'view');
-  const canCreate = currentUser?.role === 'Admin' || hasPermission(currentUser, 'dokumanlar', 'create');
-  const canEdit = currentUser?.role === 'Admin' || hasPermission(currentUser, 'dokumanlar', 'edit');
-  const canDelete = currentUser?.role === 'Admin' || hasPermission(currentUser, 'dokumanlar', 'delete');
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'dokumanlar', 'view');
+  const canCreate = hasPermission(currentUser, 'dokumanlar', 'create');
+  const canEdit = hasPermission(currentUser, 'dokumanlar', 'edit');
+  const canDelete = hasPermission(currentUser, 'dokumanlar', 'delete');
 
   const { documents, setDocuments } = store;
   

@@ -12,11 +12,11 @@ export const ThermalEArsiv = ({ previewInvoice, invoiceOrder, store, invoiceCust
     no: previewInvoice?.id || "ESI2026000002001",
     ettn: previewInvoice?.id ? `${previewInvoice?.id.toLowerCase()}-e-fatura-ettn` : "e9baec5d-f923-4f06-894b-e3de911a16c2",
     parabirimi: "TRY",
-    "malhizmettoplam": (invoiceOrder?.subTotal || (previewInvoice?.amount / 1.2)).toFixed(2),
-    "kdvmatrah(20)": (invoiceOrder?.subTotal || (previewInvoice?.amount / 1.2)).toFixed(2),
-    "hesaplanankdv(20)": (invoiceOrder?.taxTotal || (previewInvoice?.amount - previewInvoice?.amount / 1.2)).toFixed(2),
-    vergidahil: (invoiceOrder?.total || previewInvoice?.amount).toFixed(2),
-    odenecek: (invoiceOrder?.total || previewInvoice?.amount).toFixed(2)
+    "malhizmettoplam": Number(invoiceOrder?.subTotal || (previewInvoice?.amount / 1.2)).toFixed(2),
+    "kdvmatrah(20)": Number(invoiceOrder?.subTotal || (previewInvoice?.amount / 1.2)).toFixed(2),
+    "hesaplanankdv(20)": Number(invoiceOrder?.taxTotal || (previewInvoice?.amount - previewInvoice?.amount / 1.2)).toFixed(2),
+    vergidahil: Number(invoiceOrder?.total || previewInvoice?.amount).toFixed(2),
+    odenecek: Number(invoiceOrder?.total || previewInvoice?.amount).toFixed(2)
   };
 
   return (

@@ -28,21 +28,32 @@ export function startMailScheduler() {
                 }
             } else {
                 const pool = getPool();
-                const [tenants] = await pool.query("SELECT * FROM tenants WHERE status = 'Aktif'");
+                let tenants;
+                try {
+                    const [rows] = await pool.query("SELECT * FROM tenants WHERE status = 'Aktif'");
+                    tenants = rows;
+                } catch (dbError: any) {
+                    console.error(`[Cron] Veritabanı bağlantı hatası: ${dbError.message}. Kontrol atlandı.`);
+                    return;
+                }
                 
                 for (const tenant of (tenants as any[])) {
-                    const [products] = await pool.query("SELECT * FROM products WHERE vkn = ? AND stock < 5", [tenant.vkn]);
-                    
-                    if ((products as any[]).length > 0) {
-                        const [settingsRows] = await pool.query("SELECT email FROM settings WHERE vkn = ? LIMIT 1", [tenant.vkn]);
-                        let email = tenant.email;
-                        if ((settingsRows as any[]).length > 0 && (settingsRows as any[])[0].email) {
-                            email = (settingsRows as any[])[0].email;
+                    try {
+                        const [products] = await pool.query("SELECT * FROM products WHERE vkn = ? AND stock < 5", [tenant.vkn]);
+                        
+                        if ((products as any[]).length > 0) {
+                            const [settingsRows] = await pool.query("SELECT email FROM settings WHERE vkn = ? LIMIT 1", [tenant.vkn]);
+                            let email = tenant.email;
+                            if ((settingsRows as any[]).length > 0 && (settingsRows as any[])[0].email) {
+                                email = (settingsRows as any[])[0].email;
+                            }
+    
+                            if (email) {
+                                await sendLowStockEmail(email, products as any[]);
+                            }
                         }
-
-                        if (email) {
-                            await sendLowStockEmail(email, products as any[]);
-                        }
+                    } catch (queryErr: any) {
+                        console.error(`[Cron] ${tenant.vkn} için sorgu hatası:`, queryErr.message);
                     }
                 }
             }

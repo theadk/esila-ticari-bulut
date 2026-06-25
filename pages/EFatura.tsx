@@ -743,16 +743,16 @@ export const EFatura: React.FC = () => {
                         }
                     },
                     "LegalMonetaryTotal": {
-                        "LineExtensionAmount": ((inv as any).subTotal || inv.amount).toFixed(2),
-                        "TaxExclusiveAmount": ((inv as any).subTotal || inv.amount).toFixed(2),
-                        "TaxInclusiveAmount": ((inv as any).total || inv.amount).toFixed(2),
-                        "PayableAmount": ((inv as any).total || inv.amount).toFixed(2)
+                        "LineExtensionAmount": Number((inv as any).subTotal || inv.amount).toFixed(2),
+                        "TaxExclusiveAmount": Number((inv as any).subTotal || inv.amount).toFixed(2),
+                        "TaxInclusiveAmount": Number((inv as any).total || inv.amount).toFixed(2),
+                        "PayableAmount": Number((inv as any).total || inv.amount).toFixed(2)
                     },
                     "TaxTotal": {
-                        "TaxAmount": ((inv as any).taxTotal || 0).toFixed(2),
+                        "TaxAmount": Number((inv as any).taxTotal || 0).toFixed(2),
                         "TaxSubtotal": {
-                            "TaxableAmount": ((inv as any).subTotal || inv.amount).toFixed(2),
-                            "TaxAmount": ((inv as any).taxTotal || 0).toFixed(2),
+                            "TaxableAmount": Number((inv as any).subTotal || inv.amount).toFixed(2),
+                            "TaxAmount": Number((inv as any).taxTotal || 0).toFixed(2),
                             "TaxCategory": {
                                 "TaxScheme": {
                                     "Name": "KDV",
@@ -1399,11 +1399,11 @@ export const EFatura: React.FC = () => {
                                   no: previewInvoice.id || "ESI2026000002001",
                                   ettn: previewInvoice.id ? `${previewInvoice.id.toLowerCase()}-e-fatura-ettn` : "e9baec5d-f923-4f06-894b-e3de911a16c2",
                                   parabirimi: invoiceOrder?.currency || "TRY",
-                                  "malhizmettoplam": subAmount.toFixed(2),
-                                  "kdvmatrah(20)": subAmount.toFixed(2),
-                                  "hesaplanankdv(20)": taxAmount.toFixed(2),
-                                  vergidahil: totalAmount.toFixed(2),
-                                  odenecek: totalAmount.toFixed(2)
+                                  "malhizmettoplam": Number(subAmount).toFixed(2),
+                                  "kdvmatrah(20)": Number(subAmount).toFixed(2),
+                                  "hesaplanankdv(20)": Number(taxAmount).toFixed(2),
+                                  vergidahil: Number(totalAmount).toFixed(2),
+                                  odenecek: Number(totalAmount).toFixed(2)
                                 };
                                 return <QRCodeSVG value={JSON.stringify(qrDataObj)} size={96} />;
                               })()}

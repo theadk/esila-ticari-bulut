@@ -27,70 +27,91 @@ export async function initDb() {
 
   const client = getPool();
   try {
-    
-    const schemaSql = fs.readFileSync('esila_ticari_schema.sql', 'utf8');
-    const statements = schemaSql.split(';').filter((s: string) => s.trim().length > 0);
-    for (const stmt of statements) {
-      await client.query(stmt);
-    }
+    // 1. Create migrations tracking table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS _migrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-    try {
-      await client.query('ALTER TABLE settings ADD COLUMN plumbingChecklistTemplate JSON;');
-    } catch (e: any) {
-      if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER settings:', e.message);
-    }
-    
-    try { await client.query('ALTER TABLE tenants ADD COLUMN isEsilaCustomer BOOLEAN DEFAULT FALSE;'); } catch (e: any) {}
+    // 2. Fetch already executed migrations
+    const [executedRows] = await client.query('SELECT name FROM _migrations');
+    const executedMigrations = new Set((executedRows as any[]).map(r => r.name));
 
-    // --- Customers alters ---
-    try { await client.query('ALTER TABLE customers ADD COLUMN customerType VARCHAR(50);'); } catch (e: any) {}
-    try { await client.query('ALTER TABLE customers MODIFY COLUMN type VARCHAR(50);'); } catch (e: any) {}
-    try { await client.query('ALTER TABLE customers ADD COLUMN city VARCHAR(255);'); } catch (e: any) {}
-    try { await client.query('ALTER TABLE customers ADD COLUMN district VARCHAR(255);'); } catch (e: any) {}
-    try { await client.query('ALTER TABLE customers ADD COLUMN iban VARCHAR(255);'); } catch (e: any) {}
-    try { await client.query('ALTER TABLE customers ADD COLUMN balance DECIMAL(15,2) DEFAULT 0;'); } catch (e: any) {}
-    try { await client.query('ALTER TABLE customers ADD COLUMN status VARCHAR(50) DEFAULT "Aktif";'); } catch (e: any) {}
+    // 3. Define migrations
+    const migrations = [
+      {
+        name: '001_initial_schema',
+        up: async () => {
+          const schemaSql = fs.readFileSync('esila_ticari_schema.sql', 'utf8');
+          const statements = schemaSql.split(';').filter((s: string) => s.trim().length > 0);
+          for (const stmt of statements) {
+            try {
+              await client.query(stmt);
+            } catch (e: any) {
+              console.error('Error executing statement in 001_initial_schema:', stmt.substring(0, 100), '...', e.message);
+            }
+          }
+        }
+      },
+      {
+        name: '002_add_missing_columns',
+        up: async () => {
+          const alterStatements = [
+            'ALTER TABLE settings ADD COLUMN plumbingChecklistTemplate JSON;',
+            'ALTER TABLE tenants ADD COLUMN isEsilaCustomer BOOLEAN DEFAULT FALSE;',
+            'ALTER TABLE customers ADD COLUMN customerType VARCHAR(50);',
+            'ALTER TABLE customers MODIFY COLUMN type VARCHAR(50);',
+            'ALTER TABLE customers ADD COLUMN city VARCHAR(255);',
+            'ALTER TABLE customers ADD COLUMN district VARCHAR(255);',
+            'ALTER TABLE customers ADD COLUMN iban VARCHAR(255);',
+            'ALTER TABLE customers ADD COLUMN balance DECIMAL(15,2) DEFAULT 0;',
+            'ALTER TABLE customers ADD COLUMN status VARCHAR(50) DEFAULT "Aktif";',
+            'ALTER TABLE personnel ADD COLUMN fixtures JSON;',
+            'ALTER TABLE orders ADD COLUMN subTotal DECIMAL(15,2);',
+            'ALTER TABLE orders ADD COLUMN taxTotal DECIMAL(15,2);',
+            'ALTER TABLE orders ADD COLUMN total DECIMAL(15,2);',
+            'ALTER TABLE proposals ADD COLUMN discountTotal DECIMAL(15,2);',
+            'ALTER TABLE proposals ADD COLUMN notes TEXT;',
+            'ALTER TABLE proposals ADD COLUMN isConvertedToOrder BOOLEAN DEFAULT FALSE;',
+            'ALTER TABLE proposals MODIFY COLUMN status VARCHAR(50);',
+            'ALTER TABLE cash_transactions ADD COLUMN customerId VARCHAR(255);',
+            'ALTER TABLE service_tickets ADD COLUMN plumbingChecklist JSON;',
+            'ALTER TABLE service_tickets ADD COLUMN nextMaintenanceDate DATETIME;',
+            'ALTER TABLE service_tickets ADD COLUMN maintenancePeriodMonths INT;',
+            'ALTER TABLE service_tickets ADD COLUMN maintenanceReminderSent BOOLEAN DEFAULT FALSE;'
+          ];
 
-    // --- Personnel alters ---
-    try { await client.query('ALTER TABLE personnel ADD COLUMN fixtures JSON;'); } catch (e: any) {}
+          for (const stmt of alterStatements) {
+            try {
+              await client.query(stmt);
+            } catch (e: any) {
+              // Ignore duplicate column errors, throw otherwise
+              if (e.code !== 'ER_DUP_FIELDNAME') {
+                console.error('Error in 002_add_missing_columns:', e.message, '->', stmt);
+              }
+            }
+          }
+        }
+      }
+    ];
 
-    // --- Orders alters ---
-    try { await client.query('ALTER TABLE orders ADD COLUMN subTotal DECIMAL(15,2);'); } catch (e: any) {}
-    try { await client.query('ALTER TABLE orders ADD COLUMN taxTotal DECIMAL(15,2);'); } catch (e: any) {}
-    try { await client.query('ALTER TABLE orders ADD COLUMN total DECIMAL(15,2);'); } catch (e: any) {}
-
-    // --- Proposals alters ---
-    try { await client.query('ALTER TABLE proposals ADD COLUMN discountTotal DECIMAL(15,2);'); } catch (e: any) {}
-    try { await client.query('ALTER TABLE proposals ADD COLUMN notes TEXT;'); } catch (e: any) {}
-    try { await client.query('ALTER TABLE proposals ADD COLUMN isConvertedToOrder BOOLEAN DEFAULT FALSE;'); } catch (e: any) {}
-    try { await client.query('ALTER TABLE proposals MODIFY COLUMN status VARCHAR(50);'); } catch (e: any) {}
-
-    // --- Cash Transactions alters ---
-    try { await client.query('ALTER TABLE cash_transactions ADD COLUMN customerId VARCHAR(255);'); } catch (e: any) {}
-
-    // --- Service Tickets alters ---
-    try {
-      await client.query('ALTER TABLE service_tickets ADD COLUMN plumbingChecklist JSON;');
-    } catch (e: any) {
-      if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER service_tickets:', e.message);
-    }
-
-    try {
-      await client.query('ALTER TABLE service_tickets ADD COLUMN nextMaintenanceDate DATETIME;');
-    } catch (e: any) {
-      if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER NEXT MAINTENANCE:', e.message);
-    }
-    
-    try {
-      await client.query('ALTER TABLE service_tickets ADD COLUMN maintenancePeriodMonths INT;');
-    } catch (e: any) {
-      if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER PERIOD:', e.message);
-    }
-    
-    try {
-      await client.query('ALTER TABLE service_tickets ADD COLUMN maintenanceReminderSent BOOLEAN DEFAULT FALSE;');
-    } catch (e: any) {
-      if (e.code !== 'ER_DUP_FIELDNAME') console.error('ALTER REMINDER:', e.message);
+    // 4. Execute pending migrations
+    for (const migration of migrations) {
+      if (!executedMigrations.has(migration.name)) {
+        console.log(`Running migration: ${migration.name}`);
+        try {
+          await migration.up();
+          await client.query('INSERT INTO _migrations (name) VALUES (?)', [migration.name]);
+          console.log(`Migration completed: ${migration.name}`);
+        } catch (error) {
+          console.error(`Migration failed: ${migration.name}`, error);
+          // If a migration fails, we stop the sequence to avoid cascading issues.
+          throw error; 
+        }
+      }
     }
 
     /*

@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
+import { hasPermission } from '../lib/permissions';
 import { Users, Filter, Plus, FileText, Phone, Mail, Calendar, TrendingUp, Tag, Percent, X, Save, Edit2, Trash2 } from 'lucide-react';
 import { Customer, MeetingNote, Campaign } from '../types';
 
 export const CRM: React.FC = () => {
-  const { customers, meetingNotes, campaigns, setCampaigns } = useAppStore();
+  const store = useAppStore();
+  const { customers, meetingNotes, campaigns, setCampaigns } = store;
+  
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const canView = hasPermission(currentUser, 'crm', 'view');
+
   const [activeTab, setActiveTab] = useState<'leads' | 'campaigns'>('leads');
   
   const leads = customers.filter(c => c.isLead);
@@ -47,6 +53,10 @@ export const CRM: React.FC = () => {
     });
     setIsCampaignModalOpen(true);
   };
+
+  if (!canView) {
+    return <div className="p-8 text-center text-red-600">Bu sayfayı görüntüleme yetkiniz yok.</div>;
+  }
 
   return (
     <div className="space-y-6">

@@ -24,7 +24,9 @@ import {
   Mail,
   MessageSquare,
   Search,
-  DollarSign
+  DollarSign,
+  ShoppingBag,
+  Factory
 } from 'lucide-react';
 
 export const UserManual: React.FC = () => {

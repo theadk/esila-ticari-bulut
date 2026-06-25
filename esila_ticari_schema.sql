@@ -320,3 +320,71 @@ CREATE TABLE IF NOT EXISTS reminder_notes (
     isCompleted BOOLEAN DEFAULT FALSE,
     relatedId VARCHAR(255)
 );
+
+CREATE TABLE IF NOT EXISTS purchase_requests (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    date DATETIME,
+    requestedBy VARCHAR(255),
+    department VARCHAR(255),
+    items JSON,
+    status VARCHAR(50),
+    notes TEXT,
+    approvedBy VARCHAR(255),
+    approvalDate DATETIME,
+    expectedDeliveryDate DATETIME
+);
+
+CREATE TABLE IF NOT EXISTS cheque_notes (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    type VARCHAR(50),
+    isGiven BOOLEAN,
+    documentNumber VARCHAR(255),
+    customerId VARCHAR(255),
+    customerName VARCHAR(255),
+    amount DECIMAL(15,2),
+    issueDate DATETIME,
+    dueDate DATETIME,
+    bankName VARCHAR(255),
+    branchName VARCHAR(255),
+    accountNumber VARCHAR(255),
+    drawer VARCHAR(255),
+    endorser VARCHAR(255),
+    status VARCHAR(50),
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    userId VARCHAR(255),
+    title VARCHAR(255),
+    message TEXT,
+    isRead BOOLEAN DEFAULT FALSE,
+    createdAt DATETIME,
+    type VARCHAR(50),
+    link VARCHAR(1000)
+);
+
+CREATE TABLE IF NOT EXISTS campaigns (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255),
+    description TEXT,
+    customerGroup VARCHAR(255),
+    discountPercentage DECIMAL(15,2),
+    startDate DATETIME,
+    endDate DATETIME,
+    isActive BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS meeting_notes (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    customerId VARCHAR(255),
+    date DATETIME,
+    notes TEXT,
+    nextContactDate DATETIME,
+    personnelId VARCHAR(255)
+);
