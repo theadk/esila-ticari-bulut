@@ -12,6 +12,8 @@ export const SatinAlma: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'talepler' | 'malkabul' | 'oneriler'>('talepler');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMalKabulModalOpen, setIsMalKabulModalOpen] = useState(false);
+  const [malKabulForm, setMalKabulForm] = useState({ supplierId: '', documentNo: '', date: new Date().toISOString().split('T')[0], items: [{ productId: '', quantity: 1, price: 0 }] });
   const [requests, setRequests] = useState<PurchaseRequest[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [formData, setFormData] = useState<PurchaseRequest>({
@@ -51,7 +53,9 @@ export const SatinAlma: React.FC = () => {
      fetchRecommendations();
   }, []);
 
-  const { products } = store;
+  const { products, customers } = store;
+  const suppliers = customers.filter(c => c.type === 'Satıcı' || c.customerType === 'Tüzel');
+  
   // Local fallback if API fails
   const lowStockProducts = recommendations.length > 0 ? recommendations : products.filter(p => p.stock <= (p.minStock || 0));
 
@@ -94,6 +98,32 @@ export const SatinAlma: React.FC = () => {
      } catch (e) { toast.error('Hata oluştu'); }
   };
 
+  const handleSaveMalKabul = (e: React.FormEvent) => {
+     e.preventDefault();
+     if(malKabulForm.items.some(i => !i.productId || i.quantity <= 0)) {
+         return toast.error("Lütfen geçerli ürünler ve miktarlar girin.");
+     }
+     
+     // Update product stocks
+     const updatedProducts = [...products];
+     malKabulForm.items.forEach(item => {
+         const pIdx = updatedProducts.findIndex(p => p.id === item.productId);
+         if(pIdx >= 0) {
+             updatedProducts[pIdx] = {
+                 ...updatedProducts[pIdx],
+                 stock: updatedProducts[pIdx].stock + item.quantity,
+                 buyPrice: item.price > 0 ? item.price : updatedProducts[pIdx].buyPrice
+             };
+         }
+     });
+     store.setProducts(updatedProducts);
+     
+     // Optionally log transaction in store (simulate)
+     toast.success('İrsaliye kaydedildi, stoklar güncellendi');
+     setIsMalKabulModalOpen(false);
+     setMalKabulForm({ supplierId: '', documentNo: '', date: new Date().toISOString().split('T')[0], items: [{ productId: '', quantity: 1, price: 0 }] });
+  };
+
   if (!canView) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -123,7 +153,7 @@ export const SatinAlma: React.FC = () => {
               </button>
            )}
            {activeTab === 'malkabul' && (
-              <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+              <button onClick={() => setIsMalKabulModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
                 <Plus size={18} />
                 <span className="hidden sm:inline">Yeni Mal Kabul (İrsaliye)</span>
               </button>
@@ -213,7 +243,7 @@ export const SatinAlma: React.FC = () => {
            </div>
            <h3 className="text-xl font-bold text-gray-800 mb-2">Mal Kabul (İrsaliye) İşlemleri</h3>
            <p className="text-gray-500 max-w-md mx-auto mb-6">Tedarikçiden gelen irsaliyeleri sisteme girin, siparişlerle eşleştirerek stokları otomatik güncelleyin.</p>
-           <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2">
+           <button onClick={() => setIsMalKabulModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2">
              <Plus size={18} /> Yeni İrsaliye (Mal Kabul)
            </button>
         </div>
@@ -300,11 +330,16 @@ export const SatinAlma: React.FC = () => {
                    </div>
                    {formData.items.map((item, idx) => (
                       <div key={idx} className="flex gap-2 items-center mb-2">
-                         <input type="text" placeholder="Ürün Adı" required value={item.productName} onChange={e => {
+                         <select required value={item.productId} onChange={e => {
+                            const selectedProd = products.find(p => p.id === e.target.value);
                             const newItems = [...formData.items];
-                            newItems[idx].productName = e.target.value;
+                            newItems[idx].productId = e.target.value;
+                            newItems[idx].productName = selectedProd?.name || e.target.value;
                             setFormData({...formData, items: newItems});
-                         }} className="flex-1 border rounded-lg px-3 py-2 text-sm" />
+                         }} className="flex-1 border rounded-lg px-3 py-2 text-sm">
+                            <option value="">Ürün Seçin...</option>
+                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                         </select>
                          <input type="number" min="1" placeholder="Miktar" required value={item.quantity} onChange={e => {
                             const newItems = [...formData.items];
                             newItems[idx].quantity = Number(e.target.value);
@@ -332,6 +367,77 @@ export const SatinAlma: React.FC = () => {
           </div>
         </div>
       )}
+      {isMalKabulModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+             <div className="flex justify-between items-center p-6 border-b">
+               <h2 className="text-xl font-semibold">Yeni Mal Kabul (İrsaliye)</h2>
+               <button onClick={() => setIsMalKabulModalOpen(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
+             </div>
+             <form onSubmit={handleSaveMalKabul} className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                   <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tedarikçi</label>
+                      <select required value={malKabulForm.supplierId} onChange={e => setMalKabulForm({...malKabulForm, supplierId: e.target.value})} className="w-full border rounded-lg px-3 py-2">
+                         <option value="">Seçiniz...</option>
+                         {suppliers.map(s => <option key={s.id} value={s.id}>{s.companyName || s.name}</option>)}
+                      </select>
+                   </div>
+                   <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
+                      <input type="date" required value={malKabulForm.date} onChange={e => setMalKabulForm({...malKabulForm, date: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
+                   </div>
+                   <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">İrsaliye / Belge No</label>
+                      <input type="text" required value={malKabulForm.documentNo} onChange={e => setMalKabulForm({...malKabulForm, documentNo: e.target.value})} className="w-full border rounded-lg px-3 py-2" placeholder="Örn: IRS-2023-0001" />
+                   </div>
+                </div>
+
+                <div>
+                   <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">Gelen Ürünler</label>
+                      <button type="button" onClick={() => setMalKabulForm({...malKabulForm, items: [...malKabulForm.items, { productId: '', quantity: 1, price: 0 }]})} className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                         <Plus size={14} /> Ürün Ekle
+                      </button>
+                   </div>
+                   {malKabulForm.items.map((item, idx) => (
+                      <div key={idx} className="flex gap-2 items-center mb-2">
+                         <select required value={item.productId} onChange={e => {
+                            const newItems = [...malKabulForm.items];
+                            newItems[idx].productId = e.target.value;
+                            setMalKabulForm({...malKabulForm, items: newItems});
+                         }} className="flex-1 border rounded-lg px-3 py-2 text-sm">
+                            <option value="">Ürün Seçin...</option>
+                            {products.map(p => <option key={p.id} value={p.id}>{p.name} (Stok: {p.stock})</option>)}
+                         </select>
+                         <input type="number" min="1" placeholder="Adet" required value={item.quantity} onChange={e => {
+                            const newItems = [...malKabulForm.items];
+                            newItems[idx].quantity = Number(e.target.value);
+                            setMalKabulForm({...malKabulForm, items: newItems});
+                         }} className="w-24 border rounded-lg px-3 py-2 text-sm" />
+                         <input type="number" min="0" step="0.01" placeholder="Birim Fiyat" value={item.price} onChange={e => {
+                            const newItems = [...malKabulForm.items];
+                            newItems[idx].price = Number(e.target.value);
+                            setMalKabulForm({...malKabulForm, items: newItems});
+                         }} className="w-28 border rounded-lg px-3 py-2 text-sm" />
+                         <button type="button" onClick={() => {
+                            const newItems = malKabulForm.items.filter((_, i) => i !== idx);
+                            setMalKabulForm({...malKabulForm, items: newItems});
+                         }} className="text-red-500 hover:text-red-700 p-2"><Trash2 size={16} /></button>
+                      </div>
+                   ))}
+                   {malKabulForm.items.length === 0 && <p className="text-sm text-gray-500 italic">Henüz ürün eklenmedi.</p>}
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3 border-t">
+                   <button type="button" onClick={() => setIsMalKabulModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">İptal</button>
+                   <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg">Stokları Güncelle ve Kaydet</button>
+                </div>
+             </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

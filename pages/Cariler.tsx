@@ -535,7 +535,7 @@ export const Cariler: React.FC = () => {
     const matchTitle = c.companyName?.toLowerCase().includes(searchStr);
     const matchEmail = c.email?.toLowerCase().includes(searchStr);
     return matchName || matchTitle || matchEmail;
-  });
+  }).reverse(); // Sort newest first based on insertion order
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);

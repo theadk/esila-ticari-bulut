@@ -398,8 +398,47 @@ export const Uretim: React.FC = () => {
                 <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Bileşenler (Hammaddeler)</label>
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <p className="text-sm text-gray-500 text-center mb-2">Bu alana hammaddeler eklenebilir. Şimdilik simüle edilmiştir.</p>
-                        <button type="button" className="text-indigo-600 text-sm font-medium">+ Bileşen Ekle</button>
+                        {bomForm.items && bomForm.items.length > 0 ? (
+                            <ul className="space-y-2 mb-3">
+                                {bomForm.items.map((item, idx) => {
+                                    const p = products.find(prod => prod.id === item.productId);
+                                    return (
+                                        <li key={idx} className="flex items-center justify-between bg-white p-2 border rounded">
+                                            <span className="text-sm font-medium">{p?.name || 'Bilinmeyen Ürün'}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-gray-500">{item.quantity} {p?.unit || 'Adet'}</span>
+                                                <button type="button" onClick={() => {
+                                                    const newItems = [...(bomForm.items || [])];
+                                                    newItems.splice(idx, 1);
+                                                    setBomForm({...bomForm, items: newItems});
+                                                }} className="text-red-500 hover:text-red-700 text-xs">Sil</button>
+                                            </div>
+                                        </li>
+                                    )
+                                })}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-gray-500 text-center mb-2">Henüz bileşen eklenmedi.</p>
+                        )}
+                        <div className="flex gap-2">
+                            <select id="bomProductSelect" className="flex-1 border border-gray-300 rounded-lg p-2 text-sm">
+                                <option value="">Ürün Seçin</option>
+                                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                            <input type="number" id="bomProductQty" className="w-20 border border-gray-300 rounded-lg p-2 text-sm" placeholder="Miktar" defaultValue="1" min="0.01" step="0.01" />
+                            <button type="button" className="bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-sm font-medium" onClick={() => {
+                                const prodSelect = document.getElementById('bomProductSelect') as HTMLSelectElement;
+                                const qtyInput = document.getElementById('bomProductQty') as HTMLInputElement;
+                                if(prodSelect.value && qtyInput.value) {
+                                    setBomForm({
+                                        ...bomForm,
+                                        items: [...(bomForm.items || []), { productId: prodSelect.value, quantity: Number(qtyInput.value) }]
+                                    });
+                                    prodSelect.value = '';
+                                    qtyInput.value = '1';
+                                }
+                            }}>Ekle</button>
+                        </div>
                     </div>
                 </div>
                 
