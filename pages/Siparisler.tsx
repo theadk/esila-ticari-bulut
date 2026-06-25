@@ -25,11 +25,11 @@ export const Siparisler: React.FC = () => {
 
   const orders = store.orders;
   const setOrders = store.setOrders;
-  const customers = store.customers;
+  const customers = store.customers || [];
   const setCustomers = store.setCustomers;
-  const transactions = store.transactions;
+  const transactions = store.transactions || [];
   const setTransactions = store.setTransactions;
-  const cashTransactions = store.cashTransactions;
+  const cashTransactions = store.cashTransactions || [];
   const setCashTransactions = store.setCashTransactions;
 
   const rawProducts = store.products;
@@ -228,118 +228,123 @@ export const Siparisler: React.FC = () => {
   };
 
   const handleCreateOrder = () => {
-    if (!selectedCustomer || cartItems.length === 0) return;
+    try {
+      if (!selectedCustomer || cartItems.length === 0) return;
 
-    const orderDate = new Date();
-    const nextOrderId = `${store.settings.prefix_order || 'SIP'}-${store.settings.next_order_id || 1001}`;
-    
-    const newOrder: Order = {
-      id: nextOrderId,
-      customerId: selectedCustomer.id,
-      customerName: selectedCustomer.name,
-      date: orderDate.toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
-      subTotal: cartSubTotal,
-      taxTotal: cartTaxTotal,
-      total: cartTotal,
-      currency: orderCurrency,
-      exchangeRate: exchangeRate,
-      status: OrderStatus.COMPLETED,
-      items: cartItems,
-      notes: orderNotes
-    };
+      const orderDate = new Date();
+      const nextOrderId = `${store.settings.prefix_order || 'SIP'}-${store.settings.next_order_id || 1001}`;
+      
+      const newOrder: Order = {
+        id: nextOrderId,
+        customerId: selectedCustomer.id,
+        customerName: selectedCustomer.name,
+        date: orderDate.toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+        subTotal: cartSubTotal,
+        taxTotal: cartTaxTotal,
+        total: cartTotal,
+        currency: orderCurrency,
+        exchangeRate: exchangeRate,
+        status: OrderStatus.COMPLETED,
+        items: cartItems,
+        notes: orderNotes
+      };
 
-    setOrders([newOrder, ...orders]);
-    store.setSettings({
-      ...store.settings,
-      next_order_id: (store.settings.next_order_id || 1001) + 1
-    });
+      setOrders([newOrder, ...orders]);
+      store.setSettings({
+        ...store.settings,
+        next_order_id: (store.settings.next_order_id || 1001) + 1
+      });
 
-    // Reduce Stock
-    let newProducts = [...rawProducts];
-    cartItems.forEach(item => {
-      const idx = newProducts.findIndex(p => String(p.id) === String(item.productId));
-      if (idx !== -1) {
-        let p = newProducts[idx];
-        let remainingQuantity = item.quantity;
-        let newWarehouseStocks = [...(p.warehouseStocks || [])];
-        
-        for (let i = 0; i < newWarehouseStocks.length; i++) {
-            if (remainingQuantity <= 0) break;
-            if (newWarehouseStocks[i].stock > 0) {
-                const deduct = Math.min(newWarehouseStocks[i].stock, remainingQuantity);
-                newWarehouseStocks[i] = { ...newWarehouseStocks[i], stock: newWarehouseStocks[i].stock - deduct };
-                remainingQuantity -= deduct;
-            }
+      // Reduce Stock
+      let newProducts = [...rawProducts];
+      cartItems.forEach(item => {
+        const idx = newProducts.findIndex(p => String(p.id) === String(item.productId));
+        if (idx !== -1) {
+          let p = newProducts[idx];
+          let remainingQuantity = item.quantity;
+          let newWarehouseStocks = [...(p.warehouseStocks || [])];
+          
+          for (let i = 0; i < newWarehouseStocks.length; i++) {
+              if (remainingQuantity <= 0) break;
+              if (newWarehouseStocks[i].stock > 0) {
+                  const deduct = Math.min(newWarehouseStocks[i].stock, remainingQuantity);
+                  newWarehouseStocks[i] = { ...newWarehouseStocks[i], stock: newWarehouseStocks[i].stock - deduct };
+                  remainingQuantity -= deduct;
+              }
+          }
+
+          newProducts[idx] = { 
+              ...p, 
+              stock: Math.max(0, p.stock - item.quantity),
+              warehouseStocks: newWarehouseStocks
+          };
         }
+      });
+      setProducts(newProducts);
 
-        newProducts[idx] = { 
-            ...p, 
-            stock: Math.max(0, p.stock - item.quantity),
-            warehouseStocks: newWarehouseStocks
-        };
-      }
-    });
-    setProducts(newProducts);
-
-    
-    // 1. Cariye Satış İşle
-    const newTransaction: CustomerTransaction = {
-      id: Math.random().toString(36).substr(2, 9),
-      customerId: selectedCustomer.id,
-      date: orderDate.toISOString().split('T')[0],
-      type: 'Satış',
-      amount: cartTotal,
-      description: `Sipariş: ${newOrder.id}`
-    };
-    
-    setTransactions([...transactions, newTransaction]);
-    
-    // Update Customer Balance (Satış means customer debt increases -> positive balance)
-    let finalBalanceDelta = cartTotal;
-
-    // 2. Eğer peşin ödendiyse, tahsilat işle
-    if (isPaid) {
-      const paymentTransaction: CustomerTransaction = {
+      
+      // 1. Cariye Satış İşle
+      const newTransaction: CustomerTransaction = {
         id: Math.random().toString(36).substr(2, 9),
         customerId: selectedCustomer.id,
         date: orderDate.toISOString().split('T')[0],
-        type: 'Tahsilat',
-        amount: -cartTotal,
-        description: `Sipariş Tahsilatı: ${newOrder.id}`
-      };
-      setTransactions(prev => [...prev, paymentTransaction]);
-      
-      const newCashTx: CashTransaction = {
-        id: Math.random().toString(36).substr(2, 9),
-        date: orderDate.toISOString().split('T')[0],
-        type: 'Gelir',
-        category: 'Satış',
+        type: 'Satış',
         amount: cartTotal,
-        description: `Sipariş Tahsilatı (${selectedCustomer.companyName || selectedCustomer.name}): ${newOrder.id}`,
-        customerId: selectedCustomer.id
+        description: `Sipariş: ${newOrder.id}`
       };
-      setCashTransactions([...cashTransactions, newCashTx]);
       
-      // Balance cancels out
-      finalBalanceDelta = 0;
-    }
+      setTransactions([...transactions, newTransaction]);
+      
+      // Update Customer Balance (Satış means customer debt increases -> positive balance)
+      let finalBalanceDelta = cartTotal;
 
-    if (finalBalanceDelta !== 0) {
-      const updatedCustomers = customers.map(c => {
-        if (c.id === selectedCustomer.id) {
-          return { ...c, balance: c.balance + finalBalanceDelta };
-        }
-        return c;
-      });
-      setCustomers(updatedCustomers);
-    }
+      // 2. Eğer peşin ödendiyse, tahsilat işle
+      if (isPaid) {
+        const paymentTransaction: CustomerTransaction = {
+          id: Math.random().toString(36).substr(2, 9),
+          customerId: selectedCustomer.id,
+          date: orderDate.toISOString().split('T')[0],
+          type: 'Tahsilat',
+          amount: -cartTotal,
+          description: `Sipariş Tahsilatı: ${newOrder.id}`
+        };
+        setTransactions(prev => [...prev, paymentTransaction]);
+        
+        const newCashTx: CashTransaction = {
+          id: Math.random().toString(36).substr(2, 9),
+          date: orderDate.toISOString().split('T')[0],
+          type: 'Gelir',
+          category: 'Satış',
+          amount: cartTotal,
+          description: `Sipariş Tahsilatı (${selectedCustomer.companyName || selectedCustomer.name}): ${newOrder.id}`,
+          customerId: selectedCustomer.id
+        };
+        setCashTransactions([...cashTransactions, newCashTx]);
+        
+        // Balance cancels out
+        finalBalanceDelta = 0;
+      }
 
-    setIsCreateModalOpen(false);
-    
-    // Auto open print modal for receipt
-    setSelectedOrder(newOrder);
-    setPrintType('80mm');
-    setPrintModalOpen(true);
+      if (finalBalanceDelta !== 0) {
+        const updatedCustomers = customers.map(c => {
+          if (c.id === selectedCustomer.id) {
+            return { ...c, balance: Number(c.balance || 0) + finalBalanceDelta };
+          }
+          return c;
+        });
+        setCustomers(updatedCustomers);
+      }
+
+      setIsCreateModalOpen(false);
+      
+      // Auto open print modal for receipt
+      setSelectedOrder(newOrder);
+      setPrintType('80mm');
+      setPrintModalOpen(true);
+    } catch (error: any) {
+      console.error(error);
+      toast.error('Sipariş oluşturulurken bir hata oluştu: ' + error.message);
+    }
   };
 
   const handleShipSubmit = (e: React.FormEvent) => {

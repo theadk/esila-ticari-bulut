@@ -610,6 +610,10 @@ export const Cariler: React.FC = () => {
     );
   }
 
+  const customerHistoryTransactions = selectedCustomerForHistory 
+    ? transactions.filter(t => t.customerId === selectedCustomerForHistory.id).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()) 
+    : [];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1394,14 +1398,14 @@ export const Cariler: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {transactions.filter(t => t.customerId === selectedCustomerForHistory.id).length === 0 ? (
+                  {customerHistoryTransactions.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                         Herhangi bir işlem bulunamadı.
                       </td>
                     </tr>
                   ) : (
-                    transactions.filter(t => t.customerId === selectedCustomerForHistory.id).map(t => (
+                    customerHistoryTransactions.map(t => (
                       <tr key={t.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 text-sm text-gray-600">{new Date(t.date).toLocaleDateString('tr-TR')}</td>
                         <td className="px-6 py-4 text-sm text-gray-800">{t.description}</td>
@@ -1630,7 +1634,7 @@ export const Cariler: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions.filter(t => t.customerId === selectedCustomerForHistory.id).map(tx => (
+                    {customerHistoryTransactions.map(tx => (
                       <tr key={tx.id} className="border-b" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                         <td className="p-3 border-x text-gray-600 print:text-black whitespace-nowrap" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                           {new Date(tx.date).toLocaleDateString('tr-TR')}
@@ -1661,7 +1665,7 @@ export const Cariler: React.FC = () => {
                         </td>
                       </tr>
                     ))}
-                    {transactions.filter(t => t.customerId === selectedCustomerForHistory.id).length === 0 && (
+                    {customerHistoryTransactions.length === 0 && (
                       <tr>
                         <td colSpan={5} className="p-6 text-center text-gray-500 border" style={{ borderColor: store.settings?.invoiceTemplate_color || '#e5e7eb' }}>
                           Kayıtlı hesap hareketi bulunmuyor.

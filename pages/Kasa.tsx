@@ -16,7 +16,7 @@ export const Kasa: React.FC = () => {
   const canEdit = hasPermission(currentUser, 'kasa', 'edit');
   const canDelete = hasPermission(currentUser, 'kasa', 'delete');
 
-  const { settings, cashTransactions, setCashTransactions, customers, setCustomers, transactions, setTransactions, personnel, setPersonnel } = store;
+  const { settings, cashTransactions, setCashTransactions, customers, setCustomers, transactions, setTransactions, personnel, setPersonnel, bankAccounts, setBankAccounts } = store;
   const [activeTab, setActiveTab] = useState<'kasa' | 'banka' | 'cek_senet' | 'masraf'>('kasa');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'this_week' | 'this_month'>('all');
@@ -38,6 +38,13 @@ export const Kasa: React.FC = () => {
   };
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false);
+  const [bankFormData, setBankFormData] = useState<Partial<BankAccount>>({
+    bankName: '',
+    accountName: '',
+    iban: '',
+    balance: 0
+  });
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [reportPrintModalOpen, setReportPrintModalOpen] = useState(false);
   const [selectedTxForPrint, setSelectedTxForPrint] = useState<CashTransaction | null>(null);
@@ -112,6 +119,24 @@ export const Kasa: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, dateFilter]);
+
+  const handleSaveBank = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (bankFormData.id) {
+       setBankAccounts(bankAccounts.map(b => b.id === bankFormData.id ? { ...b, ...bankFormData } as BankAccount : b));
+    } else {
+       const newBank: BankAccount = {
+           id: 'BANK-' + Math.random().toString(36).substr(2, 9),
+           bankName: bankFormData.bankName || '',
+           accountName: bankFormData.accountName || '',
+           iban: bankFormData.iban || '',
+           balance: Number(bankFormData.balance || 0)
+       };
+       setBankAccounts([...(bankAccounts || []), newBank]);
+    }
+    setIsBankModalOpen(false);
+    setBankFormData({ bankName: '', accountName: '', iban: '', balance: 0 });
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -401,6 +426,75 @@ export const Kasa: React.FC = () => {
           totalItems={filteredData.length}
         />
       </div>
+
+      {isBankModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden flex flex-col">
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
+               <h3 className="font-bold text-lg text-gray-800">{bankFormData.id ? 'Banka Hesabı Düzenle' : 'Yeni Banka Hesabı'}</h3>
+               <button onClick={() => setIsBankModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                 <X size={24} />
+               </button>
+            </div>
+            <form onSubmit={handleSaveBank} className="p-4 sm:p-6 space-y-4">
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Banka Adı</label>
+                 <input 
+                   required type="text"
+                   value={bankFormData.bankName}
+                   onChange={e => setBankFormData({...bankFormData, bankName: e.target.value})}
+                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                   placeholder="Örn: Garanti BBVA"
+                 />
+              </div>
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Hesap Adı</label>
+                 <input 
+                   required type="text"
+                   value={bankFormData.accountName}
+                   onChange={e => setBankFormData({...bankFormData, accountName: e.target.value})}
+                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                   placeholder="Örn: Ana Hesap (TL)"
+                 />
+              </div>
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
+                 <input 
+                   type="text"
+                   value={bankFormData.iban}
+                   onChange={e => setBankFormData({...bankFormData, iban: e.target.value})}
+                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                   placeholder="TR00 0000..."
+                 />
+              </div>
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Başlangıç Bakiyesi (₺)</label>
+                 <input 
+                   required type="number" step="0.01"
+                   value={bankFormData.balance}
+                   onChange={e => setBankFormData({...bankFormData, balance: Number(e.target.value)})}
+                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                 />
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsBankModalOpen(false)} 
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  İptal
+                </button>
+                <button 
+                  type="submit"
+                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Save size={18} /> Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
@@ -840,15 +934,45 @@ export const Kasa: React.FC = () => {
       )}
 
       {activeTab === 'banka' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center animate-in fade-in">
-           <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Wallet size={32} />
-           </div>
-           <h3 className="text-xl font-bold text-gray-800 mb-2">Banka Hesapları</h3>
-           <p className="text-gray-500 max-w-md mx-auto mb-6">Farklı bankalardaki hesaplarınızı, kredi kartlarınızı ve POS cihazı tahsilatlarınızı buradan takip edebilirsiniz.</p>
-           <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2">
-             <Plus size={18} /> Yeni Banka Hesabı
-           </button>
+        <div className="space-y-6 animate-in fade-in">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-bold text-gray-800">Banka Hesapları</h3>
+            <button onClick={() => { setBankFormData({ bankName: '', accountName: '', iban: '', balance: 0 }); setIsBankModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2">
+              <Plus size={18} /> Yeni Banka Hesabı
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             {bankAccounts && bankAccounts.map(account => (
+                <div key={account.id} className="bg-white border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                     <Wallet size={80} />
+                   </div>
+                   <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                     <button className="text-gray-400 hover:text-blue-600 bg-white shadow-sm rounded p-1" onClick={() => { setBankFormData(account); setIsBankModalOpen(true); }}>
+                        Düzenle
+                     </button>
+                     <button className="text-gray-400 hover:text-red-600 bg-white shadow-sm rounded p-1" onClick={() => {
+                        if (confirm('Banka hesabını silmek istediğinize emin misiniz?')) {
+                            setBankAccounts(bankAccounts.filter(b => b.id !== account.id));
+                        }
+                     }}>
+                        Sil
+                     </button>
+                   </div>
+                   <h4 className="font-bold text-lg text-gray-800 pr-16">{account.bankName}</h4>
+                   <p className="text-gray-500 text-sm mb-4">{account.accountName}</p>
+                   <p className="font-mono text-sm text-gray-600 mb-4">{account.iban}</p>
+                   <div className="flex justify-between items-end border-t pt-4">
+                      <div>
+                         <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Güncel Bakiye</p>
+                         <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {account.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                         </p>
+                      </div>
+                   </div>
+                </div>
+             ))}
+          </div>
         </div>
       )}
 
@@ -857,15 +981,61 @@ export const Kasa: React.FC = () => {
       )}
 
       {activeTab === 'masraf' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center animate-in fade-in">
-           <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <TrendingDown size={32} />
+        <div className="space-y-6 animate-in fade-in">
+           <div className="flex justify-between items-center">
+             <h3 className="text-xl font-bold text-gray-800">Masraf ve Gider Takibi</h3>
+             <button 
+               onClick={() => {
+                 setFormData({
+                   date: new Date().toISOString().split('T')[0],
+                   type: 'Gider',
+                   category: 'Diğer Gider',
+                   amount: 0,
+                   description: ''
+                 });
+                 setIsModalOpen(true);
+               }}
+               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+             >
+               <Plus size={18} /> Yeni Masraf Fişi
+             </button>
            </div>
-           <h3 className="text-xl font-bold text-gray-800 mb-2">Detaylı Masraf Yönetimi</h3>
-           <p className="text-gray-500 max-w-md mx-auto mb-6">Kira, faturalar, araç yakıtları ve diğer operasyonel işletme giderlerinizi departman/personel bazlı kategorize edin.</p>
-           <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2">
-             <Plus size={18} /> Yeni Masraf Fişi
-           </button>
+           
+           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+             <table className="w-full text-sm text-left">
+               <thead>
+                 <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                   <th className="p-4">Tarih</th>
+                   <th className="p-4">Kategori</th>
+                   <th className="p-4 w-1/2">Açıklama</th>
+                   <th className="p-4 text-right">Tutar</th>
+                 </tr>
+               </thead>
+               <tbody className="divide-y divide-gray-50">
+                 {cashTransactions.filter(tx => tx.type === 'Gider').sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tx => (
+                   <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
+                     <td className="p-4 text-gray-600 whitespace-nowrap">{new Date(tx.date).toLocaleDateString('tr-TR')}</td>
+                     <td className="p-4">
+                       <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                         {tx.category}
+                       </span>
+                     </td>
+                     <td className="p-4 text-gray-800">{tx.description}</td>
+                     <td className="p-4 text-right font-bold text-red-600 whitespace-nowrap">
+                       -{tx.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                     </td>
+                   </tr>
+                 ))}
+                 {cashTransactions.filter(tx => tx.type === 'Gider').length === 0 && (
+                   <tr>
+                     <td colSpan={4} className="p-8 text-center text-gray-500">
+                       Kayıtlı masraf/gider bulunamadı.
+                     </td>
+                   </tr>
+                 )}
+               </tbody>
+             </table>
+           </div>
         </div>
       )}
 

@@ -185,6 +185,7 @@ export interface CashTransaction {
   id: string;
   date: string;
   type: 'Gelir' | 'Gider';
+  accountId?: string; // e.g. bank account ID or "KASA"
   category: 'Cari Tahsilat' | 'Cari Ödeme' | 'Satış' | 'Alış' | 'Diğer Gelir' | 'Diğer Gider' | 'Fatura Ödemesi' | 'Personel Maaşı' | 'Personel Avans';
   amount: number;
   description: string;
@@ -445,6 +446,14 @@ export interface ServiceTicket {
 }
 
 export type ReminderNoteType = 'Teklif' | 'Ödeme' | 'Tahsilat' | 'Personel' | 'Sipariş' | 'Banka' | 'Genel';
+
+export interface BankAccount {
+  id: string;
+  bankName: string;
+  accountName: string;
+  iban: string;
+  balance: number;
+}
 
 export interface BOMItem {
   productId: string;

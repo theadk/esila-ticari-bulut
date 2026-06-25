@@ -106,6 +106,7 @@ export const SatinAlma: React.FC = () => {
      
      // Update product stocks
      const updatedProducts = [...products];
+     let totalAmount = 0;
      malKabulForm.items.forEach(item => {
          const pIdx = updatedProducts.findIndex(p => p.id === item.productId);
          if(pIdx >= 0) {
@@ -115,11 +116,37 @@ export const SatinAlma: React.FC = () => {
                  buyPrice: item.price > 0 ? item.price : updatedProducts[pIdx].buyPrice
              };
          }
+         totalAmount += item.quantity * item.price;
      });
      store.setProducts(updatedProducts);
      
-     // Optionally log transaction in store (simulate)
-     toast.success('İrsaliye kaydedildi, stoklar güncellendi');
+     // Log transaction & Update Supplier Balance
+     if (malKabulForm.supplierId) {
+         const newTransaction = {
+             id: Math.random().toString(36).substr(2, 9),
+             customerId: malKabulForm.supplierId,
+             date: malKabulForm.date,
+             type: 'Alış',
+             amount: -totalAmount,
+             description: `Mal Kabul İrsaliyesi: ${malKabulForm.documentNo}`
+         };
+         
+         if (store.transactions && store.setTransactions) {
+             store.setTransactions([...store.transactions, newTransaction as any]);
+         }
+         
+         if (store.customers && store.setCustomers) {
+             const updatedCustomers = store.customers.map(c => {
+                 if (c.id === malKabulForm.supplierId) {
+                     return { ...c, balance: c.balance - totalAmount };
+                 }
+                 return c;
+             });
+             store.setCustomers(updatedCustomers);
+         }
+     }
+     
+     toast.success('İrsaliye kaydedildi, stoklar ve cari hesap güncellendi');
      setIsMalKabulModalOpen(false);
      setMalKabulForm({ supplierId: '', documentNo: '', date: new Date().toISOString().split('T')[0], items: [{ productId: '', quantity: 1, price: 0 }] });
   };

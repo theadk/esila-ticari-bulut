@@ -41,6 +41,35 @@ export const Uretim: React.FC = () => {
     const newWos = workOrders.map(w => w.id === wo.id ? { ...w, status: 'Tamamlandı' as const, producedQuantity: w.plannedQuantity } : w);
     setWorkOrders(newWos);
     
+    // Update inventory
+    const bom = boms.find(b => b.id === wo.bomId);
+    if (bom && targetProd) {
+        let updatedProducts = [...products];
+        
+        // 1. Deduct raw materials
+        bom.items.forEach(item => {
+            const matIdx = updatedProducts.findIndex(p => p.id === item.productId);
+            if (matIdx >= 0) {
+                const deduction = item.quantity * wo.plannedQuantity;
+                updatedProducts[matIdx] = {
+                    ...updatedProducts[matIdx],
+                    stock: Math.max(0, updatedProducts[matIdx].stock - deduction)
+                };
+            }
+        });
+        
+        // 2. Add finished product
+        const prodIdx = updatedProducts.findIndex(p => p.id === targetProd.id);
+        if (prodIdx >= 0) {
+            updatedProducts[prodIdx] = {
+                ...updatedProducts[prodIdx],
+                stock: updatedProducts[prodIdx].stock + wo.plannedQuantity
+            };
+        }
+        
+        store.setProducts(updatedProducts);
+    }
+    
     // Create notifications for managers and relevant personnel
     const managers = users.filter(u => u.permissions.uretim?.edit || u.role === 'admin' || u.role === 'manager' || u.id === currentUser.id);
     const newNotifications = managers.map(mgr => ({
@@ -145,11 +174,12 @@ export const Uretim: React.FC = () => {
                    <th className="px-4 py-3">Bileşen Sayısı</th>
                    <th className="px-4 py-3">Tahmini Süre</th>
                    <th className="px-4 py-3">Durum</th>
+                   <th className="px-4 py-3 text-right">İşlemler</th>
                  </tr>
                </thead>
                <tbody className="divide-y divide-gray-100">
                  {boms.length === 0 ? (
-                   <tr><td colSpan={5} className="py-8 text-center text-gray-500">Kayıtlı reçete (BOM) bulunamadı.</td></tr>
+                   <tr><td colSpan={6} className="py-8 text-center text-gray-500">Kayıtlı reçete (BOM) bulunamadı.</td></tr>
                  ) : (
                    boms.map(bom => {
                      const targetProd = products.find(p => p.id === bom.targetProductId);
@@ -163,6 +193,17 @@ export const Uretim: React.FC = () => {
                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${bom.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}`}>
                              {bom.isActive ? 'Aktif' : 'Pasif'}
                            </span>
+                         </td>
+                         <td className="px-4 py-3 text-right">
+                            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium mr-3" onClick={() => {
+                                setBomForm(bom);
+                                setIsBomModalOpen(true);
+                            }}>Düzenle</button>
+                            <button className="text-red-600 hover:text-red-800 text-sm font-medium" onClick={() => {
+                                if (confirm('Bu reçeteyi silmek istediğinize emin misiniz?')) {
+                                    setBoms(boms.filter(b => b.id !== bom.id));
+                                }
+                            }}>Sil</button>
                          </td>
                        </tr>
                      );
@@ -311,45 +352,79 @@ export const Uretim: React.FC = () => {
              Üretim Sahası Terminali (Kiosk)
            </div>
            
-           <div className="w-full max-w-lg space-y-8 text-center">
-             <div className="mb-8">
-                <Hammer size={64} className="mx-auto text-indigo-400 mb-4" />
-                <h3 className="text-3xl font-black tracking-tight mb-2">İş İstasyonu Girişi</h3>
-                <p className="text-gray-400 text-sm">Operatör barkod okutarak üretime başlayabilir veya tamamlayabilir.</p>
+           <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 text-left mt-8">
+             <div className="space-y-8 text-center lg:text-left">
+               <div className="mb-8">
+                  <Hammer size={64} className="mx-auto lg:mx-0 text-indigo-400 mb-4" />
+                  <h3 className="text-3xl font-black tracking-tight mb-2">İş İstasyonu Girişi</h3>
+                  <p className="text-gray-400 text-sm">Operatör barkod okutarak veya listeden seçerek üretime başlayabilir.</p>
+               </div>
+               
+               <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-inner">
+                 <input 
+                   type="text" 
+                   value={woForm.id || ''}
+                   onChange={e => setWoForm({...woForm, id: e.target.value})}
+                   placeholder="İş Emri (Örn: WO-10001) Okutun..." 
+                   className="w-full bg-gray-900 border-2 border-indigo-500 text-white text-xl p-4 rounded-xl text-center focus:ring-4 focus:ring-indigo-500/50 outline-none placeholder:text-gray-600 font-mono"
+                 />
+                 <button 
+                   onClick={() => {
+                     const wo = workOrders.find(w => w.id === woForm.id);
+                     if(wo) {
+                       handleCompleteWorkOrder(wo);
+                       setWoForm({});
+                       alert("İş emri başarıyla tamamlandı ve bildirimler gönderildi.");
+                     } else {
+                       alert("İş emri bulunamadı.");
+                     }
+                   }}
+                   className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 mt-4 rounded-xl shadow-xl transition-all"
+                 >
+                   Üretimi Tamamla
+                 </button>
+               </div>
+               
+               <div className="grid grid-cols-2 gap-4">
+                 <button className="bg-emerald-900/50 hover:bg-emerald-800 text-emerald-400 border border-emerald-800 p-4 rounded-xl font-bold transition-colors">
+                    Üretime Başla
+                 </button>
+                 <button className="bg-amber-900/50 hover:bg-amber-800 text-amber-400 border border-amber-800 p-4 rounded-xl font-bold transition-colors">
+                    Fire / Hata Bildir
+                 </button>
+               </div>
              </div>
-             
-             <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-inner">
-               <input 
-                 type="text" 
-                 value={woForm.id || ''}
-                 onChange={e => setWoForm({...woForm, id: e.target.value})}
-                 placeholder="İş Emri (Örn: WO-10001) Okutun..." 
-                 className="w-full bg-gray-900 border-2 border-indigo-500 text-white text-xl p-4 rounded-xl text-center focus:ring-4 focus:ring-indigo-500/50 outline-none placeholder:text-gray-600 font-mono"
-               />
-               <button 
-                 onClick={() => {
-                   const wo = workOrders.find(w => w.id === woForm.id);
-                   if(wo) {
-                     handleCompleteWorkOrder(wo);
-                     setWoForm({});
-                     alert("İş emri başarıyla tamamlandı ve bildirimler gönderildi.");
-                   } else {
-                     alert("İş emri bulunamadı.");
-                   }
-                 }}
-                 className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 mt-4 rounded-xl shadow-xl transition-all"
-               >
-                 Üretimi Tamamla (Manuel Okut)
-               </button>
-             </div>
-             
-             <div className="grid grid-cols-2 gap-4">
-               <button className="bg-emerald-900/50 hover:bg-emerald-800 text-emerald-400 border border-emerald-800 p-4 rounded-xl font-bold transition-colors">
-                  Üretime Başla
-               </button>
-               <button className="bg-amber-900/50 hover:bg-amber-800 text-amber-400 border border-amber-800 p-4 rounded-xl font-bold transition-colors">
-                  Fire / Hata Bildir
-               </button>
+
+             <div className="bg-gray-800/50 border border-gray-700 rounded-2xl p-6 flex flex-col h-full max-h-[500px]">
+               <h4 className="text-xl font-bold text-gray-200 mb-4 flex items-center gap-2">
+                 <ClipboardList size={20} className="text-indigo-400" /> Bekleyen İş Emirleri
+               </h4>
+               <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-2">
+                 {activeWorkOrders.length === 0 ? (
+                   <div className="text-center text-gray-500 py-8">Üretim bekleyen iş emri yok.</div>
+                 ) : (
+                   activeWorkOrders.map(wo => {
+                     const targetProd = products.find(p => p.id === wo.targetProductId);
+                     return (
+                       <div 
+                         key={wo.id} 
+                         onClick={() => setWoForm({...woForm, id: wo.id})}
+                         className="bg-gray-800 border border-gray-700 p-4 rounded-xl cursor-pointer hover:border-indigo-500 transition-all flex flex-col gap-2"
+                       >
+                         <div className="flex justify-between items-center">
+                           <span className="font-mono text-indigo-400 font-bold">{wo.id}</span>
+                           <span className={`text-xs px-2 py-1 rounded font-bold ${wo.priority === 'Acil' ? 'bg-red-900/50 text-red-400' : 'bg-gray-700 text-gray-300'}`}>{wo.priority}</span>
+                         </div>
+                         <p className="text-gray-200 font-medium">{targetProd?.name || 'Bilinmeyen Ürün'}</p>
+                         <div className="flex justify-between items-center text-sm text-gray-400">
+                           <span>Miktar: <strong className="text-white">{wo.plannedQuantity} Adet</strong></span>
+                           <span className="text-indigo-400 group-hover:text-indigo-300 transition-colors">Seç →</span>
+                         </div>
+                       </div>
+                     );
+                   })
+                 )}
+               </div>
              </div>
            </div>
         </div>
@@ -360,20 +435,24 @@ export const Uretim: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
              <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="font-bold text-lg text-gray-800">Yeni Ürün Reçetesi (BOM)</h3>
+                <h3 className="font-bold text-lg text-gray-800">{bomForm.id ? 'Ürün Reçetesini Düzenle' : 'Yeni Ürün Reçetesi (BOM)'}</h3>
                 <button onClick={() => setIsBomModalOpen(false)} className="text-gray-500 hover:text-red-500"><AlertTriangle size={20} className="hidden" /> ✕</button>
              </div>
              <form className="p-6 overflow-y-auto" onSubmit={(e) => {
                  e.preventDefault();
-                 const newBom: BOM = {
-                     id: 'BOM-' + Math.floor(Math.random()*10000),
-                     targetProductId: bomForm.targetProductId!,
-                     name: bomForm.name!,
-                     items: bomForm.items || [],
-                     isActive: true,
-                     estimatedTimeMinutes: bomForm.estimatedTimeMinutes || 60
-                 };
-                 setBoms([...boms, newBom]);
+                 if (bomForm.id) {
+                     setBoms(boms.map(b => b.id === bomForm.id ? { ...b, ...bomForm } as BOM : b));
+                 } else {
+                     const newBom: BOM = {
+                         id: 'BOM-' + Math.floor(Math.random()*10000),
+                         targetProductId: bomForm.targetProductId!,
+                         name: bomForm.name!,
+                         items: bomForm.items || [],
+                         isActive: true,
+                         estimatedTimeMinutes: bomForm.estimatedTimeMinutes || 60
+                     };
+                     setBoms([...boms, newBom]);
+                 }
                  setIsBomModalOpen(false);
                  setBomForm({ name: '', targetProductId: '', items: [], estimatedTimeMinutes: 60, isActive: true });
              }}>

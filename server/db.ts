@@ -225,8 +225,41 @@ export async function initDb() {
           notes TEXT
         );
       `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS bank_accounts (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          bankName VARCHAR(255),
+          accountName VARCHAR(255),
+          iban VARCHAR(255),
+          balance REAL
+        );
+      `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS boms (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          targetProductId VARCHAR(255),
+          name VARCHAR(255),
+          items JSON,
+          estimatedTimeMinutes INTEGER,
+          isActive BOOLEAN DEFAULT true
+        );
+      `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS work_orders (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          bomId VARCHAR(255),
+          plannedQuantity INTEGER,
+          producedQuantity INTEGER DEFAULT 0,
+          status VARCHAR(50) DEFAULT 'Planlandı',
+          targetProductId VARCHAR(255),
+          priority VARCHAR(50) DEFAULT 'Normal'
+        );
+      `);
     } catch (e: any) {
-      console.error('CREATE job_applications:', e.message);
+      console.error('CREATE job_applications or new tables:', e.message);
     }
     console.log("Database initialized successfully.");
   } catch (err) {

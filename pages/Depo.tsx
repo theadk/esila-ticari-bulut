@@ -42,6 +42,8 @@ export const Depo: React.FC = () => {
     { id: '5', name: 'Kablo 2m', aisle: 'A', shelf: 1, qty: 3, picked: false },
   ]);
   const [isRouteOptimized, setIsRouteOptimized] = useState(false);
+  const [terminalMode, setTerminalMode] = useState<string | null>(null);
+  const [barcodeInput, setBarcodeInput] = useState('');
 
   const optimizeRoute = () => {
     const aisleOrder: Record<string, number> = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
@@ -823,26 +825,64 @@ export const Depo: React.FC = () => {
           <div className="absolute top-4 left-4 bg-red-600 px-3 py-1 text-xs font-bold uppercase rounded-full shadow-lg border border-red-500 animate-pulse">
             El Terminali Modu
           </div>
-          <div className="w-full max-w-sm space-y-6">
-             <div className="text-center space-y-2 mb-8">
-               <ScanBarcode size={64} className="mx-auto text-emerald-400 mb-4" />
-               <h3 className="text-2xl font-black tracking-tight">WMS Mobil</h3>
-               <p className="text-gray-400 text-sm">Seri/Lot okutmak için barkod tarayın.</p>
+          
+          {terminalMode ? (
+             <div className="w-full max-w-sm space-y-6">
+                <div className="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+                   <h3 className="text-xl font-bold">{terminalMode === 'mal_kabul' ? 'Mal Kabul (SKT/Lot)' : terminalMode === 'toplama' ? 'Sipariş Toplama' : terminalMode === 'yazdir' ? 'Kargo/Barkod Yazdır' : 'Sayım Fişi'}</h3>
+                   <button onClick={() => setTerminalMode(null)} className="text-gray-400 hover:text-white p-2 bg-gray-800 rounded-full"><X size={20} /></button>
+                </div>
+                
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-2">Barkod Okutunuz</label>
+                        <div className="flex gap-2">
+                           <input 
+                              type="text" 
+                              autoFocus
+                              value={barcodeInput}
+                              onChange={e => setBarcodeInput(e.target.value)}
+                              onKeyDown={e => {
+                                  if (e.key === 'Enter' && barcodeInput.trim()) {
+                                      // Simulate scanning
+                                      alert(`${barcodeInput} barkodu okundu!`);
+                                      setBarcodeInput('');
+                                  }
+                              }}
+                              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-lg font-mono focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                              placeholder="||||||||||||||||||||"
+                           />
+                           <button className="bg-gray-800 border border-gray-700 p-3 rounded-xl text-emerald-400 hover:bg-gray-700"><ScanBarcode size={24} /></button>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-gray-800 rounded-xl p-4 border border-gray-700 min-h-[200px] flex items-center justify-center text-gray-500 text-sm text-center">
+                        Bekleniyor...
+                    </div>
+                </div>
              </div>
-             
-             <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-6 rounded-2xl shadow-xl border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
-                <ArrowRight size={24} /> Mal Kabul (SKT/Lot)
-             </button>
-             <button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-6 rounded-2xl shadow-xl border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
-                <Truck size={24} /> Sipariş Toplama
-             </button>
-             <button className="w-full bg-amber-500 hover:bg-amber-400 text-white font-bold py-6 rounded-2xl shadow-xl border-b-4 border-amber-700 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
-                <Box size={24} /> Kargo Fişi / Barkod Yazdır
-             </button>
-             <button className="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold py-6 rounded-2xl shadow-xl border-b-4 border-gray-900 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
-                <Layers size={24} /> Sayım Fişi
-             </button>
-          </div>
+          ) : (
+             <div className="w-full max-w-sm space-y-6">
+                 <div className="text-center space-y-2 mb-8">
+                   <ScanBarcode size={64} className="mx-auto text-emerald-400 mb-4" />
+                   <h3 className="text-2xl font-black tracking-tight">WMS Mobil</h3>
+                   <p className="text-gray-400 text-sm">Seri/Lot okutmak için barkod tarayın.</p>
+                 </div>
+                 
+                 <button onClick={() => setTerminalMode('mal_kabul')} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-6 rounded-2xl shadow-xl border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
+                    <ArrowRight size={24} /> Mal Kabul (SKT/Lot)
+                 </button>
+                 <button onClick={() => setTerminalMode('toplama')} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-6 rounded-2xl shadow-xl border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
+                    <Truck size={24} /> Sipariş Toplama
+                 </button>
+                 <button onClick={() => setTerminalMode('yazdir')} className="w-full bg-amber-500 hover:bg-amber-400 text-white font-bold py-6 rounded-2xl shadow-xl border-b-4 border-amber-700 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
+                    <Box size={24} /> Kargo Fişi / Barkod Yazdır
+                 </button>
+                 <button onClick={() => setTerminalMode('sayim')} className="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold py-6 rounded-2xl shadow-xl border-b-4 border-gray-900 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-3 text-lg">
+                    <Layers size={24} /> Sayım Fişi
+                 </button>
+             </div>
+          )}
         </div>
       ) : null}
 

@@ -17,7 +17,31 @@ export const CRM: React.FC = () => {
   
   // Basic states for UI interaction
   const [showAddLead, setShowAddLead] = useState(false);
+  const [newLead, setNewLead] = useState<Partial<Customer>>({
+    name: '', companyName: '', phone: '', email: '', customerType: 'Şahıs', type: 'Alıcı', isLead: true, leadStatus: 'Yeni'
+  });
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+
+  const handleSaveLead = (e: React.FormEvent) => {
+    e.preventDefault();
+    const leadToSave: Customer = {
+      id: `C-${Math.random().toString(36).substr(2, 9)}`,
+      name: newLead.name || '',
+      companyName: newLead.companyName || '',
+      phone: newLead.phone || '',
+      email: newLead.email || '',
+      customerType: newLead.customerType as 'Şahıs' | 'Tüzel',
+      type: 'Alıcı',
+      balance: 0,
+      status: 'Aktif',
+      address: '',
+      isLead: true,
+      leadStatus: 'Yeni'
+    };
+    store.setCustomers([...customers, leadToSave]);
+    setShowAddLead(false);
+    setNewLead({ name: '', companyName: '', phone: '', email: '', customerType: 'Şahıs', type: 'Alıcı', isLead: true, leadStatus: 'Yeni' });
+  };
   const [newCampaign, setNewCampaign] = useState<Campaign>({
     id: '',
     name: '',
@@ -88,10 +112,92 @@ export const CRM: React.FC = () => {
              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                 <Filter className="text-indigo-600" /> Lead Havuzu ve Görüşmeler
              </h3>
-             <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+             <button onClick={() => setShowAddLead(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                + Yeni Lead Ekle
              </button>
            </div>
+
+           {/* Add Lead Modal */}
+           {showAddLead && (
+             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in">
+               <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+                 <div className="flex justify-between items-center p-6 border-b border-gray-100">
+                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                     <Users className="text-indigo-600" />
+                     Yeni Lead (Potansiyel Müşteri)
+                   </h3>
+                   <button onClick={() => setShowAddLead(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                     <X size={24} />
+                   </button>
+                 </div>
+                 
+                 <form onSubmit={handleSaveLead} className="p-6">
+                   <div className="space-y-4">
+                     <div>
+                       <label className="block text-sm font-medium text-gray-700 mb-1">Ad Soyad / Yetkili <span className="text-red-500">*</span></label>
+                       <input
+                         type="text"
+                         required
+                         value={newLead.name}
+                         onChange={(e) => setNewLead({ ...newLead, name: e.target.value })}
+                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                         placeholder="Ahmet Yılmaz"
+                       />
+                     </div>
+                     <div>
+                       <label className="block text-sm font-medium text-gray-700 mb-1">Firma Adı (Opsiyonel)</label>
+                       <input
+                         type="text"
+                         value={newLead.companyName}
+                         onChange={(e) => setNewLead({ ...newLead, companyName: e.target.value })}
+                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                         placeholder="Örn: Yılmaz Gıda Ltd."
+                       />
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                         <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">Telefon <span className="text-red-500">*</span></label>
+                           <input
+                             type="text"
+                             required
+                             value={newLead.phone}
+                             onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })}
+                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                             placeholder="0555..."
+                           />
+                         </div>
+                         <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">E-posta</label>
+                           <input
+                             type="email"
+                             value={newLead.email}
+                             onChange={(e) => setNewLead({ ...newLead, email: e.target.value })}
+                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                             placeholder="ahmet@..."
+                           />
+                         </div>
+                     </div>
+                   </div>
+                   
+                   <div className="mt-8 flex justify-end gap-3">
+                     <button
+                       type="button"
+                       onClick={() => setShowAddLead(false)}
+                       className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                     >
+                       İptal
+                     </button>
+                     <button
+                       type="submit"
+                       className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                     >
+                       <Save size={18} /> Kaydet
+                     </button>
+                   </div>
+                 </form>
+               </div>
+             </div>
+           )}
 
            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
              {/* Lead Kanban Board Demo */}

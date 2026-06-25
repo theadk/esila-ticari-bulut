@@ -13,7 +13,7 @@ export const Raporlar: React.FC = () => {
   const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'raporlar', 'view');
 
-  const [activeTab, setActiveTab] = useState<'karlilik' | 'cariler' | 'siparisler' | 'stoklar' | 'finans'>('finans');
+  const [activeTab, setActiveTab] = useState<'karlilik' | 'cariler' | 'siparisler' | 'stoklar' | 'finans' | 'uretim' | 'ik' | 'crm'>('finans');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -273,6 +273,9 @@ export const Raporlar: React.FC = () => {
         <button onClick={() => setActiveTab('cariler')} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${activeTab === 'cariler' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Cari Bakiyeleri</button>
         <button onClick={() => setActiveTab('siparisler')} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${activeTab === 'siparisler' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Sipariş Raporu</button>
         <button onClick={() => setActiveTab('stoklar')} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${activeTab === 'stoklar' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Stok Raporları</button>
+        <button onClick={() => setActiveTab('uretim')} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${activeTab === 'uretim' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Üretim Raporu</button>
+        <button onClick={() => setActiveTab('ik')} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${activeTab === 'ik' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>İnsan Kaynakları</button>
+        <button onClick={() => setActiveTab('crm')} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${activeTab === 'crm' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>CRM Performansı</button>
       </div>
 
       <div className="print:block">
@@ -600,6 +603,129 @@ export const Raporlar: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Üretim Raporu */}
+        {(activeTab === 'uretim') && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <h2 className="text-xl font-bold text-gray-800 hidden print:block p-4 border-b">Üretim İş Emirleri Raporu</h2>
+            <div className="p-4 border-b border-gray-100 print:hidden">
+              <h2 className="text-lg font-bold text-gray-800">Üretim Performansı ve İş Emirleri</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-gray-600 font-medium">
+                  <tr>
+                    <th className="py-3 px-4 border-b">İş Emri No</th>
+                    <th className="py-3 px-4 border-b">Reçete (BOM)</th>
+                    <th className="py-3 px-4 border-b text-right">Planlanan</th>
+                    <th className="py-3 px-4 border-b text-right">Üretilen</th>
+                    <th className="py-3 px-4 border-b text-center">Durum</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {store.workOrders.map(w => {
+                    const bom = store.boms.find(b => b.id === w.bomId);
+                    return (
+                    <tr key={w.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 font-mono text-gray-500">{w.id}</td>
+                      <td className="py-3 px-4">{bom?.name || 'Bilinmiyor'}</td>
+                      <td className="py-3 px-4 text-right font-medium">{w.plannedQuantity}</td>
+                      <td className="py-3 px-4 text-right font-medium">{w.producedQuantity}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${w.status === 'Tamamlandı' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}`}>
+                           {w.status}
+                        </span>
+                      </td>
+                    </tr>
+                  )})}
+                  {store.workOrders.length === 0 && (
+                     <tr><td colSpan={5} className="p-4 text-center text-gray-500">İş emri bulunamadı.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* İK Raporu */}
+        {(activeTab === 'ik') && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <h2 className="text-xl font-bold text-gray-800 hidden print:block p-4 border-b">Personel ve İK Raporu</h2>
+            <div className="p-4 border-b border-gray-100 print:hidden">
+              <h2 className="text-lg font-bold text-gray-800">Personel Listesi ve Durumları</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-gray-600 font-medium">
+                  <tr>
+                    <th className="py-3 px-4 border-b">Ad Soyad</th>
+                    <th className="py-3 px-4 border-b">Departman</th>
+                    <th className="py-3 px-4 border-b">Rol</th>
+                    <th className="py-3 px-4 border-b text-right">Maaş</th>
+                    <th className="py-3 px-4 border-b text-center">Durum</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {store.personnel.map(p => (
+                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 font-medium text-gray-900">{p.firstName} {p.lastName}</td>
+                      <td className="py-3 px-4">{p.department}</td>
+                      <td className="py-3 px-4">{p.position}</td>
+                      <td className="py-3 px-4 text-right font-medium">{(p.salary || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${p.status === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                           {p.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {store.personnel.length === 0 && (
+                     <tr><td colSpan={5} className="p-4 text-center text-gray-500">Personel kaydı bulunamadı.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* CRM Raporu */}
+        {(activeTab === 'crm') && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <h2 className="text-xl font-bold text-gray-800 hidden print:block p-4 border-b">Lead ve Görüşmeler Raporu</h2>
+            <div className="p-4 border-b border-gray-100 print:hidden">
+              <h2 className="text-lg font-bold text-gray-800">Mevcut Lead (Potansiyel Müşteri) Havuzu</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-gray-600 font-medium">
+                  <tr>
+                    <th className="py-3 px-4 border-b">İsim / Firma</th>
+                    <th className="py-3 px-4 border-b">E-posta</th>
+                    <th className="py-3 px-4 border-b">Telefon</th>
+                    <th className="py-3 px-4 border-b text-center">Lead Durumu</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {store.customers.filter(c => c.isLead).map(c => (
+                    <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 font-medium text-gray-900">{c.name} {c.companyName ? `(${c.companyName})` : ''}</td>
+                      <td className="py-3 px-4">{c.email}</td>
+                      <td className="py-3 px-4">{c.phone}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${c.leadStatus === 'Kazanıldı' ? 'bg-emerald-100 text-emerald-700' : c.leadStatus === 'Kaybedildi' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                           {c.leadStatus || 'Yeni'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {store.customers.filter(c => c.isLead).length === 0 && (
+                     <tr><td colSpan={4} className="p-4 text-center text-gray-500">Sistemde lead (potansiyel müşteri) bulunamadı.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

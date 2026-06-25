@@ -67,6 +67,10 @@ let globalUsers = [...MOCK_USERS];
 let globalProducts = [...MOCK_PRODUCTS];
 let globalTransactions = [...MOCK_TRANSACTIONS];
 let globalCashTransactions = [...MOCK_CASH_TRANSACTIONS];
+let globalBankAccounts: BankAccount[] = [
+  { id: 'BANK-1', bankName: 'Garanti BBVA', accountName: 'Ana Hesap', iban: 'TR12 3456 7890 1234 5678 90', balance: 150000 },
+  { id: 'BANK-2', bankName: 'Yapı Kredi', accountName: 'Kredi Kartı', iban: 'TR98 7654 3210 9876 5432 10', balance: -5000 }
+];
 let globalPersonnel = [...MOCK_PERSONNEL];
 let globalJobApplications: JobApplication[] = [];
 let globalServiceTickets: ServiceTicket[] = [];
@@ -279,6 +283,15 @@ export async function initializeStore() {
       { name: 'warehouses', ref: (data: any) => { /* ... */ } },
       { name: 'customer_transactions', ref: (data: any) => { globalTransactions = data; } },
       { name: 'cash_transactions', ref: (data: any) => { globalCashTransactions = data; } },
+      { name: 'boms', ref: (data: any) => { 
+        globalBoms = data.map((d: any) => ({
+           ...d,
+           items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || []),
+           isActive: d.isActive == 1 || d.isActive === true
+        })); 
+      } },
+      { name: 'work_orders', ref: (data: any) => { globalWorkOrders = data; } },
+      { name: 'bank_accounts', ref: (data: any) => { globalBankAccounts = data; } },
       { name: 'personnel', ref: (data: any) => { globalPersonnel = data; } },
       { name: 'job_applications', ref: (data: any) => { globalJobApplications = data; } },
       { name: 'orders', ref: (data: any) => { 
@@ -396,6 +409,13 @@ export const useAppStore = () => {
       syncArray('cash_transactions', old, globalCashTransactions);
       emit();
     },
+    get bankAccounts() { return globalBankAccounts; },
+    setBankAccounts(updater: any) {
+      const old = [...globalBankAccounts];
+      globalBankAccounts = typeof updater === 'function' ? updater(globalBankAccounts) : updater;
+      syncArray('bank_accounts', old, globalBankAccounts);
+      emit();
+    },
     get personnel() { return globalPersonnel; },
     setPersonnel(updater: any) {
       const old = [...globalPersonnel];
@@ -461,12 +481,16 @@ export const useAppStore = () => {
     },
     get boms() { return globalBoms; },
     setBoms(updater: any) {
+      const old = [...globalBoms];
       globalBoms = typeof updater === 'function' ? updater(globalBoms) : updater;
+      syncArray('boms', old, globalBoms);
       emit();
     },
     get workOrders() { return globalWorkOrders; },
     setWorkOrders(updater: any) {
+      const old = [...globalWorkOrders];
       globalWorkOrders = typeof updater === 'function' ? updater(globalWorkOrders) : updater;
+      syncArray('work_orders', old, globalWorkOrders);
       emit();
     },
     get suspendedCarts() { return globalSuspendedCarts; },
