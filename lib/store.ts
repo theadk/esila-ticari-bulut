@@ -126,6 +126,15 @@ export interface SuspendedCart {
   customerId: string;
 }
 let globalSuspendedCarts: SuspendedCart[] = [];
+export interface Waybill {
+  id: string;
+  supplierId: string;
+  documentNo: string;
+  date: string;
+  items: { productId: string; quantity: number; price: number }[];
+  totalAmount: number;
+}
+let globalWaybills: Waybill[] = [];
 let globalProposals: Proposal[] = [
   {
     id: 'TEK-2023-001',
@@ -282,13 +291,13 @@ export async function initializeStore() {
           };
         } 
       } },
-      { name: 'customers', ref: (data: any) => { globalCustomers = data; } },
+      { name: 'customers', ref: (data: any) => { globalCustomers = data.map((d: any) => ({ ...d, balance: Number(d.balance) || 0 })); } },
       { name: 'products', ref: (data: any) => { globalProducts = data.map((d:any)=>({...d, showInQuickSale: !!d.showInQuickSale, warehouseStocks: typeof d.warehouseStocks === 'string' ? JSON.parse(d.warehouseStocks): (d.warehouseStocks||[])})); } },
       { name: 'categories', ref: (data: any) => { /* already in another branch but if we migrate.. */ } },
       { name: 'brands', ref: (data: any) => { /* ... */ } },
       { name: 'warehouses', ref: (data: any) => { /* ... */ } },
-      { name: 'customer_transactions', ref: (data: any) => { globalTransactions = data; } },
-      { name: 'cash_transactions', ref: (data: any) => { globalCashTransactions = data; } },
+      { name: 'customer_transactions', ref: (data: any) => { globalTransactions = data.map((d: any) => ({ ...d, amount: Number(d.amount) || 0 })); } },
+      { name: 'cash_transactions', ref: (data: any) => { globalCashTransactions = data.map((d: any) => ({ ...d, amount: Number(d.amount) || 0 })); } },
       { name: 'boms', ref: (data: any) => { 
         globalBoms = data.map((d: any) => ({
            ...d,
@@ -297,7 +306,7 @@ export async function initializeStore() {
         })); 
       } },
       { name: 'work_orders', ref: (data: any) => { globalWorkOrders = data; } },
-      { name: 'bank_accounts', ref: (data: any) => { globalBankAccounts = data; } },
+      { name: 'bank_accounts', ref: (data: any) => { globalBankAccounts = data.map((b: any) => ({ ...b, balance: Number(b.balance) || 0 })); } },
       { name: 'personnel', ref: (data: any) => { globalPersonnel = data; } },
       { name: 'job_applications', ref: (data: any) => { globalJobApplications = data; } },
       { name: 'attendance', ref: (data: any) => { globalAttendance = data; } },
@@ -355,6 +364,12 @@ export async function initializeStore() {
           globalCampaigns = data.map((d: any) => ({
               ...d,
               isActive: d.isActive == 1 || d.isActive === true
+          }));
+      } },
+      { name: 'waybills', ref: (data: any) => {
+          globalWaybills = data.map((d: any) => ({
+            ...d,
+            items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || [])
           }));
       } },
       { name: 'meeting_notes', ref: (data: any) => {
@@ -572,6 +587,13 @@ export const useAppStore = () => {
       const old = [...globalChequeNotes];
       globalChequeNotes = typeof updater === 'function' ? updater(globalChequeNotes) : updater;
       syncArray('cheque_notes', old, globalChequeNotes);
+      emit();
+    },
+    get waybills() { return globalWaybills; },
+    setWaybills(updater: any) {
+      const old = [...globalWaybills];
+      globalWaybills = typeof updater === 'function' ? updater(globalWaybills) : updater;
+      syncArray('waybills', old, globalWaybills);
       emit();
     }
   };

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Warehouse as WarehouseIcon, Package, Search, Box, ArrowRight, Plus, X, Edit2, Trash2, ArrowLeftRight, ScanBarcode, Truck, MapPin, Map, Navigation, Layers, CheckSquare } from 'lucide-react';
+import { Warehouse as WarehouseIcon, Package, Search, Box, ArrowRight, Plus, X, Edit2, Trash2, ArrowLeftRight, ScanBarcode, Truck, MapPin, Map, Navigation, Layers, CheckSquare, Camera } from 'lucide-react';
 import { Product, Warehouse, StockTransfer } from '../types';
 import { api } from '../lib/api';
 import { Pagination } from '../components/Pagination';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export const Depo: React.FC = () => {
   const store = useAppStore();
@@ -44,6 +45,61 @@ export const Depo: React.FC = () => {
   const [isRouteOptimized, setIsRouteOptimized] = useState(false);
   const [terminalMode, setTerminalMode] = useState<string | null>(null);
   const [barcodeInput, setBarcodeInput] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [terminalMessage, setTerminalMessage] = useState<{text: string, type: 'success' | 'error' | 'info'} | null>(null);
+
+  useEffect(() => {
+    if (isScanning && terminalMode) {
+      const scanner = new Html5QrcodeScanner(
+        "depo-barcode-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
+        false
+      );
+
+      scanner.render(
+        (decodedText) => {
+          scanner.clear();
+          setIsScanning(false);
+          setBarcodeInput(decodedText);
+          handleTerminalScan(decodedText);
+        },
+        (error) => {}
+      );
+
+      return () => {
+        scanner.clear().catch(e => console.error(e));
+      };
+    }
+  }, [isScanning, terminalMode]);
+
+  const handleTerminalScan = (scannedCode: string) => {
+     if (terminalMode === 'toplama' && selectedOrderId) {
+        const product = products.find(p => p.barcode === scannedCode || p.id === scannedCode || p.sku === scannedCode || (p.serials && p.serials.includes(scannedCode)));
+        if (!product) {
+           setTerminalMessage({ text: 'Ürün sistemde bulunamadı!', type: 'error' });
+           try { const audio = new Audio('/error.mp3'); audio.play().catch(()=>{}); } catch (e) {}
+           return;
+        }
+
+        setPickingList(prev => {
+            const newList = [...prev];
+            const itemIndex = newList.findIndex(item => item.id === product.id && !item.picked);
+            if (itemIndex > -1) {
+                newList[itemIndex].picked = true;
+                setTerminalMessage({ text: `${product.name} toplandı!`, type: 'success' });
+                try { const audio = new Audio('/success.mp3'); audio.play().catch(()=>{}); } catch (e) {}
+            } else {
+                setTerminalMessage({ text: 'Bu ürün siparişte yok veya zaten toplandı!', type: 'error' });
+                try { const audio = new Audio('/error.mp3'); audio.play().catch(()=>{}); } catch (e) {}
+            }
+            return newList;
+        });
+     } else {
+        alert(`${scannedCode} barkodu okundu!`);
+     }
+     setBarcodeInput('');
+  };
 
   const optimizeRoute = () => {
     const aisleOrder: Record<string, number> = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
@@ -834,31 +890,116 @@ export const Depo: React.FC = () => {
                 </div>
                 
                 <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm text-gray-400 mb-2">Barkod Okutunuz</label>
-                        <div className="flex gap-2">
-                           <input 
-                              type="text" 
-                              autoFocus
-                              value={barcodeInput}
-                              onChange={e => setBarcodeInput(e.target.value)}
-                              onKeyDown={e => {
-                                  if (e.key === 'Enter' && barcodeInput.trim()) {
-                                      // Simulate scanning
-                                      alert(`${barcodeInput} barkodu okundu!`);
-                                      setBarcodeInput('');
-                                  }
-                              }}
-                              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-lg font-mono focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                              placeholder="||||||||||||||||||||"
-                           />
-                           <button className="bg-gray-800 border border-gray-700 p-3 rounded-xl text-emerald-400 hover:bg-gray-700"><ScanBarcode size={24} /></button>
+                    {terminalMessage && (
+                       <div className={`p-3 rounded-lg text-sm font-bold border-2 ${terminalMessage.type === 'success' ? 'bg-emerald-900/50 border-emerald-500 text-emerald-400' : 'bg-red-900/50 border-red-500 text-red-400'}`}>
+                          {terminalMessage.text}
+                       </div>
+                    )}
+
+                    {terminalMode === 'toplama' && !selectedOrderId ? (
+                        <div className="space-y-3">
+                            <label className="block text-sm text-gray-400">Toplanacak Sipariş Seçin</label>
+                            <select 
+                               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white outline-none"
+                               value={selectedOrderId || ''}
+                               onChange={e => {
+                                   setSelectedOrderId(e.target.value);
+                                   const order = store.orders.find(o => o.id === e.target.value);
+                                   if (order) {
+                                       setPickingList(order.items.map(item => {
+                                           const p = products.find(prod => prod.id === item.productId);
+                                           return {
+                                               id: item.productId,
+                                               name: item.productName,
+                                               aisle: p?.aisle || 'A',
+                                               shelf: p?.shelf ? parseInt(p.shelf) : 1,
+                                               qty: item.quantity,
+                                               picked: false
+                                           };
+                                       }));
+                                       setTerminalMessage(null);
+                                   }
+                               }}
+                            >
+                               <option value="">Sipariş Seçiniz...</option>
+                               {store.orders.filter(o => o.status === 'Bekliyor' || o.status === 'Hazırlanıyor').map(o => (
+                                   <option key={o.id} value={o.id}>{o.id} - {o.customerName}</option>
+                               ))}
+                            </select>
                         </div>
-                    </div>
-                    
-                    <div className="bg-gray-800 rounded-xl p-4 border border-gray-700 min-h-[200px] flex items-center justify-center text-gray-500 text-sm text-center">
-                        Bekleniyor...
-                    </div>
+                    ) : (
+                        <>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-2">Barkod Okutunuz</label>
+                                <div className="flex gap-2">
+                                   <input 
+                                      type="text" 
+                                      autoFocus
+                                      value={barcodeInput}
+                                      onChange={e => setBarcodeInput(e.target.value)}
+                                      onKeyDown={e => {
+                                          if (e.key === 'Enter' && barcodeInput.trim()) {
+                                              handleTerminalScan(barcodeInput.trim());
+                                          }
+                                      }}
+                                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-lg font-mono focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                                      placeholder="||||||||||||||||||||"
+                                   />
+                                   <button 
+                                     onClick={() => setIsScanning(true)}
+                                     className="bg-gray-800 border border-gray-700 p-3 rounded-xl text-emerald-400 hover:bg-gray-700 transition-colors"
+                                   >
+                                     <Camera size={24} />
+                                   </button>
+                                </div>
+                            </div>
+                            
+                            {terminalMode === 'toplama' && selectedOrderId ? (
+                                <div className="bg-gray-800 rounded-xl p-4 border border-gray-700 mt-4 max-h-[300px] overflow-y-auto">
+                                    <div className="flex justify-between items-center mb-3">
+                                       <h4 className="font-bold text-emerald-400">Toplanacak Ürünler</h4>
+                                       <span className="text-xs bg-gray-700 px-2 py-1 rounded-lg">
+                                          {pickingList.filter(p => p.picked).length} / {pickingList.length}
+                                       </span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {pickingList.map(item => (
+                                            <div key={item.id} className={`flex items-center justify-between p-3 rounded-lg border ${item.picked ? 'bg-emerald-900/30 border-emerald-800 text-gray-400' : 'bg-gray-700/50 border-gray-600 text-white'}`}>
+                                                <div className="flex items-center gap-3">
+                                                    {item.picked ? <CheckSquare size={18} className="text-emerald-500" /> : <Box size={18} className="text-gray-400" />}
+                                                    <div>
+                                                        <div className={`font-medium ${item.picked ? 'line-through' : ''}`}>{item.name}</div>
+                                                        <div className="text-xs text-gray-500">Miktar: {item.qty}</div>
+                                                    </div>
+                                                </div>
+                                                {!item.picked && (
+                                                    <div className="text-xs font-bold bg-gray-900 px-2 py-1 rounded text-gray-300">
+                                                        {item.aisle}-{item.shelf}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {pickingList.length > 0 && pickingList.every(p => p.picked) && (
+                                        <div className="mt-4 p-3 bg-emerald-600 text-white text-center font-bold rounded-lg cursor-pointer hover:bg-emerald-500" onClick={() => {
+                                           setTerminalMessage({ text: 'Sipariş başarıyla toplandı ve hazır!', type: 'success' });
+                                           setTimeout(() => {
+                                              setTerminalMode(null);
+                                              setSelectedOrderId(null);
+                                              setPickingList([]);
+                                           }, 3000);
+                                        }}>
+                                            Siparişi Tamamla
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="bg-gray-800 rounded-xl p-4 border border-gray-700 min-h-[200px] flex items-center justify-center text-gray-500 text-sm text-center">
+                                    Bekleniyor...
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
              </div>
           ) : (
@@ -882,6 +1023,32 @@ export const Depo: React.FC = () => {
                     <Layers size={24} /> Sayım Fişi
                  </button>
              </div>
+          )}
+          {/* Scanner Modal */}
+          {isScanning && (
+            <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col text-black">
+                <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                   <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                     <Camera className="text-emerald-600" size={24} />
+                     Kamera ile Barkod Okut
+                   </h3>
+                   <button 
+                     onClick={() => setIsScanning(false)} 
+                     className="text-gray-500 hover:text-red-500 hover:bg-red-50 p-1 rounded-lg transition-colors"
+                   >
+                      <X size={24} />
+                   </button>
+                </div>
+                <div className="p-0 bg-black relative">
+                   <div id="depo-barcode-reader" className="w-full border-none"></div>
+                </div>
+                <div className="p-4 text-center text-sm text-gray-600 bg-gray-50 font-medium">
+                   Kameranızı ürün veya sipariş barkoduna doğru tutun.<br/>
+                   Ürün bulunduğunda otomatik olarak toplanacaktır.
+                </div>
+              </div>
+            </div>
           )}
         </div>
       ) : null}

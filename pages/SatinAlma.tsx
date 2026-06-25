@@ -31,8 +31,12 @@ export const SatinAlma: React.FC = () => {
         });
         if (res.ok) {
            const data = await res.json();
-           setRequests(data);
-           store.setPurchaseRequests?.(data);
+           const parsedData = data.map((d: any) => ({
+             ...d,
+             items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || [])
+           }));
+           setRequests(parsedData);
+           store.setPurchaseRequests?.(parsedData);
         }
      } catch (e) { console.error(e); }
   };
@@ -146,6 +150,21 @@ export const SatinAlma: React.FC = () => {
          }
      }
      
+     // Save Waybill
+     if ((store as any).setWaybills) {
+        (store as any).setWaybills([
+          ...((store as any).waybills || []),
+          {
+            id: `WB-${Date.now()}`,
+            supplierId: malKabulForm.supplierId,
+            documentNo: malKabulForm.documentNo,
+            date: malKabulForm.date,
+            items: malKabulForm.items,
+            totalAmount: totalAmount
+          }
+        ]);
+     }
+
      toast.success('İrsaliye kaydedildi, stoklar ve cari hesap güncellendi');
      setIsMalKabulModalOpen(false);
      setMalKabulForm({ supplierId: '', documentNo: '', date: new Date().toISOString().split('T')[0], items: [{ productId: '', quantity: 1, price: 0 }] });
@@ -264,15 +283,60 @@ export const SatinAlma: React.FC = () => {
       )}
 
       {activeTab === 'malkabul' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center animate-in fade-in">
-           <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ListChecks size={32} />
-           </div>
-           <h3 className="text-xl font-bold text-gray-800 mb-2">Mal Kabul (İrsaliye) İşlemleri</h3>
-           <p className="text-gray-500 max-w-md mx-auto mb-6">Tedarikçiden gelen irsaliyeleri sisteme girin, siparişlerle eşleştirerek stokları otomatik güncelleyin.</p>
-           <button onClick={() => setIsMalKabulModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2">
-             <Plus size={18} /> Yeni İrsaliye (Mal Kabul)
-           </button>
+        <div className="space-y-6 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+             <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ListChecks size={32} />
+             </div>
+             <h3 className="text-xl font-bold text-gray-800 mb-2">Mal Kabul (İrsaliye) İşlemleri</h3>
+             <p className="text-gray-500 max-w-md mx-auto mb-6">Tedarikçiden gelen irsaliyeleri sisteme girin, siparişlerle eşleştirerek stokları otomatik güncelleyin.</p>
+             <button onClick={() => setIsMalKabulModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2">
+               <Plus size={18} /> Yeni İrsaliye (Mal Kabul)
+             </button>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+             <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                   Geçmiş İrsaliyeler
+                </h3>
+             </div>
+             <div className="overflow-x-auto">
+               <table className="w-full text-left text-sm text-gray-600">
+                 <thead className="bg-gray-50/50 text-gray-500 uppercase font-medium">
+                   <tr>
+                     <th className="px-4 py-3">Tarih</th>
+                     <th className="px-4 py-3">Belge No</th>
+                     <th className="px-4 py-3">Tedarikçi</th>
+                     <th className="px-4 py-3">Kalem Sayısı</th>
+                     <th className="px-4 py-3 text-right">Toplam Tutar</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-gray-100">
+                   {((store as any).waybills || []).length === 0 ? (
+                     <tr>
+                       <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                         Henüz irsaliye kaydı bulunmuyor.
+                       </td>
+                     </tr>
+                   ) : (
+                     ((store as any).waybills || []).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((wb: any) => {
+                       const supplier = suppliers.find(s => s.id === wb.supplierId);
+                       return (
+                         <tr key={wb.id} className="hover:bg-gray-50">
+                           <td className="px-4 py-3">{new Date(wb.date).toLocaleDateString('tr-TR')}</td>
+                           <td className="px-4 py-3 font-medium text-gray-900">{wb.documentNo}</td>
+                           <td className="px-4 py-3">{supplier?.companyName || supplier?.name || wb.supplierId}</td>
+                           <td className="px-4 py-3">{wb.items?.length || 0} Kalem</td>
+                           <td className="px-4 py-3 text-right font-medium">₺{(wb.totalAmount || 0).toLocaleString('tr-TR')}</td>
+                         </tr>
+                       );
+                     })
+                   )}
+                 </tbody>
+               </table>
+             </div>
+          </div>
         </div>
       )}
 
@@ -316,7 +380,20 @@ export const SatinAlma: React.FC = () => {
                        <td className="px-4 py-3 text-gray-500">{product.minStock}</td>
                        <td className="px-4 py-3 text-gray-500">Otomatik Tedarikçi</td>
                        <td className="px-4 py-3 text-right">
-                         <button className="text-emerald-600 hover:text-emerald-800 font-medium text-xs flex items-center gap-1 justify-end ml-auto">
+                         <button 
+                           onClick={() => {
+                             setFormData({
+                               id: '',
+                               date: new Date().toISOString().split('T')[0],
+                               requestedBy: currentUser?.name || '',
+                               items: [{ productId: product.id, productName: product.name, quantity: Math.max(1, (product.minStock || 0) - product.stock) }],
+                               status: 'Bekliyor'
+                             });
+                             setActiveTab('talepler');
+                             setIsModalOpen(true);
+                           }}
+                           className="text-emerald-600 hover:text-emerald-800 font-medium text-xs flex items-center gap-1 justify-end ml-auto"
+                         >
                             <ShoppingBag size={14} /> Tedarikçiden İste
                          </button>
                        </td>

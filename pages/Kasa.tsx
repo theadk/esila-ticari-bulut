@@ -56,6 +56,7 @@ export const Kasa: React.FC = () => {
     description: string;
     customerId?: string;
     personnelId?: string;
+    accountId?: string;
   }>({
     date: new Date().toISOString().split('T')[0],
     type: 'Gelir',
@@ -63,11 +64,12 @@ export const Kasa: React.FC = () => {
     amount: '',
     description: '',
     customerId: '',
-    personnelId: ''
+    personnelId: '',
+    accountId: 'KASA'
   });
 
-  const totalIncome = cashTransactions.filter(t => t.type === 'Gelir').reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = cashTransactions.filter(t => t.type === 'Gider').reduce((sum, t) => sum + t.amount, 0);
+  const totalIncome = cashTransactions.filter(t => t.type === 'Gelir' && (!t.accountId || t.accountId === 'KASA')).reduce((sum, t) => sum + t.amount, 0);
+  const totalExpense = cashTransactions.filter(t => t.type === 'Gider' && (!t.accountId || t.accountId === 'KASA')).reduce((sum, t) => sum + t.amount, 0);
   const totalBalance = totalIncome - totalExpense;
 
   const filteredData = useMemo(() => {
@@ -182,6 +184,15 @@ export const Kasa: React.FC = () => {
                description: formData.description + ' Tutarı: ' + Number(formData.amount).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })
            };
            setPersonnel(personnel.map(p => p.id === pToUpdate.id ? { ...p, records: [newRecord, ...p.records] } : p));
+       }
+    }
+
+    // Update Bank Account Balance if applicable
+    if (formData.accountId && formData.accountId !== 'KASA') {
+       const bankToUpdate = bankAccounts.find(b => b.id === formData.accountId);
+       if (bankToUpdate) {
+          const amountChange = formData.type === 'Gelir' ? Number(formData.amount) : -Number(formData.amount);
+          setBankAccounts(bankAccounts.map(b => b.id === bankToUpdate.id ? { ...b, balance: b.balance + amountChange } : b));
        }
     }
     
@@ -515,6 +526,19 @@ export const Kasa: React.FC = () => {
                  >
                    <option value="Gelir">Gelir</option>
                    <option value="Gider">Gider</option>
+                 </select>
+              </div>
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Hesap Seçimi</label>
+                 <select 
+                   value={formData.accountId}
+                   onChange={e => setFormData({...formData, accountId: e.target.value})}
+                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                 >
+                   <option value="KASA">Nakit Kasa</option>
+                   {bankAccounts.map(b => (
+                     <option key={b.id} value={b.id}>{b.bankName} - {b.accountName}</option>
+                   ))}
                  </select>
               </div>
                <div>
@@ -990,8 +1014,10 @@ export const Kasa: React.FC = () => {
                    date: new Date().toISOString().split('T')[0],
                    type: 'Gider',
                    category: 'Diğer Gider',
-                   amount: 0,
-                   description: ''
+                   amount: '',
+                   description: '',
+                   customerId: '',
+                   personnelId: ''
                  });
                  setIsModalOpen(true);
                }}

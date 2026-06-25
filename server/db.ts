@@ -319,6 +319,16 @@ export async function initDb() {
           uploadedBy VARCHAR(255),
           relatedEntityId VARCHAR(255)
         );
+
+        CREATE TABLE IF NOT EXISTS waybills (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          supplierId VARCHAR(255),
+          documentNo VARCHAR(255),
+          date DATETIME,
+          items JSON,
+          totalAmount DECIMAL(15,2)
+        );
       `);
     } catch (e: any) {
       console.error('CREATE job_applications or new tables:', e.message);

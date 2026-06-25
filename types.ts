@@ -50,6 +50,7 @@ export interface Product {
   brand?: string;
   taxRate?: number;
   variants?: string[];
+  serials?: string[];
   showInQuickSale?: boolean;
   minStock?: number;
   hasSerialTracking?: boolean;
