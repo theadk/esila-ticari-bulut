@@ -22,7 +22,8 @@ import {
   Edit3,
   Calendar,
   Mic,
-  MicOff
+  MicOff,
+  Activity
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -86,6 +87,14 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
   const { customers, transactions, serviceTickets, settings, setServiceTickets, cashTransactions, personnel, jobApplications, orders, eInvoices, proposals, reminderNotes, setReminderNotes } = useAppStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
+  const [exchangeRates, setExchangeRates] = useState<import('../lib/currency').ExchangeRates | null>(null);
+
+  useEffect(() => {
+    import('../lib/currency').then(module => {
+      module.fetchExchangeRates().then(rates => setExchangeRates(rates));
+    });
+  }, []);
+
   const [isSendingMaintenanceReminders, setIsSendingMaintenanceReminders] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
   
@@ -702,39 +711,73 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
       </div>
       
       {/* Quick Actions Widget */}
-      <div className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 sm:p-6 ring-1 ring-emerald-50">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg">
-            <PlusCircle size={18} />
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+          <div className="lg:col-span-3 bg-white rounded-xl shadow-sm border border-emerald-100 p-4 sm:p-6 ring-1 ring-emerald-50">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg">
+                <PlusCircle size={18} />
+              </div>
+              <h3 className="text-base font-semibold text-gray-800 tracking-tight">Hızlı İşlemler</h3>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <button type="button" onClick={() => setActivePage && setActivePage('hizlisatis')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-100 cursor-pointer">
+                    <ShoppingCart size={24} className="mb-2" />
+                    <span className="text-sm font-medium text-center">Hızlı Satış</span>
+                </button>
+                <button type="button" onClick={() => setActivePage && setActivePage('urunler')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100 cursor-pointer">
+                    <PlusCircle size={24} className="mb-2" />
+                    <span className="text-sm font-medium text-center">Ürün Ekle</span>
+                </button>
+                <button type="button" onClick={() => { setActivePage && setActivePage('cariler'); setTimeout(() => window.dispatchEvent(new CustomEvent('open-new-cari')), 100); }} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-100 cursor-pointer">
+                    <Users size={24} className="mb-2" />
+                    <span className="text-sm font-medium text-center">Yeni Cari</span>
+                </button>
+                <button type="button" onClick={() => setActivePage && setActivePage('kasa')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-100 cursor-pointer">
+                    <CreditCard size={24} className="mb-2" />
+                    <span className="text-sm font-medium text-center">Tahsilat Gir</span>
+                </button>
+                <button type="button" onClick={() => setActivePage && setActivePage('efatura')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors border border-purple-100 cursor-pointer">
+                    <FileText size={24} className="mb-2" />
+                    <span className="text-sm font-medium text-center">Yeni Fatura</span>
+                </button>
+                <button type="button" onClick={() => setActivePage && setActivePage('ariza')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors border border-orange-100 cursor-pointer">
+                    <Wrench size={24} className="mb-2" />
+                    <span className="text-sm font-medium text-center">Servis Aç</span>
+                </button>
+            </div>
           </div>
-          <h3 className="text-base font-semibold text-gray-800 tracking-tight">Hızlı İşlemler</h3>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <button type="button" onClick={() => setActivePage && setActivePage('hizlisatis')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-100 cursor-pointer">
-                <ShoppingCart size={24} className="mb-2" />
-                <span className="text-sm font-medium text-center">Hızlı Satış</span>
-            </button>
-            <button type="button" onClick={() => setActivePage && setActivePage('urunler')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100 cursor-pointer">
-                <PlusCircle size={24} className="mb-2" />
-                <span className="text-sm font-medium text-center">Ürün Ekle</span>
-            </button>
-            <button type="button" onClick={() => { setActivePage && setActivePage('cariler'); setTimeout(() => window.dispatchEvent(new CustomEvent('open-new-cari')), 100); }} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-100 cursor-pointer">
-                <Users size={24} className="mb-2" />
-                <span className="text-sm font-medium text-center">Yeni Cari</span>
-            </button>
-            <button type="button" onClick={() => setActivePage && setActivePage('kasa')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-100 cursor-pointer">
-                <CreditCard size={24} className="mb-2" />
-                <span className="text-sm font-medium text-center">Tahsilat Gir</span>
-            </button>
-            <button type="button" onClick={() => setActivePage && setActivePage('efatura')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors border border-purple-100 cursor-pointer">
-                <FileText size={24} className="mb-2" />
-                <span className="text-sm font-medium text-center">Yeni Fatura</span>
-            </button>
-            <button type="button" onClick={() => setActivePage && setActivePage('ariza')} className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors border border-orange-100 cursor-pointer">
-                <Wrench size={24} className="mb-2" />
-                <span className="text-sm font-medium text-center">Servis Aç</span>
-            </button>
-        </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-4 sm:p-6 ring-1 ring-blue-50">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
+                <Activity size={18} />
+              </div>
+              <h3 className="text-base font-semibold text-gray-800 tracking-tight">Güncel Kurlar</h3>
+            </div>
+            {exchangeRates ? (
+               <div className="flex flex-col gap-3">
+                 <div className="flex justify-between items-center p-2 rounded bg-gray-50 border border-gray-100">
+                    <span className="font-bold text-gray-700 flex items-center gap-2"><span className="text-lg">🇺🇸</span> USD</span>
+                    <span className="font-mono font-medium text-gray-900">{exchangeRates.USD.toLocaleString('tr-TR', { minimumFractionDigits: 4 })} ₺</span>
+                 </div>
+                 <div className="flex justify-between items-center p-2 rounded bg-gray-50 border border-gray-100">
+                    <span className="font-bold text-gray-700 flex items-center gap-2"><span className="text-lg">🇪🇺</span> EUR</span>
+                    <span className="font-mono font-medium text-gray-900">{exchangeRates.EUR.toLocaleString('tr-TR', { minimumFractionDigits: 4 })} ₺</span>
+                 </div>
+                 <div className="flex justify-between items-center p-2 rounded bg-gray-50 border border-gray-100">
+                    <span className="font-bold text-gray-700 flex items-center gap-2"><span className="text-lg">🇬🇧</span> GBP</span>
+                    <span className="font-mono font-medium text-gray-900">{exchangeRates.GBP.toLocaleString('tr-TR', { minimumFractionDigits: 4 })} ₺</span>
+                 </div>
+                 <div className="text-xs text-gray-400 text-center mt-2 border-t pt-2 border-gray-100">
+                    TCMB Döviz Satış Kurları
+                 </div>
+               </div>
+            ) : (
+               <div className="flex items-center justify-center h-32 text-gray-400 text-sm italic">
+                  Yükleniyor...
+               </div>
+            )}
+          </div>
       </div>
 
       {dueMaintenance.length > 0 && (

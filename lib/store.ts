@@ -154,6 +154,9 @@ export interface EInvoice {
   scenario: string;
   date: string;
   status: 'Taslak' | 'Gönderildi' | 'Hatalı' | 'Bekliyor' | 'Onaylandı' | 'Reddedildi';
+  currency?: string;
+  exchangeRate?: number;
+  exceptionCode?: string;
 }
 let globalEInvoices: EInvoice[] = [];
 let globalOrders: Order[] = [
@@ -300,6 +303,12 @@ export async function initializeStore() {
       { name: 'attendance', ref: (data: any) => { globalAttendance = data; } },
       { name: 'salary_adjustments', ref: (data: any) => { globalSalaryAdjustments = data; } },
       { name: 'personnel_tasks', ref: (data: any) => { globalPersonnelTasks = data; } },
+      { name: 'documents', ref: (data: any) => {
+        globalDocuments = data.map((d: any) => ({
+          ...d,
+          tags: typeof d.tags === 'string' ? JSON.parse(d.tags) : (d.tags || [])
+        }));
+      } },
       { name: 'orders', ref: (data: any) => { 
         globalOrders = data.map((d:any)=>{
            const parsedItems = typeof d.items === 'string' ? JSON.parse(d.items): (d.items||[]);

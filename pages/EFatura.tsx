@@ -415,7 +415,7 @@ export const EFatura: React.FC = () => {
             IssueDate: new Date(invToP.date).toISOString().split("T")[0],
             InvoiceTypeCode: invToP.invoiceType || "SATIS",
             ProfileID: invToP.scenario,
-            DocumentCurrencyCode: order?.currency || "TRY",
+            DocumentCurrencyCode: invToP.currency || order?.currency || "TRY",
           },
         },
       };
@@ -722,12 +722,12 @@ export const EFatura: React.FC = () => {
                     "IssueDate": new Date(inv.date).toISOString().split('T')[0],
                     "InvoiceTypeCode": inv.invoiceType || "SATIS",
                     "ProfileID": inv.scenario,
-                    "DocumentCurrencyCode": order?.currency || "TRY",
-                    ...(order?.currency && order.currency !== 'TRY' ? {
+                    "DocumentCurrencyCode": inv.currency || order?.currency || "TRY",
+                    ...((inv.currency || order?.currency) && (inv.currency || order?.currency) !== 'TRY' ? {
                         "PricingExchangeRate": {
-                            "SourceCurrencyCode": order.currency,
+                            "SourceCurrencyCode": inv.currency || order?.currency,
                             "TargetCurrencyCode": "TRY",
-                            "CalculationRate": order.exchangeRate || 1
+                            "CalculationRate": inv.exchangeRate || order?.exchangeRate || 1
                         }
                     } : {}),
                     "AccountingSupplierParty": {
@@ -987,7 +987,7 @@ export const EFatura: React.FC = () => {
                       <td className="p-4 text-sm font-bold text-right text-gray-800">
                         {Number(inv.amount || 0).toLocaleString("tr-TR", {
                           style: "currency",
-                          currency: store.orders?.find(o => o.id === inv.orderId)?.currency || "TRY",
+                          currency: inv.currency || store.orders?.find(o => o.id === inv.orderId)?.currency || "TRY",
                         })}
                       </td>
                       <td className="p-4 text-center">
@@ -1162,6 +1162,32 @@ export const EFatura: React.FC = () => {
                   onChange={(e) => setEditInvoice({ ...editInvoice, exceptionCode: e.target.value })}
                   placeholder="Örn: 221"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Para Birimi</label>
+                  <select
+                    className="w-full p-2.5 rounded-lg border border-gray-200 outline-none"
+                    value={editInvoice.currency || "TRY"}
+                    onChange={(e) => setEditInvoice({ ...editInvoice, currency: e.target.value })}
+                  >
+                    <option value="TRY">TRY</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Döviz Kuru</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    className="w-full p-2.5 rounded-lg border border-gray-200 outline-none disabled:opacity-50"
+                    value={editInvoice.exchangeRate || 1}
+                    onChange={(e) => setEditInvoice({ ...editInvoice, exchangeRate: parseFloat(e.target.value) || 1 })}
+                    disabled={editInvoice.currency === 'TRY' || !editInvoice.currency}
+                  />
+                </div>
               </div>
               <div className="flex justify-end gap-2 mt-6">
                 <button

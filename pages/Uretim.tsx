@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
-import { Factory, Component, Wrench, Settings, Play, CheckCircle, ClipboardList, AlertTriangle, ShieldCheck, Hammer } from 'lucide-react';
+import { Factory, Component, Wrench, Settings, Play, CheckCircle, ClipboardList, AlertTriangle, ShieldCheck, Hammer, BarChart as BarChartIcon } from 'lucide-react';
 import { BOM, WorkOrder, Product } from '../types';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 export const Uretim: React.FC = () => {
   const store = useAppStore();
   const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'uretim', 'view');
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'receteler' | 'isemirleri' | 'kalite' | 'istasyon'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'receteler' | 'isemirleri' | 'kalite' | 'istasyon' | 'analiz'>('dashboard');
+  const [selectedWoForAnalysis, setSelectedWoForAnalysis] = useState<string>('');
 
   if (!canView) {
     return (
@@ -125,6 +127,12 @@ export const Uretim: React.FC = () => {
           className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'istasyon' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
         >
           <div className="flex items-center gap-2"><Hammer size={18}/> Üretim Terminalleri</div>
+        </button>
+        <button
+          onClick={() => setActiveTab('analiz')}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'analiz' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          <div className="flex items-center gap-2"><BarChartIcon size={18}/> Maliyet Analizi</div>
         </button>
       </div>
 
@@ -276,11 +284,20 @@ export const Uretim: React.FC = () => {
                                 }}>Üretime Al</button>
                             )}
                             {wo.status === 'Üretimde' && (
-                                <button className="text-purple-600 hover:text-purple-800 text-xs font-medium bg-purple-50 px-2 py-1 rounded" onClick={() => {
+                                <button className="text-purple-600 hover:text-purple-800 text-xs font-medium bg-purple-50 px-2 py-1 rounded mr-2" onClick={() => {
                                     const newWos = workOrders.map(w => w.id === wo.id ? { ...w, status: 'Kalite Kontrol' as const } : w);
                                     setWorkOrders(newWos);
                                 }}>Kalite Kontrole Gönder</button>
                             )}
+                            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium mr-3" onClick={() => {
+                                setWoForm(wo);
+                                setIsWoModalOpen(true);
+                            }}>Düzenle</button>
+                            <button className="text-red-600 hover:text-red-800 text-sm font-medium" onClick={() => {
+                                if (confirm('Bu iş emrini silmek istediğinize emin misiniz?')) {
+                                    setWorkOrders(workOrders.filter(w => w.id !== wo.id));
+                                }
+                            }}>Sil</button>
                          </td>
                        </tr>
                      );
@@ -386,10 +403,18 @@ export const Uretim: React.FC = () => {
                </div>
                
                <div className="grid grid-cols-2 gap-4">
-                 <button className="bg-emerald-900/50 hover:bg-emerald-800 text-emerald-400 border border-emerald-800 p-4 rounded-xl font-bold transition-colors">
+                 <button onClick={() => {
+                     const wo = workOrders.find(w => w.id === woForm.id);
+                     if (wo && wo.status === 'Planlandı') {
+                         setWorkOrders(workOrders.map(w => w.id === wo.id ? { ...w, status: 'Üretimde' as const } : w));
+                         alert("İş emri üretime alındı.");
+                     } else {
+                         alert("Lütfen önce planlanmış bir iş emri seçin.");
+                     }
+                 }} className="bg-emerald-900/50 hover:bg-emerald-800 text-emerald-400 border border-emerald-800 p-4 rounded-xl font-bold transition-colors">
                     Üretime Başla
                  </button>
-                 <button className="bg-amber-900/50 hover:bg-amber-800 text-amber-400 border border-amber-800 p-4 rounded-xl font-bold transition-colors">
+                 <button onClick={() => alert("Geliştirme aşamasında.")} className="bg-amber-900/50 hover:bg-amber-800 text-amber-400 border border-amber-800 p-4 rounded-xl font-bold transition-colors">
                     Fire / Hata Bildir
                  </button>
                </div>
@@ -427,6 +452,124 @@ export const Uretim: React.FC = () => {
                </div>
              </div>
            </div>
+        </div>
+      )}
+
+      {activeTab === 'analiz' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-in fade-in">
+           <div className="flex justify-between items-center mb-6">
+             <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <BarChartIcon className="text-indigo-600" /> Üretim Maliyet Analizi
+             </h3>
+             <select 
+                className="border border-gray-300 rounded-lg p-2 text-sm max-w-xs w-full"
+                value={selectedWoForAnalysis}
+                onChange={e => setSelectedWoForAnalysis(e.target.value)}
+             >
+                <option value="">İş Emri Seçin</option>
+                {workOrders.map(wo => {
+                  const targetProd = products.find(p => p.id === wo.targetProductId);
+                  return <option key={wo.id} value={wo.id}>{wo.id} - {targetProd?.name}</option>;
+                })}
+             </select>
+           </div>
+           
+           {!selectedWoForAnalysis ? (
+             <div className="text-center text-gray-500 py-12">Lütfen analiz edilecek bir iş emri seçin.</div>
+           ) : (() => {
+             const wo = workOrders.find(w => w.id === selectedWoForAnalysis);
+             const bom = boms.find(b => b.id === wo?.bomId);
+             if (!wo || !bom) return <div className="text-center text-red-500 py-8">İş emri veya reçete bulunamadı.</div>;
+
+             // Calculate costs
+             let rawMaterialCost = 0;
+             const itemsData = bom.items.map(item => {
+                 const p = products.find(prod => prod.id === item.productId);
+                 const cost = (p?.purchasePrice || 0) * item.quantity * wo.plannedQuantity;
+                 rawMaterialCost += cost;
+                 return { name: p?.name || 'Bilinmeyen', cost };
+             });
+
+             // Simple labor cost mock: estimated time * labor rate
+             // Using arbitrary 5 TL per minute for example, or based on time.
+             const laborCost = (bom.estimatedTimeMinutes || 60) * 5 * wo.plannedQuantity; 
+             const overheadCost = wo.plannedQuantity * 20; // Some overhead
+             const totalCost = rawMaterialCost + laborCost + overheadCost;
+
+             const pieData = [
+                 { name: 'Hammadde', value: rawMaterialCost },
+                 { name: 'İşçilik', value: laborCost },
+                 { name: 'Genel Giderler', value: overheadCost }
+             ];
+             const COLORS = ['#3b82f6', '#10b981', '#f59e0b'];
+
+             return (
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <div>
+                   <h4 className="font-semibold text-gray-700 mb-4 border-b pb-2">Maliyet Özeti</h4>
+                   <div className="space-y-4">
+                     <div className="flex justify-between items-center p-3 bg-blue-50 text-blue-800 rounded-lg">
+                       <span>Hammadde Maliyeti</span>
+                       <span className="font-bold">{rawMaterialCost.toLocaleString('tr-TR')} ₺</span>
+                     </div>
+                     <div className="flex justify-between items-center p-3 bg-emerald-50 text-emerald-800 rounded-lg">
+                       <span>İşçilik Maliyeti</span>
+                       <span className="font-bold">{laborCost.toLocaleString('tr-TR')} ₺</span>
+                     </div>
+                     <div className="flex justify-between items-center p-3 bg-amber-50 text-amber-800 rounded-lg">
+                       <span>Genel Giderler</span>
+                       <span className="font-bold">{overheadCost.toLocaleString('tr-TR')} ₺</span>
+                     </div>
+                     <div className="flex justify-between items-center p-4 bg-gray-100 text-gray-900 rounded-lg text-lg border border-gray-300 shadow-sm mt-4">
+                       <span>Toplam Maliyet</span>
+                       <span className="font-black">{totalCost.toLocaleString('tr-TR')} ₺</span>
+                     </div>
+                     <div className="flex justify-between items-center p-4 bg-indigo-50 text-indigo-900 rounded-lg text-sm border border-indigo-200 shadow-sm mt-4">
+                       <span>Birim Başına Maliyet</span>
+                       <span className="font-bold">{(totalCost / wo.plannedQuantity).toLocaleString('tr-TR')} ₺</span>
+                     </div>
+                   </div>
+                 </div>
+                 <div className="h-80 flex items-center justify-center bg-gray-50 rounded-xl border border-gray-100">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Pie
+                                data={pieData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius={100}
+                                fill="#8884d8"
+                                dataKey="value"
+                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            >
+                                {pieData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Pie>
+                            <Tooltip formatter={(value: number) => value.toLocaleString('tr-TR') + ' ₺'} />
+                            <Legend />
+                        </PieChart>
+                    </ResponsiveContainer>
+                 </div>
+                 
+                 <div className="lg:col-span-2 mt-4">
+                   <h4 className="font-semibold text-gray-700 mb-4 border-b pb-2">Hammadde Dağılımı</h4>
+                   <div className="h-64">
+                       <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={itemsData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="name" />
+                                <YAxis tickFormatter={(val) => val.toLocaleString('tr-TR')} />
+                                <Tooltip formatter={(value: number) => value.toLocaleString('tr-TR') + ' ₺'} />
+                                <Bar dataKey="cost" fill="#3b82f6" name="Maliyet (₺)" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                       </ResponsiveContainer>
+                   </div>
+                 </div>
+               </div>
+             );
+           })()}
         </div>
       )}
 
@@ -535,23 +678,28 @@ export const Uretim: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden">
              <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="font-bold text-lg text-gray-800">Yeni İş Emri (Üretim Planı)</h3>
+                <h3 className="font-bold text-lg text-gray-800">{woForm.id ? 'İş Emrini Düzenle' : 'Yeni İş Emri (Üretim Planı)'}</h3>
                 <button onClick={() => setIsWoModalOpen(false)} className="text-gray-500 hover:text-red-500">✕</button>
              </div>
              <form className="p-6" onSubmit={(e) => {
                  e.preventDefault();
                  const selectedBom = boms.find(b => b.id === woForm.bomId);
                  if (!selectedBom) return;
-                 const newWo: WorkOrder = {
-                     id: 'WO-' + Math.floor(Math.random()*100000),
-                     bomId: selectedBom.id,
-                     targetProductId: selectedBom.targetProductId,
-                     plannedQuantity: woForm.plannedQuantity || 1,
-                     producedQuantity: 0,
-                     status: 'Planlandı',
-                     priority: woForm.priority as WorkOrder['priority'],
-                 };
-                 setWorkOrders([...workOrders, newWo]);
+                 if (woForm.id) {
+                     const updatedWos = workOrders.map(w => w.id === woForm.id ? { ...w, bomId: selectedBom.id, targetProductId: selectedBom.targetProductId, plannedQuantity: woForm.plannedQuantity || 1, priority: woForm.priority as WorkOrder['priority'] } : w);
+                     setWorkOrders(updatedWos);
+                 } else {
+                     const newWo: WorkOrder = {
+                         id: 'WO-' + Math.floor(Math.random()*100000),
+                         bomId: selectedBom.id,
+                         targetProductId: selectedBom.targetProductId,
+                         plannedQuantity: woForm.plannedQuantity || 1,
+                         producedQuantity: 0,
+                         status: 'Planlandı',
+                         priority: woForm.priority as WorkOrder['priority'],
+                     };
+                     setWorkOrders([...workOrders, newWo]);
+                 }
                  setIsWoModalOpen(false);
                  setWoForm({ bomId: '', plannedQuantity: 1, priority: 'Normal' });
              }}>

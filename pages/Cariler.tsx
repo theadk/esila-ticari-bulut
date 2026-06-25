@@ -56,6 +56,13 @@ export const Cariler: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<{ id: number; name: string }[]>([]);
+  const [exchangeRates, setExchangeRates] = useState<import('../lib/currency').ExchangeRates | null>(null);
+
+  useEffect(() => {
+    import('../lib/currency').then(module => {
+      module.fetchExchangeRates().then(rates => setExchangeRates(rates));
+    });
+  }, []);
 
   // Transaction History States
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
@@ -664,19 +671,35 @@ export const Cariler: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex space-x-1 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('Alıcı')}
-          className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'Alıcı' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-        >
-          Müşteriler (Alıcı)
-        </button>
-        <button
-          onClick={() => setActiveTab('Satıcı')}
-          className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'Satıcı' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-        >
-          Tedarikçiler (Satıcı)
-        </button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200">
+        <div className="flex space-x-1">
+          <button
+            onClick={() => setActiveTab('Alıcı')}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'Alıcı' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            Müşteriler (Alıcı)
+          </button>
+          <button
+            onClick={() => setActiveTab('Satıcı')}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'Satıcı' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            Tedarikçiler (Satıcı)
+          </button>
+        </div>
+        
+        {exchangeRates && (
+          <div className="flex items-center gap-4 px-4 py-2 sm:py-0 text-sm font-medium text-gray-600">
+            <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+              <span title="Dolar">🇺🇸</span> <span>{exchangeRates.USD.toLocaleString('tr-TR', { minimumFractionDigits: 4 })} ₺</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+              <span title="Euro">🇪🇺</span> <span>{exchangeRates.EUR.toLocaleString('tr-TR', { minimumFractionDigits: 4 })} ₺</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+              <span title="Sterlin">🇬🇧</span> <span>{exchangeRates.GBP.toLocaleString('tr-TR', { minimumFractionDigits: 4 })} ₺</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">

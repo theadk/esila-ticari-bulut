@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { 
   Folder, FileText, UploadCloud, Search, Filter, 
   MoreVertical, Download, Trash2, Edit2, Plus, 
-  Tag as TagIcon, X, Check, FileCheck, FileArchive, File
+  Tag as TagIcon, X, Check, FileCheck, FileArchive, File, Share2, Mail
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Document } from '../types';
@@ -224,9 +224,36 @@ export const Dokumanlar: React.FC = () => {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button 
+                          title="WhatsApp İle Gönder"
+                          className="p-1 text-gray-400 hover:text-green-600 transition-colors"
+                          onClick={() => {
+                            const message = encodeURIComponent(`Merhaba, ${doc.name} adlı belgeyi sizinle paylaşıyorum.`);
+                            window.open(`https://wa.me/?text=${message}`, '_blank');
+                          }}
+                        >
+                          <Share2 size={18} />
+                        </button>
+                        <button 
+                          title="E-Posta İle Gönder"
+                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          onClick={() => {
+                            const subject = encodeURIComponent(`${doc.name} Belgesi`);
+                            const body = encodeURIComponent(`Ekte ${doc.name} adlı belgeyi bulabilirsiniz.`);
+                            window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+                          }}
+                        >
+                          <Mail size={18} />
+                        </button>
+                        <button 
                           title="İndir"
                           className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                          onClick={() => toast.success('İndirme simülasyonu başlatıldı')}
+                          onClick={() => {
+                            if (doc.url) {
+                              window.open(doc.url, '_blank');
+                            } else {
+                              toast.success('İndirme simülasyonu başlatıldı');
+                            }
+                          }}
                         >
                           <Download size={18} />
                         </button>

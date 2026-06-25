@@ -2908,7 +2908,8 @@ async function startServer() {
     "meeting_notes",
     "attendance",
     "salary_adjustments",
-    "personnel_tasks"
+    "personnel_tasks",
+    "documents"
   ];
   for (const table of tables) {
     const tableColumnsCache: Record<string, string[]> = {};
@@ -3145,7 +3146,7 @@ async function startServer() {
 
         const fs = await import('fs');
         const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
-        const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes', 'purchase_requests', 'cheque_notes', 'boms', 'work_orders', 'bank_accounts', 'attendance', 'salary_adjustments', 'personnel_tasks'];
+        const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes', 'purchase_requests', 'cheque_notes', 'boms', 'work_orders', 'bank_accounts', 'attendance', 'salary_adjustments', 'personnel_tasks', 'documents', 'meeting_notes'];
 
         if (isMySQL) {
             const pool = getPool();
@@ -3241,7 +3242,7 @@ async function startServer() {
       }
 
       const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
-      const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes', 'purchase_requests', 'cheque_notes', 'boms', 'work_orders', 'bank_accounts', 'attendance', 'salary_adjustments', 'personnel_tasks'];
+      const allowedTables = ['customers', 'products', 'customer_transactions', 'cash_transactions', 'settings', 'users', 'job_applications', 'e_invoices', 'service_tickets', 'proposals', 'orders', 'personnel', 'reminder_notes', 'purchase_requests', 'cheque_notes', 'boms', 'work_orders', 'bank_accounts', 'attendance', 'salary_adjustments', 'personnel_tasks', 'documents', 'meeting_notes'];
 
       if (isMySQL) {
           const pool = getPool();
