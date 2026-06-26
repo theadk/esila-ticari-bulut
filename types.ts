@@ -56,6 +56,7 @@ export interface Product {
   hasSerialTracking?: boolean;
   hasLotTracking?: boolean;
   hasExpirationTracking?: boolean;
+  currency?: string;
 }
 
 export interface Warehouse {
@@ -373,6 +374,15 @@ export interface Settings {
   invoiceTemplate_bankInfo?: string;
   invoiceTemplate_banks?: { id: string; bankName: string; iban: string; accountName: string; }[];
   invoiceTemplate_layoutOrder?: string[]; // e.g. ['info', 'gib', 'logo']
+  
+  // Fiş Şablon Ayarları
+  receiptTemplate_logoPosition?: 'left' | 'center' | 'right' | 'hidden';
+  receiptTemplate_logoSize?: number;
+  receiptTemplate_showTaxInfo?: boolean;
+  receiptTemplate_showAddress?: boolean;
+  receiptTemplate_showPhone?: boolean;
+  receiptTemplate_fontSize?: string;
+  receiptTemplate_paperWidth?: string;
   
   // Numaralandırma / Ön Ekler
   prefix_customer?: string;

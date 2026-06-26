@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { Pagination } from '../components/Pagination';
 import { sendSMS } from '../src/utils/smsRequest';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
+import { CRM } from './CRM';
 
 const INITIAL_FORM: Customer = {
   id: '',
@@ -50,7 +51,7 @@ export const Cariler: React.FC = () => {
   const setCashTransactions = store.setCashTransactions;
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'Alıcı' | 'Satıcı'>('Alıcı');
+  const [activeTab, setActiveTab] = useState<'Alıcı' | 'Satıcı' | 'CRM'>('Alıcı');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Customer>(INITIAL_FORM);
   const [isEditing, setIsEditing] = useState(false);
@@ -685,6 +686,12 @@ export const Cariler: React.FC = () => {
           >
             Tedarikçiler (Satıcı)
           </button>
+          <button
+            onClick={() => setActiveTab('CRM')}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'CRM' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            CRM
+          </button>
         </div>
         
         {exchangeRates && (
@@ -702,9 +709,14 @@ export const Cariler: React.FC = () => {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
-        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between gap-4">
-          <div className="relative max-w-full sm:max-w-md w-full">
+      {activeTab === 'CRM' ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <CRM />
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+          <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between gap-4">
+            <div className="relative max-w-full sm:max-w-md w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input 
               type="text" 
@@ -901,6 +913,7 @@ export const Cariler: React.FC = () => {
           totalItems={filteredCustomers.length}
         />
       </div>
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">

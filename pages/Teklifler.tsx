@@ -212,7 +212,6 @@ export const Teklifler: React.FC = () => {
     setOrders([...orders, newOrder]);
 
     // Customer balance syncing and transactions
-    const customerTransactions = store.transactions;
     const newCustomerTx = {
       id: Math.random().toString(36).substr(2, 9),
       customerId: selectedProposal.customerId,
@@ -221,15 +220,14 @@ export const Teklifler: React.FC = () => {
       amount: selectedProposal.total,
       description: `Tekliften Siparişe: ${newOrder.id}`
     };
-    store.setTransactions([...customerTransactions, newCustomerTx]);
+    store.setTransactions((prev: any) => [...(prev || []), newCustomerTx]);
 
-    const updatedCustomers = customers.map(c => {
+    store.setCustomers((prev: any) => prev.map((c: any) => {
       if (c.id === selectedProposal.customerId) {
-        return { ...c, balance: c.balance + selectedProposal.total };
+        return { ...c, balance: Number(c.balance || 0) + selectedProposal.total };
       }
       return c;
-    });
-    store.setCustomers(updatedCustomers);
+    }));
 
     handleStatusChange(ProposalStatus.ACCEPTED);
     
@@ -244,7 +242,37 @@ export const Teklifler: React.FC = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (printType === '80mm' && selectedProposal) {
+      import('../lib/printUtils').then(({ generateThermalReceiptHtml, printHtml }) => {
+        const html = generateThermalReceiptHtml({
+          storeName: store.settings?.companyName || 'ESİLA TİCARİ',
+          storeAddress: store.settings?.address || '',
+          storePhone: store.settings?.phone || '',
+          taxOffice: store.settings?.taxOffice || '',
+          taxNumber: store.settings?.taxNumber || '',
+          companyLogo: store.settings?.companyLogo,
+          date: selectedProposal.date,
+          receiptNumber: selectedProposal.id,
+          customerName: selectedProposal.customerName,
+          items: selectedProposal.items.map(i => ({
+            name: i.productName,
+            quantity: i.quantity,
+            price: i.price,
+            total: i.price * i.quantity * (1 - i.discountRate / 100),
+            discount: i.discountRate > 0 ? i.discountRate : undefined
+          })),
+          subTotal: selectedProposal.subTotal,
+          taxTotal: selectedProposal.taxTotal,
+          total: selectedProposal.total,
+          footerText: store.settings?.printer_footer_text,
+          headerText: store.settings?.printer_header_text,
+          settings: store.settings
+        });
+        printHtml(html);
+      });
+    } else {
+      window.print();
+    }
   };
 
   if (!canView) {

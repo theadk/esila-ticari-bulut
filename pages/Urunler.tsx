@@ -26,7 +26,8 @@ const INITIAL_FORM: Product = {
   brand: '',
   taxRate: 20,
   variants: [],
-  showInQuickSale: false
+  showInQuickSale: false,
+  currency: 'TRY'
 };
 
 export const Urunler: React.FC = () => {
@@ -56,6 +57,37 @@ export const Urunler: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Product>(INITIAL_FORM);
   const [isEditing, setIsEditing] = useState(false);
+
+  const [exchangeRatesList, setExchangeRatesList] = useState<{Kod: string, Rate: number}[]>([]);
+  const [ratesLoading, setRatesLoading] = useState(false);
+
+  const fetchExchangeRates = async () => {
+    try {
+      setRatesLoading(true);
+      const res = await fetch('/api/exchange-rates');
+      if (!res.ok) throw new Error('Kurlar alınamadı');
+      const xmlData = await res.text();
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlData, "text/xml");
+      const currencies = Array.from(xmlDoc.getElementsByTagName("Currency"));
+      
+      const rates = currencies.map(c => {
+        const kod = c.getAttribute("Kod") || '';
+        const forexSelling = c.getElementsByTagName("ForexSelling")[0]?.textContent;
+        return { Kod: kod, Rate: parseFloat(forexSelling || '0') };
+      }).filter(c => c.Rate > 0 && ['USD', 'EUR', 'GBP'].includes(c.Kod));
+      
+      setExchangeRatesList(rates);
+    } catch (e: any) {
+      console.error('Kur bilgisi alınamadı: ' + e.message);
+    } finally {
+      setRatesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExchangeRates();
+  }, []);
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -1047,7 +1079,7 @@ export const Urunler: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-800">
-                    {Number(product.price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    {Number(product.price).toLocaleString('tr-TR', { style: 'currency', currency: product.currency || 'TRY' })}
                   </td>
                   <td className="px-6 py-4">
                     {(() => {
@@ -1183,7 +1215,7 @@ export const Urunler: React.FC = () => {
                  </div>
                  <div>
                     <span className="block text-gray-500 mb-1">Satış Fiyatı</span>
-                    <span className="font-bold text-emerald-600 text-lg">{Number(selectedProduct.price).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                    <span className="font-bold text-emerald-600 text-lg">{Number(selectedProduct.price).toLocaleString('tr-TR', { style: 'currency', currency: selectedProduct.currency || 'TRY' })}</span>
                  </div>
                  {selectedProduct.taxRate && (
                    <div>
@@ -1375,9 +1407,51 @@ export const Urunler: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Alış Fiyatı (₺)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Para Birimi</label>
+                  <select
+                    value={formData.currency || 'TRY'}
+                    onChange={(e) => {
+                      const newCurrency = e.target.value;
+                      const oldCurrency = formData.currency || 'TRY';
+                      let newPrice = formData.price;
+                      let newPurchasePrice = formData.purchasePrice || 0;
+                      
+                      // Convert from TRY to foreign currency
+                      if (oldCurrency === 'TRY' && newCurrency !== 'TRY') {
+                        const rateObj = exchangeRatesList.find(r => r.Kod === newCurrency);
+                        if (rateObj && rateObj.Rate > 0) {
+                          newPrice = Number((formData.price / rateObj.Rate).toFixed(2));
+                          newPurchasePrice = Number((newPurchasePrice / rateObj.Rate).toFixed(2));
+                        }
+                      } 
+                      // Convert from foreign currency to TRY
+                      else if (oldCurrency !== 'TRY' && newCurrency === 'TRY') {
+                        const rateObj = exchangeRatesList.find(r => r.Kod === oldCurrency);
+                        if (rateObj && rateObj.Rate > 0) {
+                          newPrice = Number((formData.price * rateObj.Rate).toFixed(2));
+                          newPurchasePrice = Number((newPurchasePrice * rateObj.Rate).toFixed(2));
+                        }
+                      }
+                      
+                      setFormData({
+                        ...formData, 
+                        currency: newCurrency,
+                        price: newPrice,
+                        purchasePrice: newPurchasePrice
+                      });
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="TRY">TRY (₺)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Alış Fiyatı</label>
                   <input 
                     type="number" 
                     value={formData.purchasePrice || ''}
@@ -1386,7 +1460,7 @@ export const Urunler: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Satış Fiyatı (₺)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Satış Fiyatı</label>
                   <input 
                     required
                     type="number" 

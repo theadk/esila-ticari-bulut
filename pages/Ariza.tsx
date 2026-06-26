@@ -792,9 +792,9 @@ export const Ariza: React.FC = () => {
         </head>
         <body>
           <div class="header">
-            ${isA4 && store.settings?.companyLogo ? `<img src="${store.settings.companyLogo}" alt="Logo" />` : ""}
+            ${store.settings?.companyLogo ? `<img src="${store.settings.companyLogo}" alt="Logo" />` : ""}
             <h1>ARIZA / SERVİS FORMU</h1>
-            ${isA4 && store.settings?.companyName ? `<p>${store.settings.companyName}</p>` : ""}
+            ${store.settings?.companyName ? `<p>${store.settings.companyName}</p>` : ""}
             <div class="header-info">
               Kayıt No: ${(tkt.id.length > 20 ? tkt.id.split("-")[0].toUpperCase() : tkt.id)} &nbsp;|&nbsp; 
               Kayıt: ${new Date(tkt.dateCreated).toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })} &nbsp;|&nbsp; 
@@ -1624,7 +1624,7 @@ export const Ariza: React.FC = () => {
                   className="w-full p-2.5 rounded-lg border border-gray-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 >
                   <option value="">Personel Seçin (Opsiyonel)</option>
-                  {personnel.map((p) => (
+                  {personnel.filter(p => p.employmentStatus === 'Aktif').map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.firstName} {p.lastName}
                     </option>
@@ -1749,7 +1749,7 @@ export const Ariza: React.FC = () => {
 
       {isDetailModalOpen && selectedTicket && (
         <div className="fixed inset-0 bg-gray-500/75 flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 flex-wrap gap-4">
               <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <Settings className="text-emerald-600" />
@@ -1935,9 +1935,9 @@ export const Ariza: React.FC = () => {
 
                   {selectedTicket.status !== ServiceTicketStatus.COMPLETED &&
                     selectedTicket.status !== ServiceTicketStatus.CANCELLED && (
-                      <div className="flex gap-2 mb-4">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4 w-full max-w-xl">
                         <select
-                          className="flex-1 p-2 rounded-lg border border-gray-200 outline-none"
+                          className="flex-1 min-w-0 p-2 text-sm rounded-lg border border-gray-200 outline-none truncate"
                           value={selectedProductToAdd}
                           onChange={(e) =>
                             setSelectedProductToAdd(e.target.value)
@@ -1976,15 +1976,15 @@ export const Ariza: React.FC = () => {
                         />
                         <button
                           onClick={addMaterialToTicket}
-                          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 rounded-lg font-medium transition-colors"
+                          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 sm:py-0 whitespace-nowrap rounded-lg font-medium transition-colors"
                         >
                           Ekle
                         </button>
                       </div>
                     )}
 
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-sm text-left">
+                  <div className="border border-gray-200 rounded-lg overflow-x-auto">
+                    <table className="w-full text-sm text-left min-w-[400px]">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="p-2 border-b text-gray-600">Ürün</th>

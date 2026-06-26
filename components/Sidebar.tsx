@@ -39,9 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
   const allMenuItems = [
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
     { id: 'hizlisatis', label: 'Hızlı Satış', icon: Zap },
-    { id: 'terminal', label: 'El Terminali', icon: ScanLine },
     { id: 'cariler', label: 'Cariler', icon: Users },
-    { id: 'crm', label: 'CRM & Kampanya', icon: Users },
     { id: 'urunler', label: 'Ürünler', icon: Package },
     { id: 'siparisler', label: 'Siparişler', icon: ShoppingCart },
     { id: 'satinalma', label: 'Satın Alma', icon: ShoppingBag },

@@ -2910,7 +2910,9 @@ async function startServer() {
     "salary_adjustments",
     "personnel_tasks",
     "documents",
-    "waybills"
+    "waybills",
+    "suspended_carts",
+    "personnel_kpis"
   ];
   for (const table of tables) {
     const tableColumnsCache: Record<string, string[]> = {};

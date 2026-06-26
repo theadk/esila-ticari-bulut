@@ -87,7 +87,6 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     { id: 'ariza', name: 'Arıza Formları' },
     { id: 'ajanda', name: 'Ajanda' },
     { id: 'crm', name: 'CRM & Kampanya' },
-    { id: 'terminal', name: 'El Terminali' },
     { id: 'uretim', name: 'Üretim' },
     { id: 'satinalma', name: 'Satın Alma' }
   ];

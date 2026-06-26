@@ -959,7 +959,7 @@ export const Personel: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold shrink-0">
-                        {p.firstName[0]}{p.lastName[0]}
+                        {p.firstName?.[0] || ''}{p.lastName?.[0] || ''}
                       </div>
                       <div>
                         <div className="font-semibold text-gray-800">{p.firstName} {p.lastName}</div>
@@ -1575,7 +1575,7 @@ export const Personel: React.FC = () => {
                 <div className="bg-white px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0">
                     <div className="flex flex-wrap items-center gap-4">
                        <div className="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold text-xl">
-                           {selectedPersonnel.firstName[0]}{selectedPersonnel.lastName[0]}
+                           {selectedPersonnel.firstName?.[0] || ''}{selectedPersonnel.lastName?.[0] || ''}
                        </div>
                        <div>
                            <h3 className="text-xl font-bold text-gray-800">Özlük Dosyası</h3>
@@ -1782,7 +1782,7 @@ export const Personel: React.FC = () => {
                 <div className="bg-white px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0">
                     <div className="flex flex-wrap items-center gap-4">
                        <div className="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold text-xl">
-                           {selectedPersonnel.firstName[0]}{selectedPersonnel.lastName[0]}
+                           {selectedPersonnel.firstName?.[0] || ''}{selectedPersonnel.lastName?.[0] || ''}
                        </div>
                        <div>
                            <h3 className="text-xl font-bold text-gray-800">Puantaj ve E-Bordro</h3>
@@ -2403,7 +2403,7 @@ const TaskTrackingView: React.FC = () => {
                  <label className="block text-sm font-medium text-gray-700 mb-1">Personel</label>
                  <select required className="w-full border border-gray-300 rounded-lg p-2" value={taskForm.personnelId || ''} onChange={e => setTaskForm({...taskForm, personnelId: e.target.value})}>
                    <option value="">Seçiniz...</option>
-                   {personnel.filter(p => p.status === 'Aktif').map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
+                   {personnel.filter(p => p.employmentStatus === 'Aktif').map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
                  </select>
                </div>
                <div>
@@ -2542,7 +2542,7 @@ const LeaveManagementView: React.FC = () => {
             <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold">
-                  {p.firstName[0]}{p.lastName[0]}
+                  {p.firstName?.[0] || ''}{p.lastName?.[0] || ''}
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-800">{p.firstName} {p.lastName}</h4>
@@ -2605,7 +2605,7 @@ const LeaveManagementView: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Personel</label>
                   <select value={selectedPersonId} onChange={e => setSelectedPersonId(e.target.value)} required className="w-full px-3 py-2 border rounded-lg bg-white">
                     <option value="">Personel Seçin</option>
-                    {personnel.map(p => (
+                    {personnel.filter(p => p.employmentStatus === 'Aktif').map(p => (
                       <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
                     ))}
                   </select>

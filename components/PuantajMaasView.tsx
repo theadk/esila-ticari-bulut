@@ -22,7 +22,7 @@ export const PuantajMaasView: React.FC = () => {
     amount: 0
   });
 
-  const personnelList = personnel.filter(p => p.status === 'Aktif');
+  const personnelList = personnel.filter(p => p.employmentStatus === 'Aktif');
 
   const getAttendanceStats = (personnelId: string, month: string) => {
     const records = attendance.filter(a => a.personnelId === personnelId && a.date.startsWith(month));

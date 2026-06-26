@@ -5,6 +5,7 @@ import { useAppStore } from '../lib/store';
 import { copyToClipboard } from '../lib/utils';
 import { UsersSettings } from '../components/UsersSettings';
 import { UserManual } from '../components/UserManual';
+import { ReceiptTemplateEditor } from '../components/ReceiptTemplateEditor';
 import { SystemStatus } from '../components/SystemStatus';
 import toast from 'react-hot-toast';
 
@@ -666,68 +667,9 @@ export const Ayarlar: React.FC = () => {
           )}
 
           {activeTab === 'yazici' && (
-            <div className="animate-fade-in flex flex-col lg:flex-row gap-4 md:p-8">
-              <div className="flex-1 space-y-6">
-                <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Makbuz & Çıktı Tasarımı</h3>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Makbuz Başlığı</label>
-                  <input 
-                    type="text" 
-                    value={settings.printer_header_text || ''}
-                    onChange={(e) => handleChange('printer_header_text', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Makbuz Alt Bilgisi</label>
-                  <textarea 
-                     rows={3}
-                     value={settings.printer_footer_text || ''}
-                     onChange={(e) => handleChange('printer_footer_text', e.target.value)}
-                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </div>
-                <div className="pt-4 text-sm text-gray-500">
-                  <p>Not: Logoyu 'Genel' sekmesinden yükleyebilirsiniz. Yüklenen logo sadece çıktı belgelerinde (makbuz, fatura vb.) kullanılacaktır.</p>
-                </div>
-              </div>
-              <div className="w-full lg:w-[320px] bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center border-b pb-2 mb-4">Önizleme (80mm Fiş)</h4>
-                <div className="bg-white border p-4 shadow-sm w-full mx-auto" style={{ maxWidth: '280px' }}>
-                  <div className="text-center mb-4">
-                    {settings.companyLogo ? (
-                      <img src={settings.companyLogo} alt="Logo" className="max-h-16 object-contain mx-auto mb-2" />
-                    ) : (
-                      <h2 className="font-logo text-4xl mb-2 text-black">{settings.printer_header_text || 'esila'}</h2>
-                    )}
-                    <p className="text-xs font-medium">{settings.companyName || 'Firma Ünvanı'}</p>
-                    <p className="text-xs text-gray-500 whitespace-pre-line">{settings.address?.substring(0, 30)}...</p>
-                    <p className="text-xs text-gray-500">{settings.phone}</p>
-                    {settings.taxOffice && settings.taxNumber && (
-                      <p className="text-xs text-gray-500 mt-1">{settings.taxOffice} - VKN: {settings.taxNumber}</p>
-                    )}
-                  </div>
-                  
-                  <div className="border-t border-dashed border-gray-300 py-3 mb-3 text-sm">
-                    <div className="flex justify-between font-bold mb-1">
-                      <span>Örnek Ürün</span>
-                      <span>150.00 TL</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>1 x 150.00 TL</span>
-                      <span>KDV %20</span>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-dashed border-gray-300 pt-3 text-right">
-                    <div className="font-bold text-lg">TOPLAM: 150.00 TL</div>
-                  </div>
-                  
-                  <div className="mt-6 text-center text-xs italic text-gray-600">
-                    <p className="whitespace-pre-line">{settings.printer_footer_text || 'Alt bilgi buraya gelecek...'}</p>
-                  </div>
-                </div>
-              </div>
+            <div className="animate-fade-in p-4 md:p-8">
+              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-6">Fiş Tasarım Editörü</h3>
+              <ReceiptTemplateEditor store={store} />
             </div>
           )}
 

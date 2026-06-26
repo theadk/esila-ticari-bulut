@@ -134,7 +134,7 @@ export const SystemStatus: React.FC = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Yük (1dk):</span>
-              <span className="font-semibold text-gray-700">{status.cpu.loadAvgs[0]?.toFixed(2) || 0}</span>
+              <span className="font-semibold text-gray-700">{status.cpu.loadAvgs?.[0]?.toFixed(2) || 0}</span>
             </div>
           </div>
         </div>

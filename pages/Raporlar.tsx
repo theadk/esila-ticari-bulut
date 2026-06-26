@@ -676,8 +676,8 @@ export const Raporlar: React.FC = () => {
                       <td className="py-3 px-4">{p.position}</td>
                       <td className="py-3 px-4 text-right font-medium">{(p.salary || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</td>
                       <td className="py-3 px-4 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${p.status === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                           {p.status}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${p.employmentStatus === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                           {p.employmentStatus}
                         </span>
                       </td>
                     </tr>

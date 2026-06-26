@@ -259,6 +259,49 @@ export async function initDb() {
         );
       `);
       await client.query(`
+        CREATE TABLE IF NOT EXISTS personnel (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          firstName VARCHAR(255),
+          lastName VARCHAR(255),
+          tcNo VARCHAR(50),
+          birthDate VARCHAR(50),
+          gender VARCHAR(50),
+          bloodType VARCHAR(50),
+          phone VARCHAR(50),
+          email VARCHAR(255),
+          address TEXT,
+          emergencyContactName VARCHAR(255),
+          emergencyContactPhone VARCHAR(50),
+          department VARCHAR(255),
+          position VARCHAR(255),
+          startDate VARCHAR(50),
+          endDate VARCHAR(50),
+          employmentStatus VARCHAR(50),
+          salary REAL,
+          iban VARCHAR(255),
+          socialSecurityNo VARCHAR(255),
+          currency VARCHAR(50),
+          records JSON,
+          payrollRecords JSON,
+          fixtures JSON,
+          payrolls JSON,
+          annualLeaveEntitlement REAL,
+          leaveRecords JSON
+        );
+      `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS personnel_records (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          personnelId VARCHAR(255),
+          date VARCHAR(50),
+          type VARCHAR(50),
+          description TEXT,
+          amount REAL
+        );
+      `);
+      await client.query(`
         CREATE TABLE IF NOT EXISTS attendance (
           vkn VARCHAR(50),
           id VARCHAR(255) PRIMARY KEY,

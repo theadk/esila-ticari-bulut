@@ -301,7 +301,6 @@ export const UsersSettings: React.FC = () => {
                        raporlar: 'Raporlar',
                        izin_yonetimi: 'Personel İzin Yönetimi',
                        crm: 'CRM & Kampanya',
-                       terminal: 'El Terminali',
                        dokumanlar: 'Dökümanlar'
                      }).map(([key, label]) => {
                        const permKey = key as keyof UserPermissions;

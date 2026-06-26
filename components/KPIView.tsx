@@ -68,7 +68,7 @@ export const KPIView: React.FC = () => {
                
                <div className="flex items-center gap-4 mb-6">
                   <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-xl font-bold text-gray-600">
-                    {p.firstName[0]}{p.lastName[0]}
+                    {p.firstName?.[0] || ''}{p.lastName?.[0] || ''}
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-800 text-lg">{p.firstName} {p.lastName}</h3>

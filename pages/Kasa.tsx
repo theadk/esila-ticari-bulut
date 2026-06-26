@@ -200,8 +200,30 @@ export const Kasa: React.FC = () => {
   };
 
   const handlePrintClick = (tx: CashTransaction) => {
-    setSelectedTxForPrint(tx);
-    setPrintModalOpen(true);
+    import('../lib/printUtils').then(({ generateThermalReceiptHtml, printHtml }) => {
+      const html = generateThermalReceiptHtml({
+        storeName: settings?.companyName || 'ESİLA TİCARİ',
+        storeAddress: settings?.address || '',
+        storePhone: settings?.phone || '',
+        taxOffice: settings?.taxOffice || '',
+        taxNumber: settings?.taxNumber || '',
+        companyLogo: settings?.companyLogo,
+        date: new Date(tx.date).toLocaleString('tr-TR'),
+        receiptNumber: tx.id,
+        items: [{
+          name: tx.category + ' (' + tx.description + ')',
+          quantity: 1,
+          price: tx.amount,
+          total: tx.amount
+        }],
+        total: tx.amount,
+        paymentMethod: tx.type === 'Gelir' ? 'Tahsilat' : 'Ödeme',
+        footerText: settings?.printer_footer_text,
+        headerText: settings?.printer_header_text,
+        settings: settings
+      });
+      printHtml(html);
+    });
   };
 
   const handlePrint = () => {
@@ -592,7 +614,7 @@ export const Kasa: React.FC = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
                     >
                       <option value="">Personel Seçiniz...</option>
-                      {personnel.map(p => (
+                      {personnel.filter(p => p.employmentStatus === 'Aktif').map(p => (
                           <option key={p.id} value={p.id}>{p.firstName} {p.lastName} - {p.department}</option>
                       ))}
                     </select>

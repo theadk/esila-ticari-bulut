@@ -293,7 +293,7 @@ export const Siparisler: React.FC = () => {
         description: `Sipariş: ${newOrder.id}`
       };
       
-      setTransactions([...transactions, newTransaction]);
+      setTransactions(prev => [...prev, newTransaction]);
       
       // Update Customer Balance (Satış means customer debt increases -> positive balance)
       let finalBalanceDelta = cartTotal;
@@ -319,20 +319,19 @@ export const Siparisler: React.FC = () => {
           description: `Sipariş Tahsilatı (${selectedCustomer.companyName || selectedCustomer.name}): ${newOrder.id}`,
           customerId: selectedCustomer.id
         };
-        setCashTransactions([...cashTransactions, newCashTx]);
+        setCashTransactions((prev: any) => [...(prev || []), newCashTx]);
         
         // Balance cancels out
         finalBalanceDelta = 0;
       }
 
       if (finalBalanceDelta !== 0) {
-        const updatedCustomers = customers.map(c => {
+        setCustomers((prev: any) => prev.map((c: any) => {
           if (c.id === selectedCustomer.id) {
             return { ...c, balance: Number(c.balance || 0) + finalBalanceDelta };
           }
           return c;
-        });
-        setCustomers(updatedCustomers);
+        }));
       }
 
       setIsCreateModalOpen(false);
@@ -421,16 +420,15 @@ export const Siparisler: React.FC = () => {
         amount: -(targetOrder.total || (targetOrder as any).totalAmount || 0),
         description: `Sipariş İptali: ${targetOrder.id}`
       };
-      setTransactions([...transactions, cancellationTx]);
+      setTransactions(prev => [...prev, cancellationTx]);
 
       // Deduct from customer balance
-      const updatedCustomers = customers.map(c => {
+      setCustomers((prev: any) => prev.map((c: any) => {
         if (c.id === targetOrder.customerId) {
-          return { ...c, balance: c.balance - (targetOrder.total || (targetOrder as any).totalAmount || 0) };
+          return { ...c, balance: Number(c.balance || 0) - (targetOrder.total || (targetOrder as any).totalAmount || 0) };
         }
         return c;
-      });
-      setCustomers(updatedCustomers);
+      }));
       
       // Restore stock only if it was completed and stock was actually deducted
       if (targetOrder.status === OrderStatus.COMPLETED || targetOrder.status === OrderStatus.SHIPPED) {
@@ -483,7 +481,36 @@ export const Siparisler: React.FC = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (printType === '80mm' && selectedOrder) {
+      import('../lib/printUtils').then(({ generateThermalReceiptHtml, printHtml }) => {
+        const html = generateThermalReceiptHtml({
+          storeName: store.settings?.companyName || 'ESİLA TİCARİ',
+          storeAddress: store.settings?.address || '',
+          storePhone: store.settings?.phone || '',
+          taxOffice: store.settings?.taxOffice || '',
+          taxNumber: store.settings?.taxNumber || '',
+          companyLogo: store.settings?.companyLogo,
+          date: formatDate(selectedOrder.date),
+          receiptNumber: selectedOrder.id,
+          customerName: selectedOrder.customerName,
+          items: selectedOrder.items.map(i => ({
+            name: i.productName,
+            quantity: i.quantity,
+            price: i.price * (1 + (i.taxRate || 0) / 100),
+            total: (i.price * i.quantity) * (1 + (i.taxRate || 0) / 100)
+          })),
+          subTotal: selectedOrder.subTotal,
+          taxTotal: selectedOrder.taxTotal,
+          total: selectedOrder.total || (selectedOrder as any).totalAmount || 0,
+          footerText: store.settings?.printer_footer_text,
+          headerText: store.settings?.printer_header_text,
+          settings: store.settings
+        });
+        printHtml(html);
+      });
+    } else {
+      window.print();
+    }
   };
 
   const formatDate = (dateStr: string) => {

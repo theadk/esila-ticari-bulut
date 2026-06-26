@@ -307,7 +307,16 @@ export async function initializeStore() {
       } },
       { name: 'work_orders', ref: (data: any) => { globalWorkOrders = data; } },
       { name: 'bank_accounts', ref: (data: any) => { globalBankAccounts = data.map((b: any) => ({ ...b, balance: Number(b.balance) || 0 })); } },
-      { name: 'personnel', ref: (data: any) => { globalPersonnel = data; } },
+      { name: 'personnel', ref: (data: any) => { 
+        globalPersonnel = data.map((p: any) => ({
+          ...p,
+          records: typeof p.records === 'string' ? JSON.parse(p.records) : (p.records || []),
+          payrollRecords: typeof p.payrollRecords === 'string' ? JSON.parse(p.payrollRecords) : (p.payrollRecords || []),
+          fixtures: typeof p.fixtures === 'string' ? JSON.parse(p.fixtures) : (p.fixtures || []),
+          payrolls: typeof p.payrolls === 'string' ? JSON.parse(p.payrolls) : (p.payrolls || []),
+          leaveRecords: typeof p.leaveRecords === 'string' ? JSON.parse(p.leaveRecords) : (p.leaveRecords || [])
+        })); 
+      } },
       { name: 'job_applications', ref: (data: any) => { globalJobApplications = data; } },
       { name: 'attendance', ref: (data: any) => { globalAttendance = data; } },
       { name: 'salary_adjustments', ref: (data: any) => { globalSalaryAdjustments = data; } },
@@ -372,6 +381,15 @@ export async function initializeStore() {
             items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || [])
           }));
       } },
+      { name: 'purchase_requests', ref: (data: any) => { globalPurchaseRequests = data; } },
+      { name: 'cheque_notes', ref: (data: any) => { globalChequeNotes = data; } },
+      { name: 'suspended_carts', ref: (data: any) => { 
+          globalSuspendedCarts = data.map((d: any) => ({
+             ...d,
+             items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || [])
+          }));
+      } },
+      { name: 'personnel_kpis', ref: (data: any) => { globalPersonnelKPIs = data; } },
       { name: 'meeting_notes', ref: (data: any) => {
           globalMeetingNotes = data;
       } }
@@ -525,7 +543,9 @@ export const useAppStore = () => {
     },
     get suspendedCarts() { return globalSuspendedCarts; },
     setSuspendedCarts(updater: any) {
+      const old = [...globalSuspendedCarts];
       globalSuspendedCarts = typeof updater === 'function' ? updater(globalSuspendedCarts) : updater;
+      syncArray('suspended_carts', old, globalSuspendedCarts);
       emit();
     },
     get attendance() { return globalAttendance; },
@@ -551,7 +571,9 @@ export const useAppStore = () => {
     },
     get personnelKPIs() { return globalPersonnelKPIs; },
     setPersonnelKPIs(updater: any) {
+      const old = [...globalPersonnelKPIs];
       globalPersonnelKPIs = typeof updater === 'function' ? updater(globalPersonnelKPIs) : updater;
+      syncArray('personnel_kpis', old, globalPersonnelKPIs);
       emit();
     },
     get meetingNotes() { return globalMeetingNotes; },
