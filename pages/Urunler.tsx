@@ -32,7 +32,7 @@ const INITIAL_FORM: Product = {
 
 export const Urunler: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'urunler', 'view');
   const canCreate = hasPermission(currentUser, 'urunler', 'create');
   const canEdit = hasPermission(currentUser, 'urunler', 'edit');

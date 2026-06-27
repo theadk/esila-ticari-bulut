@@ -13,7 +13,7 @@ import { hasPermission } from '../lib/permissions';
 
 export const Mutabakat: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'mutabakat', 'view');
   const canCreate = hasPermission(currentUser, 'mutabakat', 'create');
   const canEdit = hasPermission(currentUser, 'mutabakat', 'edit');
@@ -87,7 +87,7 @@ export const Mutabakat: React.FC = () => {
       FIRMA_VERGI_DAIRESI: store.settings.taxOffice || '',
       FIRMA_VKN: store.settings.taxNumber || '',
       TARIH: new Date(reconciliation.date).toLocaleDateString('tr-TR'),
-      MUTABAKAT_LINKI: `${window.location.origin}/mutabakat-onay/${reconciliation.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')}`
+      MUTABAKAT_LINKI: `${window.location.origin}/mutabakat-onay/${reconciliation.id}?vkn=${store.settings.taxNumber || sessionStorage.getItem('esila_tenant_id')}`
     });
 
     const promise = fetch('/api/send-email', {
@@ -146,7 +146,7 @@ export const Mutabakat: React.FC = () => {
         if (customer) {
             await sendEmailAlert(newlyCreated, customer);
             if (formData.sendSms && customer.phone) {
-                const text = `Sayın ${customer.companyName || customer.name} yetkilisi, ${new Date(newlyCreated.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${newlyCreated.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${newlyCreated.balanceType}) mutabıktır. Linkten onaylayabilirsiniz: ${window.location.origin}/mutabakat-onay/${newlyCreated.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')} - ${store.settings?.companyName || ''}`;
+                const text = `Sayın ${customer.companyName || customer.name} yetkilisi, ${new Date(newlyCreated.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${newlyCreated.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${newlyCreated.balanceType}) mutabıktır. Linkten onaylayabilirsiniz: ${window.location.origin}/mutabakat-onay/${newlyCreated.id}?vkn=${store.settings.taxNumber || sessionStorage.getItem('esila_tenant_id')} - ${store.settings?.companyName || ''}`;
                 try {
                   await sendSMS(store.settings, [customer.phone], text);
                   toast.success("SMS başarıyla gönderildi!");
@@ -203,7 +203,7 @@ export const Mutabakat: React.FC = () => {
           const newlyCreated = await res.json();
           await sendEmailAlert(newlyCreated, customer);
           if (bulkFormData.sendSms && customer.phone) {
-             const text = `Sayın ${customer.companyName || customer.name} yetkilisi, ${new Date(newlyCreated.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${newlyCreated.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${newlyCreated.balanceType}) mutabıktır. Linkten onaylayabilirsiniz: ${window.location.origin}/mutabakat-onay/${newlyCreated.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')} - ${store.settings?.companyName || ''}`;
+             const text = `Sayın ${customer.companyName || customer.name} yetkilisi, ${new Date(newlyCreated.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${newlyCreated.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${newlyCreated.balanceType}) mutabıktır. Linkten onaylayabilirsiniz: ${window.location.origin}/mutabakat-onay/${newlyCreated.id}?vkn=${store.settings.taxNumber || sessionStorage.getItem('esila_tenant_id')} - ${store.settings?.companyName || ''}`;
              try {
                 await sendSMS(store.settings, [customer.phone], text);
              } catch(e) { } // Ignore errors in bulk to continue
@@ -422,7 +422,7 @@ export const Mutabakat: React.FC = () => {
                              alert("Müşterinin telefon numarası kayıtlı değil.");
                              return;
                            }
-                           const link = `${window.location.origin}/mutabakat-onay/${r.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')}`;
+                           const link = `${window.location.origin}/mutabakat-onay/${r.id}?vkn=${store.settings.taxNumber || sessionStorage.getItem('esila_tenant_id')}`;
                            const ibanText = (r.balanceType === 'B' && store.settings?.iban) ? `\n\nÖdeme Bilgilerimiz:\nBanka: ${store.settings?.bankName || ''}\nIBAN: ${store.settings?.iban}` : '';
                            const text = `Sayın ${r.customerName} yetkilisi, güncel kayıtlarımıza göre ${new Date(r.date).toLocaleDateString('tr-TR')} tarihi itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })} (${r.balanceType}) tutarında mutabıktır. Linkten teyit etmenizi rica ederiz: ${link} ${ibanText}\n\nSaygılarımızla, ${store.settings?.companyName || 'Şirket'}`;
                            window.open(`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
@@ -439,7 +439,7 @@ export const Mutabakat: React.FC = () => {
                              alert("Müşterinin telefon numarası kayıtlı değil.");
                              return;
                            }
-                           const link = `${window.location.origin}/mutabakat-onay/${r.id}?vkn=${store.settings.taxNumber || localStorage.getItem('esila_tenant_id')}`;
+                           const link = `${window.location.origin}/mutabakat-onay/${r.id}?vkn=${store.settings.taxNumber || sessionStorage.getItem('esila_tenant_id')}`;
                            const ibanText = (r.balanceType === 'B' && store.settings?.iban) ? ` Ödeme: ${store.settings?.iban}` : '';
                            const text = `Sayın ${r.customerName} yetkilisi, ${new Date(r.date).toLocaleDateString('tr-TR')} itibariyle bakiyemiz ${r.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL (${r.balanceType}) mutabıktır. Linkten onaylayabilirsiniz: ${link} ${ibanText} ${store.settings?.companyName || 'Şirket'}`;
                            try {

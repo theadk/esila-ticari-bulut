@@ -3042,6 +3042,7 @@ async function startServer() {
     app.get(`/api/${table}`, async (req, res) => {
       try {
         const vkn = req.headers["x-tenant-id"] || "1111111111";
+        const userId = req.headers["x-user-id"];
         if (
           !process.env.DATABASE_URL ||
           !process.env.DATABASE_URL.startsWith("mysql")
@@ -3049,10 +3050,22 @@ async function startServer() {
           return res.json(getFallbackTable(table, vkn));
         }
         const pool = getPool();
-        const [rows] = await pool.query(
-          `SELECT * FROM ${table} WHERE vkn = ?`,
-          [vkn],
-        );
+        
+        let query = `SELECT * FROM ${table} WHERE vkn = ?`;
+        const params: any[] = [vkn];
+        
+        if (userId && (table === 'personnel' || table === 'stock_transfers' || table === 'warehouses')) {
+          const [userRows]: any = await pool.query(`SELECT role, branch FROM users WHERE id = ? AND vkn = ?`, [userId, vkn]);
+          if (userRows.length > 0) {
+            const user = userRows[0];
+            if (user.role !== 'Admin' && user.branch) {
+              query += ` AND branch = ?`;
+              params.push(user.branch);
+            }
+          }
+        }
+        
+        const [rows] = await pool.query(query, params);
         res.json(rows);
       } catch (e) {
         res.status(500).json({ error: String(e) });

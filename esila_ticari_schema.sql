@@ -149,21 +149,31 @@ CREATE TABLE IF NOT EXISTS cash_transactions (
 CREATE TABLE IF NOT EXISTS personnel (
     vkn VARCHAR(50),
     id VARCHAR(255) PRIMARY KEY,
-    name VARCHAR(255),
+    firstName VARCHAR(255),
+    lastName VARCHAR(255),
     tcNo VARCHAR(11),
+    birthDate DATE,
+    gender VARCHAR(20),
+    bloodType VARCHAR(10),
     phone VARCHAR(50),
     email VARCHAR(255),
     address TEXT,
-    position VARCHAR(255),
-    department VARCHAR(255),
-    startDate DATE,
-    salary DECIMAL(15,2),
-    status ENUM('Aktif', 'Ayrıldı', 'İzinde'),
-    bankName VARCHAR(255),
-    iban VARCHAR(50),
     emergencyContactName VARCHAR(255),
     emergencyContactPhone VARCHAR(50),
-    fixtures JSON
+    department VARCHAR(255),
+    position VARCHAR(255),
+    startDate DATE,
+    endDate DATE,
+    employmentStatus ENUM('Aktif', 'Ayrıldı', 'İzinde'),
+    salary DECIMAL(15,2),
+    iban VARCHAR(50),
+    socialSecurityNo VARCHAR(50),
+    currency VARCHAR(10),
+    records JSON,
+    payrollRecords JSON,
+    fixtures JSON,
+    payrolls JSON,
+    leaveRecords JSON
 );
 
 CREATE TABLE IF NOT EXISTS personnel_records (
@@ -377,6 +387,27 @@ CREATE TABLE IF NOT EXISTS campaigns (
     startDate DATETIME,
     endDate DATETIME,
     isActive BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS attendance (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    personnelId VARCHAR(255),
+    date DATE,
+    status VARCHAR(50),
+    entryTime VARCHAR(50),
+    exitTime VARCHAR(50),
+    overtimeHours DECIMAL(15,2)
+);
+
+CREATE TABLE IF NOT EXISTS salary_adjustments (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    personnelId VARCHAR(255),
+    date DATE,
+    type VARCHAR(50),
+    amount DECIMAL(15,2),
+    description TEXT
 );
 
 CREATE TABLE IF NOT EXISTS meeting_notes (

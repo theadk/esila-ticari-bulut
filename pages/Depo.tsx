@@ -9,7 +9,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export const Depo: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'depo', 'view');
   const canCreate = hasPermission(currentUser, 'depo', 'create');
   const canEdit = hasPermission(currentUser, 'depo', 'edit');
@@ -171,13 +171,27 @@ export const Depo: React.FC = () => {
   const loadData = async () => {
     try {
       const [whs, prds, trs] = await Promise.all([api.getWarehouses(), api.getProducts(), api.getStockTransfers()]);
-      const availableWhs = currentUser?.assignedWarehouse 
-        ? whs.filter(w => w.id === currentUser.assignedWarehouse)
-        : whs;
+      let availableWhs = whs;
+      
+      // Filter by assigned warehouse
+      if (currentUser?.assignedWarehouse) {
+        availableWhs = availableWhs.filter(w => w.id === currentUser.assignedWarehouse);
+      }
+      
+      // Filter by branch
+      if (currentUser?.role !== 'Admin' && currentUser?.branch) {
+        availableWhs = availableWhs.filter(w => w.branch === currentUser.branch);
+      }
+      
+      let availableTrs = trs;
+      if (currentUser?.role !== 'Admin' && currentUser?.branch) {
+        availableTrs = availableTrs.filter(t => t.branch === currentUser.branch);
+      }
+      
       setAllWarehouses(whs);
       setWarehouses(availableWhs);
       setProducts(prds);
-      setTransfers(trs);
+      setTransfers(availableTrs);
       if (availableWhs.length > 0 && !activeWarehouse) {
         setActiveWarehouse(availableWhs[0].name);
       }
@@ -268,7 +282,8 @@ export const Depo: React.FC = () => {
          targetWarehouse: transferForm.targetWarehouse,
          quantity: transferForm.quantity,
          date: new Date().toISOString(),
-         personnelName: store.users?.[0] ? store.users[0].name : 'Admin'
+         personnelName: currentUser ? currentUser.name : 'Admin',
+         branch: currentUser?.branch || ''
       });
       await loadData();
       setIsTransferModalOpen(false);
@@ -1170,6 +1185,16 @@ export const Depo: React.FC = () => {
                     type="text" 
                     value={newWh.name}
                     onChange={(e) => setNewWh({...newWh, name: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Şube</label>
+                  <input 
+                    type="text" 
+                    value={newWh.branch || ''}
+                    onChange={(e) => setNewWh({...newWh, branch: e.target.value})}
+                    placeholder="Örn: Merkez Şube"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
                </div>

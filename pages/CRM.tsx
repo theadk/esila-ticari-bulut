@@ -24,7 +24,7 @@ export const CRM: React.FC = () => {
   const { customers, meetingNotes, campaigns, setCampaigns } = store;
 
   const currentUser =
-    store.users.find((u) => u.id === localStorage.getItem("esila_user_id")) ||
+    store.users.find((u) => u.id === sessionStorage.getItem("esila_user_id")) ||
     store.users[0];
   const canView = hasPermission(currentUser, "crm", "view");
 

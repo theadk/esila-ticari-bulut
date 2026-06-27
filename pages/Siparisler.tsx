@@ -12,7 +12,7 @@ import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 export const Siparisler: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find((u: any) => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find((u: any) => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'siparisler', 'view');
   const canCreate = hasPermission(currentUser, 'siparisler', 'create');
   const canEdit = hasPermission(currentUser, 'siparisler', 'edit');
@@ -447,7 +447,7 @@ export const Siparisler: React.FC = () => {
   const handleGenerateLink = async () => {
     if (!selectedOrder) return;
     try {
-      const link = `${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`;
+      const link = `${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${sessionStorage.getItem('esila_tenant_id') || '1111111111'}`;
       await navigator.clipboard.writeText(link);
       toast.success('Bağlantı panoya kopyalandı!');
     } catch (err: any) {
@@ -1388,7 +1388,7 @@ export const Siparisler: React.FC = () => {
                              </div>
                            </div>
                            <div className="text-center">
-                             <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`} size={80} level="M" />
+                             <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${sessionStorage.getItem('esila_tenant_id') || '1111111111'}`} size={80} level="M" />
                              <p className="text-[10px] mt-1 text-gray-500">Siparişi Doğrula</p>
                            </div>
                         </div>
@@ -1475,7 +1475,7 @@ export const Siparisler: React.FC = () => {
                      </div>
 
                      <div className="text-center text-xs text-gray-500 mt-8 flex flex-col items-center">
-                       <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`} size={64} level="M" className="mb-2" />
+                       <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${sessionStorage.getItem('esila_tenant_id') || '1111111111'}`} size={64} level="M" className="mb-2" />
                        <p className="mb-2">Siparişi Doğrula</p>
                        <p className="whitespace-pre-line">{store.settings.printer_footer_text}</p>
                      </div>
@@ -1625,7 +1625,7 @@ export const Siparisler: React.FC = () => {
                          </div>
                        </div>
                        <div className="text-center">
-                         <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`} size={80} level="M" />
+                         <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${sessionStorage.getItem('esila_tenant_id') || '1111111111'}`} size={80} level="M" />
                          <p className="text-[10px] mt-1 text-gray-500">Siparişi Doğrula</p>
                        </div>
                     </div>
@@ -1711,7 +1711,7 @@ export const Siparisler: React.FC = () => {
                  </div>
                  
                  <div className="text-center text-xs mt-8 flex flex-col items-center">
-                   <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${localStorage.getItem('esila_tenant_id') || '1111111111'}`} size={64} level="M" className="mb-2" />
+                   <QRCodeSVG value={`${window.location.origin}?public_form=${selectedOrder.id}&type=order&t=${sessionStorage.getItem('esila_tenant_id') || '1111111111'}`} size={64} level="M" className="mb-2" />
                    <p className="mb-2">Siparişi Doğrula</p>
                    <p className="whitespace-pre-line">{store.settings.printer_footer_text || 'Teşekkür Ederiz'}</p>
                  </div>

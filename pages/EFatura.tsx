@@ -28,7 +28,7 @@ import { hasPermission } from '../lib/permissions';
 
 export const EFatura: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'efatura', 'view');
   const canCreate = hasPermission(currentUser, 'efatura', 'create');
   const canEdit = hasPermission(currentUser, 'efatura', 'edit');

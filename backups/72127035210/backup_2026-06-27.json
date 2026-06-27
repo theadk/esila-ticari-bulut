@@ -1,0 +1,88 @@
+{
+  "users": [
+    {
+      "vkn": "72127035210",
+      "id": "admin-72127035210",
+      "name": "MERT AVŞAR Admin",
+      "username": "72127035210",
+      "email": "mertavsar66@hotmail.com",
+      "passwordHash": "cPpIhd9HbQ-U",
+      "role": "Admin",
+      "status": "Aktif",
+      "permissions": null,
+      "assignedWarehouse": null
+    }
+  ],
+  "settings": [
+    {
+      "vkn": "72127035210",
+      "id": 1,
+      "companyName": "MERT AVŞAR",
+      "address": "AKDAĞMADENİ/YOZGAT - Akdağmadeni - Yozgat",
+      "phone": "5439246216",
+      "email": "mertavsar66@hotmail.com",
+      "taxOffice": null,
+      "taxNumber": null,
+      "companyLogo": null,
+      "smtp_host": null,
+      "smtp_port": null,
+      "smtp_user": null,
+      "smtp_pass": null,
+      "sms_token": null,
+      "sms_sender_id": null,
+      "printer_header_text": null,
+      "printer_footer_text": null,
+      "prefix_customer": null,
+      "next_customer_id": null,
+      "prefix_order": null,
+      "next_order_id": null,
+      "prefix_offer": null,
+      "next_offer_id": null,
+      "prefix_product": null,
+      "next_product_id": null,
+      "prefix_personnel": null,
+      "next_personnel_id": null,
+      "efatura_username": null,
+      "efatura_password": null,
+      "efatura_apikey": null,
+      "plumbingChecklistTemplate": null
+    }
+  ],
+  "categories": [],
+  "brands": [],
+  "products": [],
+  "warehouses": [],
+  "stock_transfers": [],
+  "customers": [],
+  "customer_transactions": [],
+  "cash_transactions": [],
+  "personnel": [],
+  "personnel_records": [],
+  "orders": [],
+  "proposals": [],
+  "reconciliations": [],
+  "service_tickets": [],
+  "e_invoices": [],
+  "email_logs": [
+    {
+      "id": "1782221256366eobbs8",
+      "vkn": "72127035210",
+      "recipient": "mertavsar66@hotmail.com",
+      "subject": "Hesabınız Aktive Edildi - Esila Ticari",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-23T16:27:36.000Z"
+    },
+    {
+      "id": "1782221260454l958c",
+      "vkn": "72127035210",
+      "recipient": "mertavsar66@hotmail.com",
+      "subject": "Hesabınız Aktive Edildi - Esila Ticari",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-23T16:27:40.000Z"
+    }
+  ],
+  "reminder_notes": [],
+  "job_applications": []
+}

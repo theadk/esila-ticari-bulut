@@ -9,7 +9,7 @@ import { api } from '../lib/api';
 
 export const HizliSatis: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'hizlisatis', 'view');
   const canCreate = hasPermission(currentUser, 'hizlisatis', 'create');
 

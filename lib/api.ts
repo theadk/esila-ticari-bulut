@@ -1,9 +1,13 @@
 import { Product, Warehouse, Category, Brand } from '../types';
 
 export async function apiFetch(input: RequestInfo, init?: RequestInit) {
-  const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
+  const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
+  const userId = sessionStorage.getItem('esila_user_id') || '';
   const headers = new Headers(init?.headers || {});
   headers.set('x-tenant-id', tenantId);
+  if (userId) {
+    headers.set('x-user-id', userId);
+  }
   return fetch(input, { ...init, headers });
 }
 

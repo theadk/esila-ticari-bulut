@@ -71,28 +71,15 @@ let globalBankAccounts: BankAccount[] = [
   { id: 'BANK-1', bankName: 'Garanti BBVA', accountName: 'Ana Hesap', iban: 'TR12 3456 7890 1234 5678 90', balance: 150000 },
   { id: 'BANK-2', bankName: 'Yapı Kredi', accountName: 'Kredi Kartı', iban: 'TR98 7654 3210 9876 5432 10', balance: -5000 }
 ];
-let globalPersonnel = [...MOCK_PERSONNEL];
+let globalPersonnel: Personnel[] = [];
 let globalJobApplications: JobApplication[] = [];
 let globalServiceTickets: ServiceTicket[] = [];
 let globalReminderNotes: ReminderNote[] = [];
 let globalNotifications: AppNotification[] = [];
-let globalAttendance: AttendanceRecord[] = [
-  { id: 'att-1', personnelId: 'p1', date: '2026-06-01', status: 'Geldi', overtimeHours: 2 },
-  { id: 'att-2', personnelId: 'p1', date: '2026-06-02', status: 'Geldi', overtimeHours: 0 },
-  { id: 'att-3', personnelId: 'p1', date: '2026-06-03', status: 'Geldi', overtimeHours: 0 },
-  { id: 'att-4', personnelId: 'p1', date: '2026-06-04', status: 'İzinli', overtimeHours: 0 },
-  { id: 'att-5', personnelId: 'p1', date: '2026-06-05', status: 'Geldi', overtimeHours: 1 }
-];
-let globalSalaryAdjustments: SalaryAdjustment[] = [
-  { id: 'adj-1', personnelId: 'p1', date: '2026-06-10', type: 'Avans', amount: 1000, description: 'Nakit Avans' },
-  { id: 'adj-2', personnelId: 'p1', date: '2026-06-15', type: 'Prim', amount: 500, description: 'Performans Primi' }
-];
-let globalPersonnelTasks: PersonnelTask[] = [
-  { id: 'tsk-1', personnelId: 'p1', title: 'Müşteri Görüşmesi', description: 'A firması ile toplantı.', status: 'Devam Ediyor', dueDate: '2026-06-26', createdAt: '2026-06-25', priority: 'Yüksek' }
-];
-let globalPersonnelKPIs: PersonnelKPI[] = [
-  { id: 'kpi-1', personnelId: 'p1', month: '2026-06', targetSalesAmount: 500000, actualSalesAmount: 350000, targetNewLeads: 20, actualNewLeads: 12 }
-];
+let globalAttendance: AttendanceRecord[] = [];
+let globalSalaryAdjustments: SalaryAdjustment[] = [];
+let globalPersonnelTasks: PersonnelTask[] = [];
+let globalPersonnelKPIs: PersonnelKPI[] = [];
 let globalMeetingNotes: MeetingNote[] = [];
 let globalChequeNotes: any[] = [];
 
@@ -219,9 +206,13 @@ function emit() {
 
 // Use this for all API requests to pass the tenant context
 async function apiFetch(input: RequestInfo, init?: RequestInit) {
-  const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
+  const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
+  const userId = sessionStorage.getItem('esila_user_id') || '';
   const headers = new Headers(init?.headers || {});
   headers.set('x-tenant-id', tenantId);
+  if (userId) {
+    headers.set('x-user-id', userId);
+  }
   return fetch(input, { ...init, headers });
 }
 

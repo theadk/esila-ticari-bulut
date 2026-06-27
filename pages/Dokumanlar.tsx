@@ -11,7 +11,7 @@ import { hasPermission } from '../lib/permissions';
 
 export const Dokumanlar: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'dokumanlar', 'view');
   const canCreate = hasPermission(currentUser, 'dokumanlar', 'create');
   const canEdit = hasPermission(currentUser, 'dokumanlar', 'edit');

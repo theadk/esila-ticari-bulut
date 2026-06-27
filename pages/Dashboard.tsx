@@ -209,7 +209,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
 
     fetch('/api/tenant-info', {
       headers: {
-        'x-tenant-id': localStorage.getItem('esila_tenant_id') || ''
+        'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || ''
       }
     }).then(res => res.json()).then(data => setTenantInfo(data)).catch();
   }, []);

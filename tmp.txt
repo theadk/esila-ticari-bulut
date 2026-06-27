@@ -1,17 +1,60 @@
-                        {Number(inv.amount || 0).toLocaleString("tr-TR", {
-                              {Number(priceWithoutTax || 0).toLocaleString("tr-TR", {
-                              {Number((taxAmount * item.quantity) || 0).toLocaleString(
-                              {Number(totalItemWithoutTax || 0).toLocaleString("tr-TR", {
-                              {Number(priceWithoutTax || 0).toLocaleString("tr-TR", {
-                              {Number((taxAmount * item.quantity) || 0).toLocaleString(
-                              {Number(totalItemWithoutTax || 0).toLocaleString("tr-TR", {
-                          {Number((previewInvoice.amount || 0) / 1.2).toLocaleString(
-                          ).toLocaleString("tr-TR", {
-                          {Number((previewInvoice.amount || 0) / 1.2).toLocaleString(
-                            ).toLocaleString("tr-TR", {
-                            ).toLocaleString("tr-TR", {
-                            ).toLocaleString("tr-TR", {
-                            ).toLocaleString("tr-TR", {
-                            ).toLocaleString("tr-TR", {
-                      <td className="p-3 text-gray-600">{Number(inv.taxTotal || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</td>
-                        {Number(inv.total || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
+36:import { getPool, initDb } from "./server/db.js";
+85:        const pool = getPool();
+375:        const pool = getPool();
+443:        const pool = getPool();
+529:      const pool = getPool();
+570:         const pool = getPool();
+670:      const pool = getPool();
+823:      const pool = getPool();
+855:      const pool = getPool();
+878:      const pool = getPool();
+916:      const pool = getPool();
+944:      const pool = getPool();
+974:      const pool = getPool();
+994:      const pool = getPool();
+1017:      const pool = getPool();
+1041:      const pool = getPool();
+1066:      const pool = getPool();
+1089:      const pool = getPool();
+1108:      const pool = getPool();
+1166:      const pool = getPool();
+1235:      const pool = getPool();
+1289:      const pool = getPool();
+1374:      const pool = getPool();
+1443:      const pool = getPool();
+1500:      const pool = getPool();
+1539:      const pool = getPool();
+1573:      const pool = getPool();
+1624:      const pool = getPool();
+1661:      const pool = getPool();
+1691:      const pool = getPool();
+1721:      const pool = getPool();
+1753:      const pool = getPool();
+1807:      const pool = getPool();
+1943:      const pool = getPool();
+2009:      const pool = getPool();
+2282:            const pool = getPool();
+2312:      const pool = getPool();
+2346:      const pool = getPool();
+2360:      const pool = getPool();
+2400:      const pool = getPool();
+2427:      const pool = getPool();
+2446:            const pool = getPool();
+2491:      const pool = getPool();
+2552:      const pool = getPool();
+2610:      const pool = getPool();
+2629:      const pool = getPool();
+2651:      const pool = getPool();
+2679:      const pool = getPool();
+2712:        const pool = getPool();
+2733:        const pool = getPool();
+2831:        const pool = getPool();
+2948:        const pool = getPool();
+3052:        const pool = getPool();
+3085:        const pool = getPool();
+3124:        const pool = getPool();
+3171:        const pool = getPool();
+3231:          const pool = getPool();
+3281:            const pool = getPool();
+3377:          const pool = getPool();
+3462:            const pool = getPool();

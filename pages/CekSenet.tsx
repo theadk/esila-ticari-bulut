@@ -8,7 +8,7 @@ import { hasPermission } from '../lib/permissions';
 
 export const CekSenet: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'ceksenet', 'view');
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'alinan' | 'verilen'>('dashboard');
@@ -35,7 +35,7 @@ export const CekSenet: React.FC = () => {
   const fetchNotes = async () => {
     try {
       const res = await fetch('/api/cheque_notes', {
-        headers: { 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '1111111111' }
+        headers: { 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' }
       });
       if (res.ok) {
         const data = await res.json();
@@ -48,7 +48,7 @@ export const CekSenet: React.FC = () => {
   const fetchCustomers = async () => {
     try {
       const res = await fetch('/api/customers', {
-        headers: { 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '1111111111' }
+        headers: { 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' }
       });
       if (res.ok) {
         setCustomers(await res.json());
@@ -67,7 +67,7 @@ export const CekSenet: React.FC = () => {
     try {
       const res = await fetch(`/api/cheque_notes/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '1111111111' },
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' },
         body: JSON.stringify({ ...note, status: newStatus })
       });
       if (res.ok) {
@@ -98,7 +98,7 @@ export const CekSenet: React.FC = () => {
       
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '1111111111' },
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' },
         body: JSON.stringify(dataToSave)
       });
       
@@ -117,7 +117,7 @@ export const CekSenet: React.FC = () => {
     try {
       const res = await fetch(`/api/cheque_notes/${id}`, {
         method: 'DELETE',
-        headers: { 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '1111111111' }
+        headers: { 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' }
       });
       if (res.ok) {
         toast.success('Kayıt silindi');

@@ -84,8 +84,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       });
       if (res.ok) {
         const user = await res.json();
-        localStorage.setItem('esila_tenant_id', user.vkn || '1111111111');
-        localStorage.setItem('esila_user_id', user.id);
+        sessionStorage.setItem('esila_tenant_id', user.vkn || '1111111111');
+        sessionStorage.setItem('esila_user_id', user.id);
         onLogin();
       } else {
         const err = await res.json();

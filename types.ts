@@ -65,6 +65,7 @@ export interface Warehouse {
   name: string;
   address?: string;
   capacity?: number;
+  branch?: string; // Şube
 }
 
 export interface Category {
@@ -87,6 +88,7 @@ export interface StockTransfer {
   quantity: number;
   date: string;
   personnelName: string;
+  branch?: string; // Şube
 }
 
 export interface CustomerTransaction {
@@ -257,6 +259,7 @@ export interface Personnel {
   salary: number;
   iban: string;
   socialSecurityNo: string; // SGK No
+  branch?: string; // Şube
   
   records: PersonnelRecord[];
   currency?: string;
@@ -338,6 +341,7 @@ export interface User {
   status: 'Aktif' | 'Pasif';
   permissions?: UserPermissions;
   assignedWarehouse?: string;
+  branch?: string; // Şube
 }
 
 export interface Settings {

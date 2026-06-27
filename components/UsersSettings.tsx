@@ -34,6 +34,7 @@ const INITIAL_FORM: Omit<User, 'id'> = {
   passwordHash: '',
   role: 'Kullanıcı',
   status: 'Aktif',
+  branch: '',
   permissions: JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS)),
 };
 
@@ -259,19 +260,31 @@ export const UsersSettings: React.FC = () => {
                   </select>
                 </div>
                 {formData.role === 'Kullanıcı' && (
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Görevli Depo</label>
-                    <select 
-                      value={formData.assignedWarehouse || ''}
-                      onChange={e => setFormData({ ...formData, assignedWarehouse: e.target.value || undefined })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
-                    >
-                      <option value="">Tüm Depolar</option>
-                      {warehouses.map((w: any) => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Şube</label>
+                      <input 
+                        type="text"
+                        value={formData.branch || ''}
+                        onChange={e => setFormData({ ...formData, branch: e.target.value })}
+                        placeholder="Örn: Merkez Şube"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Görevli Depo</label>
+                      <select 
+                        value={formData.assignedWarehouse || ''}
+                        onChange={e => setFormData({ ...formData, assignedWarehouse: e.target.value || undefined })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                      >
+                        <option value="">Tüm Depolar</option>
+                        {warehouses.map((w: any) => (
+                          <option key={w.id} value={w.id}>{w.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
                 )}
               </div>
 

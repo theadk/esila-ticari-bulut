@@ -8,7 +8,7 @@ import { Pagination } from '../components/Pagination';
 
 export const Teklifler: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'teklifler', 'view');
   const canCreate = hasPermission(currentUser, 'teklifler', 'create');
   const canEdit = hasPermission(currentUser, 'teklifler', 'edit');
@@ -165,7 +165,7 @@ export const Teklifler: React.FC = () => {
 
   const handleShareWhatsApp = () => {
     if (!selectedProposal) return;
-    const tenantId = localStorage.getItem('esila_tenant_id');
+    const tenantId = sessionStorage.getItem('esila_tenant_id');
     const url = `${window.location.origin}/teklif-onay/${selectedProposal.id}?tenantId=${tenantId}`;
     const text = `Merhaba,\n\n${selectedProposal.id} numaralı teklifiniz hazır. Aşağıdaki bağlantıya tıklayarak teklif detaylarını inceleyebilir ve onaylayabilirsiniz:\n\n${url}\n\nİyi günler dileriz.`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -173,7 +173,7 @@ export const Teklifler: React.FC = () => {
 
   const handleShareEmail = () => {
     if (!selectedProposal) return;
-    const tenantId = localStorage.getItem('esila_tenant_id');
+    const tenantId = sessionStorage.getItem('esila_tenant_id');
     const url = `${window.location.origin}/teklif-onay/${selectedProposal.id}?tenantId=${tenantId}`;
     const subject = `${selectedProposal.id} Numaralı Teklifiniz`;
     const body = `Merhaba,\n\n${selectedProposal.id} numaralı teklifiniz hazır. Aşağıdaki bağlantıya tıklayarak teklif detaylarını inceleyebilir ve onaylayabilirsiniz:\n\n${url}\n\nİyi günler dileriz.`;

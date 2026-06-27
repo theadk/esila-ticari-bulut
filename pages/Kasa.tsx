@@ -10,7 +10,7 @@ import { CekSenet } from './CekSenet';
 
 export const Kasa: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'kasa', 'view');
   const canCreate = hasPermission(currentUser, 'kasa', 'create');
   const canEdit = hasPermission(currentUser, 'kasa', 'edit');
