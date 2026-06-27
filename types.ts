@@ -1,5 +1,6 @@
 export enum OrderStatus {
   PENDING = 'Bekliyor',
+  PREPARED = 'Hazır',
   COMPLETED = 'Tamamlandı',
   CANCELLED = 'İptal',
   SHIPPED = 'Kargolandı'

@@ -44,7 +44,9 @@ const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
 );
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!(localStorage.getItem('esila_tenant_id') && localStorage.getItem('esila_user_id'));
+  });
   const [activePage, setActivePage] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -108,12 +110,12 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      initializeStore();
+      initializeStore(true);
       fetch('/api/tenant-info', {
         headers: { 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '' }
       }).then(res => res.json()).then(data => setTenantInfo(data)).catch(console.error);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, activePage]);
 
   useKeyboardShortcuts({
     'ctrl+k': () => setIsCommandPaletteOpen(true),

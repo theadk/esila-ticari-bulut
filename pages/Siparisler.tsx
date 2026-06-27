@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud, MessageCircle, Link, RefreshCw, Mic, MicOff } from 'lucide-react';
+import { Plus, Printer, FileText, CheckCircle, XCircle, Trash2, Search, Save, X, ShoppingCart, User, Send, FileDigit, Cloud, MessageCircle, Link, RefreshCw, Mic, MicOff, Truck } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Order, OrderStatus, Customer, Product, OrderItem, CustomerTransaction, CashTransaction, Warehouse } from '../types';
 import { useAppStore } from '../lib/store';
@@ -238,13 +238,13 @@ export const Siparisler: React.FC = () => {
         id: nextOrderId,
         customerId: selectedCustomer.id,
         customerName: selectedCustomer.name,
-        date: orderDate.toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+        date: orderDate.toISOString(),
         subTotal: cartSubTotal,
         taxTotal: cartTaxTotal,
         total: cartTotal,
         currency: orderCurrency,
         exchangeRate: exchangeRate,
-        status: OrderStatus.COMPLETED,
+        status: OrderStatus.PENDING,
         items: cartItems,
         notes: orderNotes
       };
@@ -255,33 +255,8 @@ export const Siparisler: React.FC = () => {
         next_order_id: (store.settings.next_order_id || 1001) + 1
       });
 
-      // Reduce Stock
-      let newProducts = [...rawProducts];
-      cartItems.forEach(item => {
-        const idx = newProducts.findIndex(p => String(p.id) === String(item.productId));
-        if (idx !== -1) {
-          let p = newProducts[idx];
-          let remainingQuantity = item.quantity;
-          let newWarehouseStocks = [...(p.warehouseStocks || [])];
-          
-          for (let i = 0; i < newWarehouseStocks.length; i++) {
-              if (remainingQuantity <= 0) break;
-              if (newWarehouseStocks[i].stock > 0) {
-                  const deduct = Math.min(newWarehouseStocks[i].stock, remainingQuantity);
-                  newWarehouseStocks[i] = { ...newWarehouseStocks[i], stock: newWarehouseStocks[i].stock - deduct };
-                  remainingQuantity -= deduct;
-              }
-          }
-
-          newProducts[idx] = { 
-              ...p, 
-              stock: Math.max(0, p.stock - item.quantity),
-              warehouseStocks: newWarehouseStocks
-          };
-        }
-      });
-      setProducts(newProducts);
-
+      // Stock is NOT reduced here because order is PENDING.
+      // It will be reduced when status changes to COMPLETED.
       
       // 1. Cariye Satış İşle
       const newTransaction: CustomerTransaction = {
@@ -363,7 +338,7 @@ export const Siparisler: React.FC = () => {
   };
 
   const handleStatusChange = (status: OrderStatus, targetOrder: Order) => {
-    if (status === OrderStatus.COMPLETED && targetOrder.status === OrderStatus.PENDING) {
+    if (status === OrderStatus.COMPLETED && (targetOrder.status === OrderStatus.PENDING || targetOrder.status === OrderStatus.PREPARED)) {
        let newProducts = [...rawProducts];
        let stockErrors: string[] = [];
        (targetOrder.items || []).forEach(item => {
@@ -525,6 +500,7 @@ export const Siparisler: React.FC = () => {
   const getStatusColor = (status: OrderStatus) => {
     switch(status) {
       case OrderStatus.COMPLETED: return 'text-emerald-600 bg-emerald-50';
+      case OrderStatus.PREPARED: return 'text-purple-600 bg-purple-50';
       case OrderStatus.PENDING: return 'text-orange-600 bg-orange-50';
       case OrderStatus.CANCELLED: return 'text-red-600 bg-red-50';
       case OrderStatus.SHIPPED: return 'text-blue-600 bg-blue-50';
@@ -697,7 +673,7 @@ export const Siparisler: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right flex items-center justify-end gap-1">
-                    {order.status === OrderStatus.PENDING && (
+                    {(order.status === OrderStatus.PENDING || order.status === OrderStatus.PREPARED) && (
                       <button
                         onClick={() => handleStatusChange(OrderStatus.COMPLETED, order)}
                         className="text-emerald-600 hover:bg-emerald-50 p-2 rounded-lg transition-colors"
@@ -706,7 +682,7 @@ export const Siparisler: React.FC = () => {
                         <CheckCircle size={18} />
                       </button>
                     )}
-                    {(order.status === OrderStatus.PENDING || order.status === OrderStatus.COMPLETED) && (
+                    {(order.status === OrderStatus.PENDING || order.status === OrderStatus.PREPARED || order.status === OrderStatus.COMPLETED) && (
                       <button
                         onClick={() => handleStatusChange(OrderStatus.CANCELLED, order)}
                         className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
@@ -827,7 +803,7 @@ export const Siparisler: React.FC = () => {
             </div>
             <div className="p-4 border-t bg-gray-50 flex justify-between items-center rounded-b-xl">
                <div className="flex flex-wrap gap-2">
-                 {selectedOrder.status === OrderStatus.PENDING && (
+                 {(selectedOrder.status === OrderStatus.PENDING || selectedOrder.status === OrderStatus.PREPARED) && (
                    <button 
                      onClick={() => handleStatusChange(OrderStatus.COMPLETED, selectedOrder)}
                      className="px-3 py-1.5 text-sm bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg transition-colors font-medium flex items-center gap-2"
@@ -835,7 +811,7 @@ export const Siparisler: React.FC = () => {
                      <CheckCircle size={16} /> Onayla
                    </button>
                  )}
-                 {(selectedOrder.status === OrderStatus.PENDING || selectedOrder.status === OrderStatus.COMPLETED) && (
+                 {(selectedOrder.status === OrderStatus.PENDING || selectedOrder.status === OrderStatus.PREPARED || selectedOrder.status === OrderStatus.COMPLETED) && (
                    <button 
                      onClick={() => handleStatusChange(OrderStatus.CANCELLED, selectedOrder)}
                      className="px-3 py-1.5 text-sm bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors font-medium flex items-center gap-2"

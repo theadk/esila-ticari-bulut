@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer, TrendingUp, Mic, MicOff, Camera } from 'lucide-react';
+import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer, TrendingUp, Mic, MicOff, Camera, CheckCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Product, Warehouse, Category, Brand } from '../types';
 import { api } from '../lib/api';
@@ -137,6 +137,13 @@ export const Urunler: React.FC = () => {
   // Depo Hızlı Ekleme
   const [isQuickWhOpen, setIsQuickWhOpen] = useState(false);
   const [newWhName, setNewWhName] = useState('');
+
+  // Hızlı Stok Düzenleme State
+  const [isQuickStockModalOpen, setIsQuickStockModalOpen] = useState(false);
+  const [quickStockQuery, setQuickStockQuery] = useState('');
+  const [quickStockProduct, setQuickStockProduct] = useState<Product | null>(null);
+  const [quickStockWarehouse, setQuickStockWarehouse] = useState<string>('');
+  const [quickStockQuantity, setQuickStockQuantity] = useState<number | ''>('');
 
   const loadData = async () => {
     try {
@@ -552,13 +559,13 @@ export const Urunler: React.FC = () => {
 
   const handleAddNew = () => {
     const nextId = `${store.settings.prefix_product || 'URN'}-${store.settings.next_product_id || 1001}`;
-    setFormData({ ...INITIAL_FORM, code: nextId, id: Math.random().toString(36).substr(2, 9) });
+    setFormData({ ...INITIAL_FORM, code: nextId, id: Math.random().toString(36).substr(2, 9), warehouseStocks: [{ warehouseId: '', stock: 0 }] });
     setIsEditing(false);
     setIsModalOpen(true);
   };
 
   const handleEdit = (product: Product) => {
-    setFormData({ ...product });
+    setFormData({ ...product, warehouseStocks: product.warehouseStocks?.length ? product.warehouseStocks : [{ warehouseId: product.warehouse || '', stock: product.stock || 0 }] });
     setIsEditing(true);
     setIsModalOpen(true);
   };
@@ -567,13 +574,72 @@ export const Urunler: React.FC = () => {
     setDeleteData({ id: product.id, type: 'product', name: product.name });
   };
 
+  const handleQuickStockSearch = (query: string) => {
+    setQuickStockQuery(query);
+    if (!query) {
+      setQuickStockProduct(null);
+      return;
+    }
+    const q = query.toLowerCase();
+    const found = products.find(p => p.barcode === query || p.code.toLowerCase() === q || p.name.toLowerCase() === q);
+    if (found) {
+      setQuickStockProduct(found);
+      setQuickStockWarehouse(found.warehouse || warehouses[0]?.id || '');
+      setQuickStockQuantity('');
+    } else {
+      setQuickStockProduct(null);
+    }
+  };
+
+  const handleQuickStockSave = async () => {
+    if (!quickStockProduct || quickStockQuantity === '' || !quickStockWarehouse) return;
+    
+    try {
+      const updatedProduct = { ...quickStockProduct };
+      let newStock = Number(quickStockQuantity);
+      
+      // Update warehouse stock or general stock
+      if (quickStockWarehouse === updatedProduct.warehouse) {
+         updatedProduct.stock = newStock;
+      } else {
+         const whs = updatedProduct.warehouseStocks || [];
+         const whIdx = whs.findIndex(w => w.warehouseId === quickStockWarehouse);
+         if (whIdx >= 0) {
+            whs[whIdx].stock = newStock;
+         } else {
+            whs.push({ warehouseId: quickStockWarehouse, stock: newStock });
+         }
+         updatedProduct.warehouseStocks = whs;
+      }
+      
+      await api.updateProduct(updatedProduct.id, updatedProduct);
+      
+      const newProducts = products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
+      setProducts(newProducts);
+      if (store.setProducts) store.setProducts(newProducts);
+      
+      setQuickStockQuery('');
+      setQuickStockProduct(null);
+      setQuickStockQuantity('');
+      // setIsQuickStockModalOpen(false); // keep open for rapid entry
+    } catch (e) {
+      console.error(e);
+      alert('Stok güncellenirken hata oluştu.');
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const dataToSave = { ...formData };
+      if (dataToSave.warehouseStocks) {
+        dataToSave.warehouseStocks = dataToSave.warehouseStocks.filter(ws => ws.warehouseId && ws.warehouseId.trim() !== '');
+      }
+
       if (isEditing) {
-        await api.updateProduct(formData.id, formData);
+        await api.updateProduct(dataToSave.id, dataToSave);
       } else {
-        await api.addProduct(formData);
+        await api.addProduct(dataToSave);
         store.setSettings({
           ...store.settings,
           next_product_id: (store.settings.next_product_id || 1001) + 1
@@ -672,7 +738,13 @@ export const Urunler: React.FC = () => {
     try {
       const whToSave = { id: String(Date.now()), name: newWhName, address: '', capacity: 0 };
       await api.addWarehouse(whToSave);
-      setFormData({ ...formData, warehouse: newWhName });
+      const newStocks = [...(formData.warehouseStocks || [])];
+      if (newStocks.length > 0 && !newStocks[0].warehouseId) {
+        newStocks[0].warehouseId = newWhName;
+      } else {
+        newStocks.push({ warehouseId: newWhName, stock: 0 });
+      }
+      setFormData({ ...formData, warehouse: newWhName, warehouseStocks: newStocks });
       setIsQuickWhOpen(false);
       setNewWhName('');
       await loadData();
@@ -830,6 +902,15 @@ export const Urunler: React.FC = () => {
                 <TrendingUp size={18} />
                 <span className="hidden lg:inline">Fiyat Revizyon</span>
               </button>
+              {canEdit && (
+                <button 
+                  onClick={() => setIsQuickStockModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                >
+                  <Package size={18} />
+                  <span className="hidden lg:inline">Hızlı Stok</span>
+                </button>
+              )}
               {canCreate && (
                 <button 
                   onClick={handleAddNew}
@@ -1063,19 +1144,27 @@ export const Urunler: React.FC = () => {
                              {product.variants.join(', ')}
                          </span>
                       )}
-                      {product.warehouseStocks && product.warehouseStocks.length > 0 ? (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                           {product.warehouseStocks.map((ws, i) => ws.warehouseId && (
-                              <span key={i} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-medium w-fit border border-blue-100">
-                                {ws.warehouseId}: {ws.stock}
-                              </span>
-                           ))}
-                        </div>
-                      ) : product.warehouse && (
-                        <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium w-fit">
-                          {product.warehouse}
-                        </span>
-                      )}
+                      {(() => {
+                         const validStocks = (product.warehouseStocks || []).filter(ws => ws.warehouseId && warehouses.some(w => w.name === ws.warehouseId || w.id === ws.warehouseId));
+                         if (validStocks.length > 0) {
+                           return (
+                             <div className="flex flex-wrap gap-1 mt-1">
+                                {validStocks.map((ws, i) => (
+                                   <span key={i} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-medium w-fit border border-blue-100">
+                                     {ws.warehouseId}: {ws.stock}
+                                   </span>
+                                ))}
+                             </div>
+                           );
+                         } else if (product.warehouse && warehouses.some(w => w.name === product.warehouse || w.id === product.warehouse)) {
+                           return (
+                             <span className="px-3 py-1 mt-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium w-fit">
+                               {product.warehouse}
+                             </span>
+                           );
+                         }
+                         return null;
+                      })()}
                     </div>
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-800">
@@ -1181,34 +1270,42 @@ export const Urunler: React.FC = () => {
                       <span className="font-medium text-gray-800">{selectedProduct.subCategory}</span>
                    </div>
                  )}
-                 {selectedProduct.warehouseStocks && selectedProduct.warehouseStocks.length > 0 ? (
-                    <div className="col-span-2">
-                       <span className="block text-gray-500 mb-2">Depo ve Stok Dağılımı</span>
-                       <div className="flex flex-col gap-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                          {selectedProduct.warehouseStocks.map((ws, i) => ws.warehouseId && (
-                             <div key={i} className="flex justify-between items-center text-sm">
-                               <span className="font-medium text-gray-700 font-medium">{ws.warehouseId}</span>
-                               <span className="bg-white px-2 py-1 rounded text-gray-800 font-semibold shadow-sm text-xs">{ws.stock} Adet</span>
+                 {(() => {
+                    const validStocks = (selectedProduct.warehouseStocks || []).filter(ws => ws.warehouseId && warehouses.some(w => w.name === ws.warehouseId || w.id === ws.warehouseId));
+                    if (validStocks.length > 0) {
+                       return (
+                          <div className="col-span-2">
+                             <span className="block text-gray-500 mb-2">Depo ve Stok Dağılımı</span>
+                             <div className="flex flex-col gap-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                {validStocks.map((ws, i) => (
+                                   <div key={i} className="flex justify-between items-center text-sm">
+                                     <span className="font-medium text-gray-700 font-medium">{ws.warehouseId}</span>
+                                     <span className="bg-white px-2 py-1 rounded text-gray-800 font-semibold shadow-sm text-xs">{ws.stock} Adet</span>
+                                   </div>
+                                ))}
+                                <div className="flex justify-between items-center text-sm pt-2 mt-1 border-t border-gray-200">
+                                     <span className="font-bold text-gray-800">Toplam Stok</span>
+                                     <span className="text-emerald-600 font-bold px-2">{selectedProduct.stock} Adet</span>
+                                </div>
                              </div>
-                          ))}
-                          <div className="flex justify-between items-center text-sm pt-2 mt-1 border-t border-gray-200">
-                               <span className="font-bold text-gray-800">Toplam Stok</span>
-                               <span className="text-emerald-600 font-bold px-2">{selectedProduct.stock} Adet</span>
                           </div>
-                       </div>
-                    </div>
-                 ) : (
-                   <>
-                     <div>
-                        <span className="block text-gray-500 mb-1">Depo</span>
-                        <span className="font-medium text-gray-800">{selectedProduct.warehouse || '-'}</span>
-                     </div>
-                     <div>
-                        <span className="block text-gray-500 mb-1">Stok Miktarı</span>
-                        <span className="font-medium text-gray-800">{selectedProduct.stock}</span>
-                     </div>
-                   </>
-                 )}
+                       );
+                    } else {
+                       const validWarehouse = selectedProduct.warehouse && warehouses.some(w => w.name === selectedProduct.warehouse || w.id === selectedProduct.warehouse) ? selectedProduct.warehouse : '-';
+                       return (
+                          <>
+                            <div>
+                               <span className="block text-gray-500 mb-1">Depo</span>
+                               <span className="font-medium text-gray-800">{validWarehouse}</span>
+                            </div>
+                            <div>
+                               <span className="block text-gray-500 mb-1">Stok Miktarı</span>
+                               <span className="font-medium text-gray-800">{selectedProduct.stock}</span>
+                            </div>
+                          </>
+                       );
+                    }
+                 })()}
                  <div>
                     <span className="block text-gray-500 mb-1">Birimi</span>
                     <span className="font-medium text-gray-800">{selectedProduct.unit || 'Adet'}</span>
@@ -1247,6 +1344,92 @@ export const Urunler: React.FC = () => {
                >
                  Kapat
                </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hızlı Stok Düzenleme Modal */}
+      {isQuickStockModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
+              <h3 className="font-bold text-lg text-gray-800">Hızlı Stok Girişi</h3>
+              <button type="button" onClick={() => setIsQuickStockModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Ürün Barkodu veya Adı</label>
+                <div className="relative">
+                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                     <Search size={18} />
+                   </div>
+                   <input
+                     autoFocus
+                     type="text"
+                     value={quickStockQuery}
+                     onChange={(e) => handleQuickStockSearch(e.target.value)}
+                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 shadow-sm text-lg"
+                     placeholder="Barkod okutun veya isim yazın..."
+                   />
+                </div>
+              </div>
+              
+              {quickStockProduct && (
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                   <div className="font-bold text-gray-800 mb-1 text-lg">{quickStockProduct.name}</div>
+                   <div className="text-sm text-gray-500 mb-4 flex items-center gap-2">
+                      <span className="bg-gray-200 px-2 py-0.5 rounded text-xs">{quickStockProduct.code}</span>
+                      <span>Mevcut Stok: <strong className="text-gray-800">{quickStockProduct.stock} {quickStockProduct.unit}</strong></span>
+                   </div>
+                   
+                   <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">İşlem Yapılacak Depo</label>
+                        <select 
+                           value={quickStockWarehouse}
+                           onChange={e => setQuickStockWarehouse(e.target.value)}
+                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                        >
+                           <option value="">Merkez / Tanımsız Depo</option>
+                           {warehouses.map(w => (
+                             <option key={w.id} value={w.id}>{w.name}</option>
+                           ))}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Yeni Stok Miktarı</label>
+                        <input
+                           type="number"
+                           value={quickStockQuantity}
+                           onChange={(e) => setQuickStockQuantity(e.target.value ? Number(e.target.value) : '')}
+                           onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleQuickStockSave();
+                           }}
+                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 font-bold text-xl text-center"
+                           placeholder="Miktar"
+                        />
+                      </div>
+                   </div>
+                   
+                   <button 
+                     onClick={handleQuickStockSave}
+                     disabled={quickStockQuantity === ''}
+                     className={`w-full mt-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${
+                       quickStockQuantity !== '' 
+                         ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                     }`}
+                   >
+                     <CheckCircle size={20} />
+                     Kaydet
+                   </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

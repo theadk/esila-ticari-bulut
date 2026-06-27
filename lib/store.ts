@@ -276,8 +276,8 @@ async function syncObject(table: string, oldObj: any, newObj: any) {
 }
 
 let isInitialized = false;
-export async function initializeStore() {
-  if (isInitialized) return;
+export async function initializeStore(force = false) {
+  if (isInitialized && !force) return;
   isInitialized = true;
   try {
     const tables = [

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Warehouse as WarehouseIcon, Package, Search, Box, ArrowRight, Plus, X, Edit2, Trash2, ArrowLeftRight, ScanBarcode, Truck, MapPin, Map, Navigation, Layers, CheckSquare, Camera } from 'lucide-react';
-import { Product, Warehouse, StockTransfer } from '../types';
+import { Product, Warehouse, StockTransfer, OrderStatus, Order } from '../types';
 import { api } from '../lib/api';
 import { Pagination } from '../components/Pagination';
 import { useAppStore } from '../lib/store';
@@ -48,6 +48,28 @@ export const Depo: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [terminalMessage, setTerminalMessage] = useState<{text: string, type: 'success' | 'error' | 'info'} | null>(null);
+  const [isCompletingPicking, setIsCompletingPicking] = useState(false);
+
+  const [isShippingModalOpen, setIsShippingModalOpen] = useState(false);
+  const [shippingForm, setShippingForm] = useState({ provider: 'Yurtiçi Kargo', trackingNumber: '' });
+  const [selectedOrderToShip, setSelectedOrderToShip] = useState<Order | null>(null);
+
+  const handleShipSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrderToShip) return;
+    
+    const newOrder: Order = {
+      ...selectedOrderToShip,
+      status: OrderStatus.SHIPPED,
+      cargoProvider: shippingForm.provider,
+      cargoTrackingNumber: shippingForm.trackingNumber
+    };
+    
+    const updatedOrders = (store.orders || []).map(o => o.id === selectedOrderToShip.id ? newOrder : o);
+    store.setOrders?.(updatedOrders);
+    setIsShippingModalOpen(false);
+    setSelectedOrderToShip(null);
+  };
 
   useEffect(() => {
     if (isScanning && terminalMode) {
@@ -73,9 +95,10 @@ export const Depo: React.FC = () => {
     }
   }, [isScanning, terminalMode]);
 
-  const handleTerminalScan = (scannedCode: string) => {
+    const handleTerminalScan = (scannedCode: string) => {
+     setBarcodeInput('');
      if (terminalMode === 'toplama' && selectedOrderId) {
-        const product = products.find(p => p.barcode === scannedCode || p.id === scannedCode || p.sku === scannedCode || (p.serials && p.serials.includes(scannedCode)));
+        const product = products.find(p => p.barcode === scannedCode || p.id === scannedCode || p.sku === scannedCode || (p.serials && p.serials.includes(scannedCode))) || store.products.find(p => p.barcode === scannedCode || p.id === scannedCode || p.sku === scannedCode || (p.serials && p.serials.includes(scannedCode)));
         if (!product) {
            setTerminalMessage({ text: 'Ürün sistemde bulunamadı!', type: 'error' });
            try { const audio = new Audio('/error.mp3'); audio.play().catch(()=>{}); } catch (e) {}
@@ -86,7 +109,7 @@ export const Depo: React.FC = () => {
             const newList = [...prev];
             const itemIndex = newList.findIndex(item => item.id === product.id && !item.picked);
             if (itemIndex > -1) {
-                newList[itemIndex].picked = true;
+                newList[itemIndex] = { ...newList[itemIndex], picked: true };
                 setTerminalMessage({ text: `${product.name} toplandı!`, type: 'success' });
                 try { const audio = new Audio('/success.mp3'); audio.play().catch(()=>{}); } catch (e) {}
             } else {
@@ -698,12 +721,67 @@ export const Depo: React.FC = () => {
           )}
 
           {smartWarehouseView === 'sevkiyat' && (
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm text-center py-16 animate-in fade-in">
-              <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                 <Truck size={40} className="text-blue-500" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">Sevkiyat Yönetimi</h3>
-              <p className="text-gray-500 max-w-md mx-auto">Sevkiyat modülü ile depodan çıkan ürünlerin araçlara yüklenmesi, irsaliye oluşturulması ve teslimat takibini yapabilirsiniz. Yakında aktif edilecektir.</p>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm animate-in fade-in overflow-hidden">
+               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                 <div>
+                   <h3 className="text-lg font-bold text-gray-800">Sevkiyat Bekleyen Siparişler</h3>
+                   <p className="text-sm text-gray-500">Toplanmış ve sevkiyata hazır siparişlerin kargo/teslimat işlemlerini yönetin.</p>
+                 </div>
+               </div>
+               
+               <div className="overflow-x-auto">
+                 <table className="w-full text-left text-sm text-gray-600">
+                   <thead className="bg-gray-50 text-gray-700 uppercase font-semibold">
+                     <tr>
+                       <th className="px-6 py-4">Sipariş No</th>
+                       <th className="px-6 py-4">Müşteri</th>
+                       <th className="px-6 py-4">Tarih</th>
+                       <th className="px-6 py-4">Durum</th>
+                       <th className="px-6 py-4 text-right">İşlem</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-gray-100">
+                     {(store.orders || []).filter(o => o.status === OrderStatus.PREPARED || o.status === OrderStatus.SHIPPED).map(order => (
+                       <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                         <td className="px-6 py-4 font-medium text-gray-900">{order.id}</td>
+                         <td className="px-6 py-4">{order.customerName}</td>
+                         <td className="px-6 py-4">{new Date(order.date).toLocaleString('tr-TR')}</td>
+                         <td className="px-6 py-4">
+                           <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${order.status === OrderStatus.PREPARED ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                             {order.status}
+                           </span>
+                         </td>
+                         <td className="px-6 py-4 text-right">
+                           {order.status === OrderStatus.PREPARED && (
+                             <button
+                               onClick={() => {
+                                 setSelectedOrderToShip(order);
+                                 setIsShippingModalOpen(true);
+                               }}
+                               className="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium flex items-center justify-end gap-2 ml-auto"
+                             >
+                               <Truck size={16} /> Kargola
+                             </button>
+                           )}
+                           {order.status === OrderStatus.SHIPPED && order.cargoTrackingNumber && (
+                             <div className="text-xs text-blue-600 font-medium">
+                               <span className="block">{order.cargoProvider}</span>
+                               <span className="block">Takip No: {order.cargoTrackingNumber}</span>
+                             </div>
+                           )}
+                         </td>
+                       </tr>
+                     ))}
+                     {(store.orders || []).filter(o => o.status === OrderStatus.PREPARED || o.status === OrderStatus.SHIPPED).length === 0 && (
+                       <tr>
+                         <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                           Sevkiyat bekleyen sipariş bulunmuyor.
+                         </td>
+                       </tr>
+                     )}
+                   </tbody>
+                 </table>
+               </div>
             </div>
           )}
 
@@ -906,8 +984,8 @@ export const Depo: React.FC = () => {
                                    setSelectedOrderId(e.target.value);
                                    const order = store.orders.find(o => o.id === e.target.value);
                                    if (order) {
-                                       setPickingList(order.items.map(item => {
-                                           const p = products.find(prod => prod.id === item.productId);
+                                       setPickingList(order.items.map((item: any) => {
+                                           const p = store.products.find(prod => prod.id === item.productId) || products.find(prod => prod.id === item.productId);
                                            return {
                                                id: item.productId,
                                                name: item.productName,
@@ -922,7 +1000,7 @@ export const Depo: React.FC = () => {
                                }}
                             >
                                <option value="">Sipariş Seçiniz...</option>
-                               {store.orders.filter(o => o.status === 'Bekliyor' || o.status === 'Hazırlanıyor').map(o => (
+                               {store.orders.filter(o => o.status === OrderStatus.PENDING || o.status === OrderStatus.PREPARED).map(o => (
                                    <option key={o.id} value={o.id}>{o.id} - {o.customerName}</option>
                                ))}
                             </select>
@@ -981,16 +1059,37 @@ export const Depo: React.FC = () => {
                                         ))}
                                     </div>
                                     {pickingList.length > 0 && pickingList.every(p => p.picked) && (
-                                        <div className="mt-4 p-3 bg-emerald-600 text-white text-center font-bold rounded-lg cursor-pointer hover:bg-emerald-500" onClick={() => {
+                                        <button 
+                                          disabled={isCompletingPicking}
+                                          className={`w-full mt-4 p-3 text-white text-center font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                                            isCompletingPicking ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 cursor-pointer hover:bg-emerald-500'
+                                          }`} 
+                                          onClick={() => {
+                                           setIsCompletingPicking(true);
+                                           
+                                           // Siparişin durumunu Hazır olarak güncelle
+                                           const order = store.orders.find(o => o.id === selectedOrderId);
+                                           if (order) {
+                                               store.setOrders?.(store.orders.map(o => o.id === order.id ? { ...o, status: OrderStatus.PREPARED } : o));
+                                           }
+
                                            setTerminalMessage({ text: 'Sipariş başarıyla toplandı ve hazır!', type: 'success' });
                                            setTimeout(() => {
+                                              setIsCompletingPicking(false);
                                               setTerminalMode(null);
                                               setSelectedOrderId(null);
                                               setPickingList([]);
-                                           }, 3000);
+                                           }, 1500);
                                         }}>
-                                            Siparişi Tamamla
-                                        </div>
+                                            {isCompletingPicking ? (
+                                              <>
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                İşleniyor...
+                                              </>
+                                            ) : (
+                                              'Siparişi Tamamla'
+                                            )}
+                                        </button>
                                     )}
                                 </div>
                             ) : (
@@ -1185,6 +1284,68 @@ export const Depo: React.FC = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                  >
                   Transferi Başlat
+                 </button>
+               </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Shipping Modal */}
+      {isShippingModalOpen && selectedOrderToShip && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in no-print">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden">
+            <div className="p-4 border-b bg-blue-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-blue-900 flex items-center gap-2">
+                <Truck className="text-blue-600" />
+                Kargolama İşlemi
+              </h3>
+              <button onClick={() => setIsShippingModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleShipSubmit} className="p-4 flex flex-col gap-4">
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kargo Firması</label>
+                  <select
+                     required
+                     value={shippingForm.provider}
+                     onChange={(e) => setShippingForm({ ...shippingForm, provider: e.target.value })}
+                     className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  >
+                     <option value="Yurtiçi Kargo">Yurtiçi Kargo</option>
+                     <option value="Aras Kargo">Aras Kargo</option>
+                     <option value="MNG Kargo">MNG Kargo</option>
+                     <option value="Sürat Kargo">Sürat Kargo</option>
+                     <option value="PTT Kargo">PTT Kargo</option>
+                     <option value="Kendi Aracımız">Kendi Aracımız</option>
+                     <option value="Diğer">Diğer</option>
+                  </select>
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Takip Numarası</label>
+                  <input
+                     type="text"
+                     required
+                     placeholder="Kargo takip kodu..."
+                     value={shippingForm.trackingNumber}
+                     onChange={(e) => setShippingForm({ ...shippingForm, trackingNumber: e.target.value })}
+                     className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono text-sm uppercase"
+                  />
+               </div>
+               
+               <div className="pt-4 flex justify-end gap-3 border-t mt-2">
+                 <button 
+                  type="button" 
+                  onClick={() => setIsShippingModalOpen(false)} 
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium"
+                 >
+                  İptal
+                 </button>
+                 <button 
+                  type="submit" 
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                 >
+                  <Truck size={18} /> Kargoya Verildi Olarak İşaretle
                  </button>
                </div>
             </form>

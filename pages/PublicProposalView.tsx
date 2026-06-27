@@ -19,40 +19,93 @@ export const PublicProposalView: React.FC<Props> = ({ id, tenantId }) => {
   const store = useAppStore();
 
   useEffect(() => {
-    // Try to load from store first
-    const localProposal = store.proposals.find(p => p.id === id);
-    if (localProposal) {
-      setProposal(localProposal);
-      setLoading(false);
-    } else {
-      // In a real app we would fetch from public API
-      setLoading(false);
-      setError('Teklif bulunamadı.');
-    }
-  }, [id, store.proposals]);
+    const fetchProposal = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/proposals`, {
+          headers: { 'x-tenant-id': tenantId }
+        });
+        if (!res.ok) throw new Error('Network response was not ok');
+        const data = await res.json();
+        const found = data.find((p: any) => p.id === id);
+        if (found) {
+          // Parse items if they are stringified
+          if (typeof found.items === 'string') found.items = JSON.parse(found.items);
+          setProposal(found);
+        } else {
+          setError('Teklif bulunamadı.');
+        }
+      } catch (err) {
+        console.error(err);
+        // Fallback to local store
+        const localProposal = store.proposals.find(p => p.id === id);
+        if (localProposal) {
+          setProposal(localProposal);
+        } else {
+          setError('Teklif bulunamadı.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProposal();
+  }, [id, tenantId, store.proposals]);
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (!proposal) return;
     const updated = { ...proposal, status: ProposalStatus.ACCEPTED };
-    setProposal(updated);
     
-    // update in store
-    const newProposals = store.proposals.map(p => p.id === updated.id ? updated : p);
-    store.setProposals(newProposals);
-    
-    toast.success('Teklif başarıyla onaylandı!');
+    try {
+      const res = await fetch(`/api/proposals/${proposal.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-id': tenantId
+        },
+        body: JSON.stringify(updated)
+      });
+      
+      if (res.ok) {
+        setProposal(updated);
+        // update in local store if it exists
+        const newProposals = store.proposals.map(p => p.id === updated.id ? updated : p);
+        store.setProposals(newProposals);
+        toast.success('Teklif başarıyla onaylandı!');
+      } else {
+        toast.error('Onaylanırken bir hata oluştu.');
+      }
+    } catch (err) {
+      toast.error('Bağlantı hatası.');
+    }
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!proposal) return;
     const updated = { ...proposal, status: ProposalStatus.REJECTED };
-    setProposal(updated);
-
-    // update in store
-    const newProposals = store.proposals.map(p => p.id === updated.id ? updated : p);
-    store.setProposals(newProposals);
     
-    toast.success('Teklif reddedildi.');
+    try {
+      const res = await fetch(`/api/proposals/${proposal.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-id': tenantId
+        },
+        body: JSON.stringify(updated)
+      });
+      
+      if (res.ok) {
+        setProposal(updated);
+        // update in store
+        const newProposals = store.proposals.map(p => p.id === updated.id ? updated : p);
+        store.setProposals(newProposals);
+        toast.success('Teklif reddedildi.');
+      } else {
+        toast.error('Reddedilirken bir hata oluştu.');
+      }
+    } catch (err) {
+      toast.error('Bağlantı hatası.');
+    }
   };
 
   if (loading) {

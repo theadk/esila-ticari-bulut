@@ -195,7 +195,7 @@ export const Teklifler: React.FC = () => {
       id: `SIP-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
       customerId: selectedProposal.customerId,
       customerName: selectedProposal.customerName,
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString(),
       subTotal: selectedProposal.subTotal,
       taxTotal: selectedProposal.taxTotal,
       total: selectedProposal.total,

@@ -1250,17 +1250,47 @@ async function startServer() {
   });
 
   app.put("/api/warehouses/:id", async (req, res) => {
+    const vkn = req.headers["x-tenant-id"] || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = req.headers["x-tenant-id"] || "1111111111";
+      const oldWhs = getFallbackTable("warehouses", vkn);
+      const oldWh = oldWhs.find((w: any) => w.id === req.params.id);
+      const oldName = oldWh?.name;
+      
       updateFallbackRow("warehouses", req.params.id, vkn, req.body);
+      
+      if (oldName && oldName !== req.body.name) {
+         const products = getFallbackTable("products", vkn);
+         for (const p of products) {
+            let changed = false;
+            if (p.warehouse === oldName) {
+               p.warehouse = req.body.name;
+               changed = true;
+            }
+            if (p.warehouseStocks && Array.isArray(p.warehouseStocks)) {
+               for (const ws of p.warehouseStocks) {
+                  if (ws.warehouseId === oldName || ws.warehouseId === req.params.id) {
+                     ws.warehouseId = req.body.name;
+                     changed = true;
+                  }
+               }
+            }
+            if (changed) {
+               updateFallbackRow("products", p.id, vkn, p);
+            }
+         }
+      }
       return res.json({ id: req.params.id, ...req.body });
     }
     const { name, address, capacity } = req.body;
     try {
       const pool = getPool();
+      
+      const [oldRows] = await pool.query("SELECT name FROM warehouses WHERE id = ? AND vkn = ?", [req.params.id, vkn]) as any;
+      const oldName = oldRows[0]?.name;
+      
       await pool.query(
         "UPDATE warehouses SET name = ?, address = ?, capacity = ? WHERE id = ? AND vkn = ?",
         [
@@ -1268,9 +1298,37 @@ async function startServer() {
           address,
           capacity,
           req.params.id,
-          req.headers["x-tenant-id"] || "1111111111",
+          vkn,
         ],
       );
+      
+      if (oldName && oldName !== name) {
+        const [products] = await pool.query("SELECT id, warehouse, warehouseStocks FROM products WHERE vkn = ?", [vkn]) as any;
+        for (const p of products) {
+           let changed = false;
+           let newWarehouse = p.warehouse;
+           if (p.warehouse === oldName) {
+              newWarehouse = name;
+              changed = true;
+           }
+           let wStocks = p.warehouseStocks;
+           if (typeof wStocks === "string") {
+              try { wStocks = JSON.parse(wStocks); } catch(e) { wStocks = []; }
+           }
+           if (wStocks && Array.isArray(wStocks)) {
+              for (const ws of wStocks) {
+                 if (ws.warehouseId === oldName || ws.warehouseId === req.params.id) {
+                    ws.warehouseId = name;
+                    changed = true;
+                 }
+              }
+           }
+           if (changed) {
+              await pool.query("UPDATE products SET warehouse = ?, warehouseStocks = ? WHERE id = ? AND vkn = ?", [newWarehouse, JSON.stringify(wStocks), p.id, vkn]);
+           }
+        }
+      }
+      
       res.json({ id: req.params.id, ...req.body });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -1278,23 +1336,78 @@ async function startServer() {
   });
 
   app.delete("/api/warehouses/:id", async (req, res) => {
+    const vkn = req.headers["x-tenant-id"] || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      deleteFallbackRow(
-        "warehouses",
-        req.params.id,
-        req.headers["x-tenant-id"] || "1111111111",
-      );
+      const oldWhs = getFallbackTable("warehouses", vkn);
+      const oldWh = oldWhs.find((w: any) => w.id === req.params.id);
+      const oldName = oldWh?.name;
+
+      deleteFallbackRow("warehouses", req.params.id, vkn);
+      
+      if (oldName) {
+         const products = getFallbackTable("products", vkn);
+         for (const p of products) {
+            let changed = false;
+            if (p.warehouse === oldName) {
+               p.warehouse = "";
+               changed = true;
+            }
+            if (p.warehouseStocks && Array.isArray(p.warehouseStocks)) {
+               const oldLen = p.warehouseStocks.length;
+               p.warehouseStocks = p.warehouseStocks.filter((ws: any) => ws.warehouseId !== oldName && ws.warehouseId !== req.params.id);
+               if (p.warehouseStocks.length !== oldLen) {
+                  changed = true;
+                  p.stock = p.warehouseStocks.reduce((sum: number, w: any) => sum + (Number(w.stock) || 0), 0);
+               }
+            }
+            if (changed) {
+               updateFallbackRow("products", p.id, vkn, p);
+            }
+         }
+      }
       return res.json({ success: true });
     }
     try {
       const pool = getPool();
+      const [oldRows] = await pool.query("SELECT name FROM warehouses WHERE id = ? AND vkn = ?", [req.params.id, vkn]) as any;
+      const oldName = oldRows[0]?.name;
+
       await pool.query("DELETE FROM warehouses WHERE id = ? AND vkn = ?", [
         req.params.id,
-        req.headers["x-tenant-id"] || "1111111111",
+        vkn,
       ]);
+      
+      if (oldName) {
+        const [products] = await pool.query("SELECT id, warehouse, warehouseStocks, stock FROM products WHERE vkn = ?", [vkn]) as any;
+        for (const p of products) {
+           let changed = false;
+           let newWarehouse = p.warehouse;
+           if (p.warehouse === oldName) {
+              newWarehouse = "";
+              changed = true;
+           }
+           let wStocks = p.warehouseStocks;
+           if (typeof wStocks === "string") {
+              try { wStocks = JSON.parse(wStocks); } catch(e) { wStocks = []; }
+           }
+           let totalStock = p.stock || 0;
+           if (wStocks && Array.isArray(wStocks)) {
+              const oldLen = wStocks.length;
+              wStocks = wStocks.filter(ws => ws.warehouseId !== oldName && ws.warehouseId !== req.params.id);
+              if (wStocks.length !== oldLen) {
+                 changed = true;
+                 totalStock = wStocks.reduce((sum, ws) => sum + (Number(ws.stock) || 0), 0);
+              }
+           }
+           if (changed) {
+              await pool.query("UPDATE products SET warehouse = ?, warehouseStocks = ?, stock = ? WHERE id = ? AND vkn = ?", [newWarehouse, JSON.stringify(wStocks), totalStock, p.id, vkn]);
+           }
+        }
+      }
+      
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: String(err) });
