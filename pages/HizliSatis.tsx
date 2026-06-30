@@ -386,12 +386,12 @@ export const HizliSatis: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex gap-6 pb-6">
+    <div className="h-full flex flex-col lg:flex-row gap-4 lg:gap-6 pb-6 overflow-y-auto lg:overflow-hidden">
       
       {/* Sol Panel: Ürün Seçimi ve Müşteri */}
-      <div className="flex-[3] flex flex-col gap-4">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex gap-4">
+      <div className="flex-none lg:flex-[3] flex flex-col gap-4 min-h-[50vh] lg:min-h-0">
+        <div className="bg-white p-3 lg:p-4 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
@@ -411,12 +411,12 @@ export const HizliSatis: React.FC = () => {
                  <Camera size={20} />
               </button>
             </div>
-            <div className="w-1/3 relative flex items-center gap-2">
-              <User className="text-gray-400" size={20} />
+            <div className="w-full sm:w-1/3 relative flex items-center gap-2">
+              <User className="text-gray-400 shrink-0" size={20} />
               <select
                 value={selectedCustomerId}
                 onChange={(e) => setSelectedCustomerId(e.target.value)}
-                className="flex-1 py-3 border border-gray-300 rounded-lg px-2"
+                className="flex-1 py-3 border border-gray-300 rounded-lg px-2 w-full"
               >
                 <option value="">Perakende (Cari Seçilmedi)</option>
                 {customers.map(c => (
@@ -428,17 +428,17 @@ export const HizliSatis: React.FC = () => {
         </div>
 
         {/* Hızlı Kategori/Ürünler (Eğer arama yoksa hızlı satışta gösterilenleri listele) */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex-1 overflow-hidden flex flex-col">
-          <h3 className="font-semibold text-gray-700 pb-2 border-b mb-4">Hızlı Satış Ürünleri</h3>
-          <div className="flex-1 overflow-y-auto pr-2 flex flex-wrap gap-2 content-start">
+        <div className="bg-white p-3 lg:p-4 rounded-xl shadow-sm border border-gray-200 flex-1 overflow-hidden flex flex-col min-h-[300px]">
+          <h3 className="font-semibold text-gray-700 pb-2 border-b mb-3 lg:mb-4 text-sm lg:text-base">Hızlı Satış Ürünleri</h3>
+          <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-3 content-start">
              {(searchTerm ? filteredProducts : products.filter(p => p.showInQuickSale)).map(product => (
                 <div 
                   key={product.id} 
                   onClick={() => handleAddToCart(product)}
-                  className="border border-gray-200 rounded-xl p-2 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-400 hover:shadow-sm cursor-pointer transition-colors flex flex-col items-center text-center justify-between w-[100px] h-[100px] shrink-0"
+                  className="border border-gray-200 rounded-xl p-2 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-400 hover:shadow-sm cursor-pointer transition-colors flex flex-col items-center text-center justify-between aspect-square shrink-0"
                 >
-                   <div className="text-[11px] font-semibold text-emerald-900 line-clamp-3 leading-tight pt-1">{product.name}</div>
-                   <div className="text-emerald-700 font-bold text-xs pb-1">{(product.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</div>
+                   <div className="text-[10px] lg:text-[11px] font-semibold text-emerald-900 line-clamp-3 leading-tight pt-1">{product.name}</div>
+                   <div className="text-emerald-700 font-bold text-[11px] lg:text-xs pb-1">{(product.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</div>
                 </div>
              ))}
           </div>
@@ -446,8 +446,8 @@ export const HizliSatis: React.FC = () => {
       </div>
 
       {/* Sağ Panel: Sepet ve Ödeme */}
-      <div className="flex-[2] bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col">
-        <div className="p-4 bg-emerald-50 rounded-t-xl border-b border-emerald-100 flex items-center justify-between">
+      <div className="flex-none lg:flex-[2] bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[50vh] lg:min-h-0">
+        <div className="p-3 lg:p-4 bg-emerald-50 rounded-t-xl border-b border-emerald-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingCart className="text-emerald-600" />
             <h2 className="text-lg font-bold text-emerald-800">Satış Sepeti</h2>
@@ -486,41 +486,45 @@ export const HizliSatis: React.FC = () => {
                     <div className="text-sm text-gray-500">
                       {item.product.price.toLocaleString('tr-TR')} ₺
                     </div>
-                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md">
-                      <button onClick={() => updateQuantity(item.product.id, Math.floor(item.quantity) === item.quantity ? -1 : -item.quantity + Math.floor(item.quantity))} className="p-1 px-2 hover:bg-gray-100 text-gray-600 rounded-l-md">-</button>
-                      <input 
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        value={item.quantity}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val)) {
-                            setCart(prev => prev.map(cartItem => 
-                              cartItem.product.id === item.product.id 
-                                ? { ...cartItem, quantity: val }
-                                : cartItem
-                            ));
-                          }
-                        }}
-                        className="w-16 text-center font-medium border-none focus:ring-0 text-sm p-1"
-                      />
-                      <span className="text-xs text-gray-400 pr-2 select-none border-l pl-2 border-gray-100">{item.product.unit || 'Adet'}</span>
-                      <button onClick={() => updateQuantity(item.product.id, Math.floor(item.quantity) === item.quantity ? 1 : Math.ceil(item.quantity) - item.quantity)} className="p-1 px-2 hover:bg-gray-100 text-gray-600 rounded-r-md block">+</button>
-                    </div>
-                    <div className="flex items-center gap-1">
-                       <span className="text-xs text-gray-500" title="Kısayol: F3">% İskonto (F3)</span>
-                       <input 
-                         type="number" 
-                         id={`discount-input-${idx}`}
-                         min="0" max="100" 
-                         value={item.discount}
-                         onChange={(e) => updateDiscount(item.product.id, Number(e.target.value))}
-                         className="w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm" 
-                       />
-                    </div>
-                    <div className="font-bold text-gray-800">
-                      {((item.product.price * item.quantity) * (1 - item.discount / 100)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 w-full mt-2 sm:mt-0">
+                      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md shrink-0 w-fit">
+                        <button onClick={() => updateQuantity(item.product.id, Math.floor(item.quantity) === item.quantity ? -1 : -item.quantity + Math.floor(item.quantity))} className="p-1 lg:px-2 hover:bg-gray-100 text-gray-600 rounded-l-md w-8 lg:w-auto flex justify-center items-center h-8">-</button>
+                        <input 
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val)) {
+                              setCart(prev => prev.map(cartItem => 
+                                cartItem.product.id === item.product.id 
+                                  ? { ...cartItem, quantity: val }
+                                  : cartItem
+                              ));
+                            }
+                          }}
+                          className="w-12 lg:w-16 text-center font-medium border-none focus:ring-0 text-sm p-0 h-8"
+                        />
+                        <span className="text-[10px] lg:text-xs text-gray-400 pr-1 lg:pr-2 select-none border-l pl-1 lg:pl-2 border-gray-100 flex items-center h-8">{item.product.unit || 'Adet'}</span>
+                        <button onClick={() => updateQuantity(item.product.id, Math.floor(item.quantity) === item.quantity ? 1 : Math.ceil(item.quantity) - item.quantity)} className="p-1 lg:px-2 hover:bg-gray-100 text-gray-600 rounded-r-md flex justify-center items-center h-8 w-8 lg:w-auto">+</button>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 shrink-0 w-fit">
+                         <span className="text-[10px] lg:text-xs text-gray-500" title="Kısayol: F3">% İskonto</span>
+                         <input 
+                           type="number" 
+                           id={`discount-input-${idx}`}
+                           min="0" max="100" 
+                           value={item.discount}
+                           onChange={(e) => updateDiscount(item.product.id, Number(e.target.value))}
+                           className="w-12 lg:w-16 h-8 border border-gray-300 rounded px-1 text-center text-sm" 
+                         />
+                      </div>
+                      
+                      <div className="font-bold text-gray-800 text-right flex-1 text-sm lg:text-base">
+                        {((item.product.price * item.quantity) * (1 - item.discount / 100)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -530,8 +534,8 @@ export const HizliSatis: React.FC = () => {
         </div>
 
         {/* Toplam ve Butonlar */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-          <div className="flex justify-between items-center mb-4 text-xl">
+        <div className="p-3 lg:p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+          <div className="flex justify-between items-center mb-4 text-lg lg:text-xl">
             <span className="text-gray-600">Ara Toplam:</span>
             <span className="font-bold text-gray-800">{calculateTotal().toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
           </div>
@@ -540,43 +544,43 @@ export const HizliSatis: React.FC = () => {
              <button
                onClick={handleSuspendCart}
                disabled={cart.length === 0}
-               className="flex-1 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+               className="flex-1 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 rounded-lg font-medium transition-colors flex items-center justify-center gap-1 lg:gap-2 text-sm lg:text-base"
              >
-                <PauseCircle size={18} /> Askıya Al
+                <PauseCircle size={18} /> <span className="hidden sm:inline">Askıya Al</span><span className="sm:hidden">Askıya</span>
              </button>
              <button
                onClick={() => setCart([])}
                disabled={cart.length === 0}
-               className="flex-1 py-2 text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50 rounded-lg font-medium transition-colors"
+               className="flex-1 py-2 text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50 rounded-lg font-medium transition-colors text-sm lg:text-base"
              >
                 Temizle
              </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 lg:gap-3">
              <button 
                onClick={() => handleCheckout('Nakit')}
                disabled={cart.length === 0 || !canCreate}
-               className="flex flex-col items-center justify-center p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm"
+               className="flex flex-col items-center justify-center p-2 lg:p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm"
              >
                 <Banknote size={24} className="mb-1" />
-                <span className="font-bold text-sm text-center">Nakit<br/>(F1)</span>
+                <span className="font-bold text-[10px] lg:text-sm text-center">Nakit<br className="hidden lg:block"/><span className="hidden lg:inline">(F1)</span></span>
              </button>
              <button 
                onClick={() => handleCheckout('Kredi Kartı')}
                disabled={cart.length === 0 || !canCreate}
-               className="flex flex-col items-center justify-center p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
+               className="flex flex-col items-center justify-center p-2 lg:p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
              >
                 <CreditCard size={24} className="mb-1" />
-                <span className="font-bold text-sm text-center">Kredi Kartı<br/>(F4)</span>
+                <span className="font-bold text-[10px] lg:text-sm text-center">Kredi<br className="hidden lg:block"/><span className="hidden lg:inline"> Kartı(F4)</span></span>
              </button>
              <button 
                onClick={() => handleCheckout('Cari')}
                disabled={cart.length === 0 || !canCreate}
-               className="flex flex-col items-center justify-center p-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-colors shadow-sm"
+               className="flex flex-col items-center justify-center p-2 lg:p-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-colors shadow-sm"
              >
                 <User size={24} className="mb-1" />
-                <span className="font-bold text-sm text-center">Cari<br/>(F5)</span>
+                <span className="font-bold text-[10px] lg:text-sm text-center">Cari<br className="hidden lg:block"/><span className="hidden lg:inline">(F5)</span></span>
              </button>
           </div>
         </div>
@@ -635,26 +639,26 @@ export const HizliSatis: React.FC = () => {
                ) : (
                   <div className="space-y-3">
                      {suspendedCarts.map((c: any) => (
-                        <div key={c.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                        <div key={c.id} className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
                            <div>
-                              <h4 className="font-bold text-gray-800 text-lg">{c.name}</h4>
-                              <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                              <h4 className="font-bold text-gray-800 text-base sm:text-lg">{c.name}</h4>
+                              <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-2 mt-1">
                                  <Clock size={14} /> {c.date} 
                                  <span className="text-gray-300">|</span> 
                                  {c.items.reduce((acc: number, item: any) => acc + item.quantity, 0)} ürün
                               </p>
                            </div>
-                           <div className="flex gap-2">
+                           <div className="flex gap-2 w-full sm:w-auto">
                               <button 
                                  onClick={() => handleRemoveSuspended(c.id)}
-                                 className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                 className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors border border-red-100 sm:border-none shrink-0"
                                  title="Sil"
                               >
                                  <Trash2 size={20} />
                               </button>
                               <button 
                                  onClick={() => handleResumeCart(c)}
-                                 className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-4 py-2 rounded-lg font-medium transition-colors"
+                                 className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-4 py-2 rounded-lg font-medium transition-colors flex-1 sm:flex-none text-center"
                               >
                                  Geri Çağır
                               </button>
