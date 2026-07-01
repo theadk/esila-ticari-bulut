@@ -671,6 +671,11 @@ export const Siparisler: React.FC = () => {
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
+                    {order.cargoTrackingNumber && (
+                        <div className="text-xs text-blue-600 mt-1" title={order.cargoProvider}>
+                          Takip: {order.cargoTrackingNumber}
+                        </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-right flex items-center justify-end gap-1">
                     {(order.status === OrderStatus.PENDING || order.status === OrderStatus.PREPARED) && (

@@ -95,6 +95,30 @@ export async function initDb() {
             }
           }
         }
+      },
+      {
+        name: '003_add_order_cargo_columns',
+        up: async () => {
+          const alterStatements = [
+            'ALTER TABLE orders ADD COLUMN cargoProvider VARCHAR(255);',
+            'ALTER TABLE orders ADD COLUMN cargoTrackingNumber VARCHAR(255);',
+            'ALTER TABLE orders ADD COLUMN cargoBarcodeUrl VARCHAR(1000);',
+            'ALTER TABLE orders ADD COLUMN currency VARCHAR(50);',
+            'ALTER TABLE orders ADD COLUMN exchangeRate DECIMAL(15,4);',
+            'ALTER TABLE orders ADD COLUMN proposalId VARCHAR(255);',
+            'ALTER TABLE orders ADD COLUMN notes TEXT;',
+            'ALTER TABLE orders MODIFY COLUMN status VARCHAR(50) DEFAULT "Bekliyor";'
+          ];
+          for (const stmt of alterStatements) {
+            try {
+              await client.query(stmt);
+            } catch (e: any) {
+              if (e.code !== 'ER_DUP_FIELDNAME') {
+                console.error('Error in 003_add_order_cargo_columns:', e.message, '->', stmt);
+              }
+            }
+          }
+        }
       }
     ];
 
@@ -223,7 +247,9 @@ export async function initDb() {
           status VARCHAR(50) DEFAULT 'Yeni',
           resumeUrl VARCHAR(1000),
           notes TEXT
-        );
+        )
+      `);
+      await client.query(`
         CREATE TABLE IF NOT EXISTS personnel_kpis (
           vkn VARCHAR(50),
           id VARCHAR(255) PRIMARY KEY,
@@ -233,7 +259,9 @@ export async function initDb() {
           actualSalesAmount DECIMAL(15,2),
           targetNewLeads INT,
           actualNewLeads INT
-        );
+        )
+      `);
+      await client.query(`
         CREATE TABLE IF NOT EXISTS suspended_carts (
           vkn VARCHAR(50),
           id VARCHAR(255) PRIMARY KEY,
@@ -241,7 +269,7 @@ export async function initDb() {
           date VARCHAR(255),
           items JSON,
           customerId VARCHAR(255)
-        );
+        )
       `);
       await client.query(`
         CREATE TABLE IF NOT EXISTS bank_accounts (
@@ -364,7 +392,7 @@ export async function initDb() {
           notes TEXT,
           nextContactDate VARCHAR(50),
           personnelId VARCHAR(255)
-        );
+        )
       `);
       await client.query(`
         CREATE TABLE IF NOT EXISTS documents (
@@ -379,8 +407,9 @@ export async function initDb() {
           url TEXT,
           uploadedBy VARCHAR(255),
           relatedEntityId VARCHAR(255)
-        );
-
+        )
+      `);
+      await client.query(`
         CREATE TABLE IF NOT EXISTS waybills (
           vkn VARCHAR(50),
           id VARCHAR(255) PRIMARY KEY,
@@ -389,7 +418,7 @@ export async function initDb() {
           date DATETIME,
           items JSON,
           totalAmount DECIMAL(15,2)
-        );
+        )
       `);
     } catch (e: any) {
       console.error('CREATE job_applications or new tables:', e.message);
@@ -399,4 +428,3 @@ export async function initDb() {
     console.error('Error initializing database:', err);
   }
 }
-

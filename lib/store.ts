@@ -372,7 +372,12 @@ export async function initializeStore(force = false) {
             items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || [])
           }));
       } },
-      { name: 'purchase_requests', ref: (data: any) => { globalPurchaseRequests = data; } },
+      { name: 'purchase_requests', ref: (data: any) => { 
+          globalPurchaseRequests = data.map((d: any) => ({
+            ...d,
+            items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || [])
+          }));
+      } },
       { name: 'cheque_notes', ref: (data: any) => { globalChequeNotes = data; } },
       { name: 'suspended_carts', ref: (data: any) => { 
           globalSuspendedCarts = data.map((d: any) => ({

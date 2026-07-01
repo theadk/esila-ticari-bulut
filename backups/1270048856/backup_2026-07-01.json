@@ -1,0 +1,504 @@
+{
+  "users": [
+    {
+      "vkn": "1270048856",
+      "id": "admin-1270048856",
+      "name": "BOZOK HAYVANCILIK İNŞAAT GIDA SANAYİ VE TİCARET LİMİTED ŞİRKETİ Admin",
+      "username": "1270048856",
+      "email": "bozokltdsti@gmail.com",
+      "passwordHash": "Gamgam.66",
+      "role": "Admin",
+      "status": "Aktif",
+      "permissions": {
+        "depo": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "kasa": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "ariza": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "ajanda": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "cariler": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "efatura": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "urunler": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "personel": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "raporlar": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "mutabakat": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "stoksayim": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "teklifler": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "hizlisatis": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "siparisler": {
+          "edit": false,
+          "view": true,
+          "create": false,
+          "delete": false
+        },
+        "izin_yonetimi": {
+          "edit": false,
+          "view": false,
+          "create": false,
+          "delete": false
+        }
+      },
+      "assignedWarehouse": null,
+      "branch": null
+    }
+  ],
+  "settings": [
+    {
+      "vkn": "1270048856",
+      "id": 1,
+      "companyName": "BOZOK HAYVANCILIK İNŞAAT GIDA SANAYİ VE TİCARET LİMİTED ŞİRKETİ",
+      "address": "",
+      "phone": "",
+      "email": "bozokltdsti@gmail.com",
+      "taxOffice": null,
+      "taxNumber": null,
+      "companyLogo": null,
+      "smtp_host": null,
+      "smtp_port": null,
+      "smtp_user": null,
+      "smtp_pass": null,
+      "sms_token": null,
+      "sms_sender_id": null,
+      "printer_header_text": null,
+      "printer_footer_text": null,
+      "prefix_customer": null,
+      "next_customer_id": null,
+      "prefix_order": null,
+      "next_order_id": null,
+      "prefix_offer": null,
+      "next_offer_id": null,
+      "prefix_product": null,
+      "next_product_id": null,
+      "prefix_personnel": null,
+      "next_personnel_id": null,
+      "efatura_username": null,
+      "efatura_password": null,
+      "efatura_apikey": null,
+      "plumbingChecklistTemplate": [
+        "Filtre Kontrolü",
+        "Boru Sızıntı Kontrolü",
+        "Su Basıncı Testi",
+        "Vana Kontrolü",
+        "Ekipman Temizliği"
+      ]
+    }
+  ],
+  "categories": [],
+  "brands": [],
+  "products": [
+    {
+      "vkn": "1270048856",
+      "id": "PRD-1781875530545-po9y9iah7",
+      "code": "PRD-530545",
+      "name": "WH-012 Wood House Inci Kitaplık Beyaz",
+      "price": "3107.80",
+      "purchasePrice": "2071.86",
+      "stock": 4,
+      "category": "BUĞDAY",
+      "warehouse": "Gelen Fatura",
+      "barcode": "1453",
+      "description": null,
+      "brand": null,
+      "taxRate": "20.00",
+      "warehouseStocks": [
+        {
+          "stock": 4,
+          "warehouseId": "Gelen Fatura"
+        }
+      ],
+      "showInQuickSale": 0,
+      "unit": "Kilo",
+      "subCategory": "",
+      "image": null,
+      "variants": null
+    }
+  ],
+  "warehouses": [],
+  "stock_transfers": [],
+  "customers": [
+    {
+      "vkn": "1270048856",
+      "id": "CUS-1781875530532",
+      "type": "Satıcı",
+      "name": "EMRE HAMURCU",
+      "companyName": "EMRE HAMURCU",
+      "taxOffice": "MİMARSİNAN",
+      "taxNumber": "",
+      "tcNo": null,
+      "email": "mail@mail.com",
+      "phone": "0500",
+      "address": null,
+      "groupName": null,
+      "riskLimit": null,
+      "customerType": "Tüzel",
+      "city": null,
+      "district": null,
+      "iban": null,
+      "balance": "5000.00",
+      "status": "Aktif",
+      "efaturaType": null,
+      "efaturaScenario": null,
+      "efaturaInvoiceType": null,
+      "assignedUser": null
+    }
+  ],
+  "customer_transactions": [
+    {
+      "vkn": "1270048856",
+      "id": "kid7x6isy",
+      "customerId": "CUS-1781875530532",
+      "date": "2026-06-19T00:00:00.000Z",
+      "type": "Tahsilat",
+      "amount": "-37293.54",
+      "description": "Sipariş İptali: SIP-2026-8215",
+      "documentNo": null
+    },
+    {
+      "vkn": "1270048856",
+      "id": "lstgvhvpi",
+      "customerId": "CUS-1781875530532",
+      "date": "2026-06-19T00:00:00.000Z",
+      "type": "Ödeme",
+      "amount": "5000.00",
+      "description": "elden maaş",
+      "documentNo": null
+    },
+    {
+      "vkn": "1270048856",
+      "id": "oq97gows7",
+      "customerId": "CUS-1781875530532",
+      "date": "2026-06-19T00:00:00.000Z",
+      "type": "Satış",
+      "amount": "37293.54",
+      "description": "Tekliften Siparişe: SIP-2026-8215",
+      "documentNo": null
+    },
+    {
+      "vkn": "1270048856",
+      "id": "TR-1781875530542",
+      "customerId": "CUS-1781875530532",
+      "date": "2026-06-16T00:00:00.000Z",
+      "type": "",
+      "amount": "-2279.05",
+      "description": "Gelen e-Fatura İşlemi (EMR2026000000099)",
+      "documentNo": null
+    },
+    {
+      "vkn": "1270048856",
+      "id": "TR-1781875714121",
+      "customerId": "CUS-1781875530532",
+      "date": "2026-06-19T00:00:00.000Z",
+      "type": "Ödeme",
+      "amount": "2279.05",
+      "description": "Fatura Ödemesi: EMRE HAMURCU (Ajanda Kasa İşlemi)",
+      "documentNo": null
+    }
+  ],
+  "cash_transactions": [
+    {
+      "vkn": "1270048856",
+      "id": "9858lpgw4",
+      "date": "2026-06-19T13:34:15.000Z",
+      "type": "Gelir",
+      "amount": "4329.35",
+      "category": "Satış",
+      "description": "Servis Formu: ser onarımı peşin tahsilat",
+      "documentNo": null,
+      "customerId": "CUS-1781875530532",
+      "categoryId": null,
+      "personnelId": null
+    },
+    {
+      "vkn": "1270048856",
+      "id": "CASH-1781875714120",
+      "date": "2026-06-19T00:00:00.000Z",
+      "type": "Gider",
+      "amount": "2279.05",
+      "category": "Cari Ödeme",
+      "description": "Fatura Ödemesi: EMRE HAMURCU (Ajanda Ödemesi)",
+      "documentNo": null,
+      "customerId": "CUS-1781875530532",
+      "categoryId": null,
+      "personnelId": null
+    },
+    {
+      "vkn": "1270048856",
+      "id": "kw97vmf9q",
+      "date": "2026-06-19T00:00:00.000Z",
+      "type": "Gider",
+      "amount": "5000.00",
+      "category": "Cari Ödeme",
+      "description": "elden maaş (EMRE HAMURCU)",
+      "documentNo": null,
+      "customerId": "CUS-1781875530532",
+      "categoryId": null,
+      "personnelId": null
+    }
+  ],
+  "personnel": [
+    {
+      "vkn": "1270048856",
+      "id": "PER-1001",
+      "tcNo": "aaa",
+      "phone": "aaaa",
+      "email": "",
+      "address": "",
+      "position": "a",
+      "department": "a",
+      "startDate": "2026-06-19",
+      "salary": "0.00",
+      "iban": "",
+      "emergencyContactName": "",
+      "emergencyContactPhone": "",
+      "fixtures": [
+        {
+          "id": "7hc355c7h",
+          "quantity": 1,
+          "dateGiven": "2026-06-19",
+          "productId": "PRD-1781875530545-po9y9iah7",
+          "productName": "WH-012 Wood House Inci Kitaplık Beyaz"
+        }
+      ],
+      "gender": "Erkek",
+      "bloodType": "",
+      "endDate": null,
+      "socialSecurityNo": "",
+      "currency": null,
+      "annualLeaveEntitlement": 14,
+      "records": [],
+      "payrolls": null,
+      "leaveRecords": [
+        {
+          "id": "dzdymecfs",
+          "days": 1,
+          "type": "Ücretsiz İzin",
+          "status": "Onaylandı",
+          "endDate": "2026-06-19",
+          "startDate": "2026-06-19",
+          "description": ""
+        }
+      ],
+      "firstName": null,
+      "lastName": null,
+      "birthDate": null,
+      "employmentStatus": null,
+      "payrollRecords": null,
+      "branch": null
+    }
+  ],
+  "personnel_records": [],
+  "orders": [
+    {
+      "vkn": "1270048856",
+      "id": "SIP-2026-8215",
+      "customerId": "CUS-1781875530532",
+      "customerName": "EMRE HAMURCU",
+      "date": "2026-06-19T00:00:00.000Z",
+      "status": "İptal",
+      "totalVolume": null,
+      "totalWeight": null,
+      "totalAmount": null,
+      "items": [
+        {
+          "price": 3107.7954,
+          "taxRate": 20,
+          "quantity": 10,
+          "productId": "PRD-1781875530545-po9y9iah7",
+          "productName": "WH-012 Wood House Inci Kitaplık Beyaz"
+        }
+      ],
+      "subTotal": "31077.95",
+      "taxTotal": "6215.59",
+      "currency": null,
+      "exchangeRate": null,
+      "proposalId": "TEK-1001",
+      "notes": null,
+      "total": "37293.54",
+      "cargoProvider": null,
+      "cargoTrackingNumber": null,
+      "cargoBarcodeUrl": null
+    }
+  ],
+  "proposals": [
+    {
+      "vkn": "1270048856",
+      "id": "TEK-1001",
+      "customerId": "CUS-1781875530532",
+      "customerName": "EMRE HAMURCU",
+      "date": "2026-06-19T00:00:00.000Z",
+      "validUntil": "2026-06-29T00:00:00.000Z",
+      "subTotal": "31077.95",
+      "taxTotal": "6215.59",
+      "total": "37293.54",
+      "status": "Onaylandı",
+      "items": [
+        {
+          "unit": "Adet",
+          "price": 3107.7954,
+          "taxRate": 20,
+          "quantity": 10,
+          "productId": "PRD-1781875530545-po9y9iah7",
+          "productName": "WH-012 Wood House Inci Kitaplık Beyaz",
+          "discountRate": 0
+        }
+      ],
+      "notes": "",
+      "discountTotal": "0.00",
+      "isConvertedToOrder": 1
+    }
+  ],
+  "reconciliations": [],
+  "service_tickets": [
+    {
+      "vkn": "1270048856",
+      "id": "SRV-1001",
+      "customerId": "CUS-1781875530532",
+      "customerName": "EMRE HAMURCU",
+      "personnelId": "",
+      "personnelName": "",
+      "deviceType": "ser",
+      "serialNumber": "eer",
+      "issueDescription": "eee",
+      "status": "Tamamlandı",
+      "dateCreated": "2026-06-19T13:32:11.000Z",
+      "dateCompleted": "2026-06-19T13:34:15.000Z",
+      "materialsUsed": [
+        {
+          "unit": "Adet",
+          "source": "Depo",
+          "quantity": 1,
+          "productId": "PRD-1781875530545-po9y9iah7",
+          "unitPrice": 3107.7954,
+          "productName": "WH-012 Wood House Inci Kitaplık Beyaz"
+        }
+      ],
+      "laborFee": "500.00",
+      "taxRate": "20.00",
+      "totalCost": "4329.35",
+      "resolutionNotes": null,
+      "plumbingChecklist": [
+        {
+          "itemName": "Filtre Kontrolü",
+          "isChecked": true
+        },
+        {
+          "itemName": "Su Basıncı Testi",
+          "isChecked": true
+        },
+        {
+          "itemName": "Vana Kontrolü",
+          "isChecked": false
+        },
+        {
+          "itemName": "Ekipman Temizliği",
+          "isChecked": false
+        }
+      ],
+      "nextMaintenanceDate": null,
+      "maintenancePeriodMonths": null,
+      "maintenanceReminderSent": 0,
+      "deviceModel": null,
+      "deviceSerial": null,
+      "priority": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "assignedTo": null,
+      "partsCost": null,
+      "laborCost": null,
+      "systemType": null,
+      "brand": null,
+      "warrantyStatus": null,
+      "estimatedCompletion": null,
+      "signatureUrl": null
+    }
+  ],
+  "e_invoices": [
+    {
+      "vkn": "1270048856",
+      "id": "EMR2026000000099",
+      "orderId": "4759605791",
+      "customerName": "EMRE HAMURCU",
+      "amount": "2279.05",
+      "type": "Gelen Fatura",
+      "scenario": "TEMELFATURA",
+      "date": "2026-06-16T00:00:00.000Z",
+      "status": ""
+    }
+  ],
+  "email_logs": [
+    {
+      "id": "1782119715156y47vt",
+      "vkn": "1270048856",
+      "recipient": "ahdurko+5@gmail.com",
+      "subject": "Hesabınız Aktive Edildi - Esila Ticari",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-22T12:15:13.000Z"
+    }
+  ],
+  "reminder_notes": [],
+  "job_applications": []
+}
