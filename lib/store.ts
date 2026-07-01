@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { MOCK_CUSTOMERS, MOCK_TRANSACTIONS, MOCK_CASH_TRANSACTIONS, MOCK_PERSONNEL, MOCK_PRODUCTS, MOCK_USERS } from '../mockData';
 import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote, BOM, WorkOrder, AppNotification, AttendanceRecord, SalaryAdjustment, PersonnelKPI, PersonnelTask, MeetingNote, Campaign } from '../types';
 
 let globalSettings: Settings = {
@@ -32,45 +31,12 @@ let globalSettings: Settings = {
   plumbingChecklistTemplate: ['Filtre Kontrolü', 'Boru Sızıntı Kontrolü', 'Su Basıncı Testi', 'Vana Kontrolü', 'Ekipman Temizliği'],
 };
 
-let globalCustomers = [
-  ...MOCK_CUSTOMERS,
-  {
-    id: 'LEAD-001',
-    customerType: 'Tüzel',
-    name: 'Mustafa Demir',
-    companyName: 'Demir Mimarlık A.Ş.',
-    email: 'mustafa@demirmimarlik.com',
-    phone: '0532 999 88 77',
-    address: 'Beşiktaş, İstanbul',
-    type: 'Alıcı',
-    balance: 0,
-    status: 'Aktif',
-    isLead: true,
-    leadStatus: 'Yeni'
-  },
-  {
-    id: 'LEAD-002',
-    customerType: 'Tüzel',
-    name: 'Selin Kaya',
-    companyName: 'Kaya Lojistik',
-    email: 'selin@kayalojistik.com',
-    phone: '0555 444 33 22',
-    address: 'Kadıköy, İstanbul',
-    type: 'Alıcı',
-    balance: 0,
-    status: 'Aktif',
-    isLead: true,
-    leadStatus: 'Görüşülüyor'
-  }
-];
-let globalUsers = [...MOCK_USERS];
-let globalProducts = [...MOCK_PRODUCTS];
-let globalTransactions = [...MOCK_TRANSACTIONS];
-let globalCashTransactions = [...MOCK_CASH_TRANSACTIONS];
-let globalBankAccounts: BankAccount[] = [
-  { id: 'BANK-1', bankName: 'Garanti BBVA', accountName: 'Ana Hesap', iban: 'TR12 3456 7890 1234 5678 90', balance: 150000 },
-  { id: 'BANK-2', bankName: 'Yapı Kredi', accountName: 'Kredi Kartı', iban: 'TR98 7654 3210 9876 5432 10', balance: -5000 }
-];
+let globalCustomers: Customer[] = [];
+let globalUsers: User[] = [];
+let globalProducts: Product[] = [];
+let globalTransactions: CustomerTransaction[] = [];
+let globalCashTransactions: CashTransaction[] = [];
+let globalBankAccounts: BankAccount[] = [];
 let globalPersonnel: Personnel[] = [];
 let globalJobApplications: JobApplication[] = [];
 let globalServiceTickets: ServiceTicket[] = [];
@@ -83,28 +49,7 @@ let globalPersonnelKPIs: PersonnelKPI[] = [];
 let globalMeetingNotes: MeetingNote[] = [];
 let globalChequeNotes: any[] = [];
 
-let globalCampaigns: Campaign[] = [
-  {
-    id: 'CAMP-001',
-    name: 'Yaz Başlangıcı İndirimi',
-    description: 'Tüm perakende müşterilerinde geçerli %15 net iskonto.',
-    customerGroup: 'Perakende',
-    discountPercentage: 15,
-    startDate: '2026-06-01',
-    endDate: '2026-06-30',
-    isActive: true
-  },
-  {
-    id: 'CAMP-002',
-    name: 'B2B Bayi Destek Kampanyası',
-    description: 'Toptan alımlarda geçerli özel bayi iskontosu.',
-    customerGroup: 'B2B',
-    discountPercentage: 25,
-    startDate: '2026-01-01',
-    endDate: '2026-12-31',
-    isActive: true
-  }
-];
+let globalCampaigns: Campaign[] = [];
 export interface SuspendedCart {
   id: string;
   name: string;
@@ -122,24 +67,7 @@ export interface Waybill {
   totalAmount: number;
 }
 let globalWaybills: Waybill[] = [];
-let globalProposals: Proposal[] = [
-  {
-    id: 'TEK-2023-001',
-    customerId: '1',
-    customerName: 'Ahmet Yılmaz',
-    date: '2023-10-26 10:00',
-    validUntil: '2023-11-26 10:00',
-    subTotal: 1000,
-    discountTotal: 0,
-    taxTotal: 200,
-    total: 1200,
-    status: ProposalStatus.PENDING,
-    items: [
-      { productId: '1', productName: 'Kablosuz Kulaklık', quantity: 1, price: 1000, discountRate: 0 }
-    ],
-    notes: 'Ürün garanti kapsamındadır.'
-  }
-];
+let globalProposals: Proposal[] = [];
 export interface EInvoice {
   id: string;
   orderId: string;
@@ -155,41 +83,10 @@ export interface EInvoice {
   exceptionCode?: string;
 }
 let globalEInvoices: EInvoice[] = [];
-let globalOrders: Order[] = [
-  {
-    id: 'SIP-2023-001',
-    customerId: '1',
-    customerName: 'Ahmet Yılmaz',
-    date: '2023-10-25 14:30',
-    total: 2500.00,
-    status: OrderStatus.COMPLETED,
-    items: [
-      { productId: '1', productName: 'Kablosuz Kulaklık', quantity: 2, price: 1250.00 }
-    ]
-  }
-];
+let globalOrders: Order[] = [];
 
-let globalBoms: BOM[] = [
-  {
-    id: 'BOM-1001',
-    name: 'Endüstriyel Sensör V1 Montajı',
-    targetProductId: '1',
-    items: [{ productId: '2', quantity: 1, unit: 'Adet' }],
-    isActive: true,
-    estimatedTimeMinutes: 120
-  }
-];
-let globalWorkOrders: WorkOrder[] = [
-  {
-    id: 'WO-10001',
-    bomId: 'BOM-1001',
-    targetProductId: '1',
-    plannedQuantity: 10,
-    producedQuantity: 0,
-    status: 'Planlandı',
-    priority: 'Yüksek'
-  }
-];
+let globalBoms: BOM[] = [];
+let globalWorkOrders: WorkOrder[] = [];
 
 let globalPurchaseRequests: any[] = [];
 let globalDocuments: any[] = [];
