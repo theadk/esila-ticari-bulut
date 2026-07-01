@@ -110,8 +110,11 @@ async function apiFetch(input: RequestInfo, init?: RequestInit) {
   if (userId) {
     headers.set('x-user-id', userId);
   }
+  headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  headers.set('Pragma', 'no-cache');
+  headers.set('Expires', '0');
   
-  const response = await fetch(input, { ...init, headers });
+  const response = await fetch(input, { ...init, headers, cache: 'no-store' });
   
   // Debugging layer for API responses
   try {

@@ -113,6 +113,33 @@ export const Siparisler: React.FC = () => {
   const [ratesLoading, setRatesLoading] = useState(false);
   const [orderNotes, setOrderNotes] = useState('');
 
+  useEffect(() => {
+    const savedDraft = localStorage.getItem('siparisler_draft');
+    if (savedDraft) {
+      try {
+        const { items, customerId, notes, currency, paid } = JSON.parse(savedDraft);
+        if (items) setCartItems(items);
+        if (notes) setOrderNotes(notes);
+        if (currency) setOrderCurrency(currency);
+        if (paid !== undefined) setIsPaid(paid);
+        if (customerId && customers.length > 0) {
+           const c = customers.find((c: any) => c.id === customerId);
+           if (c) setSelectedCustomer(c);
+        }
+      } catch(e) {}
+    }
+  }, [customers.length]);
+
+  useEffect(() => {
+    localStorage.setItem('siparisler_draft', JSON.stringify({
+      items: cartItems,
+      customerId: selectedCustomer?.id,
+      notes: orderNotes,
+      currency: orderCurrency,
+      paid: isPaid
+    }));
+  }, [cartItems, selectedCustomer, orderNotes, orderCurrency, isPaid]);
+
   const { isListening, supported, listen, stop } = useSpeechRecognition();
 
   const handleSpeechRecognition = () => {
@@ -156,12 +183,6 @@ export const Siparisler: React.FC = () => {
   const cartTotal = cartSubTotal + cartTaxTotal;
 
   const handleOpenCreateModal = () => {
-    setSelectedCustomer(null);
-    setCartItems([]);
-    setSelectedProductToAdd('');
-    setQuantityToAdd(1);
-    setIsPaid(true);
-    setOrderNotes('');
     setIsCreateModalOpen(true);
   };
 
@@ -312,6 +333,12 @@ export const Siparisler: React.FC = () => {
       }
 
       setIsCreateModalOpen(false);
+      
+      // Clear draft
+      setCartItems([]);
+      setSelectedCustomer(null);
+      setOrderNotes('');
+      localStorage.removeItem('siparisler_draft');
       
       // Auto open print modal for receipt
       setSelectedOrder(newOrder);

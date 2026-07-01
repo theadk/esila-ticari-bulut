@@ -235,7 +235,7 @@ export const HizliSatis: React.FC = () => {
        })),
        total: totalAmount
     };
-    store.setOrders([...(store.orders || []), newOrder as any]);
+    store.setOrders((prev: any) => [...(prev || []), newOrder as any]);
 
     // 3. Update customer transactions and balance
     if (currentCustomer && currentCustomer.id) {
