@@ -219,8 +219,11 @@ export const HizliSatis: React.FC = () => {
     store.setProducts(newProducts);
     
     // 2.5 Create Order
+    const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
+    const timestampSuffix = Date.now().toString(36).toUpperCase();
+    const randomPart = Math.random().toString(36).substr(2, 4).toUpperCase();
     const newOrder = {
-       id: `SIP-HS-${Date.now()}`,
+       id: `${tenantId}-SIP-HS-${timestampSuffix}-${randomPart}`,
        customerId: currentCustomer!.id,
        customerName: currentCustomer.name,
        date: new Date().toISOString(),

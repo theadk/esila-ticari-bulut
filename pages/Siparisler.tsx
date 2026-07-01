@@ -253,7 +253,10 @@ export const Siparisler: React.FC = () => {
       if (!selectedCustomer || cartItems.length === 0) return;
 
       const orderDate = new Date();
-      const nextOrderId = `${store.settings.prefix_order || 'SIP'}-${store.settings.next_order_id || 1001}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
+      const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
+      const timestampSuffix = Date.now().toString(36).toUpperCase();
+      const randomPart = Math.random().toString(36).substr(2, 4).toUpperCase();
+      const nextOrderId = `${tenantId}-${store.settings.prefix_order || 'SIP'}-${store.settings.next_order_id || 1001}-${timestampSuffix}-${randomPart}`;
       
       const newOrder: Order = {
         id: nextOrderId,

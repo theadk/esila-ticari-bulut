@@ -191,8 +191,11 @@ export const Teklifler: React.FC = () => {
     if (!selectedProposal) return;
     
     // Add Order
+    const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
+    const timestampSuffix = Date.now().toString(36).toUpperCase();
+    const randomPart = Math.random().toString(36).substr(2, 4).toUpperCase();
     const newOrder: Order = {
-      id: `SIP-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+      id: `${tenantId}-SIP-TK-${timestampSuffix}-${randomPart}`,
       customerId: selectedProposal.customerId,
       customerName: selectedProposal.customerName,
       date: new Date().toISOString(),
