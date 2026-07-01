@@ -565,7 +565,7 @@ export const Cariler: React.FC = () => {
   }, [store.settings]);
 
   const handleAddNew = () => {
-    const nextId = `${store.settings.prefix_customer || 'CAR'}-${store.settings.next_customer_id || 1001}`;
+    const nextId = `${store.settings.prefix_customer || 'CAR'}-${store.settings.next_customer_id || 1001}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
     setFormData({ ...INITIAL_FORM, id: nextId });
     setIsEditing(false);
     setIsModalOpen(true);

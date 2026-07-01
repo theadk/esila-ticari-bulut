@@ -445,7 +445,7 @@ export const Personel: React.FC = () => {
   }, [searchTerm]);
 
   const handleAddNew = () => {
-    const nextId = `${store.settings.prefix_personnel || "PER"}-${store.settings.next_personnel_id || 1001}`;
+    const nextId = `${store.settings.prefix_personnel || "PER"}-${store.settings.next_personnel_id || 1001}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
     setFormData({ ...INITIAL_FORM, id: nextId });
     setIsEditing(false);
     setIsModalOpen(true);

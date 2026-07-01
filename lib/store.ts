@@ -213,7 +213,34 @@ async function apiFetch(input: RequestInfo, init?: RequestInit) {
   if (userId) {
     headers.set('x-user-id', userId);
   }
-  return fetch(input, { ...init, headers });
+  
+  const response = await fetch(input, { ...init, headers });
+  
+  // Debugging layer for API responses
+  try {
+    const clonedResponse = response.clone();
+    const method = init?.method || 'GET';
+    const url = typeof input === 'string' ? input : input.url;
+    
+    if (method !== 'GET') {
+      console.log(`[API REQUEST] ${method} ${url}`);
+      
+      if (!clonedResponse.ok) {
+        const errorText = await clonedResponse.text();
+        console.error(`[API ERROR] ${method} ${url} - Status: ${clonedResponse.status}`, errorText);
+        if (init?.body) {
+           console.error(`[API ERROR PAYLOAD]`, init.body);
+        }
+      } else {
+        const data = await clonedResponse.json();
+        console.log(`[API SUCCESS] ${method} ${url} - Status: ${clonedResponse.status}`, data);
+      }
+    }
+  } catch (err) {
+    console.error("[API DEBUG ERROR]", err);
+  }
+  
+  return response;
 }
 
 async function syncArray(table: string, oldArray: any[], newArray: any[]) {

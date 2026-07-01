@@ -319,7 +319,7 @@ export const Ariza: React.FC = () => {
         nextMaintenanceDate = d.toISOString();
       }
 
-      const ticketId = `${store.settings.prefix_service || 'SRV'}-${store.settings.next_service_id || 1001}`;
+      const ticketId = `${store.settings.prefix_service || 'SRV'}-${store.settings.next_service_id || 1001}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
       
       const newTicket: ServiceTicket = {
         id: ticketId,

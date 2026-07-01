@@ -135,7 +135,7 @@ export const HizliSatis: React.FC = () => {
         taxOffice: store.settings?.taxOffice || '',
         taxNumber: store.settings?.taxNumber || '',
         companyLogo: store.settings?.companyLogo,
-        date: new Date().toLocaleString('tr-TR'),
+        date: new Date().toISOString(),
         customerName: currentCustomer?.name !== 'Perakende Müşteri' ? currentCustomer?.name : undefined,
         items: items.map(i => ({
           name: i.product.name,
@@ -223,7 +223,7 @@ export const HizliSatis: React.FC = () => {
        id: `SIP-HS-${Date.now()}`,
        customerId: currentCustomer!.id,
        customerName: currentCustomer.name,
-       date: new Date().toLocaleString('tr-TR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+       date: new Date().toISOString(),
        status: OrderStatus.COMPLETED,
        items: cart.map(c => ({
          productId: c.product.id,

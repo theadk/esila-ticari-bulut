@@ -232,7 +232,7 @@ export const Siparisler: React.FC = () => {
       if (!selectedCustomer || cartItems.length === 0) return;
 
       const orderDate = new Date();
-      const nextOrderId = `${store.settings.prefix_order || 'SIP'}-${store.settings.next_order_id || 1001}`;
+      const nextOrderId = `${store.settings.prefix_order || 'SIP'}-${store.settings.next_order_id || 1001}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
       
       const newOrder: Order = {
         id: nextOrderId,

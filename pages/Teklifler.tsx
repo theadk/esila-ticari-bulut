@@ -138,7 +138,7 @@ export const Teklifler: React.FC = () => {
     const now = new Date();
     const validUntilDate = new Date(now);
     validUntilDate.setDate(now.getDate() + validDays);
-    const nextOfferId = `${store.settings.prefix_offer || 'TEK'}-${store.settings.next_offer_id || 1001}`;
+    const nextOfferId = `${store.settings.prefix_offer || 'TEK'}-${store.settings.next_offer_id || 1001}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
 
     const newProposal: Proposal = {
       id: nextOfferId,
