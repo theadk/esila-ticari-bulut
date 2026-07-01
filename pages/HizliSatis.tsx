@@ -188,7 +188,7 @@ export const HizliSatis: React.FC = () => {
         description: `Hızlı Satış - ${currentCustomer.name}`,
         paymentMethod
       };
-      store.setCashTransactions([...store.cashTransactions, newTx]);
+      store.setCashTransactions((prev: any) => [...(prev || []), newTx]);
     }
 
     // 2. Reduce Stock

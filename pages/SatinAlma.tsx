@@ -136,11 +136,11 @@ export const SatinAlma: React.FC = () => {
          };
          
          if (store.transactions && store.setTransactions) {
-             store.setTransactions([...store.transactions, newTransaction as any]);
+             store.setTransactions((prev: any) => [...(prev || []), newTransaction as any]);
          }
          
          if (store.customers && store.setCustomers) {
-             const updatedCustomers = store.customers.map(c => {
+             const updatedCustomers = (prev: any) => (prev || []).map(c => {
                  if (c.id === malKabulForm.supplierId) {
                      return { ...c, balance: c.balance - totalAmount };
                  }

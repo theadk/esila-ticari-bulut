@@ -125,7 +125,7 @@ export const Kasa: React.FC = () => {
   const handleSaveBank = (e: React.FormEvent) => {
     e.preventDefault();
     if (bankFormData.id) {
-       setBankAccounts(bankAccounts.map(b => b.id === bankFormData.id ? { ...b, ...bankFormData } as BankAccount : b));
+       setBankAccounts((prev: any) => (prev || []).map(b => b.id === bankFormData.id ? { ...b, ...bankFormData } as BankAccount : b));
     } else {
        const newBank: BankAccount = {
            id: 'BANK-' + Math.random().toString(36).substr(2, 9),
@@ -149,7 +149,7 @@ export const Kasa: React.FC = () => {
     };
     
     // Update Kasa
-    setCashTransactions([...cashTransactions, newTx]);
+    setCashTransactions((prev: any) => [...(prev || []), newTx]);
     
     // Update Cari if selected
     if (formData.customerId && ['Cari Tahsilat', 'Cari Ödeme', 'Satış', 'Alış'].includes(formData.category)) {
@@ -164,9 +164,9 @@ export const Kasa: React.FC = () => {
             amount: cariAmount,
             description: formData.description + ' (Kasa İşlemi)'
         };
-        setTransactions([...transactions, newCariTx as any]);
+        setTransactions((prev: any) => [...(prev || []), newCariTx as any]);
         
-        setCustomers(customers.map(c => 
+        setCustomers((prev: any) => (prev || []).map(c => 
             c.id === formData.customerId ? { ...c, balance: c.balance + cariAmount } : c
         ));
     }
@@ -192,7 +192,7 @@ export const Kasa: React.FC = () => {
        const bankToUpdate = bankAccounts.find(b => b.id === formData.accountId);
        if (bankToUpdate) {
           const amountChange = formData.type === 'Gelir' ? Number(formData.amount) : -Number(formData.amount);
-          setBankAccounts(bankAccounts.map(b => b.id === bankToUpdate.id ? { ...b, balance: b.balance + amountChange } : b));
+          setBankAccounts((prev: any) => (prev || []).map(b => b.id === bankToUpdate.id ? { ...b, balance: b.balance + amountChange } : b));
        }
     }
     
@@ -999,7 +999,7 @@ export const Kasa: React.FC = () => {
                      </button>
                      <button className="text-gray-400 hover:text-red-600 bg-white shadow-sm rounded p-1" onClick={() => {
                         if (confirm('Banka hesabını silmek istediğinize emin misiniz?')) {
-                            setBankAccounts(bankAccounts.filter(b => b.id !== account.id));
+                            setBankAccounts((prev: any) => (prev || []).filter(b => b.id !== account.id));
                         }
                      }}>
                         Sil

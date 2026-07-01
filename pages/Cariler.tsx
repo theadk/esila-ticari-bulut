@@ -123,8 +123,8 @@ export const Cariler: React.FC = () => {
       description: paymentForm.description
     };
 
-    const newTransactions = [...transactions, newTransaction];
-    setTransactions(newTransactions);
+    
+    setTransactions((prev: any) => [...(prev || []), newTransaction]);
 
     if (paymentForm.type !== 'Borçlandırma') {
       const newCashTx: CashTransaction = {
@@ -136,10 +136,10 @@ export const Cariler: React.FC = () => {
         description: paymentForm.description + ' (' + (selectedCustomerForHistory.companyName || selectedCustomerForHistory.name) + ')',
         customerId: selectedCustomerForHistory.id
       };
-      setCashTransactions([...cashTransactions, newCashTx]);
+      setCashTransactions((prev: any) => [...(prev || []), newCashTx]);
     }
 
-    const updatedCustomers = customers.map(c => {
+    const updatedCustomers = (prev: any) => (prev || []).map(c => {
       if (c.id === selectedCustomerForHistory.id) {
         return { ...c, balance: c.balance + newTransaction.amount };
       }
@@ -161,7 +161,7 @@ export const Cariler: React.FC = () => {
     if (customers && setCustomers) {
       const customer = customers.find(c => c.id === tx.customerId);
       if (customer) {
-        setCustomers(customers.map(c => c.id === customer.id ? {...c, balance: c.balance - tx.amount} : c));
+        setCustomers((prev: any) => (prev || []).map(c => c.id === customer.id ? {...c, balance: c.balance - tx.amount} : c));
         
         if (isHistoryModalOpen && selectedCustomerForHistory?.id === customer.id) {
           setSelectedCustomerForHistory({...customer, balance: customer.balance - tx.amount});
@@ -177,12 +177,12 @@ export const Cariler: React.FC = () => {
            c.description.startsWith(tx.description || '')
       );
       if (relatedCTx) {
-          setCashTransactions(cashTransactions.filter(c => c.id !== relatedCTx.id));
+          setCashTransactions((prev: any) => (prev || []).filter(c => c.id !== relatedCTx.id));
       }
     }
 
     if (setTransactions) {
-      setTransactions(transactions.filter(t => t.id !== tx.id));
+      setTransactions((prev: any) => (prev || []).filter(t => t.id !== tx.id));
     }
     toast.success('İşlem başarıyla silindi ve bakiye güncellendi.');
   };
@@ -202,7 +202,7 @@ export const Cariler: React.FC = () => {
       const customer = customers.find(c => c.id === oldTx.customerId);
       if (customer) {
         const newBalance = customer.balance - oldTx.amount + newAmount;
-        setCustomers(customers.map(c => c.id === customer.id ? {...c, balance: newBalance} : c));
+        setCustomers((prev: any) => (prev || []).map(c => c.id === customer.id ? {...c, balance: newBalance} : c));
         
         if (isHistoryModalOpen && selectedCustomerForHistory?.id === customer.id) {
           setSelectedCustomerForHistory({...customer, balance: newBalance});
@@ -218,7 +218,7 @@ export const Cariler: React.FC = () => {
            c.description.startsWith(oldTx.description || '')
       );
       if (relatedCTx) {
-         setCashTransactions(cashTransactions.map(c => c.id === relatedCTx.id ? { 
+         setCashTransactions((prev: any) => (prev || []).map(c => c.id === relatedCTx.id ? { 
            ...c, 
            type: newType === 'Tahsilat' ? 'Gelir' : 'Gider',
            category: newType === 'Tahsilat' ? 'Cari Tahsilat' : 'Cari Ödeme',
@@ -228,7 +228,7 @@ export const Cariler: React.FC = () => {
          } : c));
       } else if (newType === 'Tahsilat' || newType === 'Ödeme') {
          // Create it if missed
-         setCashTransactions([...cashTransactions, {
+         setCashTransactions((prev: any) => [...(prev || []), {
             id: Math.random().toString(36).substr(2, 9),
             date: editingTransactionForm.date || oldTx.date,
             type: newType === 'Tahsilat' ? 'Gelir' : 'Gider',
@@ -241,7 +241,7 @@ export const Cariler: React.FC = () => {
     }
 
     if (setTransactions) {
-      setTransactions(transactions.map(t => t.id === oldTx.id ? { 
+      setTransactions((prev: any) => (prev || []).map(t => t.id === oldTx.id ? { 
         ...t, 
         ...editingTransactionForm, 
         amount: newAmount 
@@ -309,10 +309,10 @@ export const Cariler: React.FC = () => {
         }).filter(Boolean) as CustomerTransaction[];
 
         if(newTransactions.length > 0) {
-            setTransactions([...transactions, ...newTransactions]);
+            setTransactions((prev: any) => [...(prev || []), ...newTransactions]);
             
             // Update customer balance
-            const updatedCustomers = customers.map(c => {
+            const updatedCustomers = (prev: any) => (prev || []).map(c => {
                if (c.id === selectedCustomerForHistory.id) {
                  return { ...c, balance: c.balance + totalAmountChange };
                }
@@ -511,7 +511,7 @@ export const Cariler: React.FC = () => {
         })).filter((c: any) => c.name || c.companyName);
         
         if (newCustomers.length > 0) {
-          setCustomers([...customers, ...newCustomers]);
+          setCustomers((prev: any) => [...(prev || []), ...newCustomers]);
           alert(`${newCustomers.length} cari başarıyla eklendi.`);
         }
       } catch (error) {
@@ -579,16 +579,16 @@ export const Cariler: React.FC = () => {
 
   const handleDelete = (id: string) => {
     if (window.confirm('Bu cariyi silmek istediğinize emin misiniz? (Cariye ait tüm hesap hareketleri ve kasa kayıtları da silinecektir.)')) {
-      setCustomers(customers.filter(c => String(c.id) !== String(id)));
+      setCustomers((prev: any) => (prev || []).filter(c => String(c.id) !== String(id)));
       
       // Remove associated transactions
       if (store.transactions) {
-          setTransactions(store.transactions.filter(t => String(t.customerId) !== String(id)));
+          setTransactions((prev: any) => (prev || []).filter(t => String(t.customerId) !== String(id)));
       }
       
       // Remove associated cash transactions
       if (store.cashTransactions) {
-          setCashTransactions(store.cashTransactions.filter(ct => String(ct.customerId) !== String(id)));
+          setCashTransactions((prev: any) => (prev || []).filter(ct => String(ct.customerId) !== String(id)));
       }
     }
   };
@@ -596,10 +596,10 @@ export const Cariler: React.FC = () => {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (isEditing) {
-      setCustomers(customers.map(c => c.id === formData.id ? formData : c));
+      setCustomers((prev: any) => (prev || []).map(c => c.id === formData.id ? formData : c));
     } else {
       const newCustomer = { ...formData, assignedUser: formData.assignedUser || currentUser?.id };
-      setCustomers([...customers, newCustomer]);
+      setCustomers((prev: any) => [...(prev || []), newCustomer]);
       store.setSettings({
         ...store.settings,
         next_customer_id: (store.settings.next_customer_id || 1001) + 1

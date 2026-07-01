@@ -578,7 +578,7 @@ export const Ariza: React.FC = () => {
           description: `Servis Formu: ${selectedTicket.deviceType} onarımı peşin tahsilat`,
           customerId: selectedTicket.customerId,
         };
-        store.setCashTransactions([...store.cashTransactions, cashTrx]);
+        store.setCashTransactions((prev: any) => [...(prev || []), cashTrx]);
       } else {
         const customerTrx: CustomerTransaction = {
           id: Math.random().toString(36).substr(2, 9),
@@ -588,7 +588,7 @@ export const Ariza: React.FC = () => {
           amount: selectedTicket.totalCost,
           description: `Servis Formu: ${selectedTicket.deviceType} onarımı`,
         };
-        store.setTransactions([...store.transactions, customerTrx]);
+        store.setTransactions((prev: any) => [...(prev || []), customerTrx]);
 
         // Update customer balance (Buyer goes positive balance normally or we subtract)
         const cIndex = customers.findIndex(

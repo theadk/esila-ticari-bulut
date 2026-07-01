@@ -189,9 +189,9 @@ export const Ajanda: React.FC = () => {
                    amount: txAmount,
                    description: noteToUpdate.title + ' (Ajanda Kasa İşlemi)'
                };
-               setTransactions([...transactions, newCariTx]);
+               setTransactions((prev: any) => [...(prev || []), newCariTx]);
                
-               setCustomers(customers.map(c => 
+               setCustomers((prev: any) => (prev || []).map(c => 
                    c.id === customerIdStr ? { ...c, balance: c.balance + txAmount } : c
                ));
            }

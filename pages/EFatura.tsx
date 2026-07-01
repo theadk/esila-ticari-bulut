@@ -104,10 +104,10 @@ export const EFatura: React.FC = () => {
         
         // Revert transactions and balance logic for customer accounts
         if (store.transactions && store.setTransactions) {
-           store.setTransactions(store.transactions.filter(t => !t.description?.includes(`(${inv.id})`)));
+           store.setTransactions((prev: any) => (prev || []).filter(t => !t.description?.includes(`(${inv.id})`)));
            
            if (transactionToRemove && store.customers && store.setCustomers) {
-              store.setCustomers(store.customers.map(c => 
+              store.setCustomers((prev: any) => (prev || []).map(c => 
                  c.id === transactionToRemove.customerId ? { ...c, balance: (c.balance || 0) - amountToRevert } : c
               ));
            }
@@ -558,7 +558,7 @@ export const EFatura: React.FC = () => {
     if (existingCustomer) {
       customerId = existingCustomer.id;
       if (store.setCustomers && store.customers) {
-         store.setCustomers(store.customers.map(c => 
+         store.setCustomers((prev: any) => (prev || []).map(c => 
             c.id === customerId ? { 
                 ...c, 
                 balance: (c.balance || 0) - updatedCustomerBalanceVal,

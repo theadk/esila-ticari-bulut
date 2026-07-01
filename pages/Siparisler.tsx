@@ -249,7 +249,7 @@ export const Siparisler: React.FC = () => {
         notes: orderNotes
       };
 
-      setOrders([newOrder, ...orders]);
+      setOrders((prev: any) => [newOrder, ...(prev || [])]);
       store.setSettings({
         ...store.settings,
         next_order_id: (store.settings.next_order_id || 1001) + 1
@@ -267,11 +267,10 @@ export const Siparisler: React.FC = () => {
         amount: cartTotal,
         description: `Sipariş: ${newOrder.id}`
       };
-      
-      setTransactions(prev => [...prev, newTransaction]);
-      
+
       // Update Customer Balance (Satış means customer debt increases -> positive balance)
       let finalBalanceDelta = cartTotal;
+      let newTransactions = [newTransaction];
 
       // 2. Eğer peşin ödendiyse, tahsilat işle
       if (isPaid) {
@@ -283,8 +282,8 @@ export const Siparisler: React.FC = () => {
           amount: -cartTotal,
           description: `Sipariş Tahsilatı: ${newOrder.id}`
         };
-        setTransactions(prev => [...prev, paymentTransaction]);
-        
+        newTransactions.push(paymentTransaction);
+
         const newCashTx: CashTransaction = {
           id: Math.random().toString(36).substr(2, 9),
           date: orderDate.toISOString().split('T')[0],
@@ -292,13 +291,16 @@ export const Siparisler: React.FC = () => {
           category: 'Satış',
           amount: cartTotal,
           description: `Sipariş Tahsilatı (${selectedCustomer.companyName || selectedCustomer.name}): ${newOrder.id}`,
-          customerId: selectedCustomer.id
+          customerId: selectedCustomer.id,
+          accountId: 'KASA'
         };
         setCashTransactions((prev: any) => [...(prev || []), newCashTx]);
         
         // Balance cancels out
         finalBalanceDelta = 0;
       }
+      
+      setTransactions((prev: any) => [...(prev || []), ...newTransactions]);
 
       if (finalBalanceDelta !== 0) {
         setCustomers((prev: any) => prev.map((c: any) => {
@@ -331,7 +333,7 @@ export const Siparisler: React.FC = () => {
       cargoProvider: shippingForm.provider,
       cargoTrackingNumber: shippingForm.trackingNumber
     };
-    const updatedOrders = orders.map(o => o.id === selectedOrder.id ? newOrder : o);
+    const updatedOrders = (prev: any) => (prev || []).map(o => o.id === selectedOrder.id ? newOrder : o);
     setOrders(updatedOrders);
     setIsShippingModalOpen(false);
     setSelectedOrder(null);
@@ -427,7 +429,7 @@ export const Siparisler: React.FC = () => {
       }
     }
 
-    const updatedOrders = orders.map(o => 
+    const updatedOrders = (prev: any) => (prev || []).map(o => 
       o.id === targetOrder.id ? { ...o, status } : o
     );
     setOrders(updatedOrders);

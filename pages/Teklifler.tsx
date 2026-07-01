@@ -209,7 +209,7 @@ export const Teklifler: React.FC = () => {
         taxRate: i.taxRate || 20
       }))
     };
-    setOrders([...orders, newOrder]);
+    setOrders((prev: any) => [...(prev || []), newOrder]);
 
     // Customer balance syncing and transactions
     const newCustomerTx = {

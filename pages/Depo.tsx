@@ -235,7 +235,7 @@ export const Depo: React.FC = () => {
       await api.updateProduct(prd.id, updatedProduct);
       
       // Update local state directly for immediate feedback
-      setProducts(products.map(p => p.id === prd.id ? updatedProduct : p));
+      setProducts((prev: any) => (prev || []).map(p => p.id === prd.id ? updatedProduct : p));
       alert('Ürün konumu başarıyla güncellendi.');
     } catch (error) {
       console.error(error);
@@ -1085,7 +1085,7 @@ export const Depo: React.FC = () => {
                                            // Siparişin durumunu Hazır olarak güncelle
                                            const order = store.orders.find(o => o.id === selectedOrderId);
                                            if (order) {
-                                               store.setOrders?.(store.orders.map(o => o.id === order.id ? { ...o, status: OrderStatus.PREPARED } : o));
+                                               store.setOrders?.((prev: any) => (prev || []).map(o => o.id === order.id ? { ...o, status: OrderStatus.PREPARED } : o));
                                            }
 
                                            setTerminalMessage({ text: 'Sipariş başarıyla toplandı ve hazır!', type: 'success' });

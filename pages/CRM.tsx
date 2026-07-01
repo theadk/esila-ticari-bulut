@@ -67,7 +67,7 @@ export const CRM: React.FC = () => {
       isLead: true,
       leadStatus: "Yeni",
     };
-    store.setCustomers([...customers, leadToSave]);
+    store.setCustomers((prev: any) => [...(prev || []), leadToSave]);
     setShowAddLead(false);
     setNewLead({
       name: "",
@@ -348,7 +348,7 @@ export const CRM: React.FC = () => {
                         value={selectedLead.leadStatus}
                         onChange={(e) => {
                            const updatedLead = { ...selectedLead, leadStatus: e.target.value as any };
-                           store.setCustomers(customers.map(c => c.id === selectedLead.id ? updatedLead : c));
+                           store.setCustomers((prev: any) => (prev || []).map(c => c.id === selectedLead.id ? updatedLead : c));
                            setSelectedLead(updatedLead);
                         }}
                         className="px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm"

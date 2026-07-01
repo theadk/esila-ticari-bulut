@@ -661,9 +661,9 @@ export const Personel: React.FC = () => {
         description: `${selectedPersonnel.firstName} ${selectedPersonnel.lastName} - Avans Ödemesi (${recordFormData.title})`,
         personnelId: selectedPersonnel.id,
       };
-      store.setCashTransactions([
+      store.setCashTransactions((prev: any) => [
         newCashTransaction,
-        ...(store.cashTransactions || []),
+        ...(prev || []),
       ]);
 
       const newAdj = {
@@ -870,9 +870,9 @@ export const Personel: React.FC = () => {
       newPersonnelList.find((p) => p.id === selectedPersonnel.id) ||
         selectedPersonnel,
     );
-    store.setCashTransactions([
+    store.setCashTransactions((prev: any) => [
       newCashTransaction,
-      ...(store.cashTransactions || []),
+      ...(prev || []),
     ]);
     toast.success("Maaş ödemesi kasaya işlendi.");
   };
