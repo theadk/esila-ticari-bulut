@@ -3089,7 +3089,7 @@ async function startServer() {
         const validCols = await getTableColumns(pool, table);
         if (validCols) {
            for (const k of Object.keys(data)) {
-               if (!validCols.includes(k)) {
+               if (!validCols.map((c: any) => c.toLowerCase()).includes(k.toLowerCase())) {
                    delete data[k];
                }
            }
@@ -3129,7 +3129,7 @@ async function startServer() {
         const validCols = await getTableColumns(pool, table);
         if (validCols) {
            for (const k of Object.keys(data)) {
-               if (!validCols.includes(k)) {
+               if (!validCols.map((c: any) => c.toLowerCase()).includes(k.toLowerCase())) {
                    delete data[k];
                }
            }
@@ -3151,7 +3151,13 @@ async function startServer() {
           .join(", ");
         const vkn = req.headers["x-tenant-id"] || "1111111111";
         const query = `UPDATE ${table} SET ${setString} WHERE id = ? AND vkn = ?`;
-        await pool.query(query, [...values, req.params.id, vkn]);
+        const [result]: any = await pool.query(query, [...values, req.params.id, vkn]);
+        
+        if (result.affectedRows === 0 && table === 'settings') {
+           const insertQuery = `INSERT INTO settings (id, vkn, ${keys.map(k => backtick + k + backtick).join(', ')}) VALUES (?, ?, ${keys.map(() => '?').join(', ')})`;
+           await pool.query(insertQuery, [req.params.id, vkn, ...values]);
+        }
+        
         res.json({ id: req.params.id, ...data });
       } catch (e) {
         res.status(500).json({ error: String(e) });

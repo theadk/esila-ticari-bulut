@@ -85,6 +85,11 @@ export function updateFallbackRow(table: string, id: string, vkn: string, update
     dbData[table][index] = { ...dbData[table][index], ...updates };
     save();
     return dbData[table][index];
+  } else if (table === 'settings') {
+    const newRow = { id, vkn, ...updates };
+    dbData[table].push(newRow);
+    save();
+    return newRow;
   }
   return null;
 }

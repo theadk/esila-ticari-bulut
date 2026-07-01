@@ -224,6 +224,24 @@ export async function initDb() {
           resumeUrl VARCHAR(1000),
           notes TEXT
         );
+        CREATE TABLE IF NOT EXISTS personnel_kpis (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          personnelId VARCHAR(255),
+          month VARCHAR(50),
+          targetSalesAmount DECIMAL(15,2),
+          actualSalesAmount DECIMAL(15,2),
+          targetNewLeads INT,
+          actualNewLeads INT
+        );
+        CREATE TABLE IF NOT EXISTS suspended_carts (
+          vkn VARCHAR(50),
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255),
+          date VARCHAR(255),
+          items JSON,
+          customerId VARCHAR(255)
+        );
       `);
       await client.query(`
         CREATE TABLE IF NOT EXISTS bank_accounts (
