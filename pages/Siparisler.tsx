@@ -159,7 +159,7 @@ export const Siparisler: React.FC = () => {
         id: crypto.randomUUID(),
         customerId: customerInfo.id || crypto.randomUUID(),
         customerName: customerInfo.name,
-        date: new Date().toISOString(),
+        date: new Date().toISOString().slice(0, 19).replace('T', ' '),
         items: cartItems,
         subTotal: totals.subTotal,
         taxTotal: totals.taxTotal,

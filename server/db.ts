@@ -139,6 +139,36 @@ export async function initDb() {
             }
           }
         }
+      },
+      {
+        name: '005_recreate_orders_table',
+        up: async () => {
+          await client.query('DROP TABLE IF EXISTS orders;');
+          await client.query(`
+            CREATE TABLE orders (
+                vkn VARCHAR(50),
+                id VARCHAR(255) PRIMARY KEY,
+                customerId VARCHAR(255),
+                customerName VARCHAR(255),
+                date DATETIME,
+                status VARCHAR(50) DEFAULT 'Bekliyor',
+                totalVolume DECIMAL(15,2),
+                totalWeight DECIMAL(15,2),
+                totalAmount DECIMAL(15,2),
+                subTotal DECIMAL(15,2),
+                taxTotal DECIMAL(15,2),
+                total DECIMAL(15,2),
+                currency VARCHAR(50),
+                exchangeRate DECIMAL(15,4),
+                proposalId VARCHAR(255),
+                notes TEXT,
+                cargoProvider VARCHAR(255),
+                cargoTrackingNumber VARCHAR(255),
+                cargoBarcodeUrl VARCHAR(1000),
+                items JSON
+            )
+          `);
+        }
       }
     ];
 
