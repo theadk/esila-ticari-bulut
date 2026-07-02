@@ -3103,7 +3103,7 @@ async function startServer() {
         const backtick = String.fromCharCode(96);
         const fields = keys.map((k) => backtick + k + backtick).join(", ");
         const vkn = req.headers["x-tenant-id"] || "1111111111";
-        const query = `INSERT INTO ${table} (vkn, ${fields}) VALUES (?, ${questionMarks})`;
+        const query = `INSERT IGNORE INTO ${table} (vkn, ${fields}) VALUES (?, ${questionMarks})`;
         await pool.query(query, [vkn, ...values]);
         res.json(req.body);
       } catch (e) {

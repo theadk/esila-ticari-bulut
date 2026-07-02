@@ -248,7 +248,45 @@ export const Siparisler: React.FC = () => {
     setCartItems(newItems);
   };
 
-  const handleCreateOrder = () => {
+  const addOrder = async (order: Order) => {
+    try {
+      const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
+      const userId = sessionStorage.getItem('esila_user_id') || '';
+      
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-id': tenantId,
+          'x-user-id': userId
+        },
+        body: JSON.stringify(order)
+      });
+
+      let data;
+      const text = await response.text();
+      try { data = JSON.parse(text); } catch(e) { data = { error: text }; }
+
+      console.table([{
+        Status: response.status,
+        StatusText: response.statusText,
+        TenantID: tenantId,
+        UserID: userId,
+        Response: JSON.stringify(data).substring(0, 100)
+      }]);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Veritabanı kayıt hatası');
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error("addOrder veritabanı kayıt hatası:", error);
+      throw error;
+    }
+  };
+
+  const handleCreateOrder = async () => {
     try {
       if (!selectedCustomer || cartItems.length === 0) return;
 
@@ -272,6 +310,8 @@ export const Siparisler: React.FC = () => {
         items: cartItems,
         notes: orderNotes
       };
+
+      await addOrder(newOrder);
 
       setOrders((prev: any) => [newOrder, ...(prev || [])]);
       store.setSettings({
