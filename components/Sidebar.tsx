@@ -38,10 +38,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
   
   const allMenuItems = [
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
+    { id: 'hizlisatis', label: 'Hızlı Satış', icon: Zap },
     { id: 'cariler', label: 'Cariler', icon: Users },
     { id: 'urunler', label: 'Ürünler', icon: Package },
-    { id: 'siparisler', label: 'Hızlı Satış (POS)', icon: ShoppingCart },
-    { id: 'siparis_listesi', label: 'Sipariş Listesi', icon: FileText },
+    { id: 'siparisler', label: 'Siparişler', icon: ShoppingCart },
     { id: 'satinalma', label: 'Satın Alma', icon: ShoppingBag },
     { id: 'uretim', label: 'Üretim', icon: Factory },
     { id: 'efatura', label: 'E-Fatura', icon: FileText },
@@ -70,7 +70,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
     'crm': 'crm',
     'urunler': 'urunler',
     'siparisler': 'siparisler',
-    'siparis_listesi': 'siparisler',
     'satinalma': 'satinalma',
     'uretim': 'uretim',
     'ceksenet': 'ceksenet',
