@@ -117,7 +117,7 @@ export const SatinAlma: React.FC = () => {
              updatedProducts[pIdx] = {
                  ...updatedProducts[pIdx],
                  stock: updatedProducts[pIdx].stock + item.quantity,
-                 buyPrice: item.price > 0 ? item.price : updatedProducts[pIdx].buyPrice
+                 purchasePrice: item.price > 0 ? item.price : updatedProducts[pIdx].purchasePrice
              };
          }
          totalAmount += item.quantity * item.price;

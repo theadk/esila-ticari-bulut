@@ -113,8 +113,8 @@ export const Siparisler: React.FC = () => {
     if (!productSearch) return products.slice(0, 12);
     const lowerSearch = productSearch.toLowerCase();
     return products.filter(p => 
-      p.name.toLowerCase().includes(lowerSearch) || 
-      p.code.toLowerCase().includes(lowerSearch)
+      p.name?.toLowerCase().includes(lowerSearch) || 
+      p.code?.toLowerCase().includes(lowerSearch)
     ).slice(0, 12);
   }, [products, productSearch]);
 

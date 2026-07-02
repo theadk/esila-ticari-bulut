@@ -377,7 +377,7 @@ async function startServer() {
           "SELECT emailLimit, emailCount FROM tenants WHERE vkn = ?",
           [vkn],
         )) as any;
-        if (tenantRows && tenantRows.length > 0) {
+        if (tenantRows && (tenantRows as any[]).length > 0) {
           const limit = tenantRows[0].emailLimit || 0;
           const count = tenantRows[0].emailCount || 0;
           if (limit > 0 && count >= limit) {
@@ -445,7 +445,7 @@ async function startServer() {
           "SELECT smsLimit, smsCount FROM tenants WHERE vkn = ?",
           [vkn],
         )) as any;
-        if (tenantRows && tenantRows.length > 0) {
+        if (tenantRows && (tenantRows as any[]).length > 0) {
           const limit = tenantRows[0].smsLimit || 0;
           const count = tenantRows[0].smsCount || 0;
           if (limit > 0 && count >= limit) {
@@ -530,7 +530,7 @@ async function startServer() {
       const [rows] = await pool.query("SELECT * FROM users WHERE email = ?", [
         email,
       ]);
-      if (!rows || rows.length === 0) {
+      if (!rows || (rows as any[]).length === 0) {
         return res
           .status(404)
           .json({ error: "Bu e-posta adresi sistemde kayıtlı değil." });
@@ -568,8 +568,8 @@ async function startServer() {
          });
       } else {
          const pool = getPool();
-         const [tRows] = await pool.query("SELECT name FROM tenants WHERE vkn = ?", [vkn]);
-         if (tRows && tRows.length > 0) tenantName = tRows[0].name;
+         const [tRows] = await pool.query("SELECT name FROM tenants WHERE vkn = ?", [vkn]) as any;
+         if (tRows && (tRows as any[]).length > 0) tenantName = tRows[0].name;
          
          try {
              await pool.query("ALTER TABLE session_logs ADD COLUMN ipAddress VARCHAR(255) DEFAULT ''");
@@ -816,16 +816,16 @@ async function startServer() {
       return res.json(
         getFallbackTable(
           "products",
-          req.headers["x-tenant-id"] || "1111111111",
+          (req.headers["x-tenant-id"] as string) || "1111111111",
         ),
       );
     try {
       const pool = getPool();
       const [rows] = await pool.query("SELECT * FROM products WHERE vkn = ?", [
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
       ]);
       res.json(
-        rows.map((row: any) => ({
+        (rows as any[]).map((row: any) => ({
           ...row,
           warehouseStocks:
             typeof row.warehouseStocks === "string"
@@ -846,7 +846,7 @@ async function startServer() {
       deleteFallbackRow(
         "products",
         req.params.id,
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
       );
       return res.json({ success: true });
     }
@@ -855,7 +855,7 @@ async function startServer() {
       const pool = getPool();
       await pool.query("DELETE FROM products WHERE id = ? AND vkn = ?", [
         id,
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
       ]);
       res.json({ success: true });
     } catch (e) {
@@ -871,17 +871,17 @@ async function startServer() {
       return res.json(
         getFallbackTable(
           "categories",
-          req.headers["x-tenant-id"] || "1111111111",
+          (req.headers["x-tenant-id"] as string) || "1111111111",
         ),
       );
     try {
       const pool = getPool();
       const [rows] = await pool.query(
         "SELECT * FROM categories WHERE vkn = ?",
-        [req.headers["x-tenant-id"] || "1111111111"],
+        [(req.headers["x-tenant-id"] as string) || "1111111111"],
       );
       res.json(
-        rows.map((r: any) => {
+        (rows as any[]).map((r: any) => {
           let parsed = [];
           try {
             parsed =
@@ -907,7 +907,7 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = req.headers["x-tenant-id"] || "1111111111";
+      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
       insertFallbackRow("categories", { ...newCat, vkn });
       return res.json(newCat);
     }
@@ -917,7 +917,7 @@ async function startServer() {
       await pool.query(
         "INSERT INTO categories (vkn, id, name, sub_categories) VALUES (?, ?, ?, ?)",
         [
-          req.headers["x-tenant-id"] || "1111111111",
+          (req.headers["x-tenant-id"] as string) || "1111111111",
           id,
           name,
           JSON.stringify(subCategories),
@@ -934,7 +934,7 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = req.headers["x-tenant-id"] || "1111111111";
+      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
       updateFallbackRow("categories", req.params.id, vkn, req.body);
       return res.json({ id: req.params.id, ...req.body });
     }
@@ -948,7 +948,7 @@ async function startServer() {
           name,
           JSON.stringify(subCategories),
           id,
-          req.headers["x-tenant-id"] || "1111111111",
+          (req.headers["x-tenant-id"] as string) || "1111111111",
         ],
       );
       res.json({ id, ...req.body });
@@ -965,7 +965,7 @@ async function startServer() {
       deleteFallbackRow(
         "categories",
         req.params.id,
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
       );
       return res.json({ success: true });
     }
@@ -974,7 +974,7 @@ async function startServer() {
       const pool = getPool();
       await pool.query("DELETE FROM categories WHERE id = ? AND vkn = ?", [
         id,
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
       ]);
       res.json({ success: true });
     } catch (err) {
@@ -988,12 +988,12 @@ async function startServer() {
       !process.env.DATABASE_URL.startsWith("mysql")
     )
       return res.json(
-        getFallbackTable("brands", req.headers["x-tenant-id"] || "1111111111"),
+        getFallbackTable("brands", (req.headers["x-tenant-id"] as string) || "1111111111"),
       );
     try {
       const pool = getPool();
       const [rows] = await pool.query("SELECT * FROM brands WHERE vkn = ?", [
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
       ]);
       res.json(rows);
     } catch (e) {
@@ -1008,7 +1008,7 @@ async function startServer() {
     ) {
       insertFallbackRow("brands", {
         ...req.body,
-        vkn: req.headers["x-tenant-id"] || "1111111111",
+        vkn: (req.headers["x-tenant-id"] as string) || "1111111111",
       });
       return res.json(req.body);
     }
@@ -1016,7 +1016,7 @@ async function startServer() {
     try {
       const pool = getPool();
       await pool.query("INSERT INTO brands (vkn, id, name) VALUES (?, ?, ?)", [
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
         id,
         name,
       ]);
@@ -1031,7 +1031,7 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = req.headers["x-tenant-id"] || "1111111111";
+      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
       updateFallbackRow("brands", req.params.id, vkn, req.body);
       return res.json({ id: req.params.id, ...req.body });
     }
@@ -1042,7 +1042,7 @@ async function startServer() {
       await pool.query("UPDATE brands SET name = ? WHERE id = ? AND vkn = ?", [
         name,
         id,
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
       ]);
       res.json({ id, ...req.body });
     } catch (err) {
@@ -1058,7 +1058,7 @@ async function startServer() {
       deleteFallbackRow(
         "brands",
         req.params.id,
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
       );
       return res.json({ success: true });
     }
@@ -1066,7 +1066,7 @@ async function startServer() {
       const pool = getPool();
       await pool.query("DELETE FROM brands WHERE id = ? AND vkn = ?", [
         req.params.id,
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
       ]);
       res.json({ success: true });
     } catch (err) {
@@ -1082,14 +1082,14 @@ async function startServer() {
       return res.json(
         getFallbackTable(
           "warehouses",
-          req.headers["x-tenant-id"] || "1111111111",
+          (req.headers["x-tenant-id"] as string) || "1111111111",
         ),
       );
     try {
       const pool = getPool();
       const [rows] = await pool.query(
         "SELECT * FROM warehouses WHERE vkn = ?",
-        [req.headers["x-tenant-id"] || "1111111111"],
+        [(req.headers["x-tenant-id"] as string) || "1111111111"],
       );
       res.json(rows);
     } catch (e) {
@@ -1098,7 +1098,7 @@ async function startServer() {
   });
 
   app.get("/api/stock_transfers", async (req, res) => {
-    const vkn = req.headers["x-tenant-id"] || "1111111111";
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1117,7 +1117,7 @@ async function startServer() {
   });
 
   app.post("/api/stock_transfers", async (req, res) => {
-    const vkn = req.headers["x-tenant-id"] || "1111111111";
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     const data = req.body;
 
     if (
@@ -1168,7 +1168,7 @@ async function startServer() {
         "SELECT warehouseStocks FROM products WHERE id = ? AND vkn = ?",
         [data.productId, vkn],
       )) as any;
-      if (rows && rows.length > 0) {
+      if (rows && (rows as any[]).length > 0) {
         let wStocks = rows[0].warehouseStocks;
         if (typeof wStocks === "string") wStocks = JSON.parse(wStocks);
         if (!wStocks) wStocks = [];
@@ -1226,7 +1226,7 @@ async function startServer() {
     ) {
       insertFallbackRow("warehouses", {
         ...req.body,
-        vkn: req.headers["x-tenant-id"] || "1111111111",
+        vkn: (req.headers["x-tenant-id"] as string) || "1111111111",
       });
       return res.json(req.body);
     }
@@ -1236,7 +1236,7 @@ async function startServer() {
       await pool.query(
         "INSERT INTO warehouses (vkn, id, name, address, capacity) VALUES (?, ?, ?, ?, ?)",
         [
-          req.headers["x-tenant-id"] || "1111111111",
+          (req.headers["x-tenant-id"] as string) || "1111111111",
           id,
           name,
           address,
@@ -1250,7 +1250,7 @@ async function startServer() {
   });
 
   app.put("/api/warehouses/:id", async (req, res) => {
-    const vkn = req.headers["x-tenant-id"] || "1111111111";
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1336,7 +1336,7 @@ async function startServer() {
   });
 
   app.delete("/api/warehouses/:id", async (req, res) => {
-    const vkn = req.headers["x-tenant-id"] || "1111111111";
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1419,7 +1419,7 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = req.headers["x-tenant-id"] || "1111111111";
+      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
       updateFallbackRow("products", req.params.id, vkn, req.body);
       return res.json({ id: req.params.id, ...req.body });
     }
@@ -1458,7 +1458,7 @@ async function startServer() {
           purchasePrice,
           showInQuickSale ? 1 : 0,
           id,
-          req.headers["x-tenant-id"] || "1111111111",
+          (req.headers["x-tenant-id"] as string) || "1111111111",
         ],
       );
       res.json({ id, ...req.body });
@@ -1472,7 +1472,7 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = req.headers["x-tenant-id"] || "1111111111";
+      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
       insertFallbackRow("products", {
         ...req.body,
         vkn,
@@ -1501,7 +1501,7 @@ async function startServer() {
       await pool.query(
         "INSERT INTO products (vkn, id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`, `showInQuickSale`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
-          req.headers["x-tenant-id"] || "1111111111",
+          (req.headers["x-tenant-id"] as string) || "1111111111",
           id,
           code,
           name,
@@ -1532,14 +1532,14 @@ async function startServer() {
       return res.json(
         getFallbackTable(
           "reconciliations",
-          req.headers["x-tenant-id"] || "1111111111",
+          (req.headers["x-tenant-id"] as string) || "1111111111",
         ),
       );
     try {
       const pool = getPool();
       const [rows] = await pool.query(
         "SELECT * FROM reconciliations WHERE vkn = ?",
-        [req.headers["x-tenant-id"] || "1111111111"],
+        [(req.headers["x-tenant-id"] as string) || "1111111111"],
       );
       res.json(rows);
     } catch (e) {
@@ -1564,7 +1564,7 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = req.headers["x-tenant-id"] || "1111111111";
+      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
       insertFallbackRow("reconciliations", { ...mutabakat, vkn });
       return res.json(mutabakat);
     }
@@ -1574,7 +1574,7 @@ async function startServer() {
       await pool.query(
         "INSERT INTO reconciliations (vkn, id, `customerId`, `customerName`, date, `balanceType`, balance, status, notes, `emailSentAt`, `respondedAt`, `responseNotes`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
-          req.headers["x-tenant-id"] || "1111111111",
+          (req.headers["x-tenant-id"] as string) || "1111111111",
           mutabakat.id,
           mutabakat.customerId,
           mutabakat.customerName,
@@ -1615,7 +1615,7 @@ async function startServer() {
       updateFallbackRow(
         "reconciliations",
         id,
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
         req.body,
       );
       return res.json({ id, ...req.body });
@@ -1636,7 +1636,7 @@ async function startServer() {
           respondedAt || null,
           responseNotes || null,
           id,
-          req.headers["x-tenant-id"] || "1111111111",
+          (req.headers["x-tenant-id"] as string) || "1111111111",
         ],
       );
       res.json({ id, ...req.body });
@@ -1653,7 +1653,7 @@ async function startServer() {
       deleteFallbackRow(
         "reconciliations",
         req.params.id,
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
       );
       return res.json({ success: true });
     }
@@ -1661,7 +1661,7 @@ async function startServer() {
       const pool = getPool();
       await pool.query("DELETE FROM reconciliations WHERE id = ? AND vkn = ?", [
         req.params.id,
-        req.headers["x-tenant-id"] || "1111111111",
+        (req.headers["x-tenant-id"] as string) || "1111111111",
       ]);
       res.json({ success: true });
     } catch (e) {
@@ -1673,7 +1673,7 @@ async function startServer() {
     const id = req.params.id;
     const notes = req.query.notes || "";
     const date = new Date().toISOString();
-    const vkn = req.query.vkn || req.headers["x-tenant-id"] || "1111111111";
+    const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "1111111111";
 
     if (
       !process.env.DATABASE_URL ||
@@ -1703,7 +1703,7 @@ async function startServer() {
     const id = req.params.id;
     const notes = req.query.notes || "";
     const date = new Date().toISOString();
-    const vkn = req.query.vkn || req.headers["x-tenant-id"] || "1111111111";
+    const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "1111111111";
 
     if (
       !process.env.DATABASE_URL ||
@@ -1809,7 +1809,7 @@ async function startServer() {
         "SELECT * FROM users WHERE vkn = ? AND role = 'Admin'",
         [vkn],
       );
-      if (rows.length === 0)
+      if ((rows as any[]).length === 0)
         return res.status(404).json({ error: "Admin kullanıcı bulunamadı." });
 
       const adminUser = rows[0];
@@ -2011,7 +2011,7 @@ async function startServer() {
         "SELECT status FROM tenants WHERE vkn = ?",
         [vkn],
       );
-      if (rows.length === 0)
+      if ((rows as any[]).length === 0)
         return res.status(404).json({ error: "Firma bulunamadı" });
 
       const newStatus = rows[0].status === "Aktif" ? "Pasif" : "Aktif";
@@ -2313,13 +2313,13 @@ async function startServer() {
       const [rows] = await pool.query("SELECT * FROM tenants WHERE vkn = ?", [
         vkn,
       ]);
-      if (rows && rows.length > 0) {
+      if (rows && (rows as any[]).length > 0) {
         const [uRows] = await pool.query(
           "SELECT passwordHash FROM users WHERE vkn = ? AND role = 'Admin'",
           [vkn],
-        );
+        ) as any;
         const adminPass =
-          uRows && uRows.length > 0 ? uRows[0].passwordHash : "";
+          uRows && (uRows as any[]).length > 0 ? uRows[0].passwordHash : "";
         try {
             await sendActivationMail(rows[0].email, rows[0].name, adminPass);
             await logActivation(rows[0].email, rows[0].name, "Aktivasyon", "Başarılı", "E-posta ve PDF ekleri teslim edildi.");
@@ -2492,7 +2492,7 @@ async function startServer() {
       const [rows] = await pool.query("SELECT * FROM tenants WHERE vkn = ?", [
         vkn,
       ]);
-      if (rows && rows.length > 0) {
+      if (rows && (rows as any[]).length > 0) {
         try {
             await sendRejectionMail(rows[0].email, rows[0].name);
             await logActivation(rows[0].email, rows[0].name, "Red", "Başarılı", "Ret e-postası teslim edildi.");
@@ -2638,7 +2638,7 @@ async function startServer() {
 
   app.get("/api/purchase-recommendations", async (req, res) => {
     try {
-      const vkn = req.headers["x-tenant-id"] || "1111111111";
+      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
       if (
         !process.env.DATABASE_URL ||
         !process.env.DATABASE_URL.startsWith("mysql")
@@ -2661,7 +2661,7 @@ async function startServer() {
 
   app.get("/api/tenant-info", async (req, res) => {
     try {
-      const vkn = req.headers["x-tenant-id"] || "1111111111";
+      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
       if (
         !process.env.DATABASE_URL ||
         !process.env.DATABASE_URL.startsWith("mysql")
@@ -2680,7 +2680,7 @@ async function startServer() {
       const [rows] = await pool.query("SELECT * FROM tenants WHERE vkn = ?", [
         vkn,
       ]);
-      if (rows.length > 0) return res.json(rows[0]);
+      if ((rows as any[]).length > 0) return res.json(rows[0]);
       res.json({});
     } catch (e) {
       res.status(500).json({ error: String(e) });
@@ -3033,7 +3033,7 @@ async function startServer() {
       if (tableColumnsCache[table]) return tableColumnsCache[table];
       try {
         const [rows] = await pool.query(`SHOW COLUMNS FROM \`${table}\``);
-        const cols = rows.map((r: any) => r.Field);
+        const cols = (rows as any[]).map((r: any) => r.Field);
         tableColumnsCache[table] = cols;
         return cols;
       } catch(e) { return null; }
@@ -3041,8 +3041,8 @@ async function startServer() {
 
     app.get(`/api/${table}`, async (req, res) => {
       try {
-        const vkn = req.headers["x-tenant-id"] || "1111111111";
-        const userId = req.headers["x-user-id"];
+        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+        const userId = (req.headers["x-user-id"] as string);
         if (
           !process.env.DATABASE_URL ||
           !process.env.DATABASE_URL.startsWith("mysql")
@@ -3056,7 +3056,7 @@ async function startServer() {
         
         if (userId && (table === 'personnel' || table === 'stock_transfers' || table === 'warehouses')) {
           const [userRows]: any = await pool.query(`SELECT role, branch FROM users WHERE id = ? AND vkn = ?`, [userId, vkn]);
-          if (userRows.length > 0) {
+          if ((userRows as any[]).length > 0) {
             const user = userRows[0];
             if (user.role !== 'Admin' && user.branch) {
               query += ` AND branch = ?`;
@@ -3078,7 +3078,7 @@ async function startServer() {
           !process.env.DATABASE_URL ||
           !process.env.DATABASE_URL.startsWith("mysql")
         ) {
-          const vkn = req.headers["x-tenant-id"] || "1111111111";
+          const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
           insertFallbackRow(table, { ...req.body, vkn });
           return res.json(req.body);
         }
@@ -3102,7 +3102,7 @@ async function startServer() {
         const questionMarks = keys.map(() => "?").join(", ");
         const backtick = String.fromCharCode(96);
         const fields = keys.map((k) => backtick + k + backtick).join(", ");
-        const vkn = req.headers["x-tenant-id"] || "1111111111";
+        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
         const query = `INSERT IGNORE INTO ${table} (vkn, ${fields}) VALUES (?, ${questionMarks})`;
         await pool.query(query, [vkn, ...values]);
         res.json(req.body);
@@ -3117,7 +3117,7 @@ async function startServer() {
           !process.env.DATABASE_URL ||
           !process.env.DATABASE_URL.startsWith("mysql")
         ) {
-          const vkn = req.headers["x-tenant-id"] || "1111111111";
+          const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
           updateFallbackRow(table, req.params.id, vkn, req.body);
           return res.json({ id: req.params.id, ...req.body });
         }
@@ -3149,7 +3149,7 @@ async function startServer() {
         const setString = keys
           .map((k) => backtick + k + backtick + " = ?")
           .join(", ");
-        const vkn = req.headers["x-tenant-id"] || "1111111111";
+        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
         const query = `UPDATE ${table} SET ${setString} WHERE id = ? AND vkn = ?`;
         const [result]: any = await pool.query(query, [...values, req.params.id, vkn]);
         
@@ -3170,12 +3170,12 @@ async function startServer() {
           !process.env.DATABASE_URL ||
           !process.env.DATABASE_URL.startsWith("mysql")
         ) {
-          const vkn = req.headers["x-tenant-id"] || "1111111111";
+          const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
           deleteFallbackRow(table, req.params.id, vkn);
           return res.json({ success: true });
         }
         const pool = getPool();
-        const vkn = req.headers["x-tenant-id"] || "1111111111";
+        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
         await pool.query(`DELETE FROM ${table} WHERE id = ? AND vkn = ?`, [
           req.params.id,
           vkn,
@@ -3291,7 +3291,7 @@ async function startServer() {
                 if (rows && Array.isArray(rows)) {
                     await pool.query(`DELETE FROM \`${table}\` WHERE vkn = ?`, [vkn]);
                     
-                    if (rows.length > 0) {
+                    if ((rows as any[]).length > 0) {
                         const columnsSet = new Set<string>();
                         rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
                         columnsSet.add('vkn'); // Ensure vkn is there
@@ -3306,7 +3306,7 @@ async function startServer() {
                         if (columns.length === 0) continue;
                         
                         const chunk_size = 50;
-                        for (let i = 0; i < rows.length; i += chunk_size) {
+                        for (let i = 0; i < (rows as any[]).length; i += chunk_size) {
                             const chunk = rows.slice(i, i + chunk_size);
                             const placeholders = chunk.map(() => `(${columns.map(() => '?').join(',')})`).join(',');
                             const values = chunk.flatMap((r: any) => columns.map(c => {
@@ -3387,7 +3387,7 @@ async function startServer() {
               if (rows && Array.isArray(rows)) {
                   await pool.query(`DELETE FROM \`${table}\` WHERE vkn = ?`, [vkn]);
                   
-                  if (rows.length > 0) {
+                  if ((rows as any[]).length > 0) {
                       const columnsSet = new Set<string>();
                       rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
                       columnsSet.add('vkn'); // Ensure vkn is there
@@ -3402,7 +3402,7 @@ async function startServer() {
                       if (columns.length === 0) continue;
                       
                       const chunk_size = 50;
-                      for (let i = 0; i < rows.length; i += chunk_size) {
+                      for (let i = 0; i < (rows as any[]).length; i += chunk_size) {
                           const chunk = rows.slice(i, i + chunk_size);
                           const placeholders = chunk.map(() => `(${columns.map(() => '?').join(',')})`).join(',');
                           const values = chunk.flatMap((r: any) => columns.map(c => {
@@ -3474,7 +3474,7 @@ async function startServer() {
                 // DELETE FROM is generally safer syntax-wise.
                 await pool.query(`DELETE FROM \`${table}\``);
                 const rows = data[table];
-                if (rows && rows.length > 0) {
+                if (rows && (rows as any[]).length > 0) {
                   const columnsSet = new Set<string>();
                   rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
                   let columns = Array.from(columnsSet);
@@ -3491,7 +3491,7 @@ async function startServer() {
                   if (columns.length === 0) continue;
 
                   const chunk_size = 50;
-                  for (let i = 0; i < rows.length; i += chunk_size) {
+                  for (let i = 0; i < (rows as any[]).length; i += chunk_size) {
                     const chunk = rows.slice(i, i + chunk_size);
                     const placeholders = chunk.map(() => `(${columns.map(() => '?').join(',')})`).join(',');
                     const values = chunk.flatMap((r: any) => columns.map(c => {

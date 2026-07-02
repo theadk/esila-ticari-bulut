@@ -163,7 +163,7 @@ async function startServer() {
     try {
       const pool = getPool();
       const [rows] = await pool.query('SELECT * FROM products WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
-      res.json(rows.map((row: any) => ({
+      res.json((rows as any[]).map((row: any) => ({
         ...row,
         warehouseStocks: typeof row.warehouseStocks === 'string' ? JSON.parse(row.warehouseStocks) : (row.warehouseStocks || [])
       })));
@@ -192,7 +192,7 @@ async function startServer() {
     try {
       const pool = getPool();
       const [rows] = await pool.query('SELECT * FROM categories WHERE vkn = ?', [req.headers['x-tenant-id'] || '1111111111']);
-      res.json(rows.map(r => ({
+      res.json((rows as any[]).map(r => ({
         id: r.id,
         name: r.name,
         subCategories: typeof r.sub_categories === 'string' ? JSON.parse(r.sub_categories) : (r.sub_categories || [])
@@ -581,7 +581,7 @@ async function startServer() {
 
       const pool = getPool();
       const [rows] = await pool.query("SELECT * FROM users WHERE vkn = ? AND role = 'Admin'", [vkn]);
-      if (rows.length === 0) return res.status(404).json({error: "Admin kullanıcı bulunamadı."});
+      if ((rows as any[]).length === 0) return res.status(404).json({error: "Admin kullanıcı bulunamadı."});
       
       const adminUser = rows[0];
       await pool.query("UPDATE users SET passwordHash = ? WHERE id = ?", [newAdminPass, adminUser.id]);
@@ -685,7 +685,7 @@ async function startServer() {
       
       const pool = getPool();
       const [rows] = await pool.query("SELECT status FROM tenants WHERE vkn = ?", [vkn]);
-      if (rows.length === 0) return res.status(404).json({error: "Firma bulunamadı"});
+      if ((rows as any[]).length === 0) return res.status(404).json({error: "Firma bulunamadı"});
       
       const newStatus = rows[0].status === 'Aktif' ? 'Pasif' : 'Aktif';
       await pool.query("UPDATE tenants SET status = ? WHERE vkn = ?", [newStatus, vkn]);

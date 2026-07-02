@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote, BOM, WorkOrder, AppNotification, AttendanceRecord, SalaryAdjustment, PersonnelKPI, PersonnelTask, MeetingNote, Campaign } from '../types';
 
+const safeJSONParse = (val: any, defaultVal: any = []) => {
+  if (typeof val === 'string') {
+    try { return JSON.parse(val); } catch(e) { return defaultVal; }
+  }
+  return val || defaultVal;
+};
+
 let globalSettings: Settings = {
   companyName: 'Esila Örnek Şirket Ltd. Şti.',
   address: 'Örnek Mah. Atatürk Cad. No:1, İstanbul',
@@ -210,7 +217,7 @@ export async function initializeStore(force = false) {
         } 
       } },
       { name: 'customers', ref: (data: any) => { globalCustomers = data.map((d: any) => ({ ...d, balance: Number(d.balance) || 0 })); } },
-      { name: 'products', ref: (data: any) => { globalProducts = data.map((d:any)=>({...d, showInQuickSale: !!d.showInQuickSale, warehouseStocks: typeof d.warehouseStocks === 'string' ? JSON.parse(d.warehouseStocks): (d.warehouseStocks||[])})); } },
+      { name: 'products', ref: (data: any) => { globalProducts = data.map((d:any)=>({...d, showInQuickSale: !!d.showInQuickSale, warehouseStocks: safeJSONParse(d.warehouseStocks, [])})); } },
       { name: 'categories', ref: (data: any) => { /* already in another branch but if we migrate.. */ } },
       { name: 'brands', ref: (data: any) => { /* ... */ } },
       { name: 'warehouses', ref: (data: any) => { /* ... */ } },
@@ -219,7 +226,7 @@ export async function initializeStore(force = false) {
       { name: 'boms', ref: (data: any) => { 
         globalBoms = data.map((d: any) => ({
            ...d,
-           items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || []),
+           items: safeJSONParse(d.items, []),
            isActive: d.isActive == 1 || d.isActive === true
         })); 
       } },
@@ -228,11 +235,11 @@ export async function initializeStore(force = false) {
       { name: 'personnel', ref: (data: any) => { 
         globalPersonnel = data.map((p: any) => ({
           ...p,
-          records: typeof p.records === 'string' ? JSON.parse(p.records) : (p.records || []),
-          payrollRecords: typeof p.payrollRecords === 'string' ? JSON.parse(p.payrollRecords) : (p.payrollRecords || []),
-          fixtures: typeof p.fixtures === 'string' ? JSON.parse(p.fixtures) : (p.fixtures || []),
-          payrolls: typeof p.payrolls === 'string' ? JSON.parse(p.payrolls) : (p.payrolls || []),
-          leaveRecords: typeof p.leaveRecords === 'string' ? JSON.parse(p.leaveRecords) : (p.leaveRecords || [])
+          records: safeJSONParse(p.records, []),
+          payrollRecords: safeJSONParse(p.payrollRecords, []),
+          fixtures: safeJSONParse(p.fixtures, []),
+          payrolls: safeJSONParse(p.payrolls, []),
+          leaveRecords: safeJSONParse(p.leaveRecords, [])
         })); 
       } },
       { name: 'job_applications', ref: (data: any) => { globalJobApplications = data; } },
@@ -242,12 +249,12 @@ export async function initializeStore(force = false) {
       { name: 'documents', ref: (data: any) => {
         globalDocuments = data.map((d: any) => ({
           ...d,
-          tags: typeof d.tags === 'string' ? JSON.parse(d.tags) : (d.tags || [])
+          tags: safeJSONParse(d.tags, [])
         }));
       } },
       { name: 'orders', ref: (data: any) => { 
         globalOrders = data.map((d:any)=>{
-           const parsedItems = typeof d.items === 'string' ? JSON.parse(d.items): (d.items||[]);
+           const parsedItems = safeJSONParse(d.items, []);
            const fixedItems = parsedItems.map((i: any) => ({
                ...i, 
                price: i.price !== undefined ? i.price : (i.unitPrice || 0)
@@ -257,7 +264,7 @@ export async function initializeStore(force = false) {
       } },
       { name: 'proposals', ref: (data: any) => { 
         globalProposals = data.map((d:any)=>{
-           const parsedItems = typeof d.items === 'string' ? JSON.parse(d.items): (d.items||[]);
+           const parsedItems = safeJSONParse(d.items, []);
            const fixedItems = parsedItems.map((i: any) => ({
                ...i, 
                price: i.price !== undefined ? i.price : (i.unitPrice || 0)
@@ -271,8 +278,8 @@ export async function initializeStore(force = false) {
       { name: 'service_tickets', ref: (data: any) => {
         globalServiceTickets = data.map((d:any) => ({
             ...d,
-            materialsUsed: typeof d.materialsUsed === 'string' ? JSON.parse(d.materialsUsed) : (d.materialsUsed || []),
-            plumbingChecklist: typeof d.plumbingChecklist === 'string' ? JSON.parse(d.plumbingChecklist) : (d.plumbingChecklist || [])
+            materialsUsed: safeJSONParse(d.materialsUsed, []),
+            plumbingChecklist: safeJSONParse(d.plumbingChecklist, [])
         }));
       } },
       { name: 'reminder_notes', ref: (data: any) => {
@@ -296,20 +303,20 @@ export async function initializeStore(force = false) {
       { name: 'waybills', ref: (data: any) => {
           globalWaybills = data.map((d: any) => ({
             ...d,
-            items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || [])
+            items: safeJSONParse(d.items, [])
           }));
       } },
       { name: 'purchase_requests', ref: (data: any) => { 
           globalPurchaseRequests = data.map((d: any) => ({
             ...d,
-            items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || [])
+            items: safeJSONParse(d.items, [])
           }));
       } },
       { name: 'cheque_notes', ref: (data: any) => { globalChequeNotes = data; } },
       { name: 'suspended_carts', ref: (data: any) => { 
           globalSuspendedCarts = data.map((d: any) => ({
              ...d,
-             items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || [])
+             items: safeJSONParse(d.items, [])
           }));
       } },
       { name: 'personnel_kpis', ref: (data: any) => { globalPersonnelKPIs = data; } },

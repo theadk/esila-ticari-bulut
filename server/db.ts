@@ -119,6 +119,26 @@ export async function initDb() {
             }
           }
         }
+      },
+      {
+        name: '004_ensure_json_items',
+        up: async () => {
+          const alterStatements = [
+            'ALTER TABLE orders ADD COLUMN items JSON;',
+            'ALTER TABLE proposals ADD COLUMN items JSON;',
+            'ALTER TABLE purchase_requests ADD COLUMN items JSON;',
+            'ALTER TABLE suspended_carts ADD COLUMN items JSON;'
+          ];
+          for (const stmt of alterStatements) {
+            try {
+              await client.query(stmt);
+            } catch (e: any) {
+              if (e.code !== 'ER_DUP_FIELDNAME') {
+                console.error('Error in 004_ensure_json_items:', e.message, '->', stmt);
+              }
+            }
+          }
+        }
       }
     ];
 
