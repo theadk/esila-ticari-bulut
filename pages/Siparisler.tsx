@@ -268,6 +268,7 @@ export const Siparisler: React.FC = () => {
       try { data = JSON.parse(text); } catch(e) { data = { error: text }; }
 
       console.table([{
+        Function: 'addOrder (Debug)',
         Status: response.status,
         StatusText: response.statusText,
         TenantID: tenantId,
@@ -276,7 +277,7 @@ export const Siparisler: React.FC = () => {
       }]);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Veritabanı kayıt hatası');
+        throw new Error(data?.error || text || 'Veritabanı kayıt hatası');
       }
 
       return data;
@@ -311,6 +312,7 @@ export const Siparisler: React.FC = () => {
         notes: orderNotes
       };
 
+      // Hata takibi için yeni eklenen fonksiyonu çağırıyoruz:
       await addOrder(newOrder);
 
       setOrders((prev: any) => [newOrder, ...(prev || [])]);
