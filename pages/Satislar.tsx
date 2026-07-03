@@ -143,9 +143,9 @@ export const Satislar: React.FC = () => {
     // Restore stock
     const products = [...store.products];
     order.items.forEach(item => {
-      const product = products.find(p => p.id === item.productId);
-      if (product) {
-        product.stock += item.quantity;
+      const idx = products.findIndex(p => p.id === item.productId);
+      if (idx >= 0) {
+        products[idx] = { ...products[idx], stock: products[idx].stock + item.quantity };
       }
     });
     store.setProducts(products);

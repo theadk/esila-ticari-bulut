@@ -155,11 +155,11 @@ export const StokSayim: React.FC = () => {
             newProducts[idx] = { ...product, stock: totalStock, warehouseStocks: newWarehouseStocks };
         } else {
             if (newWarehouseStocks.length > 0) {
-                const globalWh = newWarehouseStocks.find(w => w.warehouseId === product.warehouse || w.warehouseId === 'Merkez');
-                if (globalWh) {
-                   globalWh.stock = item.countedStock;
+                const globalWhIdx = newWarehouseStocks.findIndex(w => w.warehouseId === product.warehouse || w.warehouseId === 'Merkez');
+                if (globalWhIdx > -1) {
+                   newWarehouseStocks[globalWhIdx] = { ...newWarehouseStocks[globalWhIdx], stock: item.countedStock };
                 } else if (newWarehouseStocks.length === 1) {
-                   newWarehouseStocks[0].stock = item.countedStock;
+                   newWarehouseStocks[0] = { ...newWarehouseStocks[0], stock: item.countedStock };
                 }
             }
             newProducts[idx] = { ...product, stock: item.countedStock, warehouseStocks: newWarehouseStocks };

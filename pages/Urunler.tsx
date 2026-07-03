@@ -602,10 +602,10 @@ export const Urunler: React.FC = () => {
       if (quickStockWarehouse === updatedProduct.warehouse) {
          updatedProduct.stock = newStock;
       } else {
-         const whs = updatedProduct.warehouseStocks || [];
+         const whs = [...(updatedProduct.warehouseStocks || [])];
          const whIdx = whs.findIndex(w => w.warehouseId === quickStockWarehouse);
          if (whIdx >= 0) {
-            whs[whIdx].stock = newStock;
+            whs[whIdx] = { ...whs[whIdx], stock: newStock };
          } else {
             whs.push({ warehouseId: quickStockWarehouse, stock: newStock });
          }
@@ -1746,7 +1746,7 @@ export const Urunler: React.FC = () => {
                       value={ws.stock === 0 ? '' : ws.stock}
                       onChange={(e) => {
                          const newStocks = [...(formData.warehouseStocks || [])];
-                         newStocks[i].stock = Number(e.target.value);
+                         newStocks[i] = { ...newStocks[i], stock: Number(e.target.value) };
                          const totalStock = newStocks.reduce((sum, s) => sum + s.stock, 0);
                          setFormData({...formData, warehouseStocks: newStocks, stock: totalStock});
                       }}
