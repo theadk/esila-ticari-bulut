@@ -116,7 +116,7 @@ const App: React.FC = () => {
         headers: { 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '' }
       }).then(res => res.json()).then(data => setTenantInfo(data)).catch(console.error);
     }
-  }, [isAuthenticated, activePage]);
+  }, [isAuthenticated]);
 
   useKeyboardShortcuts({
     'ctrl+k': () => setIsCommandPaletteOpen(true),
