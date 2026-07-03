@@ -18,13 +18,7 @@ export const Ayarlar: React.FC = () => {
   const [serverBackups, setServerBackups] = useState<string[]>([]);
   const [isRestoring, setIsRestoring] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/tenant-info', {
-      headers: {
-        'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || ''
-      }
-    }).then(res => res.json()).then(data => setTenantInfo(data)).catch();
-
+  const fetchServerBackups = () => {
     fetch('/api/tenant-backups', {
       headers: {
         'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || ''
@@ -34,6 +28,16 @@ export const Ayarlar: React.FC = () => {
         setServerBackups(data.backups);
       }
     }).catch();
+  };
+
+  useEffect(() => {
+    fetch('/api/tenant-info', {
+      headers: {
+        'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || ''
+      }
+    }).then(res => res.json()).then(data => setTenantInfo(data)).catch();
+
+    fetchServerBackups();
   }, []);
 
   const handleChange = (key: keyof Settings, value: string | number) => {

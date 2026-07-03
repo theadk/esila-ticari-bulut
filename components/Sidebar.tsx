@@ -20,7 +20,8 @@ import {
   CalendarDays,
   ScanLine,
   CreditCard,
-  Folder
+  Folder,
+  ShoppingBasket
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
@@ -41,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
     { id: 'hizlisatis', label: 'Hızlı Satış', icon: Zap },
     { id: 'cariler', label: 'Cariler', icon: Users },
     { id: 'urunler', label: 'Ürünler', icon: Package },
+    { id: 'satislar', label: 'Satışlar', icon: ShoppingBasket },
     { id: 'siparisler', label: 'Siparişler', icon: ShoppingCart },
     { id: 'satinalma', label: 'Satın Alma', icon: ShoppingBag },
     { id: 'uretim', label: 'Üretim', icon: Factory },
@@ -69,6 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
     'cariler': 'cariler',
     'crm': 'crm',
     'urunler': 'urunler',
+    'satislar': 'satislar',
     'siparisler': 'siparisler',
     'satinalma': 'satinalma',
     'uretim': 'uretim',
@@ -96,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
     if (item.id === 'dashboard') return true;
     
     // Admin always sees everything
-    if (currentUser?.role === 'admin') return true;
+    if (currentUser?.role === 'Admin' || currentUser?.role === 'admin' || currentUser?.role === 'SuperAdmin') return true;
 
     const moduleName = permissionMap[item.id];
     if (moduleName && currentUser?.permissions) {

@@ -487,7 +487,7 @@ export const HizliSatis: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-gray-500">
-                      {item.product.price.toLocaleString('tr-TR')} ₺
+                      {(item.product.price || 0).toLocaleString('tr-TR')} ₺
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 w-full mt-2 sm:mt-0">
                       <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md shrink-0 w-fit">
@@ -526,7 +526,7 @@ export const HizliSatis: React.FC = () => {
                       </div>
                       
                       <div className="font-bold text-gray-800 text-right flex-1 text-sm lg:text-base">
-                        {((item.product.price * item.quantity) * (1 - item.discount / 100)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                        {(((item.product.price || 0) * item.quantity) * (1 - item.discount / 100)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                       </div>
                     </div>
                   </div>

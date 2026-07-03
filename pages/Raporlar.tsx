@@ -420,13 +420,13 @@ export const Raporlar: React.FC = () => {
                         <td className="py-3 px-4 font-mono text-gray-500">{p.code}</td>
                         <td className="py-3 px-4 font-medium text-gray-800">{p.name}</td>
                         <td className="py-3 px-4 text-right text-orange-600">
-                          {purchasePrice.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                          {(purchasePrice || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                         </td>
                         <td className="py-3 px-4 text-right text-blue-600">
-                          {p.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                          {(p.price || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                         </td>
                         <td className={`py-3 px-4 text-right font-medium ${unitProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                          {unitProfit.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                          {(unitProfit || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                         </td>
                         <td className={`py-3 px-4 text-right font-medium ${margin >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                           %{margin.toFixed(2)}

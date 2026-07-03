@@ -315,6 +315,7 @@ export interface UserPermissions {
   personel: PermissionSet;
   hizlisatis: PermissionSet;
   urunler: PermissionSet;
+  satislar: PermissionSet;
   siparisler: PermissionSet;
   cariler: PermissionSet;
   kasa: PermissionSet;
