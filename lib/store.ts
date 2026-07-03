@@ -257,9 +257,9 @@ export async function initializeStore(force = false) {
            const parsedItems = safeJSONParse(d.items, []);
            const fixedItems = parsedItems.map((i: any) => ({
                ...i, 
-               price: i.price !== undefined ? i.price : (i.unitPrice || 0)
+               price: Number(i.price !== undefined ? i.price : (i.unitPrice || 0))
            }));
-           return { ...d, items: fixedItems, total: d.total !== undefined ? d.total : (d.totalAmount || 0) };
+           return { ...d, items: fixedItems, total: Number(d.total !== undefined ? d.total : (d.totalAmount || 0)) };
         }); 
       } },
       { name: 'proposals', ref: (data: any) => { 
@@ -267,9 +267,9 @@ export async function initializeStore(force = false) {
            const parsedItems = safeJSONParse(d.items, []);
            const fixedItems = parsedItems.map((i: any) => ({
                ...i, 
-               price: i.price !== undefined ? i.price : (i.unitPrice || 0)
+               price: Number(i.price !== undefined ? i.price : (i.unitPrice || 0))
            }));
-           return { ...d, items: fixedItems, total: d.total !== undefined ? d.total : (d.totalAmount || 0) };
+           return { ...d, items: fixedItems, total: Number(d.total !== undefined ? d.total : (d.totalAmount || 0)) };
         }); 
       } },
       { name: 'e_invoices', ref: (data: any) => {
