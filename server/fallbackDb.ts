@@ -62,6 +62,15 @@ export function getFallbackTable(table: string, vkn?: string) {
 
 export function insertFallbackRow(table: string, row: any) {
   if (!dbData[table]) dbData[table] = [];
+  
+  // Prevent duplicates
+  if (row.id) {
+    const existingIndex = dbData[table].findIndex(r => String(r.id) === String(row.id) && r.vkn === row.vkn);
+    if (existingIndex !== -1) {
+      return dbData[table][existingIndex];
+    }
+  }
+
   dbData[table].push(row);
   save();
   return row;

@@ -149,6 +149,7 @@ export const Urunler: React.FC = () => {
     try {
       const [prds, whs, cats, brs] = await Promise.all([api.getProducts(), api.getWarehouses(), api.getCategories(), api.getBrands()]);
       setProducts(prds);
+      if (store.setProducts) store.setProducts(prds);
       setWarehouses(whs);
       setCategories(cats);
       setBrands(brs);
