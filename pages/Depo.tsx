@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useEffect } from 'react';
 import { Warehouse as WarehouseIcon, Package, Search, Box, ArrowRight, Plus, X, Edit2, Trash2, ArrowLeftRight, ScanBarcode, Truck, MapPin, Map, Navigation, Layers, CheckSquare, Camera } from 'lucide-react';
 import { Product, Warehouse, StockTransfer, OrderStatus, Order } from '../types';
@@ -9,7 +10,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export const Depo: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'depo', 'view');
   const canCreate = hasPermission(currentUser, 'depo', 'create');
   const canEdit = hasPermission(currentUser, 'depo', 'edit');

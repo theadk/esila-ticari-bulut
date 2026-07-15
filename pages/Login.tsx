@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import React, { useState } from 'react';
 import { Lock, User, ArrowRight, Mail, ArrowLeft, CheckCircle2, Phone, Building, MapPin } from 'lucide-react';
 import { useAppStore } from '../lib/store';
@@ -84,8 +85,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       });
       if (res.ok) {
         const user = await res.json();
-        sessionStorage.setItem('esila_tenant_id', user.vkn || '1111111111');
-        sessionStorage.setItem('esila_user_id', user.id);
+        safeSessionStorage.setItem('esila_tenant_id', user.vkn || '1111111111');
+        safeSessionStorage.setItem('esila_user_id', user.id);
         onLogin();
       } else {
         const err = await res.json();

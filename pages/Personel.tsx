@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import { usePersistentState } from "../lib/use-persistent-state";
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
@@ -81,7 +82,7 @@ export const Personel: React.FC = () => {
   const store = useAppStore();
   const currentUser =
     store.users.find(
-      (u: any) => u.id === sessionStorage.getItem("esila_user_id"),
+      (u: any) => u.id === safeSessionStorage.getItem("esila_user_id"),
     ) || store.users[0];
   const canView = hasPermission(currentUser, "personel", "view");
   const canCreate = hasPermission(currentUser, "personel", "create");

@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../lib/store';
 import { ReminderNoteType } from '../types';
@@ -8,7 +9,7 @@ import { hasPermission } from '../lib/permissions';
 
 export const Ajanda: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'ajanda', 'view');
   const canCreate = hasPermission(currentUser, 'ajanda', 'create');
   const canEdit = hasPermission(currentUser, 'ajanda', 'edit');

@@ -1,8 +1,9 @@
+import { safeSessionStorage } from './/storage';
 import { Product, Warehouse, Category, Brand } from '../types';
 
 export async function apiFetch(input: RequestInfo, init?: RequestInit) {
-  const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
-  const userId = sessionStorage.getItem('esila_user_id') || '';
+  const tenantId = safeSessionStorage.getItem('esila_tenant_id') || '1111111111';
+  const userId = safeSessionStorage.getItem('esila_user_id') || '';
   const headers = new Headers(init?.headers || {});
   headers.set('x-tenant-id', tenantId);
   if (userId) {

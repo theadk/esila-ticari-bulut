@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useEffect } from "react";
 import { ThermalEArsiv } from "./ThermalEArsiv";
 import { QRCodeSVG } from "qrcode.react";
@@ -28,7 +29,7 @@ import { hasPermission } from '../lib/permissions';
 
 export const EFatura: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'efatura', 'view');
   const canCreate = hasPermission(currentUser, 'efatura', 'create');
   const canEdit = hasPermission(currentUser, 'efatura', 'edit');

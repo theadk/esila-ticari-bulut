@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useEffect } from "react";
 import {
   Plus,
@@ -56,7 +57,7 @@ const INITIAL_FORM: Partial<ServiceTicket> = {
 
 export const Ariza: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'ariza', 'view');
   const canCreate = hasPermission(currentUser, 'ariza', 'create');
   const canEdit = hasPermission(currentUser, 'ariza', 'edit');
@@ -636,7 +637,7 @@ export const Ariza: React.FC = () => {
 
     const isBarcode = format === "barcode";
     const qrUrl = encodeURIComponent(
-      `${window.location.origin}?public_form=${tkt.id}&type=ticket&t=${sessionStorage.getItem('esila_tenant_id') || '1111111111'}`
+      `${window.location.origin}?public_form=${tkt.id}&type=ticket&t=${safeSessionStorage.getItem('esila_tenant_id') || '1111111111'}`
     );
 
     if (isBarcode) {
@@ -1021,7 +1022,7 @@ export const Ariza: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
           "x-tenant-id":
-            sessionStorage.getItem("esila_tenant_id") || "1111111111",
+            safeSessionStorage.getItem("esila_tenant_id") || "1111111111",
         },
         body: JSON.stringify({
           to: customer.email,
@@ -1194,7 +1195,7 @@ export const Ariza: React.FC = () => {
             headers: {
               "Content-Type": "application/json",
               "x-tenant-id":
-                sessionStorage.getItem("esila_tenant_id") || "1111111111",
+                safeSessionStorage.getItem("esila_tenant_id") || "1111111111",
             },
             body: JSON.stringify({
               to: customer.email,
@@ -2341,7 +2342,7 @@ export const Ariza: React.FC = () => {
             <div className="p-8 flex flex-col items-center justify-center bg-white">
               <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm mb-4">
                 <QRCodeSVG
-                  value={`${window.location.origin}?public_form=${selectedTicket.id}&type=ticket&t=${sessionStorage.getItem('esila_tenant_id') || '1111111111'}`}
+                  value={`${window.location.origin}?public_form=${selectedTicket.id}&type=ticket&t=${safeSessionStorage.getItem('esila_tenant_id') || '1111111111'}`}
                   size={200}
                   level="M"
                   includeMargin={false}

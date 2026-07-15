@@ -1,3 +1,4 @@
+import { safeSessionStorage, safeLocalStorage } from '../lib/storage';
 import React, { useMemo, useState, useEffect } from 'react';
 import { 
   TrendingUp, 
@@ -108,12 +109,12 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [statsOrder, setStatsOrder] = useState<string[]>(() => {
-    const saved = localStorage.getItem('esila_dashboard_stats');
+    const saved = safeLocalStorage.getItem('esila_dashboard_stats');
     return saved ? JSON.parse(saved) : DEFAULT_STATS_ORDER;
   });
 
   const [chartsOrder, setChartsOrder] = useState<string[]>(() => {
-    const saved = localStorage.getItem('esila_dashboard_charts');
+    const saved = safeLocalStorage.getItem('esila_dashboard_charts');
     return saved ? JSON.parse(saved) : DEFAULT_CHARTS_ORDER;
   });
 
@@ -183,7 +184,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
         const oldIndex = items.indexOf(String(active.id));
         const newIndex = items.indexOf(String(over.id));
         const newArray = arrayMove(items, oldIndex, newIndex);
-        localStorage.setItem('esila_dashboard_stats', JSON.stringify(newArray));
+        safeLocalStorage.setItem('esila_dashboard_stats', JSON.stringify(newArray));
         return newArray;
       });
     }
@@ -196,7 +197,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
         const oldIndex = items.indexOf(String(active.id));
         const newIndex = items.indexOf(String(over.id));
         const newArray = arrayMove(items, oldIndex, newIndex);
-        localStorage.setItem('esila_dashboard_charts', JSON.stringify(newArray));
+        safeLocalStorage.setItem('esila_dashboard_charts', JSON.stringify(newArray));
         return newArray;
       });
     }
@@ -209,7 +210,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
 
     fetch('/api/tenant-info', {
       headers: {
-        'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || ''
+        'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || ''
       }
     }).then(res => res.json()).then(data => setTenantInfo(data)).catch();
   }, []);

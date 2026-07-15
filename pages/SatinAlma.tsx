@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
@@ -7,7 +8,7 @@ import toast from 'react-hot-toast';
 
 export const SatinAlma: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'satinalma', 'view');
 
   const [activeTab, setActiveTab] = useState<'talepler' | 'malkabul' | 'oneriler'>('talepler');
@@ -27,7 +28,7 @@ export const SatinAlma: React.FC = () => {
   const fetchRequests = async () => {
      try {
         const res = await fetch('/api/purchase_requests', {
-           headers: { 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' }
+           headers: { 'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || '1111111111' }
         });
         if (res.ok) {
            const data = await res.json();
@@ -44,7 +45,7 @@ export const SatinAlma: React.FC = () => {
   const fetchRecommendations = async () => {
      try {
         const res = await fetch('/api/purchase-recommendations', {
-           headers: { 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' }
+           headers: { 'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || '1111111111' }
         });
         if (res.ok) {
            setRecommendations(await res.json());
@@ -69,7 +70,7 @@ export const SatinAlma: React.FC = () => {
         if (!req) return;
         const res = await fetch(`/api/purchase_requests/${id}`, {
            method: 'PUT',
-           headers: { 'Content-Type': 'application/json', 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' },
+           headers: { 'Content-Type': 'application/json', 'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || '1111111111' },
            body: JSON.stringify({ ...req, status })
         });
         if (res.ok) {
@@ -90,7 +91,7 @@ export const SatinAlma: React.FC = () => {
         
         const res = await fetch(url, {
            method,
-           headers: { 'Content-Type': 'application/json', 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' },
+           headers: { 'Content-Type': 'application/json', 'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || '1111111111' },
            body: JSON.stringify(body)
         });
         

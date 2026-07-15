@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload, Printer, MessageCircle, MessageSquare, CheckCircle, Landmark, Mic, MicOff } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -37,7 +38,7 @@ interface Province {
 
 export const Cariler: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'cariler', 'view');
   const canCreate = hasPermission(currentUser, 'cariler', 'create');
   const canEdit = hasPermission(currentUser, 'cariler', 'edit');

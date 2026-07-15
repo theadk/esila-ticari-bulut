@@ -1,3 +1,4 @@
+import { safeLocalStorage } from '../lib/storage';
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -34,7 +35,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, tenantInfo }) => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === safeLocalStorage.getItem('esila_user_id')) || store.users[0];
   const { settings } = store;
   
   const allMenuItems = [

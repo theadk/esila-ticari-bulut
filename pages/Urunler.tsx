@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer, TrendingUp, Mic, MicOff, Camera, CheckCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -32,7 +33,7 @@ const INITIAL_FORM: Product = {
 
 export const Urunler: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'urunler', 'view');
   const canCreate = hasPermission(currentUser, 'urunler', 'create');
   const canEdit = hasPermission(currentUser, 'urunler', 'edit');

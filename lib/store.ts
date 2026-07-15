@@ -1,3 +1,4 @@
+import { safeSessionStorage } from './/storage';
 import { useState, useEffect } from 'react';
 import * as idb from 'idb-keyval';
 import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote, BOM, WorkOrder, AppNotification, AttendanceRecord, SalaryAdjustment, PersonnelKPI, PersonnelTask, MeetingNote, Campaign, BankAccount } from '../types';
@@ -127,8 +128,8 @@ function emit() {
 
 // Use this for all API requests to pass the tenant context
 async function apiFetch(input: RequestInfo, init?: RequestInit) {
-  const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
-  const userId = sessionStorage.getItem('esila_user_id') || '';
+  const tenantId = safeSessionStorage.getItem('esila_tenant_id') || '1111111111';
+  const userId = safeSessionStorage.getItem('esila_user_id') || '';
   const headers = new Headers(init?.headers || {});
   headers.set('x-tenant-id', tenantId);
   if (userId) {

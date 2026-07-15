@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../lib/store';
 import { Plus, Search, TrendingUp, TrendingDown, Wallet, X, Save, Printer, FileText, Filter, Calendar, Mic, MicOff } from 'lucide-react';
@@ -10,7 +11,7 @@ import { CekSenet } from './CekSenet';
 
 export const Kasa: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'kasa', 'view');
   const canCreate = hasPermission(currentUser, 'kasa', 'create');
   const canEdit = hasPermission(currentUser, 'kasa', 'edit');

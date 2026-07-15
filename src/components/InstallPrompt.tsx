@@ -1,3 +1,4 @@
+import { safeLocalStorage } from '../../lib/storage';
 import React, { useState, useEffect } from 'react';
 import { Download, Share, PlusSquare, X } from 'lucide-react';
 
@@ -17,7 +18,7 @@ export const InstallPrompt: React.FC = () => {
     const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator as any).standalone;
 
     if (isIos() && !isInStandaloneMode()) {
-      const hasDismissed = localStorage.getItem('ios_install_prompt_dismissed');
+      const hasDismissed = safeLocalStorage.getItem('ios_install_prompt_dismissed');
       if (!hasDismissed) {
         setIsIosPrompt(true);
         setShowPrompt(true);
@@ -55,7 +56,7 @@ export const InstallPrompt: React.FC = () => {
   const handleDismiss = () => {
     setShowPrompt(false);
     if (isIosPrompt) {
-      localStorage.setItem('ios_install_prompt_dismissed', 'true');
+      safeLocalStorage.setItem('ios_install_prompt_dismissed', 'true');
     }
   };
 

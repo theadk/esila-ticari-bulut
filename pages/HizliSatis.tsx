@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import { usePersistentState } from "../lib/use-persistent-state";
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -10,7 +11,7 @@ import { api } from '../lib/api';
 
 export const HizliSatis: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'hizlisatis', 'view');
   const canCreate = hasPermission(currentUser, 'hizlisatis', 'create');
 
@@ -220,7 +221,7 @@ export const HizliSatis: React.FC = () => {
     store.setProducts(newProducts);
     
     // 2.5 Create Order
-    const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
+    const tenantId = safeSessionStorage.getItem('esila_tenant_id') || '1111111111';
     const timestampSuffix = Date.now().toString(36).toUpperCase();
     const randomPart = Math.random().toString(36).substr(2, 4).toUpperCase();
     const newOrder = {

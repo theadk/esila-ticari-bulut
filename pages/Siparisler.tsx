@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useMemo } from 'react';
 import { usePersistentState } from '../lib/use-persistent-state';
 import toast from 'react-hot-toast';
@@ -121,8 +122,8 @@ export const Siparisler: React.FC = () => {
 
   const addOrderToDB = async (order: Order) => {
     try {
-      const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
-      const userId = sessionStorage.getItem('esila_user_id') || '';
+      const tenantId = safeSessionStorage.getItem('esila_tenant_id') || '1111111111';
+      const userId = safeSessionStorage.getItem('esila_user_id') || '';
       
       const response = await fetch('/api/orders', {
         method: 'POST',
