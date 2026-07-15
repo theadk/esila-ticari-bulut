@@ -46,7 +46,6 @@ import {
   reloadFallbackDb
 } from "./server/fallbackDb.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const loginAttempts = new Map<
   string,
@@ -3536,9 +3535,9 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(__dirname, "dist");
+    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
+    app.get("*all", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
