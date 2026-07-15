@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../lib/store';
 import { Plus, Search, TrendingUp, TrendingDown, Wallet, X, Save, Printer, FileText, Filter, Calendar, Mic, MicOff } from 'lucide-react';
-import { CashTransaction } from '../types';
+import { CashTransaction, BankAccount } from '../types';
 import { Pagination } from '../components/Pagination';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
@@ -232,7 +232,7 @@ export const Kasa: React.FC = () => {
 
   const exportToExcel = () => {
     import('../lib/utils').then(({ exportToCSV }) => {
-      const data = filteredTransactions.map(tx => ({
+      const data = filteredData.map(tx => ({
         'Tarih': new Date(tx.date).toLocaleDateString('tr-TR'),
         'İşlem Tipi': tx.type,
         'Kategori': tx.category,

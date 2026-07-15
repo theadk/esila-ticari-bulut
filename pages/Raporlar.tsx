@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { useAppStore } from '../lib/store';
 import { TrendingUp, TrendingDown, DollarSign, Download, Printer, AlertCircle, PackageX, Calendar } from 'lucide-react';
-import { OrderStatus } from '../types';
+import { OrderStatus, Product } from '../types';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';

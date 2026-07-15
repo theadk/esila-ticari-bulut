@@ -139,18 +139,18 @@ export const Cariler: React.FC = () => {
       setCashTransactions((prev: any) => [...(prev || []), newCashTx]);
     }
 
-    const updatedCustomers = (prev: any) => (prev || []).map(c => {
-      if (c.id === selectedCustomerForHistory.id) {
-        return { ...c, balance: c.balance + newTransaction.amount };
+    setCustomers((prev: any) => {
+      const updated = (prev || []).map((c: any) => {
+        if (c.id === selectedCustomerForHistory.id) {
+          return { ...c, balance: c.balance + newTransaction.amount };
+        }
+        return c;
+      });
+      if (isHistoryModalOpen) {
+        setTimeout(() => setSelectedCustomerForHistory(updated.find((c: any) => c.id === selectedCustomerForHistory.id) || null), 0);
       }
-      return c;
+      return updated;
     });
-    setCustomers(updatedCustomers);
-    
-    // Update the selected customer reference inside the modal if it's open
-    if (isHistoryModalOpen) {
-      setSelectedCustomerForHistory(updatedCustomers.find(c => c.id === selectedCustomerForHistory.id) || null);
-    }
     
     setIsPaymentModalOpen(false);
   };
@@ -312,14 +312,16 @@ export const Cariler: React.FC = () => {
             setTransactions((prev: any) => [...(prev || []), ...newTransactions]);
             
             // Update customer balance
-            const updatedCustomers = (prev: any) => (prev || []).map(c => {
-               if (c.id === selectedCustomerForHistory.id) {
-                 return { ...c, balance: c.balance + totalAmountChange };
-               }
-               return c;
+            setCustomers((prev: any) => {
+              const updated = (prev || []).map((c: any) => {
+                if (c.id === selectedCustomerForHistory.id) {
+                  return { ...c, balance: c.balance + totalAmountChange };
+                }
+                return c;
+              });
+              setTimeout(() => setSelectedCustomerForHistory(updated.find((c: any) => c.id === selectedCustomerForHistory.id) || null), 0);
+              return updated;
             });
-            setCustomers(updatedCustomers);
-            setSelectedCustomerForHistory(updatedCustomers.find(c => c.id === selectedCustomerForHistory.id) || null);
             
             toast.success(`${successCount} adet işlem başarıyla içeri aktarıldı.`);
         } else {

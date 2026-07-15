@@ -1,3 +1,4 @@
+import { usePersistentState } from "../lib/use-persistent-state";
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -38,7 +39,7 @@ import {
 } from "lucide-react";
 import { PuantajMaasView } from "../components/PuantajMaasView";
 import { KPIView } from "../components/KPIView";
-import { Personnel, PersonnelRecord, Payroll } from "../types";
+import { Personnel, PersonnelRecord, Payroll, PersonnelTask } from "../types";
 import { sendSMS } from "../src/utils/smsRequest";
 
 const INITIAL_FORM: Personnel = {

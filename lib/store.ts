@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { get, set } from 'idb-keyval';
+import * as idb from 'idb-keyval';
 import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote, BOM, WorkOrder, AppNotification, AttendanceRecord, SalaryAdjustment, PersonnelKPI, PersonnelTask, MeetingNote, Campaign, BankAccount } from '../types';
 
 const safeJSONParse = (val: any, defaultVal: any = []) => {
@@ -113,7 +113,7 @@ async function saveToIDB() {
       globalPersonnelKPIs, globalMeetingNotes, globalCampaigns, globalPurchaseRequests,
       globalDocuments, globalChequeNotes, globalWaybills
     };
-    await set('esila_app_state', state);
+    await idb.set('esila_app_state', state);
   } catch (e) { console.error("IDB Save Error:", e); }
 }
 
@@ -223,7 +223,7 @@ export async function initializeStore(force = false) {
   isInitialized = true;
   
   try {
-    const cachedState: any = await get('esila_app_state');
+    const cachedState: any = await idb.get('esila_app_state');
     if (cachedState) {
       if (cachedState.globalSettings) globalSettings = cachedState.globalSettings;
       if (cachedState.globalCustomers) globalCustomers = cachedState.globalCustomers;

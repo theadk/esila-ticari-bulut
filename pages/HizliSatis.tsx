@@ -1,3 +1,4 @@
+import { usePersistentState } from "../lib/use-persistent-state";
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { ShoppingCart, Search, Plus, Minus, Trash2, CreditCard, Banknote, CheckCircle, UserPlus, User, Camera, X, PauseCircle, Clock } from 'lucide-react';
