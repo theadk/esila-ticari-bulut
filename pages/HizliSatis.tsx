@@ -13,7 +13,7 @@ export const HizliSatis: React.FC = () => {
   const canView = hasPermission(currentUser, 'hizlisatis', 'view');
   const canCreate = hasPermission(currentUser, 'hizlisatis', 'create');
 
-  const [cart, setCart] = useState<{product: Product, quantity: number, discount: number}[]>([]);
+  const [cart, setCart] = usePersistentState<{product: Product, quantity: number, discount: number}[]>('hizlisatis_cart', []);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);

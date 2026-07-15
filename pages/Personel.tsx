@@ -93,7 +93,7 @@ export const Personel: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<Personnel>(INITIAL_FORM);
+  const [formData, setFormData] = usePersistentState<Personnel>('personel_formData', INITIAL_FORM);
   const [isEditing, setIsEditing] = useState(false);
 
   // Özlük Dosyası States
@@ -101,8 +101,7 @@ export const Personel: React.FC = () => {
     null,
   );
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-  const [recordFormData, setRecordFormData] =
-    useState<PersonnelRecord>(INITIAL_RECORD);
+  const [recordFormData, setRecordFormData] = usePersistentState<PersonnelRecord>('personel_recordFormData', INITIAL_RECORD);
   const [recordAmount, setRecordAmount] = useState<number>(0);
   const [isAddingRecord, setIsAddingRecord] = useState(false);
 
@@ -170,9 +169,9 @@ export const Personel: React.FC = () => {
       `${p.firstName} ${p.lastName}`
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      p.tcNo.includes(searchTerm) ||
-      p.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.position.toLowerCase().includes(searchTerm.toLowerCase())
+      (p.tcNo || "").includes(searchTerm) ||
+      (p.department || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.position || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 

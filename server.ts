@@ -3096,9 +3096,11 @@ async function startServer() {
         }
 
         const keys = Object.keys(data);
-        const values = Object.values(data).map((v) =>
-          typeof v === "object" && v !== null ? JSON.stringify(v) : v,
-        );
+        const values = Object.values(data).map((v) => {
+          let val = typeof v === "object" && v !== null ? JSON.stringify(v) : v;
+          if (val === "") return null;
+          return val;
+        });
         const questionMarks = keys.map(() => "?").join(", ");
         const backtick = String.fromCharCode(96);
         const fields = keys.map((k) => backtick + k + backtick).join(", ");
@@ -3140,11 +3142,11 @@ async function startServer() {
             return res.json({ id: req.params.id, ...req.body });
         }
 
-        const values = keys.map((k) =>
-          typeof data[k] === "object" && data[k] !== null
-            ? JSON.stringify(data[k])
-            : data[k],
-        );
+        const values = keys.map((k) => {
+          let val = typeof data[k] === "object" && data[k] !== null ? JSON.stringify(data[k]) : data[k];
+          if (val === "") return null;
+          return val;
+        });
         const backtick = String.fromCharCode(96);
         const setString = keys
           .map((k) => backtick + k + backtick + " = ?")

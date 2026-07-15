@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { usePersistentState } from '../lib/use-persistent-state';
 import toast from 'react-hot-toast';
 import { 
   Plus, Search, ShoppingCart, User, Send, 
@@ -9,7 +10,7 @@ import { Order, OrderStatus, OrderItem, Product, Customer } from '../types';
 
 // Modular State Hook for Order Form
 function useOrderForm() {
-  const [customerInfo, setCustomerInfo] = useState({
+  const [customerInfo, setCustomerInfo] = usePersistentState('siparis_customerInfo', {
     id: '',
     name: '',
     phone: '',
@@ -17,8 +18,8 @@ function useOrderForm() {
     address: ''
   });
 
-  const [cartItems, setCartItems] = useState<OrderItem[]>([]);
-  const [notes, setNotes] = useState('');
+  const [cartItems, setCartItems] = usePersistentState<OrderItem[]>('siparis_cartItems', []);
+  const [notes, setNotes] = usePersistentState('siparis_notes', '');
 
   const updateCustomerInfo = (field: string, value: string) => {
     setCustomerInfo(prev => ({ ...prev, [field]: value }));

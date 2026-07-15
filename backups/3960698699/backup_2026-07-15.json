@@ -1,0 +1,371 @@
+{
+  "users": [
+    {
+      "vkn": "3960698699",
+      "id": "admin-3960698699",
+      "name": "ŞENOL YEMENOĞLU YEMENOĞLU YAPI MALZEMELERİ İNŞ Admin",
+      "username": "3960698699",
+      "email": "myyemenoglu01@gmail.com",
+      "passwordHash": "-9P_7p1A_ifX",
+      "role": "Admin",
+      "status": "Aktif",
+      "permissions": null,
+      "assignedWarehouse": null,
+      "branch": null
+    }
+  ],
+  "settings": [
+    {
+      "vkn": "3960698699",
+      "id": 1,
+      "companyName": "ŞENOL YEMENOĞLU YEMENOĞLU YAPI MALZEMELERİ İNŞ",
+      "address": "medrese mah. şeyhzade cad. no:20/10  - Merkez - Yozgat",
+      "phone": "5323962495",
+      "email": "myyemenoglu01@gmail.com",
+      "taxOffice": null,
+      "taxNumber": null,
+      "companyLogo": null,
+      "smtp_host": null,
+      "smtp_port": null,
+      "smtp_user": null,
+      "smtp_pass": null,
+      "sms_token": null,
+      "sms_sender_id": null,
+      "printer_header_text": null,
+      "printer_footer_text": null,
+      "prefix_customer": null,
+      "next_customer_id": 1003,
+      "prefix_order": null,
+      "next_order_id": null,
+      "prefix_offer": null,
+      "next_offer_id": null,
+      "prefix_product": null,
+      "next_product_id": 1003,
+      "prefix_personnel": null,
+      "next_personnel_id": 1003,
+      "efatura_username": null,
+      "efatura_password": null,
+      "efatura_apikey": null,
+      "plumbingChecklistTemplate": [
+        "Filtre Kontrolü",
+        "Boru Sızıntı Kontrolü",
+        "Su Basıncı Testi",
+        "Vana Kontrolü",
+        "Ekipman Temizliği"
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "vkn": "3960698699",
+      "id": "cng4m3gr4",
+      "name": "GENEL GİDER",
+      "sub_categories": [
+        "GENEL GİDER"
+      ]
+    }
+  ],
+  "brands": [],
+  "products": [
+    {
+      "vkn": "3960698699",
+      "id": "PRD-1784117964697-pw1xa2apa",
+      "code": "PRD-964697",
+      "name": "05 HK 979 AMASYA YOZGAT NAK BDL",
+      "price": "37500.00",
+      "purchasePrice": "25000.00",
+      "stock": 1,
+      "category": "Gelen Fatura",
+      "warehouse": "Gelen Fatura",
+      "barcode": null,
+      "description": null,
+      "brand": null,
+      "taxRate": "20.00",
+      "warehouseStocks": [
+        {
+          "stock": 1,
+          "warehouseId": "Gelen Fatura"
+        }
+      ],
+      "showInQuickSale": 0,
+      "unit": null,
+      "subCategory": null,
+      "image": null,
+      "variants": null
+    }
+  ],
+  "warehouses": [
+    {
+      "vkn": "3960698699",
+      "id": "WH-1784117964607",
+      "name": "Gelen Fatura",
+      "address": null,
+      "capacity": null,
+      "branch": null
+    }
+  ],
+  "stock_transfers": [],
+  "customers": [
+    {
+      "vkn": "3960698699",
+      "id": "CAR-1002-SEP",
+      "type": "Satıcı",
+      "name": "ALÇI BOŞALTMA",
+      "companyName": "",
+      "taxOffice": "",
+      "taxNumber": "",
+      "tcNo": null,
+      "email": "",
+      "phone": "055555555",
+      "address": "",
+      "groupName": null,
+      "riskLimit": null,
+      "customerType": "Şahıs",
+      "city": "",
+      "district": "",
+      "iban": "",
+      "balance": "0.00",
+      "status": "Aktif",
+      "efaturaType": null,
+      "efaturaScenario": null,
+      "efaturaInvoiceType": null,
+      "assignedUser": "admin-3960698699"
+    },
+    {
+      "vkn": "3960698699",
+      "id": "CUS-1784117964696",
+      "type": "Satıcı",
+      "name": "AMASYALILAR NAKLİYE HAYVANCILIK TURİZM SU VE GIDA SANAYİ TİCARET LİMİTED ŞİRKETİ",
+      "companyName": "AMASYALILAR NAKLİYE HAYVANCILIK TURİZM SU VE GIDA SANAYİ TİCARET LİMİTED ŞİRKETİ",
+      "taxOffice": "AMASYA VERGİ DAİRESİ MÜDÜRLÜĞÜ",
+      "taxNumber": "",
+      "tcNo": null,
+      "email": "",
+      "phone": "0500000000",
+      "address": null,
+      "groupName": null,
+      "riskLimit": null,
+      "customerType": "Tüzel",
+      "city": null,
+      "district": null,
+      "iban": null,
+      "balance": "-29000.00",
+      "status": "Aktif",
+      "efaturaType": null,
+      "efaturaScenario": null,
+      "efaturaInvoiceType": null,
+      "assignedUser": null
+    }
+  ],
+  "customer_transactions": [
+    {
+      "vkn": "3960698699",
+      "id": "TR-1784117964697",
+      "customerId": "CUS-1784117964696",
+      "date": "2026-07-10T00:00:00.000Z",
+      "type": "",
+      "amount": "-29000.00",
+      "description": "Gelen e-Fatura İşlemi (ANK2026000000433)",
+      "documentNo": null
+    }
+  ],
+  "cash_transactions": [
+    {
+      "vkn": "3960698699",
+      "id": "CASH-1784118032439",
+      "date": "2026-07-15T00:00:00.000Z",
+      "type": "Gider",
+      "amount": "29000.00",
+      "category": "Cari Ödeme",
+      "description": "Fatura Ödemesi: AMASYALILAR NAKLİYE HAYVANCILIK TURİZM SU VE GIDA SANAYİ TİCARET LİMİTED ŞİRKETİ (Ajanda Ödemesi)",
+      "documentNo": null,
+      "customerId": "CUS-1784117964696",
+      "categoryId": null,
+      "personnelId": null
+    },
+    {
+      "vkn": "3960698699",
+      "id": "i5sk3b689",
+      "date": "2026-07-15T00:00:00.000Z",
+      "type": "Gider",
+      "amount": "5000.00",
+      "category": "Personel Avans",
+      "description": "elden nakit verildi",
+      "documentNo": null,
+      "customerId": null,
+      "categoryId": null,
+      "personnelId": "PER-1002-OLB"
+    },
+    {
+      "vkn": "3960698699",
+      "id": "qxjynmw2b",
+      "date": "2026-07-15T12:23:32.000Z",
+      "type": "Gider",
+      "amount": "45000.00",
+      "category": "Personel Maaşı",
+      "description": "perseonl 1 22 - 2026-07 Dönemi Maaş Ödemesi",
+      "documentNo": null,
+      "customerId": null,
+      "categoryId": null,
+      "personnelId": "PER-1002-OLB"
+    }
+  ],
+  "personnel": [
+    {
+      "vkn": "3960698699",
+      "id": "PER-1002-OLB",
+      "tcNo": "5432",
+      "phone": "5432123",
+      "email": "",
+      "address": "",
+      "position": "12",
+      "department": "12",
+      "startDate": "2026-07-15",
+      "salary": "0.00",
+      "iban": "",
+      "emergencyContactName": "",
+      "emergencyContactPhone": "",
+      "fixtures": null,
+      "gender": "Erkek",
+      "bloodType": "",
+      "endDate": null,
+      "socialSecurityNo": "",
+      "currency": null,
+      "annualLeaveEntitlement": 14,
+      "records": [
+        {
+          "id": "53sffngf5",
+          "date": "2026-07-15",
+          "type": "Not",
+          "title": "Personel Avans",
+          "targetId": "PER-1002-OLB",
+          "description": "elden nakit verildi Tutarı: ₺5.000,00"
+        },
+        {
+          "id": "lkbfvesn7",
+          "date": "2026-07-15T12:23:32.100Z",
+          "type": "Not",
+          "title": "Personel Maaşı",
+          "targetId": "PER-1002-OLB",
+          "description": "2026-07 Dönemi Maaş Ödemesi Tutarı: ₺45.000,00"
+        }
+      ],
+      "payrolls": [
+        {
+          "id": "vg2bj0lkg",
+          "date": "2026-07",
+          "bonus": 0,
+          "status": "Ödendi",
+          "netSalary": 45000,
+          "deductions": 0,
+          "workedDays": 30,
+          "basicSalary": 45000,
+          "overtimePay": 0,
+          "overtimeHours": 0
+        }
+      ],
+      "leaveRecords": null,
+      "firstName": null,
+      "lastName": null,
+      "birthDate": null,
+      "employmentStatus": null,
+      "payrollRecords": null,
+      "branch": null
+    }
+  ],
+  "personnel_records": [],
+  "orders": [
+    {
+      "vkn": "3960698699",
+      "id": "36afd75e-2b6d-4088-b263-b89d44d86134",
+      "customerId": "CAR-1002-SEP",
+      "customerName": "ALÇI BOŞALTMA",
+      "date": "2026-07-15T12:16:45.000Z",
+      "status": "Bekliyor",
+      "totalVolume": null,
+      "totalWeight": null,
+      "totalAmount": null,
+      "subTotal": "0.00",
+      "taxTotal": "0.00",
+      "total": "0.00",
+      "currency": null,
+      "exchangeRate": null,
+      "proposalId": null,
+      "notes": "",
+      "cargoProvider": null,
+      "cargoTrackingNumber": null,
+      "cargoBarcodeUrl": null,
+      "items": [
+        {
+          "unit": "Adet",
+          "price": "0.00",
+          "taxRate": "20.00",
+          "quantity": 1,
+          "productId": "ikf996re4",
+          "productName": "HAMMALİYE"
+        }
+      ]
+    }
+  ],
+  "proposals": [],
+  "reconciliations": [
+    {
+      "vkn": "3960698699",
+      "id": "1784118578090",
+      "customerId": "CAR-1002-SEP",
+      "customerName": "ALÇI BOŞALTMA",
+      "date": "2026-07-15T00:00:00.000Z",
+      "balanceType": "",
+      "balance": "5000.00",
+      "status": "Bekliyor",
+      "notes": "",
+      "emailSentAt": "2026-07-15T12:29:38.000Z",
+      "respondedAt": null,
+      "responseNotes": null
+    }
+  ],
+  "service_tickets": [],
+  "e_invoices": [
+    {
+      "vkn": "3960698699",
+      "id": "ANK2026000000433",
+      "orderId": "",
+      "customerName": "AMASYALILAR NAKLİYE HAYVANCILIK TURİZM SU VE GIDA SANAYİ TİCARET LİMİTED ŞİRKETİ",
+      "amount": "29000.00",
+      "type": "Gelen Fatura",
+      "scenario": "TICARIFATURA",
+      "date": "2026-07-10T00:00:00.000Z",
+      "status": ""
+    }
+  ],
+  "email_logs": [
+    {
+      "id": "1784114985227ggdaw",
+      "vkn": "3960698699",
+      "recipient": "myyemenoglu01@gmail.com",
+      "subject": "Hesabınız Aktive Edildi - Esila Ticari",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-07-15T14:29:26.000Z"
+    }
+  ],
+  "reminder_notes": [
+    {
+      "vkn": "3960698699",
+      "id": "NOTE-1784117964726",
+      "title": "Fatura Ödemesi: AMASYALILAR NAKLİYE HAYVANCILIK TURİZM SU VE GIDA SANAYİ TİCARET LİMİTED ŞİRKETİ",
+      "description": "İşlenen Gelen Fatura (No: ANK2026000000433) için ödeme hatırlatması. Vade Tarihi: 17.07.2026",
+      "date": "2026-07-17T00:00:00.000Z",
+      "type": "Ödeme",
+      "isCompleted": 1,
+      "relatedId": "ANK2026000000433",
+      "reminderDate": null,
+      "color": null,
+      "createdAt": null,
+      "createdBy": null,
+      "relatedToType": null,
+      "relatedToId": null
+    }
+  ],
+  "job_applications": []
+}

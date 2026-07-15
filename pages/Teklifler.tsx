@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../lib/use-persistent-state';
 import { FileBadge, Plus, Search, FileText, Printer, CheckCircle, XCircle, Trash2, Share2, Mail, MessageCircle } from 'lucide-react';
 import { Proposal, ProposalStatus, ProposalItem, Customer, Product, Order, OrderStatus } from '../types';
 import { useAppStore } from '../lib/store';
@@ -37,15 +38,15 @@ export const Teklifler: React.FC = () => {
   const [printType, setPrintType] = useState<'80mm' | 'A4'>('A4');
 
   // New Proposal Form
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [cartItems, setCartItems] = useState<ProposalItem[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = usePersistentState<Customer | null>('teklif_selectedCustomer', null);
+  const [cartItems, setCartItems] = usePersistentState<ProposalItem[]>('teklif_cartItems', []);
   const [productSearch, setProductSearch] = useState('');
   const [selectedProductToAdd, setSelectedProductToAdd] = useState<string>('');
   const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
   const [discountToAdd, setDiscountToAdd] = useState<number>(0);
   const [taxToAdd, setTaxToAdd] = useState<number>(20);
-  const [notes, setNotes] = useState<string>('');
-  const [validDays, setValidDays] = useState<number>(15);
+  const [notes, setNotes] = usePersistentState<string>('teklif_notes', '');
+  const [validDays, setValidDays] = usePersistentState<number>('teklif_validDays', 15);
 
   const subTotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const discountTotal = cartItems.reduce((acc, item) => acc + ((item.price * item.quantity) * (item.discountRate / 100)), 0);

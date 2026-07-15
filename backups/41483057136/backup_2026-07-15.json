@@ -1,0 +1,378 @@
+{
+  "users": [
+    {
+      "vkn": "41483057136",
+      "id": "admin-41483057136",
+      "name": "ıpak kimya Admin",
+      "username": "41483057136",
+      "email": "vkaranisener15@gmail.com",
+      "passwordHash": "==2Sbr3UDCtM",
+      "role": "Admin",
+      "status": "Aktif",
+      "permissions": null,
+      "assignedWarehouse": null,
+      "branch": null
+    }
+  ],
+  "settings": [
+    {
+      "vkn": "41483057136",
+      "id": 1,
+      "companyName": "ıpak kimya",
+      "address": "Sorgun - Yozgat",
+      "phone": "5426718079",
+      "email": "vkaranisener15@gmail.com",
+      "taxOffice": "fgv",
+      "taxNumber": "fcv",
+      "companyLogo": null,
+      "smtp_host": null,
+      "smtp_port": null,
+      "smtp_user": null,
+      "smtp_pass": null,
+      "sms_token": null,
+      "sms_sender_id": null,
+      "printer_header_text": "İPAK KİMYA",
+      "printer_footer_text": null,
+      "prefix_customer": null,
+      "next_customer_id": 1007,
+      "prefix_order": null,
+      "next_order_id": null,
+      "prefix_offer": null,
+      "next_offer_id": null,
+      "prefix_product": null,
+      "next_product_id": null,
+      "prefix_personnel": null,
+      "next_personnel_id": null,
+      "efatura_username": null,
+      "efatura_password": null,
+      "efatura_apikey": null,
+      "plumbingChecklistTemplate": [
+        "Filtre Kontrolü",
+        "Boru Sızıntı Kontrolü",
+        "Su Basıncı Testi",
+        "Vana Kontrolü",
+        "Ekipman Temizliği"
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "vkn": "41483057136",
+      "id": "s0zbdi9pz",
+      "name": "SABUN",
+      "sub_categories": [
+        "SIVI",
+        "KALIP"
+      ]
+    }
+  ],
+  "brands": [
+    {
+      "vkn": "41483057136",
+      "id": "0unobpkz0",
+      "name": "İPAK"
+    },
+    {
+      "vkn": "41483057136",
+      "id": "8iu659up9",
+      "name": "DURUL"
+    }
+  ],
+  "products": [
+    {
+      "vkn": "41483057136",
+      "id": "2n1dyz21a",
+      "code": "URN-1001",
+      "name": "SICVI SABUN",
+      "price": "140.00",
+      "purchasePrice": "70.00",
+      "stock": 25,
+      "category": "SABUN",
+      "warehouse": "temizlik-gross",
+      "barcode": "1453",
+      "description": "ÜRÜN AAÇIKLAMSI",
+      "brand": "İPAK",
+      "taxRate": "20.00",
+      "warehouseStocks": [
+        {
+          "stock": 19,
+          "warehouseId": "temizlik-gross"
+        },
+        {
+          "stock": 6,
+          "warehouseId": "SORFUN"
+        }
+      ],
+      "showInQuickSale": 1,
+      "unit": null,
+      "subCategory": null,
+      "image": null,
+      "variants": null
+    },
+    {
+      "vkn": "41483057136",
+      "id": "PRD-1782415256096-ce8wtiqg7",
+      "code": "PRD-256096",
+      "name": "ÇÖKTÜRÜCÜ 20 KG (POOLFİX)",
+      "price": "833.25",
+      "purchasePrice": "500.00",
+      "stock": 8,
+      "category": "Gelen Fatura",
+      "warehouse": "Gelen Fatura",
+      "barcode": null,
+      "description": null,
+      "brand": null,
+      "taxRate": "20.00",
+      "warehouseStocks": [
+        {
+          "stock": 8,
+          "warehouseId": "Gelen Fatura"
+        }
+      ],
+      "showInQuickSale": 0,
+      "unit": null,
+      "subCategory": null,
+      "image": null,
+      "variants": null
+    },
+    {
+      "vkn": "41483057136",
+      "id": "PRD-1782415256096-q2fsaxdvm",
+      "code": "PRD-256096",
+      "name": "PARLATICI 20 KG (POOLFİX)",
+      "price": "833.25",
+      "purchasePrice": "500.00",
+      "stock": 5,
+      "category": "Gelen Fatura",
+      "warehouse": "Gelen Fatura",
+      "barcode": null,
+      "description": null,
+      "brand": null,
+      "taxRate": "20.00",
+      "warehouseStocks": [
+        {
+          "stock": 5,
+          "warehouseId": "Gelen Fatura"
+        }
+      ],
+      "showInQuickSale": 0,
+      "unit": null,
+      "subCategory": null,
+      "image": null,
+      "variants": null
+    }
+  ],
+  "warehouses": [
+    {
+      "vkn": "41483057136",
+      "id": "1782413832607",
+      "name": "temizlik-gross",
+      "address": "",
+      "capacity": 0,
+      "branch": null
+    },
+    {
+      "vkn": "41483057136",
+      "id": "1782414851131",
+      "name": "SORFUN",
+      "address": "",
+      "capacity": 0,
+      "branch": null
+    },
+    {
+      "vkn": "41483057136",
+      "id": "WH-1782415256001",
+      "name": "Gelen Fatura",
+      "address": null,
+      "capacity": null,
+      "branch": null
+    }
+  ],
+  "stock_transfers": [],
+  "customers": [
+    {
+      "vkn": "41483057136",
+      "id": "CAR-1006",
+      "type": "Alıcı",
+      "name": "Şener",
+      "companyName": "ıpak",
+      "taxOffice": "",
+      "taxNumber": "41483057136",
+      "tcNo": null,
+      "email": "vkaranisener15@gmail.com",
+      "phone": "5426718079",
+      "address": "",
+      "groupName": null,
+      "riskLimit": null,
+      "customerType": "Şahıs",
+      "city": "",
+      "district": "",
+      "iban": "",
+      "balance": "12500.00",
+      "status": "Aktif",
+      "efaturaType": null,
+      "efaturaScenario": null,
+      "efaturaInvoiceType": null,
+      "assignedUser": "admin-41483057136"
+    },
+    {
+      "vkn": "41483057136",
+      "id": "CAR-PRK-1782457968523",
+      "type": "Alıcı",
+      "name": "Perakende Müşteri",
+      "companyName": null,
+      "taxOffice": null,
+      "taxNumber": null,
+      "tcNo": null,
+      "email": null,
+      "phone": null,
+      "address": null,
+      "groupName": null,
+      "riskLimit": null,
+      "customerType": null,
+      "city": null,
+      "district": null,
+      "iban": null,
+      "balance": "0.00",
+      "status": "Aktif",
+      "efaturaType": null,
+      "efaturaScenario": null,
+      "efaturaInvoiceType": null,
+      "assignedUser": null
+    }
+  ],
+  "customer_transactions": [
+    {
+      "vkn": "41483057136",
+      "id": "CTX-INV-1782457968595",
+      "customerId": "CAR-PRK-1782457968523",
+      "date": "2026-06-26T00:00:00.000Z",
+      "type": "",
+      "amount": "140.00",
+      "description": "Hızlı Satış Faturası",
+      "documentNo": null
+    }
+  ],
+  "cash_transactions": [
+    {
+      "vkn": "41483057136",
+      "id": "TX-1782415050911",
+      "date": "2026-06-25T00:00:00.000Z",
+      "type": "Gelir",
+      "amount": "420.00",
+      "category": "Satış",
+      "description": "Hızlı Satış - Perakende Müşteri",
+      "documentNo": null,
+      "customerId": null,
+      "categoryId": null,
+      "personnelId": null
+    }
+  ],
+  "personnel": [],
+  "personnel_records": [],
+  "orders": [],
+  "proposals": [],
+  "reconciliations": [
+    {
+      "vkn": "41483057136",
+      "id": "1782415923850",
+      "customerId": null,
+      "customerName": "HANEDAN",
+      "date": "2026-06-25T00:00:00.000Z",
+      "balanceType": "",
+      "balance": "515.00",
+      "status": "Reddedildi",
+      "notes": "",
+      "emailSentAt": "2026-06-25T19:32:04.000Z",
+      "respondedAt": "2026-06-25T19:32:49.000Z",
+      "responseNotes": ""
+    }
+  ],
+  "service_tickets": [],
+  "e_invoices": [
+    {
+      "vkn": "41483057136",
+      "id": "DDE2026000000845",
+      "orderId": "",
+      "customerName": "DEMKA KİMYA KİMYEVİ SAN. TİC. LTD. ŞTİ.",
+      "amount": "7800.00",
+      "type": "Gelen Fatura",
+      "scenario": "TEMELFATURA",
+      "date": "2026-06-19T00:00:00.000Z",
+      "status": ""
+    }
+  ],
+  "email_logs": [
+    {
+      "id": "17822387544772uvrlf",
+      "vkn": "41483057136",
+      "recipient": "ahdurko+4@gmail.com",
+      "subject": "Hesabınız Aktive Edildi - Esila Ticari",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-23T21:19:14.000Z"
+    },
+    {
+      "id": "1782416307840o8afb",
+      "vkn": "41483057136",
+      "recipient": "vkaranisener15@gmail.com",
+      "subject": "Servis Kayıt Formu - SRV-1001",
+      "status": "Başarısız",
+      "errorMessage": "Error: Can't send mail - all recipients were rejected: 451 Temporary local problem - please try later",
+      "date": "2026-06-25T22:38:25.000Z"
+    },
+    {
+      "id": "1782418090856fdfrte",
+      "vkn": "41483057136",
+      "recipient": "vkaranisener15@gmail.com",
+      "subject": "Hesabınız Aktive Edildi - Esila Ticari",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-25T23:08:08.000Z"
+    },
+    {
+      "id": "1782418774319mr6lx",
+      "vkn": "41483057136",
+      "recipient": "vkaranisener15@gmail.com",
+      "subject": "Servis Kayıt Formu - SRV-1001",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-06-25T23:19:32.000Z"
+    }
+  ],
+  "reminder_notes": [
+    {
+      "vkn": "41483057136",
+      "id": "NOTE-1782415256103",
+      "title": "Fatura Ödemesi: DEMKA KİMYA KİMYEVİ SAN. TİC. LTD. ŞTİ.",
+      "description": "İşlenen Gelen Fatura (No: DDE2026000000845) için ödeme hatırlatması. Vade Tarihi: 26.06.2026",
+      "date": "2026-06-26T00:00:00.000Z",
+      "type": "Ödeme",
+      "isCompleted": 0,
+      "relatedId": "DDE2026000000845",
+      "reminderDate": null,
+      "color": null,
+      "createdAt": null,
+      "createdBy": null,
+      "relatedToType": null,
+      "relatedToId": null
+    },
+    {
+      "vkn": "41483057136",
+      "id": "NOTE-1782416363351",
+      "title": "arama yap",
+      "description": "arama yap",
+      "date": "2026-07-02T00:00:00.000Z",
+      "type": "Genel",
+      "isCompleted": 0,
+      "relatedId": null,
+      "reminderDate": null,
+      "color": null,
+      "createdAt": null,
+      "createdBy": null,
+      "relatedToType": null,
+      "relatedToId": null
+    }
+  ],
+  "job_applications": []
+}

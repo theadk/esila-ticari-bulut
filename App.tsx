@@ -89,7 +89,7 @@ const App: React.FC = () => {
         if (isAuthenticated) {
           handleLogout();
         }
-      }, 30 * 60 * 1000); // 30 minutes
+      }, 120 * 60 * 1000); // 120 minutes
     };
 
     if (isAuthenticated) {
