@@ -86,7 +86,7 @@ export const Satislar: React.FC = () => {
             </div>
 
             <div style="margin-top: 10px; text-align: left;">
-              <div class="row"><span>Tarih:</span> <span>${new Date((order.date || '').replace(' ', 'T')).toLocaleString('tr-TR')}</span></div>
+              <div class="row"><span>Tarih:</span> <span>${new Date(order.date).toLocaleString('tr-TR')}</span></div>
               <div class="row"><span>Fiş No:</span> <span>${order.id}</span></div>
               ${order.customerName ? `<div class="row"><span>Müşteri:</span> <span>${order.customerName}</span></div>` : ''}
             </div>
@@ -176,7 +176,7 @@ export const Satislar: React.FC = () => {
     
     const exportData = ordersToExport.map(o => ({
       'Satış No': o.id,
-      'Tarih': new Date((o.date || '').replace(' ', 'T')).toLocaleString('tr-TR'),
+      'Tarih': new Date(o.date).toLocaleString('tr-TR'),
       'Müşteri': o.customerName || 'Bilinmiyor',
       'Kaynak': o.proposalId ? 'Tekliften' : 'Hızlı Satış',
       'Durum': o.status,
@@ -234,16 +234,16 @@ export const Satislar: React.FC = () => {
       if (startDate) {
         const sDate = new Date(startDate);
         sDate.setHours(0, 0, 0, 0);
-        result = result.filter(o => new Date((o.date || '').replace(' ', 'T')) >= sDate);
+        result = result.filter(o => new Date(o.date) >= sDate);
       }
       if (endDate) {
         const eDate = new Date(endDate);
         eDate.setHours(23, 59, 59, 999);
-        result = result.filter(o => new Date((o.date || '').replace(' ', 'T')) <= eDate);
+        result = result.filter(o => new Date(o.date) <= eDate);
       }
     } else if (dateFilter !== 'all') {
       result = result.filter(o => {
-        const oDate = new Date((o.date || '').replace(' ', 'T'));
+        const oDate = new Date(o.date);
         oDate.setHours(0, 0, 0, 0);
         if (dateFilter === 'today') return oDate.getTime() === today.getTime();
         if (dateFilter === 'this_week') return oDate >= startOfWeek;
@@ -267,7 +267,7 @@ export const Satislar: React.FC = () => {
     }
 
     // Sort by date descending
-    result.sort((a, b) => new Date((b.date || '').replace(' ', 'T')).getTime() - new Date((a.date || '').replace(' ', 'T')).getTime());
+    result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return result;
   }, [store.orders, searchTerm, statusFilter, dateFilter, startDate, endDate]);
@@ -289,16 +289,16 @@ export const Satislar: React.FC = () => {
       if (startDate) {
         const sDate = new Date(startDate);
         sDate.setHours(0, 0, 0, 0);
-        baseResult = baseResult.filter(o => new Date((o.date || '').replace(' ', 'T')) >= sDate);
+        baseResult = baseResult.filter(o => new Date(o.date) >= sDate);
       }
       if (endDate) {
         const eDate = new Date(endDate);
         eDate.setHours(23, 59, 59, 999);
-        baseResult = baseResult.filter(o => new Date((o.date || '').replace(' ', 'T')) <= eDate);
+        baseResult = baseResult.filter(o => new Date(o.date) <= eDate);
       }
     } else if (dateFilter !== 'all') {
       baseResult = baseResult.filter(o => {
-        const oDate = new Date((o.date || '').replace(' ', 'T'));
+        const oDate = new Date(o.date);
         oDate.setHours(0, 0, 0, 0);
         if (dateFilter === 'today') return oDate.getTime() === today.getTime();
         if (dateFilter === 'this_week') return oDate >= startOfWeek;
@@ -386,7 +386,7 @@ export const Satislar: React.FC = () => {
           <input
             type="text"
             placeholder="Satış no veya müşteri adı ara..."
-            value={searchTerm || ""}
+            value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
           />
@@ -394,7 +394,7 @@ export const Satislar: React.FC = () => {
         <div className="w-full md:w-48 relative">
           <Calendar className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <select
-            value={dateFilter || ""}
+            value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value as any)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none appearance-none transition-all"
           >
@@ -410,14 +410,14 @@ export const Satislar: React.FC = () => {
           <div className="flex items-center gap-2 w-full md:w-auto">
             <input
               type="date"
-              value={startDate || ""}
+              value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               className="w-full md:w-40 px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
             />
             <span className="text-gray-400">-</span>
             <input
               type="date"
-              value={endDate || ""}
+              value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               className="w-full md:w-40 px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
             />
@@ -427,13 +427,13 @@ export const Satislar: React.FC = () => {
         <div className="w-full md:w-48 relative">
           <Filter className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <select
-            value={statusFilter || ""}
+            value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none appearance-none transition-all"
           >
             <option value="all">Tüm Durumlar</option>
             {Object.values(OrderStatus).map(status => (
-              <option key={status} value={status || ""}>{status}</option>
+              <option key={status} value={status}>{status}</option>
             ))}
           </select>
         </div>
@@ -540,7 +540,7 @@ export const Satislar: React.FC = () => {
                       <td className="px-6 py-4 text-sm text-gray-500">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-gray-400" />
-                          {new Date((order.date || '').replace(' ', 'T')).toLocaleDateString('tr-TR', { 
+                          {new Date(order.date).toLocaleDateString('tr-TR', { 
                             year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'
                           })}
                         </div>
@@ -636,7 +636,7 @@ export const Satislar: React.FC = () => {
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Tarih</div>
                   <div className="font-medium text-gray-900">
-                    {new Date((selectedOrder.date || '').replace(' ', 'T')).toLocaleString('tr-TR')}
+                    {new Date(selectedOrder.date).toLocaleString('tr-TR')}
                   </div>
                 </div>
               </div>

@@ -119,10 +119,12 @@
   <script type="module" src="/index.tsx"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) {
-          registration.unregister();
-        }
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((reg) => {
+          console.log('SW registered:', reg.scope);
+        }).catch((err) => {
+          console.log('SW registration failed:', err);
+        });
       });
     }
   </script>

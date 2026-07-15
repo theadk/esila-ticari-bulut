@@ -1,13 +1,14 @@
-import mysql from 'mysql2/promise';
+import { getPool } from './server/db.js';
 
-async function run() {
-  const pool = mysql.createPool("mysql://esilayaz_esilaticari:q7D6%24ry84@esilayazilim.com:3306/esilayaz_esilaticari");
+async function test() {
   try {
-    const [rows] = await pool.query("SELECT id, firstName, lastName FROM personnel");
-    console.log("Personnel records:", rows);
-  } catch(e) {
+    const pool = getPool();
+    const [rows] = await pool.query('SELECT * FROM orders ORDER BY date DESC LIMIT 5');
+    console.log(rows);
+  } catch (e) {
     console.error(e);
   }
-  process.exit(0);
+  process.exit();
 }
-run();
+
+test();

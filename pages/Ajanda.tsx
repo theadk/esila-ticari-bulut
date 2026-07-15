@@ -1,4 +1,3 @@
-import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../lib/store';
 import { ReminderNoteType } from '../types';
@@ -9,7 +8,7 @@ import { hasPermission } from '../lib/permissions';
 
 export const Ajanda: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'ajanda', 'view');
   const canCreate = hasPermission(currentUser, 'ajanda', 'create');
   const canEdit = hasPermission(currentUser, 'ajanda', 'edit');
@@ -268,7 +267,7 @@ export const Ajanda: React.FC = () => {
           <input
             type="text"
             placeholder="Notlarda ara..."
-            value={searchTerm || ""}
+            value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
           />
@@ -277,7 +276,7 @@ export const Ajanda: React.FC = () => {
         <div className="w-full md:w-48 relative">
            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
            <select 
-              value={selectedType || ""}
+              value={selectedType}
               onChange={(e) => setSelectedType(e.target.value as any)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 appearance-none bg-white"
            >
@@ -295,7 +294,7 @@ export const Ajanda: React.FC = () => {
         <div className="w-full md:w-48">
            <input 
               type="date"
-              value={selectedDate || ""}
+              value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
            />
@@ -303,7 +302,7 @@ export const Ajanda: React.FC = () => {
 
         <div className="w-full md:w-48 relative">
            <select 
-              value={statusFilter || ""}
+              value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
               className="w-full pl-4 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 appearance-none bg-white"
            >
@@ -405,11 +404,11 @@ export const Ajanda: React.FC = () => {
                   <div className="flex gap-4">
                      <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
-                        <input type="date" className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500" value={noteForm.date || ""} onChange={e => setNoteForm({...noteForm, date: e.target.value})} />
+                        <input type="date" className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500" value={noteForm.date} onChange={e => setNoteForm({...noteForm, date: e.target.value})} />
                      </div>
                      <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Bildirim Saati (Opsiyonel)</label>
-                        <input type="time" className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500" value={noteForm.notificationTime || ""} onChange={e => setNoteForm({...noteForm, notificationTime: e.target.value})} />
+                        <input type="time" className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-emerald-500" value={noteForm.notificationTime} onChange={e => setNoteForm({...noteForm, notificationTime: e.target.value})} />
                      </div>
                   </div>
                   <div>
@@ -418,7 +417,7 @@ export const Ajanda: React.FC = () => {
                        type="text" 
                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500" 
                        placeholder="Örn: 200.000 TL Kredi Ödemesi"
-                       value={noteForm.title || ""}
+                       value={noteForm.title}
                        onChange={e => setNoteForm({...noteForm, title: e.target.value})}
                        autoFocus
                      />
@@ -427,7 +426,7 @@ export const Ajanda: React.FC = () => {
                      <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                      <select 
                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                       value={noteForm.type || ""}
+                       value={noteForm.type}
                        onChange={e => {
                            const newType = e.target.value as any;
                            setNoteForm((prev) => {
@@ -481,7 +480,7 @@ export const Ajanda: React.FC = () => {
                      <textarea 
                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-h-[80px]" 
                        placeholder="İsteğe bağlı detay..."
-                       value={noteForm.description || ""}
+                       value={noteForm.description}
                        onChange={e => setNoteForm({...noteForm, description: e.target.value})}
                      ></textarea>
                   </div>

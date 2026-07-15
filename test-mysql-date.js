@@ -1,8 +1,17 @@
-import mysql from 'mysql2/promise';
-async function run() {
-  const pool = mysql.createPool("mysql://esilayaz_esilaticari:q7D6%24ry84@esilayazilim.com:3306/esilayaz_esilaticari");
-  const [rows] = await pool.query("SELECT id, birthDate, endDate FROM personnel WHERE id = 'PER-1002-OAL2'");
-  console.log(rows);
-  process.exit(0);
+import { getPool } from './server/db.js';
+
+async function test() {
+  try {
+    const pool = getPool();
+    const dateStr = new Date().toISOString();
+    console.log("Testing insert with:", dateStr);
+    await pool.query(`INSERT IGNORE INTO orders (vkn, id, date) VALUES ('111', 'test-date-1', ?)`, [dateStr]);
+    const [rows] = await pool.query(`SELECT id, date FROM orders WHERE id = 'test-date-1'`);
+    console.log("Result:", rows);
+  } catch (e) {
+    console.error("Error:", e);
+  }
+  process.exit();
 }
-run();
+
+test();

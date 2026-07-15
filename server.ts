@@ -46,6 +46,7 @@ import {
   reloadFallbackDb
 } from "./server/fallbackDb.js";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const loginAttempts = new Map<
   string,
@@ -3095,11 +3096,9 @@ async function startServer() {
         }
 
         const keys = Object.keys(data);
-        const values = Object.values(data).map((v) => {
-          let val = typeof v === "object" && v !== null ? JSON.stringify(v) : v;
-          if (val === "") return null;
-          return val;
-        });
+        const values = Object.values(data).map((v) =>
+          typeof v === "object" && v !== null ? JSON.stringify(v) : v,
+        );
         const questionMarks = keys.map(() => "?").join(", ");
         const backtick = String.fromCharCode(96);
         const fields = keys.map((k) => backtick + k + backtick).join(", ");
@@ -3141,11 +3140,11 @@ async function startServer() {
             return res.json({ id: req.params.id, ...req.body });
         }
 
-        const values = keys.map((k) => {
-          let val = typeof data[k] === "object" && data[k] !== null ? JSON.stringify(data[k]) : data[k];
-          if (val === "") return null;
-          return val;
-        });
+        const values = keys.map((k) =>
+          typeof data[k] === "object" && data[k] !== null
+            ? JSON.stringify(data[k])
+            : data[k],
+        );
         const backtick = String.fromCharCode(96);
         const setString = keys
           .map((k) => backtick + k + backtick + " = ?")
@@ -3535,9 +3534,9 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    const distPath = path.join(__dirname, "dist");
     app.use(express.static(distPath));
-    app.get("*all", (req, res) => {
+    app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

@@ -1,4 +1,3 @@
-import { safeLocalStorage } from '../../lib/storage';
 import React, { useState, useEffect } from 'react';
 import { Lock, User, ArrowRight } from 'lucide-react';
 
@@ -12,8 +11,8 @@ export const SuperAdminLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) 
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
 
   useEffect(() => {
-    const attempts = safeLocalStorage.getItem('esila_sa_attempts');
-    const lockout = safeLocalStorage.getItem('esila_sa_lockout');
+    const attempts = localStorage.getItem('esila_sa_attempts');
+    const lockout = localStorage.getItem('esila_sa_lockout');
     if (attempts) setFailedAttempts(parseInt(attempts, 10));
     if (lockout) setLockoutUntil(parseInt(lockout, 10));
   }, []);
@@ -29,25 +28,25 @@ export const SuperAdminLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) 
       // Lockout expired
       setLockoutUntil(null);
       setFailedAttempts(0);
-      safeLocalStorage.removeItem('esila_sa_lockout');
-      safeLocalStorage.removeItem('esila_sa_attempts');
+      localStorage.removeItem('esila_sa_lockout');
+      localStorage.removeItem('esila_sa_attempts');
     }
 
     if (username === 'superadmin' && password === 'Esila2026*') {
       setFailedAttempts(0);
       setLockoutUntil(null);
-      safeLocalStorage.removeItem('esila_sa_lockout');
-      safeLocalStorage.removeItem('esila_sa_attempts');
+      localStorage.removeItem('esila_sa_lockout');
+      localStorage.removeItem('esila_sa_attempts');
       onLogin();
     } else {
       const newAttempts = failedAttempts + 1;
       setFailedAttempts(newAttempts);
-      safeLocalStorage.setItem('esila_sa_attempts', newAttempts.toString());
+      localStorage.setItem('esila_sa_attempts', newAttempts.toString());
       
       if (newAttempts >= 5) {
         const until = Date.now() + 5 * 60 * 1000;
         setLockoutUntil(until);
-        safeLocalStorage.setItem('esila_sa_lockout', until.toString());
+        localStorage.setItem('esila_sa_lockout', until.toString());
         setError('Çok fazla hatalı giriş yaptınız. Hesabınız 5 dakika kilitlendi.');
       } else {
         setError('Hatalı kullanıcı adı veya şifre.');

@@ -1,4 +1,3 @@
-import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload, Printer, MessageCircle, MessageSquare, CheckCircle, Landmark, Mic, MicOff } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -38,7 +37,7 @@ interface Province {
 
 export const Cariler: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'cariler', 'view');
   const canCreate = hasPermission(currentUser, 'cariler', 'create');
   const canEdit = hasPermission(currentUser, 'cariler', 'edit');
@@ -140,18 +139,18 @@ export const Cariler: React.FC = () => {
       setCashTransactions((prev: any) => [...(prev || []), newCashTx]);
     }
 
-    setCustomers((prev: any) => {
-      const updated = (prev || []).map((c: any) => {
-        if (c.id === selectedCustomerForHistory.id) {
-          return { ...c, balance: c.balance + newTransaction.amount };
-        }
-        return c;
-      });
-      if (isHistoryModalOpen) {
-        setTimeout(() => setSelectedCustomerForHistory(updated.find((c: any) => c.id === selectedCustomerForHistory.id) || null), 0);
+    const updatedCustomers = (prev: any) => (prev || []).map(c => {
+      if (c.id === selectedCustomerForHistory.id) {
+        return { ...c, balance: c.balance + newTransaction.amount };
       }
-      return updated;
+      return c;
     });
+    setCustomers(updatedCustomers);
+    
+    // Update the selected customer reference inside the modal if it's open
+    if (isHistoryModalOpen) {
+      setSelectedCustomerForHistory(updatedCustomers.find(c => c.id === selectedCustomerForHistory.id) || null);
+    }
     
     setIsPaymentModalOpen(false);
   };
@@ -313,16 +312,14 @@ export const Cariler: React.FC = () => {
             setTransactions((prev: any) => [...(prev || []), ...newTransactions]);
             
             // Update customer balance
-            setCustomers((prev: any) => {
-              const updated = (prev || []).map((c: any) => {
-                if (c.id === selectedCustomerForHistory.id) {
-                  return { ...c, balance: c.balance + totalAmountChange };
-                }
-                return c;
-              });
-              setTimeout(() => setSelectedCustomerForHistory(updated.find((c: any) => c.id === selectedCustomerForHistory.id) || null), 0);
-              return updated;
+            const updatedCustomers = (prev: any) => (prev || []).map(c => {
+               if (c.id === selectedCustomerForHistory.id) {
+                 return { ...c, balance: c.balance + totalAmountChange };
+               }
+               return c;
             });
+            setCustomers(updatedCustomers);
+            setSelectedCustomerForHistory(updatedCustomers.find(c => c.id === selectedCustomerForHistory.id) || null);
             
             toast.success(`${successCount} adet işlem başarıyla içeri aktarıldı.`);
         } else {
@@ -725,7 +722,7 @@ export const Cariler: React.FC = () => {
               type="text" 
               placeholder="Cari ara..." 
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              value={searchTerm || ""}
+              value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
@@ -1116,7 +1113,7 @@ export const Cariler: React.FC = () => {
                     >
                       <option value="">İl Seçin</option>
                       {provinces.map(p => (
-                        <option key={p.id} value={p.name || ""}>{p.name}</option>
+                        <option key={p.id} value={p.name}>{p.name}</option>
                       ))}
                     </select>
                  </div>
@@ -1130,7 +1127,7 @@ export const Cariler: React.FC = () => {
                     >
                       <option value="">İlçe Seçin</option>
                       {districts.map(d => (
-                        <option key={d.id} value={d.name || ""}>{d.name}</option>
+                        <option key={d.id} value={d.name}>{d.name}</option>
                       ))}
                     </select>
                  </div>
@@ -1208,7 +1205,7 @@ export const Cariler: React.FC = () => {
                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Cari Durumu</label>
                     <select
-                      value={formData.status || ""}
+                      value={formData.status}
                       onChange={(e) => setFormData({...formData, status: e.target.value as 'Aktif'|'Pasif'})}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
                     >
@@ -1220,7 +1217,7 @@ export const Cariler: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Açılış Bakiyesi (₺)</label>
                     <input 
                       type="number" 
-                      value={formData.balance || ""}
+                      value={formData.balance}
                       onChange={(e) => setFormData({...formData, balance: Number(e.target.value)})}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     />
@@ -1499,7 +1496,7 @@ export const Cariler: React.FC = () => {
                <div>
                  <label className="block text-sm font-medium text-gray-700 mb-1">İşlem Türü</label>
                  <select 
-                   value={paymentForm.type || ""}
+                   value={paymentForm.type}
                    onChange={e => setPaymentForm({...paymentForm, type: e.target.value as 'Tahsilat'|'Ödeme'|'Borçlandırma'})}
                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
                  >
@@ -1512,7 +1509,7 @@ export const Cariler: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
                 <input 
                   type="date"
-                  value={paymentForm.date || ""}
+                  value={paymentForm.date}
                   onChange={(e) => setPaymentForm({...paymentForm, date: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                 />
@@ -1548,7 +1545,7 @@ export const Cariler: React.FC = () => {
                 <textarea 
                   rows={2}
                   required
-                  value={paymentForm.description || ""}
+                  value={paymentForm.description}
                   onChange={(e) => setPaymentForm({...paymentForm, description: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   placeholder="Nakit tahsilat, EFT/Havale vb."
@@ -1910,7 +1907,7 @@ export const Cariler: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mesaj İçeriği</label>
                 <textarea 
-                  value={bulkSMSText || ""}
+                  value={bulkSMSText}
                   onChange={(e) => setBulkSMSText(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 h-32"
                   placeholder="Gönderilecek mesajınızı yazın..."

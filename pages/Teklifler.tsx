@@ -1,6 +1,4 @@
-import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useEffect, useMemo } from 'react';
-import { usePersistentState } from '../lib/use-persistent-state';
 import { FileBadge, Plus, Search, FileText, Printer, CheckCircle, XCircle, Trash2, Share2, Mail, MessageCircle } from 'lucide-react';
 import { Proposal, ProposalStatus, ProposalItem, Customer, Product, Order, OrderStatus } from '../types';
 import { useAppStore } from '../lib/store';
@@ -10,7 +8,7 @@ import { Pagination } from '../components/Pagination';
 
 export const Teklifler: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'teklifler', 'view');
   const canCreate = hasPermission(currentUser, 'teklifler', 'create');
   const canEdit = hasPermission(currentUser, 'teklifler', 'edit');
@@ -39,15 +37,15 @@ export const Teklifler: React.FC = () => {
   const [printType, setPrintType] = useState<'80mm' | 'A4'>('A4');
 
   // New Proposal Form
-  const [selectedCustomer, setSelectedCustomer] = usePersistentState<Customer | null>('teklif_selectedCustomer', null);
-  const [cartItems, setCartItems] = usePersistentState<ProposalItem[]>('teklif_cartItems', []);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [cartItems, setCartItems] = useState<ProposalItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [selectedProductToAdd, setSelectedProductToAdd] = useState<string>('');
   const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
   const [discountToAdd, setDiscountToAdd] = useState<number>(0);
   const [taxToAdd, setTaxToAdd] = useState<number>(20);
-  const [notes, setNotes] = usePersistentState<string>('teklif_notes', '');
-  const [validDays, setValidDays] = usePersistentState<number>('teklif_validDays', 15);
+  const [notes, setNotes] = useState<string>('');
+  const [validDays, setValidDays] = useState<number>(15);
 
   const subTotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const discountTotal = cartItems.reduce((acc, item) => acc + ((item.price * item.quantity) * (item.discountRate / 100)), 0);
@@ -167,7 +165,7 @@ export const Teklifler: React.FC = () => {
 
   const handleShareWhatsApp = () => {
     if (!selectedProposal) return;
-    const tenantId = safeSessionStorage.getItem('esila_tenant_id');
+    const tenantId = sessionStorage.getItem('esila_tenant_id');
     const url = `${window.location.origin}/teklif-onay/${selectedProposal.id}?tenantId=${tenantId}`;
     const text = `Merhaba,\n\n${selectedProposal.id} numaralı teklifiniz hazır. Aşağıdaki bağlantıya tıklayarak teklif detaylarını inceleyebilir ve onaylayabilirsiniz:\n\n${url}\n\nİyi günler dileriz.`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -175,7 +173,7 @@ export const Teklifler: React.FC = () => {
 
   const handleShareEmail = () => {
     if (!selectedProposal) return;
-    const tenantId = safeSessionStorage.getItem('esila_tenant_id');
+    const tenantId = sessionStorage.getItem('esila_tenant_id');
     const url = `${window.location.origin}/teklif-onay/${selectedProposal.id}?tenantId=${tenantId}`;
     const subject = `${selectedProposal.id} Numaralı Teklifiniz`;
     const body = `Merhaba,\n\n${selectedProposal.id} numaralı teklifiniz hazır. Aşağıdaki bağlantıya tıklayarak teklif detaylarını inceleyebilir ve onaylayabilirsiniz:\n\n${url}\n\nİyi günler dileriz.`;
@@ -193,7 +191,7 @@ export const Teklifler: React.FC = () => {
     if (!selectedProposal) return;
     
     // Add Order
-    const tenantId = safeSessionStorage.getItem('esila_tenant_id') || '1111111111';
+    const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
     const timestampSuffix = Date.now().toString(36).toUpperCase();
     const randomPart = Math.random().toString(36).substr(2, 4).toUpperCase();
     const newOrder: Order = {
@@ -313,7 +311,7 @@ export const Teklifler: React.FC = () => {
             <input 
               type="text" 
               placeholder="Müşteri adı veya Teklif NO ile ara..." 
-              value={searchTerm || ""}
+              value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
             />
@@ -586,7 +584,7 @@ export const Teklifler: React.FC = () => {
                       >
                         <option value="">Lütfen cari seçiniz...</option>
                         {customers.map(c => (
-                          <option key={c.id} value={c.id || ""}>{c.companyName || c.name}</option>
+                          <option key={c.id} value={c.id}>{c.companyName || c.name}</option>
                         ))}
                       </select>
                     </div>
@@ -596,7 +594,7 @@ export const Teklifler: React.FC = () => {
                       <input 
                         type="number" 
                         min="1"
-                        value={validDays || ""}
+                        value={validDays}
                         onChange={(e) => setValidDays(Number(e.target.value))}
                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                       />
@@ -606,7 +604,7 @@ export const Teklifler: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Notlar / Şartlar</label>
                       <textarea
                         rows={3}
-                        value={notes || ""}
+                        value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Teklif şartları, teslimat süresi vb."
                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
@@ -624,7 +622,7 @@ export const Teklifler: React.FC = () => {
                           type="text"
                           placeholder="Ürün Ara (Ad veya Barkod/Kod)..."
                           className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                          value={productSearch || ""}
+                          value={productSearch}
                           onChange={(e) => setProductSearch(e.target.value)}
                         />
                         <div className="w-full border border-gray-300 rounded-lg overflow-y-auto max-h-32 bg-white flex flex-col">
@@ -651,7 +649,7 @@ export const Teklifler: React.FC = () => {
                               type="number" 
                               min="0.01"
                               step="0.01"
-                              value={quantityToAdd || ""}
+                              value={quantityToAdd}
                               onChange={(e) => setQuantityToAdd(parseFloat(e.target.value) || 1)}
                               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                             />
@@ -670,7 +668,7 @@ export const Teklifler: React.FC = () => {
                             type="number" 
                             min="0"
                             max="100"
-                            value={discountToAdd || ""}
+                            value={discountToAdd}
                             onChange={(e) => setDiscountToAdd(Number(e.target.value))}
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                           />
@@ -678,7 +676,7 @@ export const Teklifler: React.FC = () => {
                         <div className="flex-1">
                           <label className="block text-xs font-medium text-gray-500 mb-1">KDV (%)</label>
                           <select 
-                            value={taxToAdd || ""}
+                            value={taxToAdd}
                             onChange={(e) => setTaxToAdd(Number(e.target.value))}
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                           >

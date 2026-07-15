@@ -47,7 +47,7 @@ export const MutabakatOnayView: React.FC<{ id: string; vkn: string }> = ({ id, v
         
         <textarea 
           placeholder="Eklemek istediğiniz notunuz varsa buraya yazabilirsiniz..."
-          value={notes || ""}
+          value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="w-full border border-gray-300 rounded-lg p-3 mb-6 outline-none focus:border-blue-500 text-sm h-24"
         ></textarea>

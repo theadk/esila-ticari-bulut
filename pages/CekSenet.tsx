@@ -1,4 +1,3 @@
-import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../lib/store';
 import { CreditCard, Plus, FileText, Wallet, Search, Filter, Trash2, Edit2, CheckCircle, ArrowRightCircle, CheckSquare, XCircle } from 'lucide-react';
@@ -9,7 +8,7 @@ import { hasPermission } from '../lib/permissions';
 
 export const CekSenet: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'ceksenet', 'view');
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'alinan' | 'verilen'>('dashboard');
@@ -36,7 +35,7 @@ export const CekSenet: React.FC = () => {
   const fetchNotes = async () => {
     try {
       const res = await fetch('/api/cheque_notes', {
-        headers: { 'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || '1111111111' }
+        headers: { 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' }
       });
       if (res.ok) {
         const data = await res.json();
@@ -49,7 +48,7 @@ export const CekSenet: React.FC = () => {
   const fetchCustomers = async () => {
     try {
       const res = await fetch('/api/customers', {
-        headers: { 'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || '1111111111' }
+        headers: { 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' }
       });
       if (res.ok) {
         setCustomers(await res.json());
@@ -68,7 +67,7 @@ export const CekSenet: React.FC = () => {
     try {
       const res = await fetch(`/api/cheque_notes/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || '1111111111' },
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' },
         body: JSON.stringify({ ...note, status: newStatus })
       });
       if (res.ok) {
@@ -99,7 +98,7 @@ export const CekSenet: React.FC = () => {
       
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || '1111111111' },
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' },
         body: JSON.stringify(dataToSave)
       });
       
@@ -118,7 +117,7 @@ export const CekSenet: React.FC = () => {
     try {
       const res = await fetch(`/api/cheque_notes/${id}`, {
         method: 'DELETE',
-        headers: { 'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || '1111111111' }
+        headers: { 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '1111111111' }
       });
       if (res.ok) {
         toast.success('Kayıt silindi');
@@ -346,14 +345,14 @@ export const CekSenet: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tür</label>
-                      <select value={formData.type || ""} onChange={e => setFormData({...formData, type: e.target.value as 'Çek' | 'Senet'})} className="w-full border rounded-lg px-3 py-2">
+                      <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as 'Çek' | 'Senet'})} className="w-full border rounded-lg px-3 py-2">
                          <option value="Çek">Çek</option>
                          <option value="Senet">Senet</option>
                       </select>
                    </div>
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Durum</label>
-                      <select value={formData.status || ""} onChange={e => setFormData({...formData, status: e.target.value as ChequeNoteStatus})} className="w-full border rounded-lg px-3 py-2">
+                      <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as ChequeNoteStatus})} className="w-full border rounded-lg px-3 py-2">
                          <option value="Portföyde">Portföyde</option>
                          <option value="Tahsilde">Tahsilde</option>
                          <option value="Ciro Edildi">Ciro Edildi</option>
@@ -368,13 +367,13 @@ export const CekSenet: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Belge No</label>
-                      <input type="text" required value={formData.documentNumber || ""} onChange={e => setFormData({...formData, documentNumber: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
+                      <input type="text" required value={formData.documentNumber} onChange={e => setFormData({...formData, documentNumber: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
                    </div>
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Müşteri / Tedarikçi</label>
-                      <select required value={formData.customerId || ""} onChange={e => setFormData({...formData, customerId: e.target.value})} className="w-full border rounded-lg px-3 py-2">
+                      <select required value={formData.customerId} onChange={e => setFormData({...formData, customerId: e.target.value})} className="w-full border rounded-lg px-3 py-2">
                          <option value="">Seçiniz...</option>
-                         {customers.map(c => <option key={c.id} value={c.id || ""}>{c.name || c.companyName}</option>)}
+                         {customers.map(c => <option key={c.id} value={c.id}>{c.name || c.companyName}</option>)}
                       </select>
                    </div>
                 </div>
@@ -382,15 +381,15 @@ export const CekSenet: React.FC = () => {
                 <div className="grid grid-cols-3 gap-4">
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tutar</label>
-                      <input type="number" min="0" step="0.01" required value={formData.amount || ""} onChange={e => setFormData({...formData, amount: Number(e.target.value)})} className="w-full border rounded-lg px-3 py-2" />
+                      <input type="number" min="0" step="0.01" required value={formData.amount} onChange={e => setFormData({...formData, amount: Number(e.target.value)})} className="w-full border rounded-lg px-3 py-2" />
                    </div>
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Düzenlenme Tarihi</label>
-                      <input type="date" required value={formData.issueDate || ""} onChange={e => setFormData({...formData, issueDate: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
+                      <input type="date" required value={formData.issueDate} onChange={e => setFormData({...formData, issueDate: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
                    </div>
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Vade Tarihi</label>
-                      <input type="date" required value={formData.dueDate || ""} onChange={e => setFormData({...formData, dueDate: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
+                      <input type="date" required value={formData.dueDate} onChange={e => setFormData({...formData, dueDate: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
                    </div>
                 </div>
 

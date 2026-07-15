@@ -1,4 +1,3 @@
-import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useRef } from 'react';
 import { 
   Folder, FileText, UploadCloud, Search, Filter, 
@@ -12,7 +11,7 @@ import { hasPermission } from '../lib/permissions';
 
 export const Dokumanlar: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'dokumanlar', 'view');
   const canCreate = hasPermission(currentUser, 'dokumanlar', 'create');
   const canEdit = hasPermission(currentUser, 'dokumanlar', 'edit');
@@ -152,27 +151,27 @@ export const Dokumanlar: React.FC = () => {
             <input
               type="text"
               placeholder="Dökümanlarda ara..."
-              value={searchTerm || ""}
+              value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
           <div className="flex gap-2">
             <select
-              value={categoryFilter || ""}
+              value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
-              {categories.map(c => <option key={c} value={c || ""}>{c}</option>)}
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             
             <select
-              value={tagFilter || ""}
+              value={tagFilter}
               onChange={(e) => setTagFilter(e.target.value)}
               className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
               <option value="Tümü">Tüm Etiketler</option>
-              {allTags.map(t => <option key={t} value={t || ""}>{t}</option>)}
+              {allTags.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
         </div>
@@ -329,7 +328,7 @@ export const Dokumanlar: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                 <select
-                  value={formData.category || ""}
+                  value={formData.category}
                   onChange={e => setFormData({...formData, category: e.target.value as any})}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 >
@@ -346,7 +345,7 @@ export const Dokumanlar: React.FC = () => {
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
-                    value={newTag || ""}
+                    value={newTag}
                     onChange={e => setNewTag(e.target.value)}
                     onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
                     className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"

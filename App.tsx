@@ -1,5 +1,3 @@
-import { safeSessionStorage } from './lib/storage';
-import { ErrorBoundary } from './components/ErrorBoundary';
 import React, { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { Sidebar } from './components/Sidebar';
@@ -48,7 +46,7 @@ const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!(safeSessionStorage.getItem('esila_tenant_id') && safeSessionStorage.getItem('esila_user_id'));
+    return !!(sessionStorage.getItem('esila_tenant_id') && sessionStorage.getItem('esila_user_id'));
   });
   const [activePage, setActivePage] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -71,14 +69,14 @@ const App: React.FC = () => {
          method: 'POST', 
          headers: {'Content-Type': 'application/json'},
          body: JSON.stringify({
-           vkn: safeSessionStorage.getItem('esila_tenant_id'),
-           userId: safeSessionStorage.getItem('esila_user_id')
+           vkn: sessionStorage.getItem('esila_tenant_id'),
+           userId: sessionStorage.getItem('esila_user_id')
          }) 
        }); 
     } catch(e) {}
     setIsAuthenticated(false); 
-    safeSessionStorage.removeItem('esila_tenant_id'); 
-    safeSessionStorage.removeItem('esila_user_id'); 
+    sessionStorage.removeItem('esila_tenant_id'); 
+    sessionStorage.removeItem('esila_user_id'); 
     window.location.reload(); 
   };
 
@@ -91,7 +89,7 @@ const App: React.FC = () => {
         if (isAuthenticated) {
           handleLogout();
         }
-      }, 120 * 60 * 1000); // 120 minutes
+      }, 30 * 60 * 1000); // 30 minutes
     };
 
     if (isAuthenticated) {
@@ -115,7 +113,7 @@ const App: React.FC = () => {
     if (isAuthenticated) {
       initializeStore(true);
       fetch('/api/tenant-info', {
-        headers: { 'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || '' }
+        headers: { 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '' }
       }).then(res => res.json()).then(data => setTenantInfo(data)).catch(console.error);
     }
   }, [isAuthenticated]);
@@ -185,9 +183,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <Toaster position="top-right" />
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <Toaster position="top-right" />
       <ToastSpeaker />
       {/* Sidebar - Hidden on print */}
       <div className={`fixed inset-y-0 left-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-200 ease-in-out no-print`}>
@@ -233,8 +230,7 @@ const App: React.FC = () => {
       `}</style>
       <VoiceNavigator setActivePage={setActivePage} />
       <InstallPrompt />
-      </div>
-    </ErrorBoundary>
+    </div>
   );
 };
 

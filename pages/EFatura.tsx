@@ -1,4 +1,3 @@
-import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useEffect } from "react";
 import { ThermalEArsiv } from "./ThermalEArsiv";
 import { QRCodeSVG } from "qrcode.react";
@@ -29,7 +28,7 @@ import { hasPermission } from '../lib/permissions';
 
 export const EFatura: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === safeSessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'efatura', 'view');
   const canCreate = hasPermission(currentUser, 'efatura', 'create');
   const canEdit = hasPermission(currentUser, 'efatura', 'edit');
@@ -861,7 +860,7 @@ export const EFatura: React.FC = () => {
              <div className="flex ml-4 mt-4 sm:mt-0 items-center justify-end gap-2">
                 <select 
                   className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={incomingFilter || ""}
+                  value={incomingFilter}
                   onChange={(e) => setIncomingFilter(e.target.value as any)}
                 >
                   <option value="Tümü">Tümü</option>
@@ -1136,7 +1135,7 @@ export const EFatura: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Fatura Tipi / Türü</label>
                 <select
                   className="w-full p-2.5 rounded-lg border border-gray-200 outline-none"
-                  value={editInvoice.type || ""}
+                  value={editInvoice.type}
                   onChange={(e) => setEditInvoice({ ...editInvoice, type: e.target.value })}
                 >
                   <option value="e-Fatura">e-Fatura</option>
@@ -1147,7 +1146,7 @@ export const EFatura: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Senaryo</label>
                 <select
                   className="w-full p-2.5 rounded-lg border border-gray-200 outline-none"
-                  value={editInvoice.scenario || ""}
+                  value={editInvoice.scenario}
                   onChange={(e) => setEditInvoice({ ...editInvoice, scenario: e.target.value })}
                 >
                   <option value="Temel Fatura">Temel Fatura</option>

@@ -1,4 +1,3 @@
-import { safeSessionStorage } from '../lib/storage';
 import React, { useState, useRef, useEffect } from 'react';
 import { Save, Mail, MessageSquare, Printer, Settings as SettingsIcon, Upload, X, Hash, Users, Clock, FileText, Database, Download, BookOpen, Activity } from 'lucide-react';
 import { Settings } from '../types';
@@ -22,7 +21,7 @@ export const Ayarlar: React.FC = () => {
   const fetchServerBackups = () => {
     fetch('/api/tenant-backups', {
       headers: {
-        'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || ''
+        'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || ''
       }
     }).then(res => res.json()).then(data => {
       if (data.success) {
@@ -34,7 +33,7 @@ export const Ayarlar: React.FC = () => {
   useEffect(() => {
     fetch('/api/tenant-info', {
       headers: {
-        'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || ''
+        'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || ''
       }
     }).then(res => res.json()).then(data => setTenantInfo(data)).catch();
 
@@ -84,7 +83,7 @@ export const Ayarlar: React.FC = () => {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || ''
+          'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || ''
         },
         body: JSON.stringify({ filename })
       });
@@ -108,7 +107,7 @@ export const Ayarlar: React.FC = () => {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || ''
+          'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || ''
         }
       });
       const data = await res.json();
@@ -143,7 +142,7 @@ export const Ayarlar: React.FC = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-             'x-tenant-id': safeSessionStorage.getItem('esila_tenant_id') || ''
+             'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || ''
           },
           body: JSON.stringify(data)
         });

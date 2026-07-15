@@ -36,7 +36,7 @@ try {
 }
 
 function save() {
-  fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2)); fs.appendFileSync("/tmp/my_log.txt", "Saved to " + DB_FILE + "\n");
+  fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2));
 }
 
 export function reloadFallbackDb() {

@@ -1,4 +1,3 @@
-import { safeLocalStorage } from '../lib/storage';
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, Search, User, LogOut, Settings as SettingsIcon, Package, FileText, ShoppingCart, Users, Menu, LifeBuoy, X, Maximize, Minimize } from 'lucide-react';
 import { useAppStore } from '../lib/store';
@@ -58,7 +57,7 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
       const html = `
         <div style="font-family: sans-serif; p-4;">
           <h2 style="color: #059669;">Yeni Destek Talebi</h2>
-          <p><strong>Firma VKN:</strong> ${safeLocalStorage.getItem('esila_tenant_id')}</p>
+          <p><strong>Firma VKN:</strong> ${localStorage.getItem('esila_tenant_id')}</p>
           <p><strong>Firma Adı:</strong> ${store.settings.companyName}</p>
           <p><strong>Kullanıcı:</strong> admin@esila.com</p>
           <hr/>
@@ -69,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
       // Destek taleplerini şirkete veya destek ekibine (admin email vb.) gönder
       const res = await fetch('/api/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': safeLocalStorage.getItem('esila_tenant_id') || '' },
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '' },
         body: JSON.stringify({
           to: 'ahdurko@gmail.com',
           subject: `Destek Talebi: ${supportSubject}`,
@@ -105,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
   }, []);
 
   // Get current user
-  const currentUser = store.users?.find(u => u.id === safeLocalStorage.getItem('esila_user_id')) || store.users?.[0];
+  const currentUser = store.users?.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users?.[0];
 
   // Track previous tickets for instant toast notifications
   const prevTicketsRef = useRef(store.serviceTickets);
