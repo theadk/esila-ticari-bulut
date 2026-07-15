@@ -463,13 +463,13 @@ export const Uretim: React.FC = () => {
              </h3>
              <select 
                 className="border border-gray-300 rounded-lg p-2 text-sm max-w-xs w-full"
-                value={selectedWoForAnalysis}
+                value={selectedWoForAnalysis || ""}
                 onChange={e => setSelectedWoForAnalysis(e.target.value)}
              >
                 <option value="">İş Emri Seçin</option>
                 {workOrders.map(wo => {
                   const targetProd = products.find(p => p.id === wo.targetProductId);
-                  return <option key={wo.id} value={wo.id}>{wo.id} - {targetProd?.name}</option>;
+                  return <option key={wo.id} value={wo.id || ""}>{wo.id} - {targetProd?.name}</option>;
                 })}
              </select>
            </div>
@@ -602,18 +602,18 @@ export const Uretim: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Reçete Adı (Varyant)</label>
-                        <input required type="text" className="w-full border border-gray-300 rounded-lg p-2" value={bomForm.name} onChange={e => setBomForm({...bomForm, name: e.target.value})} placeholder="Örn: Standart Montaj v1" />
+                        <input required type="text" className="w-full border border-gray-300 rounded-lg p-2" value={bomForm.name || ""} onChange={e => setBomForm({...bomForm, name: e.target.value})} placeholder="Örn: Standart Montaj v1" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Hedef Ürün (Çıktı)</label>
-                        <select required className="w-full border border-gray-300 rounded-lg p-2" value={bomForm.targetProductId} onChange={e => setBomForm({...bomForm, targetProductId: e.target.value})}>
+                        <select required className="w-full border border-gray-300 rounded-lg p-2" value={bomForm.targetProductId || ""} onChange={e => setBomForm({...bomForm, targetProductId: e.target.value})}>
                             <option value="">Ürün Seçin</option>
-                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            {products.map(p => <option key={p.id} value={p.id || ""}>{p.name}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Tahmini Süre (Dakika)</label>
-                        <input type="number" className="w-full border border-gray-300 rounded-lg p-2" value={bomForm.estimatedTimeMinutes} onChange={e => setBomForm({...bomForm, estimatedTimeMinutes: Number(e.target.value)})} />
+                        <input type="number" className="w-full border border-gray-300 rounded-lg p-2" value={bomForm.estimatedTimeMinutes || ""} onChange={e => setBomForm({...bomForm, estimatedTimeMinutes: Number(e.target.value)})} />
                     </div>
                 </div>
                 
@@ -645,7 +645,7 @@ export const Uretim: React.FC = () => {
                         <div className="flex gap-2">
                             <select id="bomProductSelect" className="flex-1 border border-gray-300 rounded-lg p-2 text-sm">
                                 <option value="">Ürün Seçin</option>
-                                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                {products.map(p => <option key={p.id} value={p.id || ""}>{p.name}</option>)}
                             </select>
                             <input type="number" id="bomProductQty" className="w-20 border border-gray-300 rounded-lg p-2 text-sm" placeholder="Miktar" defaultValue="1" min="0.01" step="0.01" />
                             <button type="button" className="bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-sm font-medium" onClick={() => {
@@ -706,18 +706,18 @@ export const Uretim: React.FC = () => {
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Reçete (BOM) Seçin</label>
-                        <select required className="w-full border border-gray-300 rounded-lg p-2" value={woForm.bomId} onChange={e => setWoForm({...woForm, bomId: e.target.value})}>
+                        <select required className="w-full border border-gray-300 rounded-lg p-2" value={woForm.bomId || ""} onChange={e => setWoForm({...woForm, bomId: e.target.value})}>
                             <option value="">Reçete Seçin</option>
-                            {boms.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                            {boms.map(b => <option key={b.id} value={b.id || ""}>{b.name}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Üretilecek Miktar</label>
-                        <input required type="number" min="1" className="w-full border border-gray-300 rounded-lg p-2" value={woForm.plannedQuantity} onChange={e => setWoForm({...woForm, plannedQuantity: Number(e.target.value)})} />
+                        <input required type="number" min="1" className="w-full border border-gray-300 rounded-lg p-2" value={woForm.plannedQuantity || ""} onChange={e => setWoForm({...woForm, plannedQuantity: Number(e.target.value)})} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Öncelik Derecesi</label>
-                        <select className="w-full border border-gray-300 rounded-lg p-2" value={woForm.priority} onChange={e => setWoForm({...woForm, priority: e.target.value as WorkOrder['priority']})}>
+                        <select className="w-full border border-gray-300 rounded-lg p-2" value={woForm.priority || ""} onChange={e => setWoForm({...woForm, priority: e.target.value as WorkOrder['priority']})}>
                             <option value="Düşük">Düşük</option>
                             <option value="Normal">Normal</option>
                             <option value="Yüksek">Yüksek</option>

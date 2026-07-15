@@ -244,7 +244,7 @@ export const StokSayim: React.FC = () => {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={manualBarcode}
+                    value={manualBarcode || ""}
                     onChange={(e) => setManualBarcode(e.target.value)}
                     placeholder="Barkod girin ve enter'a basın..."
                     className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
@@ -284,7 +284,7 @@ export const StokSayim: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Ürün ara..."
-                  value={searchQuery}
+                  value={searchQuery || ""}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 w-64 outline-none"
                 />

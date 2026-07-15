@@ -401,7 +401,7 @@ export const HizliSatis: React.FC = () => {
                 ref={searchInputRef}
                 type="text"
                 placeholder="Barkod okutun veya ürün adı/kodu arayın... (F2 ile odaklan)"
-                value={searchTerm}
+                value={searchTerm || ""}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-lg"
                 autoFocus
@@ -417,13 +417,13 @@ export const HizliSatis: React.FC = () => {
             <div className="w-full sm:w-1/3 relative flex items-center gap-2">
               <User className="text-gray-400 shrink-0" size={20} />
               <select
-                value={selectedCustomerId}
+                value={selectedCustomerId || ""}
                 onChange={(e) => setSelectedCustomerId(e.target.value)}
                 className="flex-1 py-3 border border-gray-300 rounded-lg px-2 w-full"
               >
                 <option value="">Perakende (Cari Seçilmedi)</option>
                 {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id || ""}>{c.name}</option>
                 ))}
               </select>
             </div>
@@ -496,7 +496,7 @@ export const HizliSatis: React.FC = () => {
                           type="number"
                           step="0.01"
                           min="0.01"
-                          value={item.quantity}
+                          value={item.quantity || ""}
                           onChange={(e) => {
                             const val = parseFloat(e.target.value);
                             if (!isNaN(val)) {
@@ -519,7 +519,7 @@ export const HizliSatis: React.FC = () => {
                            type="number" 
                            id={`discount-input-${idx}`}
                            min="0" max="100" 
-                           value={item.discount}
+                           value={item.discount || ""}
                            onChange={(e) => updateDiscount(item.product.id, Number(e.target.value))}
                            className="w-12 lg:w-16 h-8 border border-gray-300 rounded px-1 text-center text-sm" 
                          />

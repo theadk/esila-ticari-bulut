@@ -211,7 +211,7 @@ export const Siparisler: React.FC = () => {
       const term = orderSearch.toLowerCase();
       result = result.filter(order => 
         order.id.toLowerCase().includes(term) || 
-        order.customerName.toLowerCase().includes(term)
+        (order.customerName || "").toLowerCase().includes(term)
       );
     }
 
@@ -224,7 +224,9 @@ export const Siparisler: React.FC = () => {
     result.sort((a, b) => {
       let comparison = 0;
       if (sortField === 'date') {
-        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+        const timeA = new Date((a.date || '').replace(' ', 'T')).getTime();
+        const timeB = new Date((b.date || '').replace(' ', 'T')).getTime();
+        comparison = (isNaN(timeA) ? 0 : timeA) - (isNaN(timeB) ? 0 : timeB);
       } else if (sortField === 'total') {
         comparison = a.total - b.total;
       }
@@ -302,11 +304,11 @@ export const Siparisler: React.FC = () => {
                     <select 
                       className="text-sm border border-gray-200 rounded-lg text-gray-600 focus:ring-blue-500 focus:border-blue-500 py-1.5 px-3 bg-gray-50"
                       onChange={handleCustomerSelect}
-                      value={customerInfo.id}
+                      value={customerInfo.id || ""}
                     >
                       <option value="">-- Kayıtlı Müşteri Seç --</option>
                       {store.customers.map((c: Customer) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                        <option key={c.id} value={c.id || ""}>{c.name}</option>
                       ))}
                     </select>
                   )}
@@ -316,7 +318,7 @@ export const Siparisler: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Ad Soyad / Ünvan *</label>
                     <input 
                       type="text" 
-                      value={customerInfo.name}
+                      value={customerInfo.name || ""}
                       onChange={e => updateCustomerInfo('name', e.target.value)}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none"
                       placeholder="Müşteri Adı"
@@ -326,7 +328,7 @@ export const Siparisler: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
                     <input 
                       type="tel" 
-                      value={customerInfo.phone}
+                      value={customerInfo.phone || ""}
                       onChange={e => updateCustomerInfo('phone', e.target.value)}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none"
                       placeholder="05XX XXX XX XX"
@@ -336,7 +338,7 @@ export const Siparisler: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Adres</label>
                     <input 
                       type="text" 
-                      value={customerInfo.address}
+                      value={customerInfo.address || ""}
                       onChange={e => updateCustomerInfo('address', e.target.value)}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none"
                       placeholder="Teslimat adresi"
@@ -357,7 +359,7 @@ export const Siparisler: React.FC = () => {
                     <input 
                       type="text" 
                       placeholder="Ürün ara..." 
-                      value={productSearch}
+                      value={productSearch || ""}
                       onChange={(e) => setProductSearch(e.target.value)}
                       className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full sm:w-64 transition-colors outline-none"
                     />
@@ -446,7 +448,7 @@ export const Siparisler: React.FC = () => {
                             >-</button>
                             <input 
                               type="number" 
-                              value={item.quantity}
+                              value={item.quantity || ""}
                               onChange={(e) => updateCartItem(item.productId, parseInt(e.target.value) || 0)}
                               className="w-10 text-center text-sm font-medium text-gray-900 bg-transparent border-x border-gray-200 py-1 outline-none appearance-none"
                               min="1"
@@ -464,7 +466,7 @@ export const Siparisler: React.FC = () => {
                     <div className="pt-4 border-t border-gray-100">
                       <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Sipariş Notu</label>
                       <textarea 
-                        value={notes}
+                        value={notes || ""}
                         onChange={e => setNotes(e.target.value)}
                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors resize-none outline-none"
                         rows={2}
@@ -533,7 +535,7 @@ export const Siparisler: React.FC = () => {
                     <input 
                       type="text" 
                       placeholder="Sipariş no veya müşteri..." 
-                      value={orderSearch}
+                      value={orderSearch || ""}
                       onChange={(e) => setOrderSearch(e.target.value)}
                       className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full sm:w-64 transition-colors outline-none"
                     />
@@ -542,13 +544,13 @@ export const Siparisler: React.FC = () => {
                   <div className="relative flex items-center">
                     <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <select
-                      value={statusFilter}
+                      value={statusFilter || ""}
                       onChange={(e) => setStatusFilter(e.target.value)}
                       className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none outline-none transition-colors"
                     >
                       <option value="all">Tüm Durumlar</option>
                       {Object.values(OrderStatus).map(status => (
-                        <option key={status} value={status}>{status}</option>
+                        <option key={status} value={status || ""}>{status}</option>
                       ))}
                     </select>
                     <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -600,7 +602,7 @@ export const Siparisler: React.FC = () => {
                                 #{order.id.substring(0, 8).toUpperCase()}
                               </div>
                               <div className="text-xs text-gray-500 mt-0.5">
-                                {new Date(order.date).toLocaleString('tr-TR', { 
+                                {new Date((order.date || '').replace(' ', 'T')).toLocaleString('tr-TR', { 
                                   day: '2-digit', month: 'short', year: 'numeric', 
                                   hour: '2-digit', minute: '2-digit' 
                                 })}

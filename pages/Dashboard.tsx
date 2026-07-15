@@ -848,7 +848,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
                <div className="p-4 space-y-4">
                   <div>
                      <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
-                     <input type="date" className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500" value={selectedNoteDate} disabled />
+                     <input type="date" className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500" value={selectedNoteDate || ""} disabled />
                   </div>
                   <div>
                      <label className="block text-sm font-medium text-gray-700 mb-1">Başlık</label>
@@ -856,7 +856,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
                        type="text" 
                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500" 
                        placeholder="Örn: 200.000 TL Kredi Ödemesi"
-                       value={noteForm.title}
+                       value={noteForm.title || ""}
                        onChange={e => setNoteForm({...noteForm, title: e.target.value})}
                        autoFocus
                      />
@@ -865,7 +865,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
                      <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                      <select 
                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                       value={noteForm.type}
+                       value={noteForm.type || ""}
                        onChange={e => setNoteForm({...noteForm, type: e.target.value as any})}
                      >
                         <option value="Teklif">Verilen Teklifler</option>
@@ -895,7 +895,7 @@ export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = (
                      <textarea 
                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 min-h-[80px]" 
                        placeholder="İsteğe bağlı detay..."
-                       value={noteForm.description}
+                       value={noteForm.description || ""}
                        onChange={e => setNoteForm({...noteForm, description: e.target.value})}
                      ></textarea>
                   </div>

@@ -201,7 +201,7 @@ export const CRM: React.FC = () => {
                       <input
                         type="text"
                         required
-                        value={newLead.name}
+                        value={newLead.name || ""}
                         onChange={(e) =>
                           setNewLead({ ...newLead, name: e.target.value })
                         }
@@ -215,7 +215,7 @@ export const CRM: React.FC = () => {
                       </label>
                       <input
                         type="text"
-                        value={newLead.companyName}
+                        value={newLead.companyName || ""}
                         onChange={(e) =>
                           setNewLead({
                             ...newLead,
@@ -234,7 +234,7 @@ export const CRM: React.FC = () => {
                         <input
                           type="text"
                           required
-                          value={newLead.phone}
+                          value={newLead.phone || ""}
                           onChange={(e) =>
                             setNewLead({ ...newLead, phone: e.target.value })
                           }
@@ -248,7 +248,7 @@ export const CRM: React.FC = () => {
                         </label>
                         <input
                           type="email"
-                          value={newLead.email}
+                          value={newLead.email || ""}
                           onChange={(e) =>
                             setNewLead({ ...newLead, email: e.target.value })
                           }
@@ -345,7 +345,7 @@ export const CRM: React.FC = () => {
                     <div className="flex items-center gap-4">
                       <label className="font-medium text-gray-700">Aşama:</label>
                       <select
-                        value={selectedLead.leadStatus}
+                        value={selectedLead.leadStatus || ""}
                         onChange={(e) => {
                            const updatedLead = { ...selectedLead, leadStatus: e.target.value as any };
                            store.setCustomers((prev: any) => (prev || []).map(c => c.id === selectedLead.id ? updatedLead : c));
@@ -377,8 +377,8 @@ export const CRM: React.FC = () => {
                           setNewMeetingNote({ notes: '', date: new Date().toISOString().split('T')[0] });
                        }} className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
                           <div className="flex gap-2">
-                             <input type="date" required value={newMeetingNote.date} onChange={e => setNewMeetingNote({...newMeetingNote, date: e.target.value})} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                             <input type="text" required value={newMeetingNote.notes} onChange={e => setNewMeetingNote({...newMeetingNote, notes: e.target.value})} placeholder="Görüşme özeti..." className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                             <input type="date" required value={newMeetingNote.date || ""} onChange={e => setNewMeetingNote({...newMeetingNote, date: e.target.value})} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                             <input type="text" required value={newMeetingNote.notes || ""} onChange={e => setNewMeetingNote({...newMeetingNote, notes: e.target.value})} placeholder="Görüşme özeti..." className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                              <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Ekle</button>
                           </div>
                        </form>
@@ -554,7 +554,7 @@ export const CRM: React.FC = () => {
                   <input
                     type="text"
                     required
-                    value={newCampaign.name}
+                    value={newCampaign.name || ""}
                     onChange={(e) =>
                       setNewCampaign({ ...newCampaign, name: e.target.value })
                     }
@@ -569,7 +569,7 @@ export const CRM: React.FC = () => {
                   </label>
                   <textarea
                     rows={2}
-                    value={newCampaign.description}
+                    value={newCampaign.description || ""}
                     onChange={(e) =>
                       setNewCampaign({
                         ...newCampaign,
@@ -613,7 +613,7 @@ export const CRM: React.FC = () => {
                       min="0"
                       max="100"
                       step="0.01"
-                      value={newCampaign.discountPercentage}
+                      value={newCampaign.discountPercentage || ""}
                       onChange={(e) =>
                         setNewCampaign({
                           ...newCampaign,
@@ -633,7 +633,7 @@ export const CRM: React.FC = () => {
                     <input
                       type="date"
                       required
-                      value={newCampaign.startDate}
+                      value={newCampaign.startDate || ""}
                       onChange={(e) =>
                         setNewCampaign({
                           ...newCampaign,
@@ -650,7 +650,7 @@ export const CRM: React.FC = () => {
                     <input
                       type="date"
                       required
-                      value={newCampaign.endDate}
+                      value={newCampaign.endDate || ""}
                       onChange={(e) =>
                         setNewCampaign({
                           ...newCampaign,

@@ -311,7 +311,7 @@ export const Teklifler: React.FC = () => {
             <input 
               type="text" 
               placeholder="Müşteri adı veya Teklif NO ile ara..." 
-              value={searchTerm}
+              value={searchTerm || ""}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
             />
@@ -584,7 +584,7 @@ export const Teklifler: React.FC = () => {
                       >
                         <option value="">Lütfen cari seçiniz...</option>
                         {customers.map(c => (
-                          <option key={c.id} value={c.id}>{c.companyName || c.name}</option>
+                          <option key={c.id} value={c.id || ""}>{c.companyName || c.name}</option>
                         ))}
                       </select>
                     </div>
@@ -594,7 +594,7 @@ export const Teklifler: React.FC = () => {
                       <input 
                         type="number" 
                         min="1"
-                        value={validDays}
+                        value={validDays || ""}
                         onChange={(e) => setValidDays(Number(e.target.value))}
                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                       />
@@ -604,7 +604,7 @@ export const Teklifler: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Notlar / Şartlar</label>
                       <textarea
                         rows={3}
-                        value={notes}
+                        value={notes || ""}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Teklif şartları, teslimat süresi vb."
                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
@@ -622,7 +622,7 @@ export const Teklifler: React.FC = () => {
                           type="text"
                           placeholder="Ürün Ara (Ad veya Barkod/Kod)..."
                           className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                          value={productSearch}
+                          value={productSearch || ""}
                           onChange={(e) => setProductSearch(e.target.value)}
                         />
                         <div className="w-full border border-gray-300 rounded-lg overflow-y-auto max-h-32 bg-white flex flex-col">
@@ -649,7 +649,7 @@ export const Teklifler: React.FC = () => {
                               type="number" 
                               min="0.01"
                               step="0.01"
-                              value={quantityToAdd}
+                              value={quantityToAdd || ""}
                               onChange={(e) => setQuantityToAdd(parseFloat(e.target.value) || 1)}
                               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                             />
@@ -668,7 +668,7 @@ export const Teklifler: React.FC = () => {
                             type="number" 
                             min="0"
                             max="100"
-                            value={discountToAdd}
+                            value={discountToAdd || ""}
                             onChange={(e) => setDiscountToAdd(Number(e.target.value))}
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                           />
@@ -676,7 +676,7 @@ export const Teklifler: React.FC = () => {
                         <div className="flex-1">
                           <label className="block text-xs font-medium text-gray-500 mb-1">KDV (%)</label>
                           <select 
-                            value={taxToAdd}
+                            value={taxToAdd || ""}
                             onChange={(e) => setTaxToAdd(Number(e.target.value))}
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                           >

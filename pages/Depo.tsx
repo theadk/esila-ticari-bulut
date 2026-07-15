@@ -508,7 +508,7 @@ export const Depo: React.FC = () => {
               type="text" 
               placeholder="Depoda ara (isim, kod, barkod)..." 
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              value={searchTerm}
+              value={searchTerm || ""}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
@@ -671,7 +671,7 @@ export const Depo: React.FC = () => {
                     type="text"
                     autoFocus
                     placeholder="Barkod okutun veya kod girin..."
-                    value={barcodeScan}
+                    value={barcodeScan || ""}
                     onChange={(e) => setBarcodeScan(e.target.value)}
                     className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 font-mono text-lg"
                   />
@@ -760,7 +760,7 @@ export const Depo: React.FC = () => {
                        <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                          <td className="px-6 py-4 font-medium text-gray-900">{order.id}</td>
                          <td className="px-6 py-4">{order.customerName}</td>
-                         <td className="px-6 py-4">{new Date(order.date).toLocaleString('tr-TR')}</td>
+                         <td className="px-6 py-4">{new Date((order.date || '').replace(' ', 'T')).toLocaleString('tr-TR')}</td>
                          <td className="px-6 py-4">
                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${order.status === OrderStatus.PREPARED ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                              {order.status}
@@ -898,13 +898,13 @@ export const Depo: React.FC = () => {
                          <label className="block text-sm font-medium text-gray-700 mb-1">Ürün Seçin</label>
                          <select
                            required
-                           value={locationForm.productId}
+                           value={locationForm.productId || ""}
                            onChange={(e) => setLocationForm({...locationForm, productId: e.target.value})}
                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                          >
                            <option value="">-- Ürün Seçin --</option>
                            {(products || []).filter(p => !activeWarehouse || p.warehouse === activeWarehouse || p.warehouseStocks?.some(ws => ws.warehouseId === activeWarehouse)).map(p => (
-                             <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                             <option key={p.id} value={p.id || ""}>{p.name} ({p.code})</option>
                            ))}
                          </select>
                       </div>
@@ -914,7 +914,7 @@ export const Depo: React.FC = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Koridor</label>
                             <select
                               required
-                              value={locationForm.aisle}
+                              value={locationForm.aisle || ""}
                               onChange={(e) => setLocationForm({...locationForm, aisle: e.target.value})}
                               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                             >
@@ -928,7 +928,7 @@ export const Depo: React.FC = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Raf No</label>
                             <select
                               required
-                              value={locationForm.shelf}
+                              value={locationForm.shelf || ""}
                               onChange={(e) => setLocationForm({...locationForm, shelf: e.target.value})}
                               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                             >
@@ -1016,7 +1016,7 @@ export const Depo: React.FC = () => {
                             >
                                <option value="">Sipariş Seçiniz...</option>
                                {store.orders.filter(o => o.status === OrderStatus.PENDING || o.status === OrderStatus.PREPARED).map(o => (
-                                   <option key={o.id} value={o.id}>{o.id} - {o.customerName}</option>
+                                   <option key={o.id} value={o.id || ""}>{o.id} - {o.customerName}</option>
                                ))}
                             </select>
                         </div>
@@ -1028,7 +1028,7 @@ export const Depo: React.FC = () => {
                                    <input 
                                       type="text" 
                                       autoFocus
-                                      value={barcodeInput}
+                                      value={barcodeInput || ""}
                                       onChange={e => setBarcodeInput(e.target.value)}
                                       onKeyDown={e => {
                                           if (e.key === 'Enter' && barcodeInput.trim()) {
@@ -1183,7 +1183,7 @@ export const Depo: React.FC = () => {
                   <input 
                     required
                     type="text" 
-                    value={newWh.name}
+                    value={newWh.name || ""}
                     onChange={(e) => setNewWh({...newWh, name: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -1202,7 +1202,7 @@ export const Depo: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Adres</label>
                   <input 
                     type="text" 
-                    value={newWh.address}
+                    value={newWh.address || ""}
                     onChange={(e) => setNewWh({...newWh, address: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -1252,36 +1252,36 @@ export const Depo: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ürün Seçin</label>
                   <select
                     required
-                    value={transferForm.productId}
+                    value={transferForm.productId || ""}
                     onChange={(e) => setTransferForm({...transferForm, productId: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="">-- Ürün Seçin --</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.code})</option>)}
+                    {products.map(p => <option key={p.id} value={p.id || ""}>{p.name} ({p.code})</option>)}
                   </select>
                </div>
                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kaynak Depo</label>
                   <select
                     required
-                    value={transferForm.sourceWarehouse}
+                    value={transferForm.sourceWarehouse || ""}
                     onChange={(e) => setTransferForm({...transferForm, sourceWarehouse: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="">-- Kaynak Depo Seçin --</option>
-                    {warehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                    {warehouses.map(w => <option key={w.id} value={w.name || ""}>{w.name}</option>)}
                   </select>
                </div>
                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Hedef Depo</label>
                   <select
                     required
-                    value={transferForm.targetWarehouse}
+                    value={transferForm.targetWarehouse || ""}
                     onChange={(e) => setTransferForm({...transferForm, targetWarehouse: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="">-- Hedef Depo Seçin --</option>
-                    {allWarehouses.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                    {allWarehouses.map(w => <option key={w.id} value={w.name || ""}>{w.name}</option>)}
                   </select>
                </div>
                <div>
@@ -1290,7 +1290,7 @@ export const Depo: React.FC = () => {
                     required
                     type="number"
                     min="1"
-                    value={transferForm.quantity}
+                    value={transferForm.quantity || ""}
                     onChange={(e) => setTransferForm({...transferForm, quantity: Number(e.target.value) || 1})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -1333,7 +1333,7 @@ export const Depo: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kargo Firması</label>
                   <select
                      required
-                     value={shippingForm.provider}
+                     value={shippingForm.provider || ""}
                      onChange={(e) => setShippingForm({ ...shippingForm, provider: e.target.value })}
                      className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   >
@@ -1352,7 +1352,7 @@ export const Depo: React.FC = () => {
                      type="text"
                      required
                      placeholder="Kargo takip kodu..."
-                     value={shippingForm.trackingNumber}
+                     value={shippingForm.trackingNumber || ""}
                      onChange={(e) => setShippingForm({ ...shippingForm, trackingNumber: e.target.value })}
                      className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono text-sm uppercase"
                   />

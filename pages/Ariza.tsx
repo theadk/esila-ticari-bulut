@@ -1302,7 +1302,7 @@ export const Ariza: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Müşteri, cihaz veya seri no ara..."
-                    value={searchTerm}
+                    value={searchTerm || ""}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
                   />
@@ -1310,7 +1310,7 @@ export const Ariza: React.FC = () => {
                 {activeTab === "maintenance" && (
                   <input
                     type="month"
-                    value={maintenanceMonthStr}
+                    value={maintenanceMonthStr || ""}
                     onChange={(e) => setMaintenanceMonthStr(e.target.value)}
                     className="w-full sm:w-48 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 outline-none focus:border-emerald-500"
                     title="Aylık Bakım Filtresi"
@@ -1596,7 +1596,7 @@ export const Ariza: React.FC = () => {
                   Müşteri Seçin *
                 </label>
                 <select
-                  value={formData.customerId}
+                  value={formData.customerId || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, customerId: e.target.value })
                   }
@@ -1605,7 +1605,7 @@ export const Ariza: React.FC = () => {
                 >
                   <option value="">Arama / Seçim Yapın</option>
                   {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
+                    <option key={c.id} value={c.id || ""}>
                       {c.name} {c.companyName ? `(${c.companyName})` : ""}
                     </option>
                   ))}
@@ -1617,7 +1617,7 @@ export const Ariza: React.FC = () => {
                   Atanacak Personel
                 </label>
                 <select
-                  value={formData.personnelId}
+                  value={formData.personnelId || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, personnelId: e.target.value })
                   }
@@ -1625,7 +1625,7 @@ export const Ariza: React.FC = () => {
                 >
                   <option value="">Personel Seçin (Opsiyonel)</option>
                   {personnel.filter(p => p.employmentStatus === 'Aktif').map((p) => (
-                    <option key={p.id} value={p.id}>
+                    <option key={p.id} value={p.id || ""}>
                       {p.firstName} {p.lastName}
                     </option>
                   ))}
@@ -1640,7 +1640,7 @@ export const Ariza: React.FC = () => {
                   <input
                     type="text"
                     className="w-full p-2.5 rounded-lg border border-gray-200 focus:border-emerald-500 outline-none"
-                    value={formData.deviceType}
+                    value={formData.deviceType || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, deviceType: e.target.value })
                     }
@@ -1655,7 +1655,7 @@ export const Ariza: React.FC = () => {
                     type="text"
                     list="serial-number-list"
                     className="w-full p-2.5 rounded-lg border border-gray-200 focus:border-emerald-500 outline-none"
-                    value={formData.serialNumber}
+                    value={formData.serialNumber || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, serialNumber: e.target.value })
                     }
@@ -1666,7 +1666,7 @@ export const Ariza: React.FC = () => {
                       ...store.serviceTickets.map(t => t.serialNumber).filter(Boolean),
                       ...store.personnel.flatMap(p => p.fixtures?.map(f => f.serialNumber) || []).filter(Boolean)
                     ])).map(sn => (
-                      <option key={sn} value={sn}>{sn}</option>
+                      <option key={sn} value={sn || ""}>{sn}</option>
                     ))}
                   </datalist>
                 </div>
@@ -1692,7 +1692,7 @@ export const Ariza: React.FC = () => {
                 </div>
                 <textarea
                   className="w-full p-2.5 rounded-lg border border-gray-200 focus:border-emerald-500 outline-none min-h-[100px]"
-                  value={formData.issueDescription}
+                  value={formData.issueDescription || ""}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -1938,7 +1938,7 @@ export const Ariza: React.FC = () => {
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4 w-full max-w-xl">
                         <select
                           className="flex-1 min-w-0 p-2 text-sm rounded-lg border border-gray-200 outline-none truncate"
-                          value={selectedProductToAdd}
+                          value={selectedProductToAdd || ""}
                           onChange={(e) =>
                             setSelectedProductToAdd(e.target.value)
                           }
@@ -1969,7 +1969,7 @@ export const Ariza: React.FC = () => {
                           className="w-20 p-2 rounded-lg border border-gray-200 outline-none text-center"
                           min="0.01"
                           step="0.01"
-                          value={quantityToAdd}
+                          value={quantityToAdd || ""}
                           onChange={(e) =>
                             setQuantityToAdd(parseFloat(e.target.value) || 1)
                           }
@@ -2241,7 +2241,7 @@ export const Ariza: React.FC = () => {
                       min="1"
                       className="w-20 p-2 text-sm rounded-lg border border-gray-200 outline-none focus:border-emerald-500"
                       placeholder="Örn: 6"
-                      value={maintenancePeriod}
+                      value={maintenancePeriod || ""}
                       onChange={(e) =>
                         setMaintenancePeriod(Number(e.target.value) || "")
                       }

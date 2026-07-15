@@ -417,11 +417,11 @@ export const SatinAlma: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
-                      <input type="date" required value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
+                      <input type="date" required value={formData.date || ""} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
                    </div>
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Talep Eden</label>
-                      <input type="text" required value={formData.requestedBy} onChange={e => setFormData({...formData, requestedBy: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
+                      <input type="text" required value={formData.requestedBy || ""} onChange={e => setFormData({...formData, requestedBy: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
                    </div>
                 </div>
 
@@ -434,7 +434,7 @@ export const SatinAlma: React.FC = () => {
                    </div>
                    {formData.items.map((item, idx) => (
                       <div key={idx} className="flex gap-2 items-center mb-2">
-                         <select required value={item.productId} onChange={e => {
+                         <select required value={item.productId || ""} onChange={e => {
                             const selectedProd = products.find(p => p.id === e.target.value);
                             const newItems = [...formData.items];
                             newItems[idx].productId = e.target.value;
@@ -442,9 +442,9 @@ export const SatinAlma: React.FC = () => {
                             setFormData({...formData, items: newItems});
                          }} className="flex-1 border rounded-lg px-3 py-2 text-sm">
                             <option value="">Ürün Seçin...</option>
-                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            {products.map(p => <option key={p.id} value={p.id || ""}>{p.name}</option>)}
                          </select>
-                         <input type="number" min="1" placeholder="Miktar" required value={item.quantity} onChange={e => {
+                         <input type="number" min="1" placeholder="Miktar" required value={item.quantity || ""} onChange={e => {
                             const newItems = [...formData.items];
                             newItems[idx].quantity = Number(e.target.value);
                             setFormData({...formData, items: newItems});
@@ -482,18 +482,18 @@ export const SatinAlma: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tedarikçi</label>
-                      <select required value={malKabulForm.supplierId} onChange={e => setMalKabulForm({...malKabulForm, supplierId: e.target.value})} className="w-full border rounded-lg px-3 py-2">
+                      <select required value={malKabulForm.supplierId || ""} onChange={e => setMalKabulForm({...malKabulForm, supplierId: e.target.value})} className="w-full border rounded-lg px-3 py-2">
                          <option value="">Seçiniz...</option>
-                         {suppliers.map(s => <option key={s.id} value={s.id}>{s.companyName || s.name}</option>)}
+                         {suppliers.map(s => <option key={s.id} value={s.id || ""}>{s.companyName || s.name}</option>)}
                       </select>
                    </div>
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tarih</label>
-                      <input type="date" required value={malKabulForm.date} onChange={e => setMalKabulForm({...malKabulForm, date: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
+                      <input type="date" required value={malKabulForm.date || ""} onChange={e => setMalKabulForm({...malKabulForm, date: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
                    </div>
                    <div className="col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">İrsaliye / Belge No</label>
-                      <input type="text" required value={malKabulForm.documentNo} onChange={e => setMalKabulForm({...malKabulForm, documentNo: e.target.value})} className="w-full border rounded-lg px-3 py-2" placeholder="Örn: IRS-2023-0001" />
+                      <input type="text" required value={malKabulForm.documentNo || ""} onChange={e => setMalKabulForm({...malKabulForm, documentNo: e.target.value})} className="w-full border rounded-lg px-3 py-2" placeholder="Örn: IRS-2023-0001" />
                    </div>
                 </div>
 
@@ -506,20 +506,20 @@ export const SatinAlma: React.FC = () => {
                    </div>
                    {malKabulForm.items.map((item, idx) => (
                       <div key={idx} className="flex gap-2 items-center mb-2">
-                         <select required value={item.productId} onChange={e => {
+                         <select required value={item.productId || ""} onChange={e => {
                             const newItems = [...malKabulForm.items];
                             newItems[idx].productId = e.target.value;
                             setMalKabulForm({...malKabulForm, items: newItems});
                          }} className="flex-1 border rounded-lg px-3 py-2 text-sm">
                             <option value="">Ürün Seçin...</option>
-                            {products.map(p => <option key={p.id} value={p.id}>{p.name} (Stok: {p.stock})</option>)}
+                            {products.map(p => <option key={p.id} value={p.id || ""}>{p.name} (Stok: {p.stock})</option>)}
                          </select>
-                         <input type="number" min="1" placeholder="Adet" required value={item.quantity} onChange={e => {
+                         <input type="number" min="1" placeholder="Adet" required value={item.quantity || ""} onChange={e => {
                             const newItems = [...malKabulForm.items];
                             newItems[idx].quantity = Number(e.target.value);
                             setMalKabulForm({...malKabulForm, items: newItems});
                          }} className="w-24 border rounded-lg px-3 py-2 text-sm" />
-                         <input type="number" min="0" step="0.01" placeholder="Birim Fiyat" value={item.price} onChange={e => {
+                         <input type="number" min="0" step="0.01" placeholder="Birim Fiyat" value={item.price || ""} onChange={e => {
                             const newItems = [...malKabulForm.items];
                             newItems[idx].price = Number(e.target.value);
                             setMalKabulForm({...malKabulForm, items: newItems});

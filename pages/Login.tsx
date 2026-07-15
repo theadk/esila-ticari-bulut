@@ -187,7 +187,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                   <input
                     type="text"
-                    value={username}
+                    value={username || ""}
                     onChange={(e) => setUsername(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     placeholder="Kullanıcı adınız"
@@ -201,7 +201,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                   <input
                     type="password"
-                    value={password}
+                    value={password || ""}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     placeholder="••••••••"
@@ -256,7 +256,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="email"
-                  value={resetEmail}
+                  value={resetEmail || ""}
                   onChange={(e) => setResetEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                   placeholder="isim@firma.com"
@@ -328,7 +328,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <input
                     type="text"
                     required
-                    value={registerForm.name}
+                    value={registerForm.name || ""}
                     onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     placeholder="Firma Adı A.Ş."
@@ -343,7 +343,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <input
                     type="text"
                     required
-                    value={registerForm.vkn}
+                    value={registerForm.vkn || ""}
                     onChange={(e) => setRegisterForm({ ...registerForm, vkn: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     placeholder="Vergi numaranız veya TC kimlik numaranız"
@@ -358,7 +358,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <input
                     type="email"
                     required
-                    value={registerForm.email}
+                    value={registerForm.email || ""}
                     onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     placeholder="isim@firma.com"
@@ -373,7 +373,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <input
                     type="tel"
                     required
-                    value={registerForm.phone}
+                    value={registerForm.phone || ""}
                     onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     placeholder="05XX XXX XX XX"
@@ -386,7 +386,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <div className="relative">
                   <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                   <select
-                    value={registerForm.sector}
+                    value={registerForm.sector || ""}
                     onChange={(e) => setRegisterForm({ ...registerForm, sector: e.target.value })}
                     className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none bg-white"
                   >
@@ -411,13 +411,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <select
-                      value={registerForm.city}
+                      value={registerForm.city || ""}
                       onChange={(e) => setRegisterForm({ ...registerForm, city: e.target.value, district: '' })}
                       className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none"
                     >
                       <option value="">İl Seçiniz</option>
                       {cities.map(c => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c} value={c || ""}>{c}</option>
                       ))}
                     </select>
                   </div>
@@ -427,14 +427,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <select
-                      value={registerForm.district}
+                      value={registerForm.district || ""}
                       onChange={(e) => setRegisterForm({ ...registerForm, district: e.target.value })}
                       disabled={!registerForm.city}
                       className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none disabled:bg-gray-50 disabled:text-gray-400"
                     >
                       <option value="">İlçe Seçiniz</option>
                       {districts.map(d => (
-                        <option key={d} value={d}>{d}</option>
+                        <option key={d} value={d || ""}>{d}</option>
                       ))}
                     </select>
                   </div>
@@ -444,7 +444,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 ml-1">Detaylı Adres</label>
                 <textarea
-                  value={registerForm.address}
+                  value={registerForm.address || ""}
                   onChange={(e) => setRegisterForm({ ...registerForm, address: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                   placeholder="Açık adresiniz"

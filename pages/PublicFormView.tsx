@@ -156,7 +156,7 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, 
             <input
               type="text"
               maxLength={6}
-              value={code}
+              value={code || ""}
               onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ''))}
               placeholder="000000"
               className="w-full text-center text-3xl tracking-[0.5em] font-mono py-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-50 focus:border-emerald-500 outline-none transition-all"
@@ -393,7 +393,7 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, 
             <div className="p-8 flex flex-col items-center justify-center bg-white">
               <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm mb-4">
                 <QRCodeSVG
-                  value={window.location.href}
+                  value={window.location.href || ""}
                   size={200}
                   level="M"
                   includeMargin={false}

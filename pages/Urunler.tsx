@@ -957,7 +957,7 @@ export const Urunler: React.FC = () => {
                  type="text" 
                  placeholder="Ürün adı, kodu, barkodu veya depo ile ara..." 
                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                 value={searchTerm}
+                 value={searchTerm || ""}
                  onChange={(e) => setSearchTerm(e.target.value)}
                />
              </div>
@@ -976,29 +976,29 @@ export const Urunler: React.FC = () => {
             <div>
               <label className="block text-sm text-gray-600 mb-1">Kategori</label>
               <select 
-                value={filterCategory} 
+                value={filterCategory || ""} 
                 onChange={e => setFilterCategory(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
               >
                 <option value="">Tümü</option>
-                {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                {categories.map(c => <option key={c.id} value={c.name || ""}>{c.name}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Marka</label>
               <select 
-                value={filterBrand} 
+                value={filterBrand || ""} 
                 onChange={e => setFilterBrand(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
               >
                 <option value="">Tümü</option>
-                {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                {brands.map(b => <option key={b.id} value={b.name || ""}>{b.name}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Stok Durumu</label>
               <select 
-                value={filterStockStatus} 
+                value={filterStockStatus || ""} 
                 onChange={e => setFilterStockStatus(e.target.value as any)}
                 className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
               >
@@ -1013,14 +1013,14 @@ export const Urunler: React.FC = () => {
                  <input 
                    type="number" 
                    placeholder="Min" 
-                   value={filterMinStock} 
+                   value={filterMinStock || ""} 
                    onChange={e => setFilterMinStock(e.target.value)}
                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
                  />
                  <input 
                    type="number" 
                    placeholder="Max" 
-                   value={filterMaxStock} 
+                   value={filterMaxStock || ""} 
                    onChange={e => setFilterMaxStock(e.target.value)}
                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
                  />
@@ -1032,14 +1032,14 @@ export const Urunler: React.FC = () => {
                  <input 
                    type="number" 
                    placeholder="Min" 
-                   value={filterMinPrice} 
+                   value={filterMinPrice || ""} 
                    onChange={e => setFilterMinPrice(e.target.value)}
                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
                  />
                  <input 
                    type="number" 
                    placeholder="Max" 
-                   value={filterMaxPrice} 
+                   value={filterMaxPrice || ""} 
                    onChange={e => setFilterMaxPrice(e.target.value)}
                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-emerald-500 focus:border-emerald-500"
                  />
@@ -1371,7 +1371,7 @@ export const Urunler: React.FC = () => {
                    <input
                      autoFocus
                      type="text"
-                     value={quickStockQuery}
+                     value={quickStockQuery || ""}
                      onChange={(e) => handleQuickStockSearch(e.target.value)}
                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 shadow-sm text-lg"
                      placeholder="Barkod okutun veya isim yazın..."
@@ -1391,13 +1391,13 @@ export const Urunler: React.FC = () => {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">İşlem Yapılacak Depo</label>
                         <select 
-                           value={quickStockWarehouse}
+                           value={quickStockWarehouse || ""}
                            onChange={e => setQuickStockWarehouse(e.target.value)}
                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                         >
                            <option value="">Merkez / Tanımsız Depo</option>
                            {warehouses.map(w => (
-                             <option key={w.id} value={w.id}>{w.name}</option>
+                             <option key={w.id} value={w.id || ""}>{w.name}</option>
                            ))}
                         </select>
                       </div>
@@ -1406,7 +1406,7 @@ export const Urunler: React.FC = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Yeni Stok Miktarı</label>
                         <input
                            type="number"
-                           value={quickStockQuantity}
+                           value={quickStockQuantity || ""}
                            onChange={(e) => setQuickStockQuantity(e.target.value ? Number(e.target.value) : '')}
                            onKeyDown={(e) => {
                               if (e.key === 'Enter') handleQuickStockSave();
@@ -1454,7 +1454,7 @@ export const Urunler: React.FC = () => {
                   <input 
                     required
                     type="text" 
-                    value={formData.code}
+                    value={formData.code || ""}
                     onChange={(e) => setFormData({...formData, code: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -1504,7 +1504,7 @@ export const Urunler: React.FC = () => {
                 <input 
                   required
                   type="text" 
-                  value={formData.name}
+                  value={formData.name || ""}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                 />
@@ -1515,13 +1515,13 @@ export const Urunler: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                   <select
                     required
-                    value={formData.category}
+                    value={formData.category || ""}
                     onChange={(e) => setFormData({...formData, category: e.target.value, subCategory: ''})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
                   >
                     <option value="">Kategori Seçin</option>
                     {categories.map(c => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
+                      <option key={c.id} value={c.name || ""}>{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -1535,7 +1535,7 @@ export const Urunler: React.FC = () => {
                   >
                     <option value="">Alt Kategori Seçin</option>
                     {(categories.find(c => c.name === formData.category)?.subCategories || []).map(sc => (
-                      <option key={sc} value={sc}>{sc}</option>
+                      <option key={sc} value={sc || ""}>{sc}</option>
                     ))}
                   </select>
                 </div>
@@ -1561,7 +1561,7 @@ export const Urunler: React.FC = () => {
                   >
                     <option value="">Marka Seçin</option>
                     {brands.map(b => (
-                      <option key={b.id} value={b.name}>{b.name}</option>
+                      <option key={b.id} value={b.name || ""}>{b.name}</option>
                     ))}
                   </select>
                 </div>
@@ -1648,7 +1648,7 @@ export const Urunler: React.FC = () => {
                   <input 
                     required
                     type="number" 
-                    value={formData.price}
+                    value={formData.price || ""}
                     onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
@@ -1726,7 +1726,7 @@ export const Urunler: React.FC = () => {
                   <div key={i} className="flex gap-2 mb-2">
                     <select 
                       required
-                      value={ws.warehouseId}
+                      value={ws.warehouseId || ""}
                       onChange={(e) => {
                          const newStocks = [...(formData.warehouseStocks || [])];
                          newStocks[i].warehouseId = e.target.value;
@@ -1736,7 +1736,7 @@ export const Urunler: React.FC = () => {
                     >
                       <option value="">Depo Seçin</option>
                       {warehouses.map(wh => (
-                        <option key={wh.id} value={wh.name}>{wh.name}</option>
+                        <option key={wh.id} value={wh.name || ""}>{wh.name}</option>
                       ))}
                     </select>
                     <input 
@@ -1779,7 +1779,7 @@ export const Urunler: React.FC = () => {
                   <div className="mt-3 flex gap-2">
                     <input 
                        type="text" 
-                       value={newWhName} 
+                       value={newWhName || ""} 
                        onChange={e => setNewWhName(e.target.value)} 
                        placeholder="Yeni depo adı"
                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500"
@@ -1886,7 +1886,7 @@ export const Urunler: React.FC = () => {
                   <input 
                     required
                     type="text" 
-                    value={categoryFormData.name}
+                    value={categoryFormData.name || ""}
                     onChange={(e) => setCategoryFormData({...categoryFormData, name: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="Örn: Elektronik"
@@ -1897,7 +1897,7 @@ export const Urunler: React.FC = () => {
                   <div className="flex gap-2 mb-2">
                     <input 
                       type="text" 
-                      value={newSubCategory}
+                      value={newSubCategory || ""}
                       onChange={(e) => setNewSubCategory(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -2027,7 +2027,7 @@ export const Urunler: React.FC = () => {
                   <input 
                     required
                     type="text" 
-                    value={brandFormData.name}
+                    value={brandFormData.name || ""}
                     onChange={(e) => setBrandFormData({...brandFormData, name: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="Örn: Sony"
@@ -2125,7 +2125,7 @@ export const Urunler: React.FC = () => {
                         min="0"
                         max="100"
                         className="w-16 border rounded px-2 py-1 text-center"
-                        value={opt.count}
+                        value={opt.count || ""}
                         onChange={(e) => {
                           const newOpts = [...barcodePrintOptions];
                           newOpts[index].count = Number(e.target.value) || 0;
@@ -2177,24 +2177,24 @@ export const Urunler: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Filtresi</label>
                 <select 
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  value={revisionForm.category}
+                  value={revisionForm.category || ""}
                   onChange={e => setRevisionForm({...revisionForm, category: e.target.value})}
                   disabled={isRevisionLoading}
                 >
                   <option value="all">Tüm Kategoriler</option>
-                  {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  {categories.map(c => <option key={c.id} value={c.name || ""}>{c.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Marka Filtresi</label>
                 <select 
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  value={revisionForm.brand}
+                  value={revisionForm.brand || ""}
                   onChange={e => setRevisionForm({...revisionForm, brand: e.target.value})}
                   disabled={isRevisionLoading}
                 >
                   <option value="all">Tüm Markalar</option>
-                  {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                  {brands.map(b => <option key={b.id} value={b.name || ""}>{b.name}</option>)}
                 </select>
               </div>
               <div className="flex gap-4">
@@ -2202,7 +2202,7 @@ export const Urunler: React.FC = () => {
                    <label className="block text-sm font-medium text-gray-700 mb-1">İşlem Yönü</label>
                    <select 
                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50"
-                     value={revisionForm.type}
+                     value={revisionForm.type || ""}
                      onChange={e => setRevisionForm({...revisionForm, type: e.target.value})}
                      disabled={isRevisionLoading}
                    >
@@ -2218,7 +2218,7 @@ export const Urunler: React.FC = () => {
                      step="0.1"
                      required
                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                     value={revisionForm.percentage}
+                     value={revisionForm.percentage || ""}
                      onChange={e => setRevisionForm({...revisionForm, percentage: Number(e.target.value)})}
                      disabled={isRevisionLoading}
                    />

@@ -446,7 +446,11 @@ export const Personel: React.FC = () => {
 
   const handleAddNew = () => {
     const nextId = `${store.settings.prefix_personnel || "PER"}-${store.settings.next_personnel_id || 1001}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
-    setFormData({ ...INITIAL_FORM, id: nextId });
+    setFormData({ 
+      ...INITIAL_FORM, 
+      id: nextId,
+      branch: currentUser?.role !== "Admin" ? (currentUser?.branch || "") : ""
+    });
     setIsEditing(false);
     setIsModalOpen(true);
   };
@@ -1226,7 +1230,7 @@ export const Personel: React.FC = () => {
                   type="text"
                   placeholder="İsim, TC, Departman veya Pozisyon ara..."
                   className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                  value={searchTerm}
+                  value={searchTerm || ""}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
@@ -1492,7 +1496,7 @@ export const Personel: React.FC = () => {
                             Cinsiyet
                           </label>
                           <select
-                            value={formData.gender}
+                            value={formData.gender || ""}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
@@ -1508,9 +1512,10 @@ export const Personel: React.FC = () => {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Şube
+                            Şube <span className="text-red-500">*</span>
                           </label>
                           <input
+                            required
                             type="text"
                             value={formData.branch || ""}
                             onChange={(e) =>
@@ -1649,7 +1654,7 @@ export const Personel: React.FC = () => {
                           <input
                             required
                             type="text"
-                            value={formData.department}
+                            value={formData.department || ""}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
@@ -1667,7 +1672,7 @@ export const Personel: React.FC = () => {
                           <input
                             required
                             type="text"
-                            value={formData.position}
+                            value={formData.position || ""}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
@@ -1688,7 +1693,7 @@ export const Personel: React.FC = () => {
                           <input
                             required
                             type="date"
-                            value={formData.startDate}
+                            value={formData.startDate || ""}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
@@ -1722,7 +1727,7 @@ export const Personel: React.FC = () => {
                             Çalışma Durumu
                           </label>
                           <select
-                            value={formData.employmentStatus}
+                            value={formData.employmentStatus || ""}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
@@ -1742,7 +1747,7 @@ export const Personel: React.FC = () => {
                           </label>
                           <input
                             type="number"
-                            value={formData.salary}
+                            value={formData.salary || ""}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
@@ -1761,7 +1766,7 @@ export const Personel: React.FC = () => {
                         <input
                           type="text"
                           placeholder="TR..."
-                          value={formData.iban}
+                          value={formData.iban || ""}
                           onChange={(e) =>
                             setFormData({ ...formData, iban: e.target.value })
                           }
@@ -1774,7 +1779,7 @@ export const Personel: React.FC = () => {
                         </label>
                         <input
                           type="text"
-                          value={formData.socialSecurityNo}
+                          value={formData.socialSecurityNo || ""}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
@@ -1935,7 +1940,7 @@ export const Personel: React.FC = () => {
                           </label>
                           <select
                             required
-                            value={fixtureFormData.productId}
+                            value={fixtureFormData.productId || ""}
                             onChange={(e) =>
                               setFixtureFormData({
                                 ...fixtureFormData,
@@ -1946,7 +1951,7 @@ export const Personel: React.FC = () => {
                           >
                             <option value="">Seçiniz...</option>
                             {store.products.map((p) => (
-                              <option key={p.id} value={p.id}>
+                              <option key={p.id} value={p.id || ""}>
                                 {p.name} (Stok: {p.stock})
                               </option>
                             ))}
@@ -1961,7 +1966,7 @@ export const Personel: React.FC = () => {
                               type="number"
                               min="1"
                               required
-                              value={fixtureFormData.quantity}
+                              value={fixtureFormData.quantity || ""}
                               onChange={(e) =>
                                 setFixtureFormData({
                                   ...fixtureFormData,
@@ -1978,7 +1983,7 @@ export const Personel: React.FC = () => {
                             <input
                               type="date"
                               required
-                              value={fixtureFormData.dateGiven}
+                              value={fixtureFormData.dateGiven || ""}
                               onChange={(e) =>
                                 setFixtureFormData({
                                   ...fixtureFormData,
@@ -2195,7 +2200,7 @@ export const Personel: React.FC = () => {
                           </label>
                           <select
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-                            value={leaveFormData.type}
+                            value={leaveFormData.type || ""}
                             onChange={(e) =>
                               setLeaveFormData({
                                 ...leaveFormData,
@@ -2218,7 +2223,7 @@ export const Personel: React.FC = () => {
                             type="date"
                             required
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-                            value={leaveFormData.startDate}
+                            value={leaveFormData.startDate || ""}
                             onChange={(e) =>
                               setLeaveFormData({
                                 ...leaveFormData,
@@ -2235,7 +2240,7 @@ export const Personel: React.FC = () => {
                             type="date"
                             required
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-                            value={leaveFormData.endDate}
+                            value={leaveFormData.endDate || ""}
                             onChange={(e) =>
                               setLeaveFormData({
                                 ...leaveFormData,
@@ -2254,7 +2259,7 @@ export const Personel: React.FC = () => {
                             min="0.5"
                             step="0.5"
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-                            value={leaveFormData.days}
+                            value={leaveFormData.days || ""}
                             onChange={(e) =>
                               setLeaveFormData({
                                 ...leaveFormData,
@@ -2269,7 +2274,7 @@ export const Personel: React.FC = () => {
                           </label>
                           <select
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-                            value={leaveFormData.status}
+                            value={leaveFormData.status || ""}
                             onChange={(e) =>
                               setLeaveFormData({
                                 ...leaveFormData,
@@ -2323,7 +2328,7 @@ export const Personel: React.FC = () => {
                           <textarea
                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
                             rows={3}
-                            value={leaveFormData.description}
+                            value={leaveFormData.description || ""}
                             onChange={(e) =>
                               setLeaveFormData({
                                 ...leaveFormData,
@@ -2566,7 +2571,7 @@ export const Personel: React.FC = () => {
                           <input
                             required
                             type="date"
-                            value={recordFormData.date}
+                            value={recordFormData.date || ""}
                             onChange={(e) =>
                               setRecordFormData({
                                 ...recordFormData,
@@ -2581,7 +2586,7 @@ export const Personel: React.FC = () => {
                             Kayıt Türü <span className="text-red-500">*</span>
                           </label>
                           <select
-                            value={recordFormData.type}
+                            value={recordFormData.type || ""}
                             onChange={(e) =>
                               setRecordFormData({
                                 ...recordFormData,
@@ -2613,7 +2618,7 @@ export const Personel: React.FC = () => {
                               type="number"
                               min="0"
                               step="0.01"
-                              value={recordAmount}
+                              value={recordAmount || ""}
                               onChange={(e) =>
                                 setRecordAmount(Number(e.target.value))
                               }
@@ -2630,7 +2635,7 @@ export const Personel: React.FC = () => {
                           <input
                             required
                             type="text"
-                            value={recordFormData.title}
+                            value={recordFormData.title || ""}
                             onChange={(e) =>
                               setRecordFormData({
                                 ...recordFormData,
@@ -2682,7 +2687,7 @@ export const Personel: React.FC = () => {
                           <textarea
                             rows={5}
                             required
-                            value={recordFormData.description}
+                            value={recordFormData.description || ""}
                             onChange={(e) =>
                               setRecordFormData({
                                 ...recordFormData,
@@ -2887,7 +2892,7 @@ export const Personel: React.FC = () => {
                             <input
                               required
                               type="month"
-                              value={payrollFormData.date}
+                              value={payrollFormData.date || ""}
                               onChange={(e) =>
                                 setPayrollFormData({
                                   ...payrollFormData,
@@ -2902,7 +2907,7 @@ export const Personel: React.FC = () => {
                               Durum
                             </label>
                             <select
-                              value={payrollFormData.status}
+                              value={payrollFormData.status || ""}
                               onChange={(e) =>
                                 setPayrollFormData({
                                   ...payrollFormData,
@@ -2926,7 +2931,7 @@ export const Personel: React.FC = () => {
                               type="number"
                               min="0"
                               max="31"
-                              value={payrollFormData.workedDays}
+                              value={payrollFormData.workedDays || ""}
                               onChange={(e) =>
                                 setPayrollFormData({
                                   ...payrollFormData,
@@ -2943,7 +2948,7 @@ export const Personel: React.FC = () => {
                             <input
                               required
                               type="number"
-                              value={payrollFormData.basicSalary}
+                              value={payrollFormData.basicSalary || ""}
                               onChange={(e) =>
                                 setPayrollFormData({
                                   ...payrollFormData,
@@ -2963,7 +2968,7 @@ export const Personel: React.FC = () => {
                               required
                               type="number"
                               min="0"
-                              value={payrollFormData.overtimeHours}
+                              value={payrollFormData.overtimeHours || ""}
                               onChange={(e) =>
                                 setPayrollFormData({
                                   ...payrollFormData,
@@ -2981,7 +2986,7 @@ export const Personel: React.FC = () => {
                               required
                               type="number"
                               min="0"
-                              value={payrollFormData.overtimePay}
+                              value={payrollFormData.overtimePay || ""}
                               onChange={(e) =>
                                 setPayrollFormData({
                                   ...payrollFormData,
@@ -3001,7 +3006,7 @@ export const Personel: React.FC = () => {
                               required
                               type="number"
                               min="0"
-                              value={payrollFormData.bonus}
+                              value={payrollFormData.bonus || ""}
                               onChange={(e) =>
                                 setPayrollFormData({
                                   ...payrollFormData,
@@ -3019,7 +3024,7 @@ export const Personel: React.FC = () => {
                               required
                               type="number"
                               min="0"
-                              value={payrollFormData.deductions}
+                              value={payrollFormData.deductions || ""}
                               onChange={(e) =>
                                 setPayrollFormData({
                                   ...payrollFormData,
@@ -3595,7 +3600,7 @@ const TaskTrackingView: React.FC = () => {
                         <td className="px-6 py-4">
                           <select
                             className={`px-3 py-1 rounded-full text-xs font-medium border appearance-none outline-none cursor-pointer ${statusColor}`}
-                            value={task.status}
+                            value={task.status || ""}
                             onChange={(e) => {
                               const newStatus = e.target.value as any;
                               if (task.type === "Servis") {
@@ -3823,7 +3828,7 @@ const TaskTrackingView: React.FC = () => {
                   {personnel
                     .filter((p) => p.employmentStatus === "Aktif")
                     .map((p) => (
-                      <option key={p.id} value={p.id}>
+                      <option key={p.id} value={p.id || ""}>
                         {p.firstName} {p.lastName}
                       </option>
                     ))}
@@ -3837,7 +3842,7 @@ const TaskTrackingView: React.FC = () => {
                   required
                   type="text"
                   className="w-full border border-gray-300 rounded-lg p-2"
-                  value={taskForm.title}
+                  value={taskForm.title || ""}
                   onChange={(e) =>
                     setTaskForm({ ...taskForm, title: e.target.value })
                   }
@@ -3850,7 +3855,7 @@ const TaskTrackingView: React.FC = () => {
                 </label>
                 <textarea
                   className="w-full border border-gray-300 rounded-lg p-2 h-20"
-                  value={taskForm.description}
+                  value={taskForm.description || ""}
                   onChange={(e) =>
                     setTaskForm({ ...taskForm, description: e.target.value })
                   }
@@ -3866,7 +3871,7 @@ const TaskTrackingView: React.FC = () => {
                     required
                     type="date"
                     className="w-full border border-gray-300 rounded-lg p-2"
-                    value={taskForm.dueDate}
+                    value={taskForm.dueDate || ""}
                     onChange={(e) =>
                       setTaskForm({ ...taskForm, dueDate: e.target.value })
                     }
@@ -3879,7 +3884,7 @@ const TaskTrackingView: React.FC = () => {
                   <select
                     required
                     className="w-full border border-gray-300 rounded-lg p-2"
-                    value={taskForm.priority}
+                    value={taskForm.priority || ""}
                     onChange={(e) =>
                       setTaskForm({
                         ...taskForm,
@@ -4168,7 +4173,7 @@ const LeaveManagementView: React.FC = () => {
                   Personel
                 </label>
                 <select
-                  value={selectedPersonId}
+                  value={selectedPersonId || ""}
                   onChange={(e) => setSelectedPersonId(e.target.value)}
                   required
                   className="w-full px-3 py-2 border rounded-lg bg-white"
@@ -4177,7 +4182,7 @@ const LeaveManagementView: React.FC = () => {
                   {personnel
                     .filter((p) => p.employmentStatus === "Aktif")
                     .map((p) => (
-                      <option key={p.id} value={p.id}>
+                      <option key={p.id} value={p.id || ""}>
                         {p.firstName} {p.lastName}
                       </option>
                     ))}
@@ -4190,7 +4195,7 @@ const LeaveManagementView: React.FC = () => {
                     İzin Türü
                   </label>
                   <select
-                    value={formData.type}
+                    value={formData.type || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, type: e.target.value })
                     }
@@ -4211,7 +4216,7 @@ const LeaveManagementView: React.FC = () => {
                     type="number"
                     min="0.5"
                     step="0.5"
-                    value={formData.days}
+                    value={formData.days || ""}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
@@ -4231,7 +4236,7 @@ const LeaveManagementView: React.FC = () => {
                   </label>
                   <input
                     type="date"
-                    value={formData.startDate}
+                    value={formData.startDate || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, startDate: e.target.value })
                     }
@@ -4245,7 +4250,7 @@ const LeaveManagementView: React.FC = () => {
                   </label>
                   <input
                     type="date"
-                    value={formData.endDate}
+                    value={formData.endDate || ""}
                     onChange={(e) =>
                       setFormData({ ...formData, endDate: e.target.value })
                     }
@@ -4260,7 +4265,7 @@ const LeaveManagementView: React.FC = () => {
                   İzin Durumu
                 </label>
                 <select
-                  value={formData.status}
+                  value={formData.status || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, status: e.target.value })
                   }
@@ -4447,7 +4452,7 @@ const RecruitmentView: React.FC = () => {
             type="text"
             placeholder="İsim veya Pozisyon ara..."
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-            value={searchTerm}
+            value={searchTerm || ""}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
@@ -4574,7 +4579,7 @@ const RecruitmentView: React.FC = () => {
                     <input
                       type="text"
                       required
-                      value={formData.firstName}
+                      value={formData.firstName || ""}
                       onChange={(e) =>
                         setFormData({ ...formData, firstName: e.target.value })
                       }
@@ -4588,7 +4593,7 @@ const RecruitmentView: React.FC = () => {
                     <input
                       type="text"
                       required
-                      value={formData.lastName}
+                      value={formData.lastName || ""}
                       onChange={(e) =>
                         setFormData({ ...formData, lastName: e.target.value })
                       }
@@ -4602,7 +4607,7 @@ const RecruitmentView: React.FC = () => {
                     <input
                       type="email"
                       required
-                      value={formData.email}
+                      value={formData.email || ""}
                       onChange={(e) =>
                         setFormData({ ...formData, email: e.target.value })
                       }
@@ -4616,7 +4621,7 @@ const RecruitmentView: React.FC = () => {
                     <input
                       type="tel"
                       required
-                      value={formData.phone}
+                      value={formData.phone || ""}
                       onChange={(e) =>
                         setFormData({ ...formData, phone: e.target.value })
                       }
@@ -4631,7 +4636,7 @@ const RecruitmentView: React.FC = () => {
                     <input
                       type="text"
                       required
-                      value={formData.positionApplied}
+                      value={formData.positionApplied || ""}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
@@ -4648,7 +4653,7 @@ const RecruitmentView: React.FC = () => {
                     <input
                       type="date"
                       required
-                      value={formData.applicationDate}
+                      value={formData.applicationDate || ""}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
@@ -4663,7 +4668,7 @@ const RecruitmentView: React.FC = () => {
                       Süreç Durumu
                     </label>
                     <select
-                      value={formData.status}
+                      value={formData.status || ""}
                       onChange={(e) =>
                         setFormData({ ...formData, status: e.target.value })
                       }
