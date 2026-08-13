@@ -14,6 +14,38 @@ export function getPool() {
         uri: process.env.DATABASE_URL,
         connectTimeout: 10000 // 10 seconds timeout
       });
+
+      // --- ETIMEDOUT Interceptor ---
+      const originalQuery = pool.query.bind(pool);
+      (pool as any).query = async function(...args: any[]) {
+        const startTime = Date.now();
+        try {
+          return await originalQuery(...args);
+        } catch (error: any) {
+          const duration = Date.now() - startTime;
+          if (error.code === 'ETIMEDOUT' || (error.message && error.message.includes('ETIMEDOUT'))) {
+            console.error(`[DB Timeout Logger] Veritabanı sorgusu zaman aşımına uğradı (${duration}ms). Hata: ${error.message}`);
+            throw new Error(`Veritabanı bağlantısı zaman aşımına uğradı (ETIMEDOUT - ${duration}ms). Sunucu IP'mizi engelliyor olabilir. Lütfen hosting panelinizden Uzak MySQL (Remote MySQL) erişimine izin verin.`);
+          }
+          throw error;
+        }
+      };
+
+      const originalGetConnection = pool.getConnection.bind(pool);
+      (pool as any).getConnection = async function() {
+        const startTime = Date.now();
+        try {
+          return await originalGetConnection();
+        } catch (error: any) {
+          const duration = Date.now() - startTime;
+          if (error.code === 'ETIMEDOUT' || (error.message && error.message.includes('ETIMEDOUT'))) {
+            console.error(`[DB Timeout Logger] Veritabanı bağlantısı zaman aşımına uğradı (${duration}ms). Hata: ${error.message}`);
+            throw new Error(`Veritabanı bağlantısı zaman aşımına uğradı (ETIMEDOUT - ${duration}ms). Lütfen cPanel/Plesk üzerinden 'Uzak MySQL' (Remote MySQL) erişimine izin verin.`);
+          }
+          throw error;
+        }
+      };
+      // -----------------------------
     }
   }
   return pool;

@@ -1,0 +1,5 @@
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+No valid DATABASE_URL (mysql) configured, skipping DB init.
+Database initialized successfully.
+WebSocket server error: Port 24678 is already in use
+Server running on http://localhost:3000
