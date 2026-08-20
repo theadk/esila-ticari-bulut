@@ -664,7 +664,8 @@ export const Cariler: React.FC = () => {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="relative">
+      <div className={printEkstreModalOpen ? "print:hidden space-y-6" : "space-y-6"}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">Cari Hesaplar</h2>
         <div className="flex flex-wrap gap-2">
@@ -1613,10 +1614,11 @@ export const Cariler: React.FC = () => {
         </div>
       )}
 
+      </div>
       {/* A4 Ekstre Print Modal */}
       {printEkstreModalOpen && selectedCustomerForHistory && (
-        <div className="fixed inset-0 bg-gray-500/75 z-50 flex items-start justify-center p-4 sm:p-6 shadow-2xl backdrop-blur-sm overflow-y-auto print:bg-white print:p-0 print:m-0 animate-fade-in print:block">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-4xl mb-8 print:shadow-none print:max-w-full print:m-0 print:rounded-none">
+        <div className="print-target fixed inset-0 bg-gray-500/75 z-50 flex items-start justify-center p-4 sm:p-6 shadow-2xl backdrop-blur-sm overflow-y-auto print:bg-white print:p-0 print:m-0 animate-fade-in print:block print:relative print:h-auto print:overflow-visible">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-4xl mb-8 print:shadow-none print:max-w-full print:m-0 print:rounded-none print:block">
             {/* Modal Header */}
             <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl no-print">
               <div className="flex items-center gap-3">

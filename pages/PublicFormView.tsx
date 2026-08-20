@@ -193,7 +193,7 @@ export const PublicFormView: React.FC<PublicFormProps> = ({ id, type, tenantId, 
     
     // We render a simple clean version of the ticket or order
     return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <div className="print-target min-h-screen bg-gray-50 p-4 md:p-8 print:bg-white print:p-0">
         <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {/* Header */}
           <div className="p-6 md:p-10 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">

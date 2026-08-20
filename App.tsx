@@ -183,7 +183,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden print:block">
       <Toaster position="top-right" />
       <ToastSpeaker />
       {/* Sidebar - Hidden on print */}
@@ -200,7 +200,7 @@ const App: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 no-print-margin transition-all duration-300 w-full overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 no-print-margin transition-all duration-300 w-full overflow-hidden print:block">
         
         {/* Header - Hidden on print */}
         <Header 
@@ -210,7 +210,7 @@ const App: React.FC = () => {
         />
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 flex flex-col p-4 md:p-8 overflow-auto">
+        <main className="flex-1 flex flex-col p-4 md:p-8 overflow-auto print:block print:p-0 print:m-0">
            {renderContent()}
         </main>
       </div>
@@ -226,6 +226,10 @@ const App: React.FC = () => {
           .no-print { display: none !important; }
           .no-print-margin { margin-left: 0 !important; }
           body { overflow: visible !important; }
+          html, body, #root { height: auto !important; }
+          .h-screen { height: auto !important; }
+          .overflow-hidden { overflow: visible !important; }
+          .overflow-y-auto { overflow: visible !important; }
         }
       `}</style>
       <VoiceNavigator setActivePage={setActivePage} />
