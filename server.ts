@@ -1438,11 +1438,12 @@ async function startServer() {
       taxRate,
       warehouseStocks,
       showInQuickSale,
+      supplierPrice,
     } = req.body;
     try {
       const pool = getPool();
       await pool.query(
-        "UPDATE products SET code = ?, name = ?, price = ?, stock = ?, category = ?, warehouse = ?, barcode = ?, description = ?, brand = ?, `taxRate` = ?, `warehouseStocks` = ?, `purchasePrice` = ?, `showInQuickSale` = ? WHERE id = ? AND vkn = ?",
+        "UPDATE products SET code = ?, name = ?, price = ?, stock = ?, category = ?, warehouse = ?, barcode = ?, description = ?, brand = ?, `taxRate` = ?, `warehouseStocks` = ?, `purchasePrice` = ?, `showInQuickSale` = ?, `supplierPrice` = ? WHERE id = ? AND vkn = ?",
         [
           code,
           name,
@@ -1457,6 +1458,7 @@ async function startServer() {
           JSON.stringify(warehouseStocks || []),
           purchasePrice,
           showInQuickSale ? 1 : 0,
+          supplierPrice,
           id,
           (req.headers["x-tenant-id"] as string) || "1111111111",
         ],
@@ -1495,11 +1497,12 @@ async function startServer() {
       taxRate,
       warehouseStocks,
       showInQuickSale,
+      supplierPrice,
     } = req.body;
     try {
       const pool = getPool();
       await pool.query(
-        "INSERT INTO products (vkn, id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`, `showInQuickSale`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO products (vkn, id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`, `showInQuickSale`, `supplierPrice`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           (req.headers["x-tenant-id"] as string) || "1111111111",
           id,
@@ -1516,6 +1519,7 @@ async function startServer() {
           JSON.stringify(warehouseStocks || []),
           purchasePrice,
           showInQuickSale ? 1 : 0,
+          supplierPrice,
         ],
       );
       res.json(req.body);

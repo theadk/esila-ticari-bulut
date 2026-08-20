@@ -9,7 +9,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export const Depo: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'depo', 'view');
   const canCreate = hasPermission(currentUser, 'depo', 'create');
   const canEdit = hasPermission(currentUser, 'depo', 'edit');

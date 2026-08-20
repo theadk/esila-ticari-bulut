@@ -46,7 +46,7 @@ const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!(sessionStorage.getItem('esila_tenant_id') && sessionStorage.getItem('esila_user_id'));
+    return !!(localStorage.getItem('esila_tenant_id') && localStorage.getItem('esila_user_id'));
   });
   const [activePage, setActivePage] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -69,14 +69,14 @@ const App: React.FC = () => {
          method: 'POST', 
          headers: {'Content-Type': 'application/json'},
          body: JSON.stringify({
-           vkn: sessionStorage.getItem('esila_tenant_id'),
-           userId: sessionStorage.getItem('esila_user_id')
+           vkn: localStorage.getItem('esila_tenant_id'),
+           userId: localStorage.getItem('esila_user_id')
          }) 
        }); 
     } catch(e) {}
     setIsAuthenticated(false); 
-    sessionStorage.removeItem('esila_tenant_id'); 
-    sessionStorage.removeItem('esila_user_id'); 
+    localStorage.removeItem('esila_tenant_id'); 
+    localStorage.removeItem('esila_user_id'); 
     window.location.reload(); 
   };
 
@@ -113,7 +113,7 @@ const App: React.FC = () => {
     if (isAuthenticated) {
       initializeStore(true);
       fetch('/api/tenant-info', {
-        headers: { 'x-tenant-id': sessionStorage.getItem('esila_tenant_id') || '' }
+        headers: { 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '' }
       }).then(res => res.json()).then(data => setTenantInfo(data)).catch(console.error);
     }
   }, [isAuthenticated]);

@@ -37,6 +37,7 @@ export interface Product {
   name: string;
   price: number;
   purchasePrice?: number;
+  supplierPrice?: number;
   stock: number;
   unit?: string; // Adet, Paket, Kilo, Metre, Koli vb.
   category: string;

@@ -9,7 +9,7 @@ import { api } from '../lib/api';
 
 export const HizliSatis: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'hizlisatis', 'view');
   const canCreate = hasPermission(currentUser, 'hizlisatis', 'create');
 
@@ -122,8 +122,11 @@ export const HizliSatis: React.FC = () => {
     setCart(prev => prev.map(item => item.product.id === productId ? { ...item, discount: Math.min(100, Math.max(0, discount)) } : item));
   };
 
+  const isSupplier = customers.find(c => String(c.id) === String(selectedCustomerId))?.type === 'Satıcı';
+  const getProductPrice = (p: Product) => (isSupplier && p.supplierPrice) ? p.supplierPrice : p.price;
+
   const calculateTotal = () => {
-    return cart.reduce((total, item) => total + (item.product.price * item.quantity * (1 - item.discount / 100)), 0);
+    return cart.reduce((total, item) => total + (getProductPrice(item.product) * item.quantity * (1 - item.discount / 100)), 0);
   };
 
   const handlePrintReceipt = (currentCustomer: Customer | any, paymentMethod: string, totalAmount: number, items: typeof cart) => {
@@ -219,7 +222,7 @@ export const HizliSatis: React.FC = () => {
     store.setProducts(newProducts);
     
     // 2.5 Create Order
-    const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
+    const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
     const timestampSuffix = Date.now().toString(36).toUpperCase();
     const randomPart = Math.random().toString(36).substr(2, 4).toUpperCase();
     const newOrder = {
@@ -232,7 +235,7 @@ export const HizliSatis: React.FC = () => {
          productId: c.product.id,
          productName: c.product.name,
          quantity: c.quantity,
-         price: c.product.price,
+         price: getProductPrice(c.product),
          taxRate: c.product.taxRate || 0,
          discount: c.discount
        })),
@@ -487,7 +490,7 @@ export const HizliSatis: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-gray-500">
-                      {(item.product.price || 0).toLocaleString('tr-TR')} ₺
+                      {(getProductPrice(item.product) || 0).toLocaleString('tr-TR')} ₺
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 w-full mt-2 sm:mt-0">
                       <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md shrink-0 w-fit">
@@ -526,7 +529,7 @@ export const HizliSatis: React.FC = () => {
                       </div>
                       
                       <div className="font-bold text-gray-800 text-right flex-1 text-sm lg:text-base">
-                        {(((item.product.price || 0) * item.quantity) * (1 - item.discount / 100)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                        {(((getProductPrice(item.product) || 0) * item.quantity) * (1 - item.discount / 100)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                       </div>
                     </div>
                   </div>

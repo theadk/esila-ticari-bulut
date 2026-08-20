@@ -10,7 +10,7 @@ interface LoginProps {
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const store = useAppStore();
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(localStorage.getItem('esila_saved_username') || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [view, setView] = useState<'login' | 'forgot_password' | 'email_sent' | 'register' | 'register_success'>('login');
@@ -84,8 +84,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       });
       if (res.ok) {
         const user = await res.json();
-        sessionStorage.setItem('esila_tenant_id', user.vkn || '1111111111');
-        sessionStorage.setItem('esila_user_id', user.id);
+        localStorage.setItem('esila_tenant_id', user.vkn || '1111111111');
+        localStorage.setItem('esila_saved_username', username);
+        localStorage.setItem('esila_user_id', user.id);
         onLogin();
       } else {
         const err = await res.json();

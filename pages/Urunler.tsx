@@ -32,7 +32,7 @@ const INITIAL_FORM: Product = {
 
 export const Urunler: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'urunler', 'view');
   const canCreate = hasPermission(currentUser, 'urunler', 'create');
   const canEdit = hasPermission(currentUser, 'urunler', 'edit');
@@ -127,7 +127,7 @@ export const Urunler: React.FC = () => {
 
   // Fiyat Revizyon State
   const [isPriceRevisionModalOpen, setIsPriceRevisionModalOpen] = useState(false);
-  const [revisionForm, setRevisionForm] = useState({ category: 'all', brand: 'all', percentage: 10, type: 'increase', target: 'price' });
+  const [revisionForm, setRevisionForm] = useState({ category: 'all', brand: 'all', value: 10, type: 'increase', target: 'price', method: 'percentage' });
   const [isRevisionLoading, setIsRevisionLoading] = useState(false);
 
   useEffect(() => {
@@ -169,6 +169,7 @@ export const Urunler: React.FC = () => {
       'Marka': p.brand || '',
       'Alış Fiyatı': p.purchasePrice || 0,
       'Satış Fiyatı': p.price,
+      'Tedarikçi Fiyatı': p.supplierPrice || 0,
       'KDV Oranı': p.taxRate || 0,
       'Stok': p.stock,
       'Birim': p.unit || 'Adet',
@@ -197,6 +198,27 @@ export const Urunler: React.FC = () => {
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
+
+        // Güvenlik Kontrolü: Kod parçacığı veya Link içeriyorsa reddet
+        const securityRegex = /(<script|javascript:|onload=|onerror=|<\?php|<iframe|<object|<embed|<applet|<html|<body|https?:\/\/[^\s]+|www\.[^\s]+|<a\s+href=)/i;
+        let hasMaliciousContent = false;
+        const rowsToValidate = Array.isArray(data) ? data : [];
+        for (const row of rowsToValidate) {
+           for (const key in row) {
+              const val = String(row[key] || '');
+              if (securityRegex.test(val)) {
+                 hasMaliciousContent = true;
+                 break;
+              }
+           }
+           if (hasMaliciousContent) break;
+        }
+
+        if (hasMaliciousContent) {
+           alert("Hata: Yüklemeye çalıştığınız Excel dosyasında güvenlik riski taşıyan kod parçacıkları veya linkler (http://, https://, www., vb.) tespit edildi. Lütfen dosyanızı temizleyip tekrar deneyin.");
+           return;
+        }
+
         
         const importedData = data.map((row: any) => ({
           code: row['Ürün Kodu']?.toString() || '',
@@ -206,6 +228,7 @@ export const Urunler: React.FC = () => {
           brand: row['Marka']?.toString() || '',
           purchasePrice: Number(row['Alış Fiyatı']) || 0,
           price: Number(row['Satış Fiyatı']) || Number(row['Perakende Fiyatı']) || Number(row['Fiyat']) || 0,
+          supplierPrice: Number(row['Tedarikçi Fiyatı']) || 0,
           taxRate: (row['KDV Oranı'] !== undefined && row['KDV Oranı'] !== null) ? Number(row['KDV Oranı']) : 20,
           stock: Number(row['Stok']) || 0,
           unit: row['Birim']?.toString() || 'Adet',
@@ -756,8 +779,8 @@ export const Urunler: React.FC = () => {
 
   const handleApplyPriceRevision = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!revisionForm.percentage || Number(revisionForm.percentage) <= 0) {
-      alert("Geçerli bir yüzde giriniz.");
+    if (!revisionForm.value || Number(revisionForm.value) <= 0) {
+      alert("Geçerli bir değer giriniz.");
       return;
     }
     
@@ -785,13 +808,20 @@ export const Urunler: React.FC = () => {
          return;
       }
 
-      const multiplier = revisionForm.type === 'increase' 
-          ? 1 + (Number(revisionForm.percentage) / 100) 
-          : 1 - (Number(revisionForm.percentage) / 100);
-
       const promises = targetProducts.map(p => {
          const currentVal = Number(p[revisionForm.target as keyof Product] || 0);
-         const newVal = currentVal * multiplier;
+         let newVal = currentVal;
+         if (revisionForm.method === 'percentage') {
+           const multiplier = revisionForm.type === 'increase' 
+               ? 1 + (Number(revisionForm.value) / 100) 
+               : 1 - (Number(revisionForm.value) / 100);
+           newVal = currentVal * multiplier;
+         } else {
+           newVal = revisionForm.type === 'increase' 
+               ? currentVal + Number(revisionForm.value)
+               : currentVal - Number(revisionForm.value);
+           if (newVal < 0) newVal = 0;
+         }
          return api.updateProduct(p.id, { ...p, [revisionForm.target]: parseFloat(newVal.toFixed(2)) });
       });
 
@@ -1169,7 +1199,14 @@ export const Urunler: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-800">
-                    {Number(product.price).toLocaleString('tr-TR', { style: 'currency', currency: product.currency || 'TRY' })}
+                    <div className="flex flex-col gap-1">
+                      <span>{Number(product.price).toLocaleString('tr-TR', { style: 'currency', currency: product.currency || 'TRY' })}</span>
+                      {product.supplierPrice && (
+                        <span className="text-xs text-blue-600 font-medium" title="Tedarikçi Satış Fiyatı">
+                          Ted: {Number(product.supplierPrice).toLocaleString('tr-TR', { style: 'currency', currency: product.currency || 'TRY' })}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     {(() => {
@@ -1315,6 +1352,12 @@ export const Urunler: React.FC = () => {
                     <span className="block text-gray-500 mb-1">Satış Fiyatı</span>
                     <span className="font-bold text-emerald-600 text-lg">{Number(selectedProduct.price).toLocaleString('tr-TR', { style: 'currency', currency: selectedProduct.currency || 'TRY' })}</span>
                  </div>
+                 {selectedProduct.supplierPrice && (
+                   <div>
+                      <span className="block text-gray-500 mb-1">Tedarikçi Satış Fiyatı</span>
+                      <span className="font-bold text-blue-600 text-lg">{Number(selectedProduct.supplierPrice).toLocaleString('tr-TR', { style: 'currency', currency: selectedProduct.currency || 'TRY' })}</span>
+                   </div>
+                 )}
                  {selectedProduct.taxRate && (
                    <div>
                       <span className="block text-gray-500 mb-1">KDV Oranı</span>
@@ -1490,7 +1533,10 @@ export const Urunler: React.FC = () => {
                     <option value="Koli">Koli</option>
                     <option value="Kutu">Kutu</option>
                     <option value="Kilo">Kilogram (kg)</option>
-                    <option value="Gram">Gram (g)</option>
+                    <option value="Gram">Gram (g)</option> 
+                    <option value="Metre Kare">Metre Kare</option>
+                    <option value="Metre Tül">Metre Tül</option>
+                    <option value="Dakika">Dakika</option>
                     <option value="Litre">Litre (L)</option>
                     <option value="Metre">Metre (m)</option>
                     <option value="Saat">Saat</option>
@@ -1654,12 +1700,22 @@ export const Urunler: React.FC = () => {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tedarikçi Satış Fiyatı</label>
+                  <input 
+                    type="number" 
+                    value={formData.supplierPrice || ''}
+                    onChange={(e) => setFormData({...formData, supplierPrice: Number(e.target.value)})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">KDV Oranı (%)</label>
                   <select 
-                    value={formData.taxRate || 20}
+                    value={Number(formData.taxRate) || 20}
                     onChange={(e) => setFormData({...formData, taxRate: Number(e.target.value)})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   >
+                    <option value={0}>%0</option>
                     <option value={1}>%1</option>
                     <option value={10}>%10</option>
                     <option value={20}>%20</option>
@@ -2199,6 +2255,18 @@ export const Urunler: React.FC = () => {
               </div>
               <div className="flex gap-4">
                  <div className="flex-1">
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Hesaplama Tipi</label>
+                   <select 
+                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50"
+                     value={revisionForm.method}
+                     onChange={e => setRevisionForm({...revisionForm, method: e.target.value})}
+                     disabled={isRevisionLoading}
+                   >
+                     <option value="percentage">Yüzde (%)</option>
+                     <option value="fixed">Tutar (₺)</option>
+                   </select>
+                 </div>
+                 <div className="flex-1">
                    <label className="block text-sm font-medium text-gray-700 mb-1">İşlem Yönü</label>
                    <select 
                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50"
@@ -2210,19 +2278,19 @@ export const Urunler: React.FC = () => {
                      <option value="decrease">İndirim (-)</option>
                    </select>
                  </div>
-                 <div className="flex-1">
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Yüzde (%)</label>
-                   <input 
-                     type="number"
-                     min="0.1"
-                     step="0.1"
-                     required
-                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                     value={revisionForm.percentage}
-                     onChange={e => setRevisionForm({...revisionForm, percentage: Number(e.target.value)})}
-                     disabled={isRevisionLoading}
-                   />
-                 </div>
+              </div>
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">{revisionForm.method === 'percentage' ? 'Yüzde (%)' : 'Tutar (₺)'}</label>
+                 <input 
+                   type="number"
+                   min="0.1"
+                   step="0.1"
+                   required
+                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                   value={revisionForm.value}
+                   onChange={e => setRevisionForm({...revisionForm, value: Number(e.target.value)})}
+                   disabled={isRevisionLoading}
+                 />
               </div>
               <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
                  <button 

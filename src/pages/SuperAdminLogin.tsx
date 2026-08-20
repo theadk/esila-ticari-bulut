@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Lock, User, ArrowRight } from 'lucide-react';
 
 export const SuperAdminLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(localStorage.getItem('esila_admin_saved_username') || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 

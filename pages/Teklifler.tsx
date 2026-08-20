@@ -8,7 +8,7 @@ import { Pagination } from '../components/Pagination';
 
 export const Teklifler: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'teklifler', 'view');
   const canCreate = hasPermission(currentUser, 'teklifler', 'create');
   const canEdit = hasPermission(currentUser, 'teklifler', 'edit');
@@ -113,7 +113,7 @@ export const Teklifler: React.FC = () => {
         {
           productId: product.id,
           productName: product.name,
-          price: product.price,
+          price: (selectedCustomer?.type === 'Satıcı' && product.supplierPrice) ? product.supplierPrice : product.price,
           quantity: quantityToAdd,
           unit: product.unit || 'Adet',
           discountRate: discountToAdd,
@@ -165,7 +165,7 @@ export const Teklifler: React.FC = () => {
 
   const handleShareWhatsApp = () => {
     if (!selectedProposal) return;
-    const tenantId = sessionStorage.getItem('esila_tenant_id');
+    const tenantId = localStorage.getItem('esila_tenant_id');
     const url = `${window.location.origin}/teklif-onay/${selectedProposal.id}?tenantId=${tenantId}`;
     const text = `Merhaba,\n\n${selectedProposal.id} numaralı teklifiniz hazır. Aşağıdaki bağlantıya tıklayarak teklif detaylarını inceleyebilir ve onaylayabilirsiniz:\n\n${url}\n\nİyi günler dileriz.`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -173,7 +173,7 @@ export const Teklifler: React.FC = () => {
 
   const handleShareEmail = () => {
     if (!selectedProposal) return;
-    const tenantId = sessionStorage.getItem('esila_tenant_id');
+    const tenantId = localStorage.getItem('esila_tenant_id');
     const url = `${window.location.origin}/teklif-onay/${selectedProposal.id}?tenantId=${tenantId}`;
     const subject = `${selectedProposal.id} Numaralı Teklifiniz`;
     const body = `Merhaba,\n\n${selectedProposal.id} numaralı teklifiniz hazır. Aşağıdaki bağlantıya tıklayarak teklif detaylarını inceleyebilir ve onaylayabilirsiniz:\n\n${url}\n\nİyi günler dileriz.`;
@@ -191,7 +191,7 @@ export const Teklifler: React.FC = () => {
     if (!selectedProposal) return;
     
     // Add Order
-    const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
+    const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
     const timestampSuffix = Date.now().toString(36).toUpperCase();
     const randomPart = Math.random().toString(36).substr(2, 4).toUpperCase();
     const newOrder: Order = {
@@ -580,6 +580,16 @@ export const Teklifler: React.FC = () => {
                         onChange={(e) => {
                           const c = customers.find(c => String(c.id) === String(e.target.value));
                           setSelectedCustomer(c || null);
+                          if (c) {
+                            setCartItems(prev => prev.map(item => {
+                              const product = products.find(p => p.id === item.productId);
+                              if (product) {
+                                const newPrice = (c.type === 'Satıcı' && product.supplierPrice) ? product.supplierPrice : product.price;
+                                return { ...item, price: newPrice };
+                              }
+                              return item;
+                            }));
+                          }
                         }}
                       >
                         <option value="">Lütfen cari seçiniz...</option>

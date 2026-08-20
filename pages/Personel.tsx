@@ -80,7 +80,7 @@ export const Personel: React.FC = () => {
   const store = useAppStore();
   const currentUser =
     store.users.find(
-      (u: any) => u.id === sessionStorage.getItem("esila_user_id"),
+      (u: any) => u.id === localStorage.getItem("esila_user_id"),
     ) || store.users[0];
   const canView = hasPermission(currentUser, "personel", "view");
   const canCreate = hasPermission(currentUser, "personel", "create");

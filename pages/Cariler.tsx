@@ -37,7 +37,7 @@ interface Province {
 
 export const Cariler: React.FC = () => {
   const store = useAppStore();
-  const currentUser = store.users.find(u => u.id === sessionStorage.getItem('esila_user_id')) || store.users[0];
+  const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
   const canView = hasPermission(currentUser, 'cariler', 'view');
   const canCreate = hasPermission(currentUser, 'cariler', 'create');
   const canEdit = hasPermission(currentUser, 'cariler', 'edit');
@@ -273,6 +273,26 @@ export const Cariler: React.FC = () => {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json<any>(worksheet);
 
+        // Güvenlik Kontrolü: Kod parçacığı veya Link içeriyorsa reddet
+        const securityRegex = /(<script|javascript:|onload=|onerror=|<\?php|<iframe|<object|<embed|<applet|<html|<body|https?:\/\/[^\s]+|www\.[^\s]+|<a\s+href=)/i;
+        let hasMaliciousContent = false;
+        for (const row of jsonData) {
+           for (const key in row) {
+              const val = String(row[key] || '');
+              if (securityRegex.test(val)) {
+                 hasMaliciousContent = true;
+                 break;
+              }
+           }
+           if (hasMaliciousContent) break;
+        }
+
+        if (hasMaliciousContent) {
+           alert("Hata: Yüklemeye çalıştığınız Excel dosyasında güvenlik riski taşıyan kod parçacıkları veya linkler (http://, https://, www., vb.) tespit edildi. Lütfen dosyanızı temizleyip tekrar deneyin.");
+           return;
+        }
+
+
         let successCount = 0;
         let totalAmountChange = 0;
         
@@ -491,6 +511,27 @@ export const Cariler: React.FC = () => {
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
+
+        // Güvenlik Kontrolü: Kod parçacığı veya Link içeriyorsa reddet
+        const securityRegex = /(<script|javascript:|onload=|onerror=|<\?php|<iframe|<object|<embed|<applet|<html|<body|https?:\/\/[^\s]+|www\.[^\s]+|<a\s+href=)/i;
+        let hasMaliciousContent = false;
+        const rowsToValidate = Array.isArray(data) ? data : [];
+        for (const row of rowsToValidate) {
+           for (const key in row) {
+              const val = String(row[key] || '');
+              if (securityRegex.test(val)) {
+                 hasMaliciousContent = true;
+                 break;
+              }
+           }
+           if (hasMaliciousContent) break;
+        }
+
+        if (hasMaliciousContent) {
+           alert("Hata: Yüklemeye çalıştığınız Excel dosyasında güvenlik riski taşıyan kod parçacıkları veya linkler (http://, https://, www., vb.) tespit edildi. Lütfen dosyanızı temizleyip tekrar deneyin.");
+           return;
+        }
+
         
         const newCustomers: Customer[] = data.map((row: any) => ({
           id: Math.random().toString(36).substr(2, 9),

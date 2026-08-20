@@ -14,7 +14,8 @@ function useOrderForm() {
     name: '',
     phone: '',
     email: '',
-    address: ''
+    address: '',
+    type: ''
   });
 
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
@@ -38,7 +39,7 @@ function useOrderForm() {
         productId: product.id,
         productName: product.name,
         quantity,
-        price: product.price,
+        price: (customerInfo.type === 'Satıcı' && product.supplierPrice) ? product.supplierPrice : product.price,
         taxRate: product.taxRate || 20,
         unit: product.unit || 'Adet'
       }];
@@ -77,6 +78,7 @@ function useOrderForm() {
     setCustomerInfo,
     updateCustomerInfo,
     cartItems,
+    setCartItems,
     addToCart,
     updateCartItem,
     removeFromCart,
@@ -94,7 +96,7 @@ export const Siparisler: React.FC = () => {
   // Custom Hook for modular state management
   const { 
     customerInfo, setCustomerInfo, updateCustomerInfo, 
-    cartItems, addToCart, updateCartItem, removeFromCart, 
+    cartItems, setCartItems, addToCart, updateCartItem, removeFromCart, 
     clearForm, notes, setNotes, totals 
   } = useOrderForm();
 
@@ -120,8 +122,8 @@ export const Siparisler: React.FC = () => {
 
   const addOrderToDB = async (order: Order) => {
     try {
-      const tenantId = sessionStorage.getItem('esila_tenant_id') || '1111111111';
-      const userId = sessionStorage.getItem('esila_user_id') || '';
+      const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
+      const userId = localStorage.getItem('esila_user_id') || '';
       
       const response = await fetch('/api/orders', {
         method: 'POST',
@@ -197,12 +199,51 @@ export const Siparisler: React.FC = () => {
         name: cust.name,
         phone: cust.phone || '',
         email: cust.email || '',
-        address: cust.address || ''
+        address: cust.address || '',
+        type: cust.type || ''
       });
+      setCartItems(prev => prev.map(item => {
+        const product = store.products?.find(p => p.id === item.productId);
+        if (product) {
+           const newPrice = (cust.type === 'Satıcı' && product.supplierPrice) ? product.supplierPrice : product.price;
+           return { ...item, price: newPrice };
+        }
+        return item;
+      }));
     }
   };
 
   // Filtered and Sorted Orders
+  const handleCreateInvoiceDraft = (order: Order) => {
+    const existing = store.eInvoices?.find((inv: any) => inv.orderId === order.id);
+    if (existing) {
+       toast.error('Bu sipariş için zaten bir fatura oluşturulmuş.');
+       return;
+    }
+    
+    const customer = store.customers?.find((c: Customer) => c.id === order.customerId);
+    const taxNumber = customer?.taxNumber || customer?.tcNumber || '';
+    const invoiceType = taxNumber.length === 10 ? 'e-Fatura' : 'e-Arşiv';
+    
+    const newInvoice = {
+      id: `INV-${Date.now()}`,
+      orderId: order.id,
+      customerName: order.customerName,
+      amount: order.total,
+      type: invoiceType,
+      invoiceType: 'SATIS',
+      scenario: 'TEMELFATURA',
+      date: new Date().toISOString().split('T')[0],
+      status: 'Taslak',
+      currency: 'TRY'
+    };
+    
+    if (store.setEInvoices) {
+      store.setEInvoices([...(store.eInvoices || []), newInvoice]);
+      toast.success(invoiceType + ' taslağı başarıyla oluşturuldu.');
+    }
+  };
+
   const filteredAndSortedOrders = useMemo(() => {
     let result = [...(store.orders || [])];
 
@@ -585,6 +626,7 @@ export const Siparisler: React.FC = () => {
                         </div>
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Durum</th>
+                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlemler</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
@@ -624,11 +666,24 @@ export const Siparisler: React.FC = () => {
                             {order.status}
                           </span>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCreateInvoiceDraft(order);
+                            }}
+                            className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-medium transition-colors border border-blue-100"
+                            title="E-Fatura Taslağı Oluştur"
+                          >
+                            <FileText className="w-3.5 h-3.5 mr-1.5" />
+                            Taslak Oluştur
+                          </button>
+                        </td>
                       </tr>
                     ))}
                     {filteredAndSortedOrders.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-6 py-12 text-center">
+                        <td colSpan={5} className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center justify-center text-gray-400 space-y-3">
                             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100">
                               <Search className="w-6 h-6 text-gray-300" />
