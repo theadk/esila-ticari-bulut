@@ -216,7 +216,7 @@ export async function initializeStore(force = false) {
           };
         } 
       } },
-      { name: 'customers', ref: (data: any) => { globalCustomers = data.map((d: any) => ({ ...d, balance: Number(d.balance) || 0 })); } },
+      { name: 'customers', ref: (data: any) => { globalCustomers = data.map((d: any) => ({ ...d, balance: Number(d.balance) || 0, installments: safeJSONParse(d.installments, []) })); } },
       { name: 'products', ref: (data: any) => { globalProducts = data.map((d:any)=>({...d, showInQuickSale: !!d.showInQuickSale, warehouseStocks: safeJSONParse(d.warehouseStocks, [])})); } },
       { name: 'categories', ref: (data: any) => { /* already in another branch but if we migrate.. */ } },
       { name: 'brands', ref: (data: any) => { /* ... */ } },

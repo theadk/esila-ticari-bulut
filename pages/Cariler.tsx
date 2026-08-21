@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload, Printer, MessageCircle, MessageSquare, CheckCircle, Landmark, Mic, MicOff } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Mail, Phone, MapPin, X, Save, Building, User, FileText, History, Download, CreditCard, Send, Upload, Printer, MessageCircle, MessageSquare, CheckCircle, Landmark, Mic, MicOff, Calendar } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Customer, CustomerTransaction, CashTransaction } from '../types';
 import { useAppStore } from '../lib/store';
@@ -67,6 +67,7 @@ export const Cariler: React.FC = () => {
 
   // Transaction History States
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
+  const [selectedInstallmentIds, setSelectedInstallmentIds] = useState<string[]>([]);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   
   // Bulk Actions
@@ -77,7 +78,13 @@ export const Cariler: React.FC = () => {
   
   // Payment Modal States
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [paymentForm, setPaymentForm] = useState<{ amount: number, description: string, type: 'Tahsilat' | 'Ödeme' | 'Borçlandırma', date: string }>({ amount: 0, description: '', type: 'Tahsilat', date: new Date().toISOString().split('T')[0] });
+  const [isInstallmentModalOpen, setIsInstallmentModalOpen] = useState(false);
+  const [installmentForm, setInstallmentForm] = useState({ totalAmount: 0, count: 1, firstDueDate: new Date().toISOString().split('T')[0], period: 'monthly', description: 'Taksit', addToBalance: true });
+  const [paymentForm, setPaymentForm] = useState<{ amount: number, description: string, type: 'Tahsilat' | 'Ödeme' | 'Borçlandırma', date: string, installmentId?: string, installmentIds?: string[], notifyCustomer?: boolean }>({ amount: 0, description: '', type: 'Tahsilat', date: new Date().toISOString().split('T')[0], notifyCustomer: true });
+  const [isPostponeModalOpen, setIsPostponeModalOpen] = useState(false);
+  const [postponeForm, setPostponeForm] = useState<{ installmentId: string, oldDate: string, newDate: string, notifyCustomer: boolean }>({ installmentId: '', oldDate: '', newDate: '', notifyCustomer: true });
+  const [isInterestModalOpen, setIsInterestModalOpen] = useState(false);
+  const [interestForm, setInterestForm] = useState({ installmentId: '', baseAmount: 0, daysOverdue: 0, ratePerMonth: 5, interestAmount: 0, newTotalAmount: 0, newDueDate: new Date().toISOString().split('T')[0] });
   
   // Edit Transaction States
   const [editingTransaction, setEditingTransaction] = useState<CustomerTransaction | null>(null);
@@ -110,7 +117,280 @@ export const Cariler: React.FC = () => {
     setIsPaymentModalOpen(true);
   };
 
+  const printPaymentReceipt = (tx: CustomerTransaction, customer: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    const isTahsilat = tx.type === 'Tahsilat';
+    const title = isTahsilat ? 'TAHSİLAT MAKBUZU' : 'ÖDEME MAKBUZU';
+    const amountAbs = Math.abs(tx.amount).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+    
+    const html = `
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            @page { margin: 0; size: 80mm auto; }
+            body { 
+              font-family: 'Courier New', Courier, monospace; 
+              color: #000; 
+              width: 80mm; 
+              margin: 0; 
+              padding: 5mm; 
+              font-size: 14px;
+              box-sizing: border-box;
+            }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
+            .header h1 { margin: 0; font-size: 18px; font-weight: bold; }
+            .header p { margin: 2px 0 0; font-size: 12px; }
+            .content { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+            .row { display: flex; justify-content: space-between; border-bottom: 1px dotted #000; padding: 2px 0; font-size: 12px; }
+            .label { font-weight: bold; }
+            .value { text-align: right; max-width: 60%; word-wrap: break-word; }
+            .amount-box { text-align: center; margin-top: 10px; padding: 10px 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; }
+            .amount-box .label { font-size: 14px; margin-bottom: 5px; }
+            .amount-box .total { font-size: 20px; font-weight: bold; }
+            .footer { margin-top: 20px; text-align: center; font-size: 12px; }
+            .signature { margin-top: 30px; border-top: 1px dashed #000; padding-top: 5px; width: 80%; margin-left: auto; margin-right: auto; }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${title}</h1>
+            <p>Tarih: ${new Date(tx.date).toLocaleDateString('tr-TR')}</p>
+            <p>No: ${tx.id.toUpperCase()}</p>
+          </div>
+          <div class="content">
+            <div class="row">
+              <span class="label">Cari:</span>
+              <span class="value">${customer.companyName || customer.name}</span>
+            </div>
+            <div class="row">
+              <span class="label">Açıklama:</span>
+              <span class="value">${tx.description || '-'}</span>
+            </div>
+            <div class="row">
+              <span class="label">İşlem:</span>
+              <span class="value">${tx.type}</span>
+            </div>
+          </div>
+          <div class="amount-box">
+            <div class="label">İşlem Tutarı</div>
+            <div class="total">${amountAbs} ₺</div>
+          </div>
+          <div class="footer">
+            <p>Bizi tercih ettiğiniz için teşekkür ederiz.</p>
+            <div class="signature">Yetkili İmza</div>
+          </div>
+          <script>
+            setTimeout(() => { window.print(); window.close(); }, 500);
+          </script>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
+    const handleSaveInstallmentPlan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomerForHistory || installmentForm.totalAmount <= 0 || installmentForm.count < 1) return;
+
+    let updatedSelectedCustomer = { ...selectedCustomerForHistory };
+    let newInstallments: any[] = [];
+    
+    const amountPerInstallment = installmentForm.totalAmount / installmentForm.count;
+    let currentDate = new Date(installmentForm.firstDueDate);
+    
+    for (let i = 0; i < installmentForm.count; i++) {
+        newInstallments.push({
+            id: Math.random().toString(36).substr(2, 9),
+            amount: amountPerInstallment,
+            dueDate: currentDate.toISOString(),
+            isPaid: false,
+            description: `${installmentForm.description} (${i+1}/${installmentForm.count})`
+        });
+        
+        // increment date
+        if (installmentForm.period === 'monthly') {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+        } else if (installmentForm.period === 'weekly') {
+            currentDate.setDate(currentDate.getDate() + 7);
+        } else {
+            // daily
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+    }
+
+    // Optional: Add as debt
+    if (installmentForm.addToBalance) {
+        const newTransaction = {
+            id: Math.random().toString(36).substr(2, 9),
+            customerId: selectedCustomerForHistory.id,
+            date: new Date().toISOString().split('T')[0],
+            type: 'Borçlandırma',
+            amount: installmentForm.totalAmount,
+            description: installmentForm.description + ' (Taksitli)'
+        };
+        setTransactions((prev: any) => [...(prev || []), newTransaction]);
+        updatedSelectedCustomer.balance += installmentForm.totalAmount;
+    }
+
+    updatedSelectedCustomer.installments = [...(updatedSelectedCustomer.installments || []), ...newInstallments];
+    
+    setCustomers((prev: any) => {
+      return (prev || []).map((c: any) => {
+        if (c.id === selectedCustomerForHistory.id) {
+          return updatedSelectedCustomer;
+        }
+        return c;
+      });
+    });
+
+    if (isHistoryModalOpen) {
+        setSelectedCustomerForHistory(updatedSelectedCustomer);
+    }
+
+    setIsInstallmentModalOpen(false);
+    toast.success("Taksit planı oluşturuldu");
+  };
+
+  
+  
+  const handleApplyInterest = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomerForHistory) return;
+
+    let updatedSelectedCustomer = { ...selectedCustomerForHistory };
+    let changedInstallment = null;
+
+    setCustomers((prev: any) => {
+      return (prev || []).map((c: any) => {
+        if (c.id === selectedCustomerForHistory.id) {
+          if (!c.installments) return c;
+          
+          const updatedInstallments = c.installments.map((inst: any) => {
+            if (inst.id === interestForm.installmentId) {
+              changedInstallment = { 
+                ...inst, 
+                amount: interestForm.newTotalAmount,
+                dueDate: interestForm.newDueDate,
+                description: `${inst.description} (+ %${interestForm.ratePerMonth} Gecikme Faizi)`
+              };
+              return changedInstallment;
+            }
+            return inst;
+          });
+          
+          updatedInstallments.sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+          const finalC = { ...c, installments: updatedInstallments };
+          updatedSelectedCustomer = finalC;
+          return finalC;
+        }
+        return c;
+      });
+    });
+    
+    // Add transaction for interest
+    if (interestForm.interestAmount > 0 && changedInstallment) {
+        const newTransaction = {
+            id: Math.random().toString(36).substr(2, 9),
+            customerId: selectedCustomerForHistory.id,
+            date: new Date().toISOString().split('T')[0],
+            type: 'Borçlandırma',
+            amount: interestForm.interestAmount,
+            description: `Gecikme Faizi - ${(changedInstallment as any).description}`
+        };
+        setTransactions((prev: any) => [...(prev || []), newTransaction]);
+    }
+
+    if (isHistoryModalOpen) {
+      setSelectedCustomerForHistory(updatedSelectedCustomer);
+    }
+    setIsInterestModalOpen(false);
+  };
+
+  const handlePostponeInstallment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomerForHistory) return;
+
+    let updatedSelectedCustomer = { ...selectedCustomerForHistory };
+    let changedInstallment = null;
+
+    setCustomers((prev: any) => {
+      return (prev || []).map((c: any) => {
+        if (c.id === selectedCustomerForHistory.id) {
+          if (!c.installments) return c;
+          
+          const updatedInstallments = c.installments.map((inst: any) => {
+            if (inst.id === postponeForm.installmentId) {
+              changedInstallment = { ...inst, dueDate: postponeForm.newDate };
+              return changedInstallment;
+            }
+            return inst;
+          });
+          
+          updatedInstallments.sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+          const finalC = { ...c, installments: updatedInstallments };
+          updatedSelectedCustomer = finalC;
+          return finalC;
+        }
+        return c;
+      });
+    });
+
+    if (isHistoryModalOpen) {
+      setSelectedCustomerForHistory(updatedSelectedCustomer);
+    }
+    setIsPostponeModalOpen(false);
+
+    if (postponeForm.notifyCustomer && updatedSelectedCustomer.email && changedInstallment) {
+      let html = `
+        <h2 style="color: #ea580c; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 24px;">Taksit Erteleme Bilgilendirmesi</h2>
+        <p style="margin-bottom: 24px;">Sayın <b>${updatedSelectedCustomer.name || updatedSelectedCustomer.companyName}</b>,<br>Aşağıdaki taksitinizin vade tarihi talebiniz/onayınız doğrultusunda ötelenmiştir.</p>
+        <div style="background-color: #fff7ed; border: 1px solid #ffedd5; border-radius: 8px; overflow: hidden; margin-bottom: 24px;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #ffedd5; color: #9a3412; text-align: left; font-size: 14px;">
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #fed7aa; font-weight: 600;">Açıklama</th>
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #fed7aa; font-weight: 600;">Eski Vade</th>
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #fed7aa; font-weight: 600;">Yeni Vade</th>
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #fed7aa; font-weight: 600; text-align: right;">Tutar</th>
+                </tr>
+            </thead>
+            <tbody style="background-color: #ffffff;">
+                <tr style="font-size: 14px;">
+                    <td style="padding: 12px 16px; color: #111827; font-weight: 500;">${changedInstallment.description || '-'}</td>
+                    <td style="padding: 12px 16px; color: #6b7280; text-decoration: line-through;">${new Date(postponeForm.oldDate).toLocaleDateString('tr-TR')}</td>
+                    <td style="padding: 12px 16px; color: #ea580c; font-weight: 700;">${new Date(changedInstallment.dueDate).toLocaleDateString('tr-TR')}</td>
+                    <td style="padding: 12px 16px; color: #111827; font-weight: 700; text-align: right;">${parseFloat(changedInstallment.amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+        <p style="margin-bottom: 0;">İyi çalışmalar dileriz.</p>
+      `;
+
+      const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': tenantId },
+        body: JSON.stringify({
+          to: updatedSelectedCustomer.email,
+          subject: 'Taksit Erteleme Bilgilendirmesi',
+          html: html
+        })
+      }).catch(console.error);
+    }
+  };
+
   const handleSavePayment = (e: React.FormEvent) => {
+    let newlyGeneratedInstallments: any[] = [];
     e.preventDefault();
     if (!selectedCustomerForHistory) return;
     
@@ -123,11 +403,10 @@ export const Cariler: React.FC = () => {
       description: paymentForm.description
     };
 
-    
     setTransactions((prev: any) => [...(prev || []), newTransaction]);
 
     if (paymentForm.type !== 'Borçlandırma') {
-      const newCashTx: CashTransaction = {
+      const newCashTx = {
         id: Math.random().toString(36).substr(2, 9),
         date: newTransaction.date,
         type: paymentForm.type === 'Tahsilat' ? 'Gelir' : 'Gider',
@@ -139,20 +418,156 @@ export const Cariler: React.FC = () => {
       setCashTransactions((prev: any) => [...(prev || []), newCashTx]);
     }
 
-    const updatedCustomers = (prev: any) => (prev || []).map(c => {
-      if (c.id === selectedCustomerForHistory.id) {
-        return { ...c, balance: c.balance + newTransaction.amount };
-      }
-      return c;
+    let updatedSelectedCustomer = { ...selectedCustomerForHistory };
+
+    setCustomers((prev: any) => {
+      return (prev || []).map((c: any) => {
+        if (c.id === selectedCustomerForHistory.id) {
+          let updatedInstallments = c.installments;
+          if (paymentForm.installmentIds && updatedInstallments) {
+            const totalTargetAmount = updatedInstallments
+              .filter((inst: any) => paymentForm.installmentIds.includes(inst.id))
+              .reduce((sum: number, inst: any) => sum + inst.amount, 0);
+
+            if (paymentForm.amount < totalTargetAmount) {
+              let remainingPayment = paymentForm.amount;
+              const newInstallmentsToAdd: any[] = [];
+
+              updatedInstallments = updatedInstallments.map((inst: any) => {
+                if (paymentForm.installmentIds.includes(inst.id)) {
+                   if (remainingPayment >= inst.amount) {
+                      remainingPayment -= inst.amount;
+                      return { ...inst, isPaid: true, paidDate: new Date().toISOString() };
+                   } else if (remainingPayment > 0) {
+                      const paidAmount = remainingPayment;
+                      const leftover = inst.amount - paidAmount;
+                      remainingPayment = 0;
+                      
+                      newInstallmentsToAdd.push({
+                        ...inst,
+                        id: Math.random().toString(36).substr(2, 9),
+                        amount: leftover,
+                        description: inst.description + ' (Kalan)',
+                        isPaid: false,
+                        paidDate: undefined
+                      });
+
+                      return { ...inst, amount: paidAmount, isPaid: true, paidDate: new Date().toISOString() };
+                   } else {
+                      return inst;
+                   }
+                }
+                return inst;
+              });
+
+              if (newInstallmentsToAdd.length > 0) {
+                 newlyGeneratedInstallments.push(...newInstallmentsToAdd);
+                 updatedInstallments.push(...newInstallmentsToAdd);
+                 updatedInstallments.sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+              }
+            } else {
+              updatedInstallments = updatedInstallments.map((inst: any) => 
+                paymentForm.installmentIds.includes(inst.id) ? { ...inst, isPaid: true, paidDate: new Date().toISOString() } : inst
+              );
+            }
+          } else if (paymentForm.installmentId && updatedInstallments) {
+            const targetInst = updatedInstallments.find((i: any) => i.id === paymentForm.installmentId);
+            if (targetInst && paymentForm.amount < targetInst.amount) {
+              const paidAmount = paymentForm.amount;
+              const remainingAmount = targetInst.amount - paidAmount;
+              
+              updatedInstallments = updatedInstallments.map((inst: any) => 
+                inst.id === paymentForm.installmentId ? { ...inst, amount: paidAmount, isPaid: true, paidDate: new Date().toISOString() } : inst
+              );
+              
+              const newSplit = {
+                ...targetInst,
+                id: Math.random().toString(36).substr(2, 9),
+                amount: remainingAmount,
+                description: targetInst.description + ' (Kalan)',
+                isPaid: false,
+                paidDate: undefined
+              };
+              updatedInstallments.push(newSplit);
+              newlyGeneratedInstallments.push(newSplit);
+              
+              updatedInstallments.sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+            } else {
+              updatedInstallments = updatedInstallments.map((inst: any) => 
+                inst.id === paymentForm.installmentId ? { ...inst, isPaid: true, paidDate: new Date().toISOString() } : inst
+              );
+            }
+          }
+          const finalC = { ...c, balance: c.balance + newTransaction.amount, installments: updatedInstallments };
+          updatedSelectedCustomer = finalC;
+          return finalC;
+        }
+        return c;
+      });
     });
-    setCustomers(updatedCustomers);
     
     // Update the selected customer reference inside the modal if it's open
     if (isHistoryModalOpen) {
-      setSelectedCustomerForHistory(updatedCustomers.find(c => c.id === selectedCustomerForHistory.id) || null);
+      setSelectedCustomerForHistory(updatedSelectedCustomer);
+    }
+    
+    
+    // Send email notification for partial payments
+    if (newlyGeneratedInstallments.length > 0 && paymentForm.notifyCustomer && updatedSelectedCustomer.email) {
+      let html = `
+        <h2 style="color: #4f46e5; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 24px;">Kısmi Ödeme & Yeni Taksit Bilgilendirmesi</h2>
+        <p style="margin-bottom: 24px;">Sayın <b>${updatedSelectedCustomer.name || updatedSelectedCustomer.companyName}</b>,<br>Yapmış olduğunuz kısmi ödeme (<b>${Math.abs(paymentForm.amount).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</b>) başarıyla alınmıştır. Eksik kalan ödeme tutarı için aşağıdaki şekilde yeni bir ara taksit planı oluşturulmuştur.</p>
+        <div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 24px;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #e5e7eb; color: #374151; text-align: left; font-size: 14px;">
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #d1d5db; font-weight: 600;">Açıklama</th>
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #d1d5db; font-weight: 600;">Vade Tarihi</th>
+                    <th style="padding: 12px 16px; border-bottom: 1px solid #d1d5db; font-weight: 600; text-align: right;">Kalan Tutar</th>
+                </tr>
+            </thead>
+            <tbody style="background-color: #ffffff;">
+      `;
+      
+      newlyGeneratedInstallments.forEach((p, index) => {
+          const borderBottom = index !== newlyGeneratedInstallments.length - 1 ? 'border-bottom: 1px solid #f3f4f6;' : '';
+          const formattedDate = new Date(p.dueDate).toLocaleDateString('tr-TR');
+          const formattedAmount = parseFloat(p.amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+          html += `
+              <tr style="font-size: 14px;">
+                  <td style="padding: 12px 16px; ${borderBottom} color: #111827; font-weight: 500;">${p.description || '-'}</td>
+                  <td style="padding: 12px 16px; ${borderBottom} color: #4b5563; font-family: monospace;">${formattedDate}</td>
+                  <td style="padding: 12px 16px; ${borderBottom} color: #4f46e5; font-weight: 700; text-align: right;">${formattedAmount} ₺</td>
+              </tr>
+          `;
+      });
+      html += `
+              </tbody>
+          </table>
+          </div>
+          <p style="margin-bottom: 0;">Bizi tercih ettiğiniz için teşekkür ederiz.</p>
+      `;
+
+      const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-tenant-id': tenantId },
+        body: JSON.stringify({
+          to: updatedSelectedCustomer.email,
+          subject: 'Kısmi Ödeme Bilgilendirmesi',
+          html: html
+        })
+      }).catch(console.error);
     }
     
     setIsPaymentModalOpen(false);
+
+    setSelectedInstallmentIds([]);
+    
+    // Auto print receipt if Tahsilat/Ödeme
+    if (paymentForm.type === 'Tahsilat' || paymentForm.type === 'Ödeme') {
+        printPaymentReceipt(newTransaction, updatedSelectedCustomer);
+    }
   };
 
   const handleDeleteTransaction = (tx: CustomerTransaction) => {
@@ -277,7 +692,7 @@ export const Cariler: React.FC = () => {
         const securityRegex = /(<script|javascript:|onload=|onerror=|<\?php|<iframe|<object|<embed|<applet|<html|<body|https?:\/\/[^\s]+|www\.[^\s]+|<a\s+href=)/i;
         let hasMaliciousContent = false;
         for (const row of jsonData) {
-           for (const key in row) {
+           for (const key in (row as any)) {
               const val = String(row[key] || '');
               if (securityRegex.test(val)) {
                  hasMaliciousContent = true;
@@ -332,14 +747,14 @@ export const Cariler: React.FC = () => {
             setTransactions((prev: any) => [...(prev || []), ...newTransactions]);
             
             // Update customer balance
-            const updatedCustomers = (prev: any) => (prev || []).map(c => {
+            setCustomers((prev: any) => (prev || []).map(c => {
                if (c.id === selectedCustomerForHistory.id) {
-                 return { ...c, balance: c.balance + totalAmountChange };
+                 const updated = { ...c, balance: c.balance + totalAmountChange };
+                 setSelectedCustomerForHistory(updated);
+                 return updated;
                }
                return c;
-            });
-            setCustomers(updatedCustomers);
-            setSelectedCustomerForHistory(updatedCustomers.find(c => c.id === selectedCustomerForHistory.id) || null);
+            }));
             
             toast.success(`${successCount} adet işlem başarıyla içeri aktarıldı.`);
         } else {
@@ -1506,6 +1921,11 @@ export const Cariler: React.FC = () => {
                             <button onClick={() => handleDeleteTransaction(t)} className="text-red-600 hover:text-red-800 transition-colors" title="Sil">
                               <Trash2 size={16} />
                             </button>
+                            {(t.type === 'Tahsilat' || t.type === 'Ödeme') && (
+                              <button onClick={() => printPaymentReceipt(t, selectedCustomerForHistory)} className="text-gray-600 hover:text-gray-800 transition-colors" title="Makbuz Yazdır">
+                                <Printer size={16} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1514,6 +1934,171 @@ export const Cariler: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {selectedCustomerForHistory.installments && selectedCustomerForHistory.installments.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-6 flex-shrink-0">
+                <div className="p-4 border-b bg-indigo-50/50 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <h4 className="font-bold text-indigo-900">Taksit Planı</h4>
+                    <span className="text-xs font-semibold bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
+                      Kalan Taksit Borcu: {selectedCustomerForHistory.installments?.filter(i => !i.isPaid).reduce((sum, i) => sum + i.amount, 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                    </span>
+                  </div>
+                  {selectedInstallmentIds.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        const selectedAmount = selectedCustomerForHistory.installments
+                          ?.filter(i => selectedInstallmentIds.includes(i.id))
+                          .reduce((sum, i) => sum + i.amount, 0) || 0;
+                        setPaymentForm({
+                          amount: selectedAmount,
+                          description: `${selectedInstallmentIds.length} Adet Taksit Tahsilatı`,
+                          type: 'Tahsilat',
+                          date: new Date().toISOString().split('T')[0],
+                          installmentIds: selectedInstallmentIds
+                        });
+                        setIsPaymentModalOpen(true);
+                      }}
+                      className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                    >
+                      <span>Toplu Tahsil Et ({selectedInstallmentIds.length})</span>
+                    </button>
+                  )}
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50/50">
+                      <tr>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 w-10 text-center">
+                          <input 
+                            type="checkbox"
+                            className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 cursor-pointer"
+                            onChange={(e) => {
+                              const unpaidIds = selectedCustomerForHistory.installments?.filter(i => !i.isPaid).map(i => i.id) || [];
+                              if (e.target.checked) {
+                                setSelectedInstallmentIds(unpaidIds);
+                              } else {
+                                setSelectedInstallmentIds([]);
+                              }
+                            }}
+                            checked={
+                              (selectedCustomerForHistory.installments?.filter(i => !i.isPaid).length || 0) > 0 && 
+                              selectedInstallmentIds.length === (selectedCustomerForHistory.installments?.filter(i => !i.isPaid).length || 0)
+                            }
+                          />
+                        </th>
+                        <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Tarih</th>
+                        <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Açıklama</th>
+                        <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Durum</th>
+                        <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Tutar</th>
+                        <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-center">İşlem</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {selectedCustomerForHistory.installments.map(inst => (
+                        <tr key={inst.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-4 text-center">
+                            {!inst.isPaid && (
+                              <input 
+                                type="checkbox"
+                                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 cursor-pointer"
+                                checked={selectedInstallmentIds.includes(inst.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedInstallmentIds(prev => [...prev, inst.id]);
+                                  } else {
+                                    setSelectedInstallmentIds(prev => prev.filter(id => id !== inst.id));
+                                  }
+                                }}
+                              />
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{new Date(inst.dueDate).toLocaleDateString('tr-TR')}</td>
+                          <td className="px-6 py-4 text-sm text-gray-800">{inst.description}</td>
+                          <td className="px-6 py-4 text-sm">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${inst.isPaid ? 'bg-emerald-100 text-emerald-700' : new Date(inst.dueDate) < new Date() ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                              {inst.isPaid ? 'Ödendi' : new Date(inst.dueDate) < new Date() ? 'Gecikti' : 'Bekliyor'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right font-medium text-gray-900">
+                            {inst.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {!inst.isPaid && (
+                              <div className="flex justify-center items-center gap-3">
+                                <button
+                                  onClick={() => {
+                                    setPaymentForm({
+                                      amount: inst.amount,
+                                      description: inst.description + ' Tahsilatı',
+                                      type: 'Tahsilat',
+                                      date: new Date().toISOString().split('T')[0],
+                                      installmentId: inst.id
+                                    });
+                                    setIsPaymentModalOpen(true);
+                                  }}
+                                  className="text-indigo-600 hover:text-indigo-800 transition-colors text-sm font-medium"
+                                >
+                                  Tahsil Et
+                                </button>
+                                
+                                <button
+                                  onClick={() => {
+                                    setPostponeForm({
+                                      installmentId: inst.id,
+                                      oldDate: inst.dueDate,
+                                      newDate: inst.dueDate,
+                                      notifyCustomer: true
+                                    });
+                                    setIsPostponeModalOpen(true);
+                                  }}
+                                  className="text-orange-600 hover:text-orange-800 transition-colors text-sm font-medium"
+                                >
+                                  Ertele
+                                </button>
+                                {new Date(inst.dueDate).getTime() < new Date().setHours(0,0,0,0) && (
+                                  <button
+                                    onClick={() => {
+                                      const today = new Date();
+                                      today.setHours(0,0,0,0);
+                                      const due = new Date(inst.dueDate);
+                                      due.setHours(0,0,0,0);
+                                      const days = Math.max(0, Math.floor((today.getTime() - due.getTime()) / (1000 * 3600 * 24)));
+                                      
+                                      const rate = 5; // %5 aylık temerrüt faizi varsayımı
+                                      // Aylık %5 = günlük % (5/30)
+                                      const interest = Number(((inst.amount * (rate / 30) * days) / 100).toFixed(2));
+                                      const nextMonth = new Date();
+                                      nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+                                      setInterestForm({
+                                        installmentId: inst.id,
+                                        baseAmount: inst.amount,
+                                        daysOverdue: days,
+                                        ratePerMonth: rate,
+                                        interestAmount: interest,
+                                        newTotalAmount: inst.amount + interest,
+                                        newDueDate: nextMonth.toISOString().split('T')[0]
+                                      });
+                                      setIsInterestModalOpen(true);
+                                    }}
+                                    className="text-red-600 hover:text-red-800 transition-colors text-sm font-medium"
+                                  >
+                                    Yapılandır
+                                  </button>
+                                )}
+
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       )}
@@ -1593,7 +2178,22 @@ export const Cariler: React.FC = () => {
                   placeholder="Nakit tahsilat, EFT/Havale vb."
                 />
               </div>
+              
+              {paymentForm.installmentId || (paymentForm.installmentIds && paymentForm.installmentIds.length > 0) ? (
+              <div className="pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={paymentForm.notifyCustomer}
+                    onChange={(e) => setPaymentForm({...paymentForm, notifyCustomer: e.target.checked})}
+                    className="rounded border-gray-300 text-emerald-600 shadow-sm focus:border-emerald-300 focus:ring focus:ring-emerald-200 focus:ring-opacity-50"
+                  />
+                  <span className="text-sm text-gray-700">Kısmi ödemede oluşacak yeni ara taksiti müşteriye e-posta ile bildir</span>
+                </label>
+              </div>
+              ) : null}
               <div className="pt-4 flex justify-end gap-3">
+
                 <button 
                   type="button"
                   onClick={() => setIsPaymentModalOpen(false)} 
@@ -1615,6 +2215,308 @@ export const Cariler: React.FC = () => {
       )}
 
       </div>
+      
+      
+      {/* Taksit Ertele Modal */}
+      {isPostponeModalOpen && selectedCustomerForHistory && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden">
+             <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                <Calendar className="text-orange-600" size={20} />
+                Taksit Ertele (Ötele)
+              </h3>
+              <button type="button" onClick={() => setIsPostponeModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handlePostponeInstallment} className="p-4 sm:p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mevcut Vade Tarihi</label>
+                <input 
+                  type="date"
+                  value={postponeForm.oldDate.split('T')[0]}
+                  disabled
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Yeni Vade Tarihi</label>
+                <input 
+                  type="date"
+                  value={postponeForm.newDate.split('T')[0]}
+                  onChange={(e) => setPostponeForm({...postponeForm, newDate: e.target.value})}
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                  className="w-full px-4 py-2 border border-orange-300 rounded-lg focus:ring-orange-500 focus:border-orange-500 bg-orange-50/10"
+                />
+              </div>
+              <div className="pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={postponeForm.notifyCustomer}
+                    onChange={(e) => setPostponeForm({...postponeForm, notifyCustomer: e.target.checked})}
+                    className="rounded border-gray-300 text-orange-600 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50"
+                  />
+                  <span className="text-sm text-gray-700">Ertelemeyi müşteriye e-posta ile bildir</span>
+                </label>
+              </div>
+              <div className="pt-4 flex justify-end gap-3 border-t">
+                <button 
+                  type="button"
+                  onClick={() => setIsPostponeModalOpen(false)} 
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  İptal
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors shadow-sm"
+                >
+                  Ertele
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      
+      {/* Taksit Gecikme Faizi / Yapılandırma Modal */}
+      {isInterestModalOpen && selectedCustomerForHistory && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden">
+             <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                <AlertCircle className="text-red-600" size={20} />
+                Gecikme Faizi & Yapılandırma
+              </h3>
+              <button type="button" onClick={() => setIsInterestModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleApplyInterest} className="p-4 sm:p-6 space-y-4">
+              <div className="bg-red-50 p-3 rounded-lg border border-red-100 mb-4">
+                <p className="text-sm text-red-800">
+                  Bu taksit <strong>{interestForm.daysOverdue} gün</strong> gecikmiş durumda. 
+                  Otomatik faiz hesaplaması yaparak yeni bir ödeme tarihi belirleyebilirsiniz.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ana Para</label>
+                  <input 
+                    type="text"
+                    value={interestForm.baseAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺'}
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Aylık Faiz Oranı (%)</label>
+                  <input 
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={interestForm.ratePerMonth}
+                    onChange={(e) => {
+                      const rate = Number(e.target.value);
+                      const interest = Number(((interestForm.baseAmount * (rate / 30) * interestForm.daysOverdue) / 100).toFixed(2));
+                      setInterestForm({
+                        ...interestForm, 
+                        ratePerMonth: rate,
+                        interestAmount: interest,
+                        newTotalAmount: interestForm.baseAmount + interest
+                      });
+                    }}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hesaplanan Faiz</label>
+                  <div className="relative">
+                    <input 
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={interestForm.interestAmount}
+                      onChange={(e) => {
+                        const interest = Number(e.target.value);
+                        setInterestForm({
+                          ...interestForm,
+                          interestAmount: interest,
+                          newTotalAmount: interestForm.baseAmount + interest
+                        });
+                      }}
+                      className="w-full px-4 py-2 border border-red-300 rounded-lg bg-red-50/30 text-red-700 focus:ring-red-500 focus:border-red-500"
+                    />
+                    <span className="absolute right-3 top-2.5 text-red-600 font-medium">₺</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Yeni Toplam Tutar</label>
+                  <div className="relative">
+                    <input 
+                      type="number"
+                      step="0.01"
+                      value={interestForm.newTotalAmount}
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 font-bold text-gray-900"
+                    />
+                    <span className="absolute right-3 top-2.5 text-gray-600 font-bold">₺</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Yeni Vade Tarihi</label>
+                <input 
+                  type="date"
+                  value={interestForm.newDueDate}
+                  onChange={(e) => setInterestForm({...interestForm, newDueDate: e.target.value})}
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                  className="w-full px-4 py-2 border border-red-300 rounded-lg focus:ring-red-500 focus:border-red-500"
+                />
+              </div>
+              <div className="pt-4 flex justify-end gap-3 border-t">
+                <button 
+                  type="button"
+                  onClick={() => setIsInterestModalOpen(false)} 
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  İptal
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm"
+                >
+                  Faizle Yapılandır
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Taksit Ekle Modal */}
+      {isInstallmentModalOpen && selectedCustomerForHistory && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md overflow-hidden">
+             <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                <Calendar className="text-indigo-600" size={20} />
+                Taksit Planı Oluştur
+              </h3>
+              <button type="button" onClick={() => setIsInstallmentModalOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveInstallmentPlan} className="p-4 sm:p-6 space-y-4">
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cari: <span className="font-bold text-gray-900">{selectedCustomerForHistory.companyName || selectedCustomerForHistory.name}</span></label>
+               </div>
+               
+               <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Toplam Tutar</label>
+                    <input 
+                      type="number" 
+                      required 
+                      step="0.01" 
+                      className="w-full p-2 border border-gray-300 rounded-lg" 
+                      value={installmentForm.totalAmount || ''} 
+                      onChange={e => setInstallmentForm({...installmentForm, totalAmount: Number(e.target.value)})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Taksit Sayısı</label>
+                    <input 
+                      type="number" 
+                      required 
+                      min="1" 
+                      max="120"
+                      className="w-full p-2 border border-gray-300 rounded-lg" 
+                      value={installmentForm.count} 
+                      onChange={e => setInstallmentForm({...installmentForm, count: Number(e.target.value)})}
+                    />
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">İlk Taksit Tarihi</label>
+                    <input 
+                      type="date" 
+                      required 
+                      className="w-full p-2 border border-gray-300 rounded-lg" 
+                      value={installmentForm.firstDueDate} 
+                      onChange={e => setInstallmentForm({...installmentForm, firstDueDate: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Periyot</label>
+                    <select 
+                      className="w-full p-2 border border-gray-300 rounded-lg" 
+                      value={installmentForm.period} 
+                      onChange={e => setInstallmentForm({...installmentForm, period: e.target.value})}
+                    >
+                        <option value="monthly">Aylık</option>
+                        <option value="weekly">Haftalık</option>
+                        <option value="daily">Günlük</option>
+                    </select>
+                  </div>
+               </div>
+
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama (Örn: Senet, Kredi Kartı)</label>
+                 <input 
+                    type="text" 
+                    required 
+                    className="w-full p-2 border border-gray-300 rounded-lg" 
+                    value={installmentForm.description} 
+                    onChange={e => setInstallmentForm({...installmentForm, description: e.target.value})}
+                 />
+               </div>
+
+               <div className="flex items-center gap-2 mt-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  <input 
+                    type="checkbox" 
+                    id="addToBalance" 
+                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                    checked={installmentForm.addToBalance}
+                    onChange={e => setInstallmentForm({...installmentForm, addToBalance: e.target.checked})}
+                  />
+                  <label htmlFor="addToBalance" className="text-sm text-gray-700 cursor-pointer select-none">
+                    Toplam tutarı müşterinin hesabına <span className="font-bold">borç</span> olarak yansıt.
+                  </label>
+               </div>
+               
+               <div className="pt-4 flex justify-end gap-3 border-t">
+                <button 
+                  type="button" 
+                  onClick={() => setIsInstallmentModalOpen(false)} 
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  İptal
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                >
+                  <Save size={18} />
+                  Oluştur ({installmentForm.totalAmount > 0 && installmentForm.count > 0 ? (installmentForm.totalAmount / installmentForm.count).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺ x ' + installmentForm.count : '...'})
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* A4 Ekstre Print Modal */}
       {printEkstreModalOpen && selectedCustomerForHistory && (
         <div className="print-target fixed inset-0 bg-gray-500/75 z-50 flex items-start justify-center p-4 sm:p-6 shadow-2xl backdrop-blur-sm overflow-y-auto print:bg-white print:p-0 print:m-0 animate-fade-in print:block print:relative print:h-auto print:overflow-visible">
@@ -1740,6 +2642,11 @@ export const Cariler: React.FC = () => {
                              <button onClick={() => handleDeleteTransaction(tx)} className="text-red-600 hover:text-red-800 transition-colors" title="Sil">
                                <Trash2 size={16} />
                              </button>
+                             {(tx.type === 'Tahsilat' || tx.type === 'Ödeme') && (
+                               <button onClick={() => printPaymentReceipt(tx, selectedCustomerForHistory)} className="text-gray-600 hover:text-gray-800 transition-colors print:hidden" title="Makbuz Yazdır">
+                                 <Printer size={16} />
+                               </button>
+                             )}
                           </div>
                         </td>
                       </tr>

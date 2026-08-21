@@ -1,0 +1,86 @@
+{
+  "users": [
+    {
+      "vkn": "6900269598",
+      "id": "admin-6900269598",
+      "name": "ÖZERENLER OTOMOTİV LTD.ŞTİ Admin",
+      "username": "6900269598",
+      "email": "erenlerticaret2@hotmail.com",
+      "passwordHash": "dp@U(0tFk7hY",
+      "role": "Admin",
+      "status": "Aktif",
+      "permissions": null,
+      "assignedWarehouse": null,
+      "branch": null
+    }
+  ],
+  "settings": [
+    {
+      "vkn": "6900269598",
+      "id": 1,
+      "companyName": "ÖZERENLER OTOMOTİV LTD.ŞTİ",
+      "address": "agahefendi mah 44/a 2750 sorgun - Sorgun - Yozgat",
+      "phone": "5369459225",
+      "email": "erenlerticaret2@hotmail.com",
+      "taxOffice": null,
+      "taxNumber": null,
+      "companyLogo": null,
+      "smtp_host": null,
+      "smtp_port": null,
+      "smtp_user": null,
+      "smtp_pass": null,
+      "sms_token": null,
+      "sms_sender_id": null,
+      "printer_header_text": null,
+      "printer_footer_text": null,
+      "prefix_customer": null,
+      "next_customer_id": 1002,
+      "prefix_order": null,
+      "next_order_id": null,
+      "prefix_offer": null,
+      "next_offer_id": null,
+      "prefix_product": null,
+      "next_product_id": null,
+      "prefix_personnel": null,
+      "next_personnel_id": null,
+      "efatura_username": null,
+      "efatura_password": null,
+      "efatura_apikey": null,
+      "plumbingChecklistTemplate": [
+        "Filtre Kontrolü",
+        "Boru Sızıntı Kontrolü",
+        "Su Basıncı Testi",
+        "Vana Kontrolü",
+        "Ekipman Temizliği"
+      ]
+    }
+  ],
+  "categories": [],
+  "brands": [],
+  "products": [],
+  "warehouses": [],
+  "stock_transfers": [],
+  "customers": [],
+  "customer_transactions": [],
+  "cash_transactions": [],
+  "personnel": [],
+  "personnel_records": [],
+  "orders": [],
+  "proposals": [],
+  "reconciliations": [],
+  "service_tickets": [],
+  "e_invoices": [],
+  "email_logs": [
+    {
+      "id": "1782976934963pxyytc",
+      "vkn": "6900269598",
+      "recipient": "erenlerticaret2@hotmail.com",
+      "subject": "Hesabınız Aktive Edildi - Esila Ticari",
+      "status": "Başarılı",
+      "errorMessage": null,
+      "date": "2026-07-02T10:22:14.000Z"
+    }
+  ],
+  "reminder_notes": [],
+  "job_applications": []
+}

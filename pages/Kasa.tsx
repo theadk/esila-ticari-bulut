@@ -7,6 +7,7 @@ import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 import { hasPermission } from '../lib/permissions';
 import { CekSenet } from './CekSenet';
+import Taksitler from '../components/Taksitler';
 
 export const Kasa: React.FC = () => {
   const store = useAppStore();
@@ -17,7 +18,7 @@ export const Kasa: React.FC = () => {
   const canDelete = hasPermission(currentUser, 'kasa', 'delete');
 
   const { settings, cashTransactions, setCashTransactions, customers, setCustomers, transactions, setTransactions, personnel, setPersonnel, bankAccounts, setBankAccounts } = store;
-  const [activeTab, setActiveTab] = useState<'kasa' | 'banka' | 'cek_senet' | 'masraf'>('kasa');
+  const [activeTab, setActiveTab] = useState<'kasa' | 'banka' | 'cek_senet' | 'masraf' | 'taksitler'>('kasa');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'this_week' | 'this_month'>('all');
   
@@ -314,6 +315,12 @@ export const Kasa: React.FC = () => {
           className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'masraf' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
         >
           Gider/Masraf Takibi
+        </button>
+        <button
+          onClick={() => setActiveTab('taksitler')}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'taksitler' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Taksit Takibi
         </button>
       </div>
 
@@ -1024,6 +1031,10 @@ export const Kasa: React.FC = () => {
 
       {activeTab === 'cek_senet' && (
         <CekSenet />
+      )}
+
+      {activeTab === 'taksitler' && (
+        <Taksitler />
       )}
 
       {activeTab === 'masraf' && (

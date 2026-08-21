@@ -1,8 +1,10 @@
-require('dotenv').config();
+require('dotenv').config({ path: '/app/applet/.env' });
 const mysql = require('mysql2/promise');
 async function main() {
-  if (!process.env.DATABASE_URL) { console.log("No DB"); return; }
-  const pool = mysql.createPool(process.env.DATABASE_URL);
+  let url = process.env.DATABASE_URL;
+  if (!url) { console.log("No DB"); return; }
+  if (url.startsWith('"') && url.endsWith('"')) { url = url.slice(1, -1); }
+  const pool = mysql.createPool(url);
   try {
     const [rows] = await pool.query("SHOW COLUMNS FROM customers LIKE 'installments'");
     console.log("Installments column:", rows);

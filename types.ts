@@ -101,6 +101,16 @@ export interface CustomerTransaction {
   description: string;
 }
 
+export interface CustomerInstallment {
+  id: string;
+  orderId?: string;
+  amount: number;
+  dueDate: string;
+  isPaid: boolean;
+  paidDate?: string;
+  description?: string;
+}
+
 export interface Customer {
   id: string;
   customerType: 'Şahıs' | 'Tüzel';
@@ -122,6 +132,7 @@ export interface Customer {
   customerGroup?: string; // e.g. 'B2B', 'Perakende', vb.
   efaturaType?: string;
   efaturaScenario?: string;
+  installments?: CustomerInstallment[];
   efaturaInvoiceType?: string;
   riskLimit?: number;
   assignedUser?: string;
@@ -421,6 +432,9 @@ export interface Settings {
   
   // Arıza/Bakım Formu Tesisat Kontrol Listesi Şablonu
   plumbingChecklistTemplate?: string[];
+  reminder_3_days_before?: boolean;
+  reminder_1_day_before?: boolean;
+  reminder_overdue?: boolean;
 }
 
 export enum ServiceTicketStatus {

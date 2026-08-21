@@ -201,6 +201,25 @@ export async function initDb() {
             )
           `);
         }
+      },
+      {
+        name: '006_add_reminder_settings',
+        up: async () => {
+          const alterStatements = [
+            'ALTER TABLE settings ADD COLUMN reminder_3_days_before BOOLEAN DEFAULT TRUE;',
+            'ALTER TABLE settings ADD COLUMN reminder_1_day_before BOOLEAN DEFAULT TRUE;',
+            'ALTER TABLE settings ADD COLUMN reminder_overdue BOOLEAN DEFAULT TRUE;'
+          ];
+          for (const stmt of alterStatements) {
+            try {
+              await client.query(stmt);
+            } catch (e) {
+              if (e.code !== 'ER_DUP_FIELDNAME') {
+                console.error('Error in 006_add_reminder_settings:', e.message, '->', stmt);
+              }
+            }
+          }
+        }
       }
     ];
 

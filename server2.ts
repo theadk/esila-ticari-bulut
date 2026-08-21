@@ -26,6 +26,8 @@ import { fileURLToPath } from 'url';
 import { getPool, initDb } from './server/db.js';
 import cors from 'cors';
 import { getFallbackTable, insertFallbackRow, updateFallbackRow, deleteFallbackRow } from './server/fallbackDb.js';
+import { sendMail } from './server/mailer.js';
+import { startMailScheduler } from './server/mailScheduler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
