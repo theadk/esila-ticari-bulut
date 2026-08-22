@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileBadge, Plus, Search, FileText, Printer, CheckCircle, XCircle, Trash2, Share2, Mail, MessageCircle } from 'lucide-react';
+import { FileBadge, Plus, Search, FileText, Printer, CheckCircle, XCircle, Trash2, Share2, Mail, MessageCircle, Package } from 'lucide-react';
 import { Proposal, ProposalStatus, ProposalItem, Customer, Product, Order, OrderStatus } from '../types';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
@@ -374,7 +374,7 @@ export const Teklifler: React.FC = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+                        ))}
             </tbody>
           </table>
         </div>
@@ -465,7 +465,7 @@ export const Teklifler: React.FC = () => {
                                {Number((netTotal + taxTotalForItem) || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                              </td>
                            </tr>
-                         );
+                        );
                        })}
                      </tbody>
                    </table>
@@ -896,8 +896,8 @@ export const Teklifler: React.FC = () => {
                                    {Number(netAmount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                  </td>
                                </tr>
-                             );
-                           })}
+                        );
+                       })}
                          </tbody>
                        </table>
 
@@ -990,8 +990,8 @@ export const Teklifler: React.FC = () => {
                             {Number((netPrice * item.quantity) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                           </td>
                         </tr>
-                      );
-                    })}
+                        );
+                       })}
                   </tbody>
                 </table>
 

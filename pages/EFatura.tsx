@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { ThermalEArsiv } from "./ThermalEArsiv";
+import {  
+ThermalEArsiv } from "./ThermalEArsiv";
 import { QRCodeSVG } from "qrcode.react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import {
-  FileText,
+import { 
+  Palette, FileText,
   FileJson,
   Download,
   Send,
@@ -19,12 +20,12 @@ import {
   Upload,
   Check,
 } from "lucide-react";
-import { XMLParser } from "fast-xml-parser";
-import { useAppStore } from "../lib/store";
-import { api } from "../lib/api";
-import { InvoiceTemplateEditor } from "../components/InvoiceTemplateEditor";
-import { Pagination } from "../components/Pagination";
-import { hasPermission } from '../lib/permissions';
+import {  XMLParser } from "fast-xml-parser";
+import {  useAppStore } from "../lib/store";
+import {  api } from "../lib/api";
+import {  InvoiceTemplateEditor } from "../components/InvoiceTemplateEditor";
+import {  Pagination } from "../components/Pagination";
+import {  hasPermission } from '../lib/permissions';
 
 export const EFatura: React.FC = () => {
   const store = useAppStore();
@@ -842,7 +843,7 @@ export const EFatura: React.FC = () => {
             onClick={() => setActiveTab("Şablon")}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "Şablon" ? "bg-white shadow text-blue-600" : "text-gray-600"}`}
           >
-            Şablon Düzenleyici
+            <><Palette size={16} className="inline mr-1 mb-0.5" />Tasarım Editörü</>
           </button>
         </div>
         {activeTab === "Giden" && (

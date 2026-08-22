@@ -481,9 +481,10 @@ export const HizliSatis: React.FC = () => {
                 <div 
                   key={product.id} 
                   onClick={() => handleAddToCart(product)}
-                  className="border border-gray-200 rounded-xl p-2 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-400 hover:shadow-sm cursor-pointer transition-colors flex flex-col items-center text-center justify-between aspect-square shrink-0"
+                  className="border border-gray-200 rounded-xl p-2 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-400 hover:shadow-sm cursor-pointer transition-colors flex flex-col items-center text-center justify-between aspect-square shrink-0 relative overflow-hidden"
                 >
-                   <div className="text-[10px] lg:text-[11px] font-semibold text-emerald-900 line-clamp-3 leading-tight pt-1">{product.name}</div>
+                   {product.image && <div className="w-full h-1/2 mb-1 flex-shrink-0 rounded bg-white"><img src={product.image} alt={product.name} className="w-full h-full object-cover rounded" /></div>}
+                   <div className={`text-[10px] lg:text-[11px] font-semibold text-emerald-900 leading-tight pt-1 ${product.image ? "line-clamp-2" : "line-clamp-3"}`}>{product.name}</div>
                    <div className="text-emerald-700 font-bold text-[11px] lg:text-xs pb-1">{(product.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</div>
                 </div>
              ))}

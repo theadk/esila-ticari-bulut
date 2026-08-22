@@ -213,7 +213,7 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
   const hasSearchResults = searchResults.products.length > 0 || searchResults.customers.length > 0 || searchResults.orders.length > 0;
 
   return (
-    <header className="h-16 bg-white shadow-sm border-b border-gray-100 flex items-center justify-between px-4 md:px-8 no-print relative z-30">
+    <header className="h-16 bg-white shadow-sm border-b border-gray-100 flex items-center justify-between px-4 md:px-8 print:hidden relative z-30">
       <div className="flex items-center gap-4">
         {/* Mobile Menu Toggle */}
         <button 

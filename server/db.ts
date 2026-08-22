@@ -74,6 +74,27 @@ export async function initDb() {
 
     // 3. Define migrations
     const migrations = [
+
+      {
+        name: '007_add_new_fields_for_expenses_and_prices',
+        up: async () => {
+          const alterStatements = [
+            'ALTER TABLE products ADD COLUMN supplierPrice DECIMAL(15,2);',
+            'ALTER TABLE cash_transactions ADD COLUMN personnelId VARCHAR(255);',
+            'ALTER TABLE cash_transactions ADD COLUMN accountId VARCHAR(255);'
+          ];
+          for (const stmt of alterStatements) {
+            try {
+              await client.query(stmt);
+            } catch (e) {
+              if (e.code !== 'ER_DUP_FIELDNAME') {
+                console.error('Error in 007_add_new_fields:', e.message, '->', stmt);
+              }
+            }
+          }
+        }
+      },
+
       {
         name: '001_initial_schema',
         up: async () => {
@@ -217,6 +238,19 @@ export async function initDb() {
               if (e.code !== 'ER_DUP_FIELDNAME') {
                 console.error('Error in 006_add_reminder_settings:', e.message, '->', stmt);
               }
+            }
+          }
+        }
+      },
+      {
+        name: '007_add_product_image_column',
+        up: async () => {
+          const stmt = 'ALTER TABLE products ADD COLUMN image LONGTEXT;';
+          try {
+            await client.query(stmt);
+          } catch (e) {
+            if (e.code !== 'ER_DUP_FIELDNAME') {
+              console.error('Error in 007_add_product_image_column:', e.message, '->', stmt);
             }
           }
         }

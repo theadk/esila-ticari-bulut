@@ -26,6 +26,7 @@ export interface PurchaseRequest {
   items: PurchaseRequestItem[];
   status: PurchaseRequestStatus;
   notes?: string;
+  internalNotes?: { id: string; text: string; date: string; }[];
   approvedBy?: string; // Personnel ID
   approvalDate?: string;
   expectedDeliveryDate?: string;
@@ -157,10 +158,12 @@ export interface Order {
   total: number;
   currency?: string;
   exchangeRate?: number;
+  expectedDeliveryDate?: string;
   status: OrderStatus;
   items: OrderItem[];
   proposalId?: string;
   notes?: string;
+  internalNotes?: { id: string; text: string; date: string; }[];
   cargoProvider?: string;
   cargoTrackingNumber?: string;
   cargoBarcodeUrl?: string;
@@ -195,6 +198,7 @@ export interface Proposal {
   status: ProposalStatus;
   items: ProposalItem[];
   notes?: string;
+  internalNotes?: { id: string; text: string; date: string; }[];
   isConvertedToOrder?: boolean;
 }
 
@@ -203,7 +207,7 @@ export interface CashTransaction {
   date: string;
   type: 'Gelir' | 'Gider';
   accountId?: string; // e.g. bank account ID or "KASA"
-  category: 'Cari Tahsilat' | 'Cari Ödeme' | 'Satış' | 'Alış' | 'Diğer Gelir' | 'Diğer Gider' | 'Fatura Ödemesi' | 'Personel Maaşı' | 'Personel Avans';
+  category: 'Cari Tahsilat' | 'Cari Ödeme' | 'Satış' | 'Alış' | 'Diğer Gelir' | 'Diğer Gider' | 'Fatura Ödemesi' | 'Personel Maaşı' | 'Personel Avans' | 'Kira Ödemesi' | 'Vergi Ödemesi';
   amount: number;
   description: string;
   customerId?: string; // If related to a customer
@@ -246,6 +250,7 @@ export interface JobApplication {
   status: 'Yeni' | 'İnceleniyor' | 'Mülakat' | 'Teklif' | 'Kabul Edildi' | 'Reddedildi';
   resumeUrl?: string;
   notes?: string;
+  internalNotes?: { id: string; text: string; date: string; }[];
 }
 
 export interface Personnel {
@@ -307,6 +312,7 @@ export interface Reconciliation {
   balance: number;
   status: ReconciliationStatus;
   notes?: string;
+  internalNotes?: { id: string; text: string; date: string; }[];
   emailSentAt?: string;
   respondedAt?: string;
   responseNotes?: string;
@@ -389,6 +395,7 @@ export interface Settings {
   invoiceTemplate_showLogo?: boolean;
   invoiceTemplate_logoUrl?: string;
   invoiceTemplate_notes?: string;
+  internalNotes?: { id: string; text: string; date: string; }[];
   invoiceTemplate_bankInfo?: string;
   invoiceTemplate_banks?: { id: string; bankName: string; iban: string; accountName: string; }[];
   invoiceTemplate_layoutOrder?: string[]; // e.g. ['info', 'gib', 'logo']
@@ -611,6 +618,7 @@ export interface ChequeNote {
   endorser?: string;
   status: ChequeNoteStatus;
   notes?: string;
+  internalNotes?: { id: string; text: string; date: string; }[];
 }
 
 export interface Campaign {

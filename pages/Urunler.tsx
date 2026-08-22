@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer, TrendingUp, Mic, MicOff, Camera, CheckCircle } from 'lucide-react';
+import { Plus, QrCode, Search, Filter, Package, Edit2, Trash2, X, Save, Upload, Download, Printer, TrendingUp, Mic, MicOff, Camera, CheckCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Product, Warehouse, Category, Brand } from '../types';
 import { api } from '../lib/api';
@@ -7,6 +7,7 @@ import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
 import { Pagination } from '../components/Pagination';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import { QRCodeSVG } from 'qrcode.react';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 
 const INITIAL_FORM: Product = {
@@ -28,6 +29,48 @@ const INITIAL_FORM: Product = {
   variants: [],
   showInQuickSale: false,
   currency: 'TRY'
+};
+
+
+const resizeImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        const max_dim = 600;
+        if (width > height) {
+          if (width > max_dim) {
+            height = Math.round((height * max_dim) / width);
+            width = max_dim;
+          }
+        } else {
+          if (height > max_dim) {
+            width = Math.round((width * max_dim) / height);
+            height = max_dim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject('Canvas context missing');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85); // 85% quality JPEG
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 };
 
 export const Urunler: React.FC = () => {
@@ -228,7 +271,7 @@ export const Urunler: React.FC = () => {
           brand: row['Marka']?.toString() || '',
           purchasePrice: Number(row['Alış Fiyatı']) || 0,
           price: Number(row['Satış Fiyatı']) || Number(row['Perakende Fiyatı']) || Number(row['Fiyat']) || 0,
-          supplierPrice: Number(row['Tedarikçi Fiyatı']) || 0,
+          supplierPrice: Number(row['Tedarikçi Fiyatı']) || Number(row['Satış Fiyatı']) || Number(row['Perakende Fiyatı']) || Number(row['Fiyat']) || 0,
           taxRate: (row['KDV Oranı'] !== undefined && row['KDV Oranı'] !== null) ? Number(row['KDV Oranı']) : 20,
           stock: Number(row['Stok']) || 0,
           unit: row['Birim']?.toString() || 'Adet',
@@ -656,6 +699,9 @@ export const Urunler: React.FC = () => {
     e.preventDefault();
     try {
       const dataToSave = { ...formData };
+      if (!dataToSave.supplierPrice || dataToSave.supplierPrice === 0) {
+        dataToSave.supplierPrice = dataToSave.price;
+      }
       if (dataToSave.warehouseStocks) {
         dataToSave.warehouseStocks = dataToSave.warehouseStocks.filter(ws => ws.warehouseId && ws.warehouseId.trim() !== '');
       }
@@ -1150,8 +1196,8 @@ export const Urunler: React.FC = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
-                        <Package size={20} />
+                      <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 overflow-hidden">
+                        {product.image ? <img src={product.image} alt={product.name} className="w-full h-full object-cover" /> : <Package size={20} />}
                       </div>
                       <div>
                         <div className="font-semibold text-gray-800 flex items-center gap-2">
@@ -1268,7 +1314,7 @@ export const Urunler: React.FC = () => {
       {isDetailsOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setIsDetailsOpen(false)}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-lg flex flex-col max-h-[95vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0 print:hidden">
               <h3 className="font-bold text-lg text-gray-800">Ürün Detayları</h3>
               <button onClick={() => setIsDetailsOpen(false)} className="text-gray-500 hover:text-red-500 transition-colors">
                 <X size={24} />
@@ -1276,9 +1322,9 @@ export const Urunler: React.FC = () => {
             </div>
             
             <div className="p-3 sm:p-4 space-y-3 overflow-y-auto flex-1">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
-                   <Package size={32} />
+              <div className="flex items-center gap-4 mb-6 print:hidden">
+                <div className="w-16 h-16 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 overflow-hidden">
+                   {selectedProduct.image ? <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" /> : <Package size={32} />}
                 </div>
                 <div>
                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -1289,7 +1335,7 @@ export const Urunler: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6 text-sm print:hidden">
                  <div>
                     <span className="block text-gray-500 mb-1">Barkod</span>
                     <span className="font-medium text-gray-800">{selectedProduct.barcode || '-'}</span>
@@ -1367,14 +1413,50 @@ export const Urunler: React.FC = () => {
               </div>
               
               {selectedProduct.description && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="mt-4 pt-4 border-t border-gray-100 print:hidden">
                     <span className="block text-gray-500 mb-1 text-sm">Açıklama</span>
                     <p className="text-gray-800 text-sm whitespace-pre-wrap">{selectedProduct.description}</p>
                 </div>
               )}
             </div>
             
-            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
+              <div className="px-4 pb-4 print:hidden flex items-center justify-between">
+                 <div className="flex items-center gap-4">
+                   <div className="bg-white p-2 rounded-lg border border-gray-200">
+                     <QRCodeSVG 
+                       value={JSON.stringify({ id: selectedProduct.id, code: selectedProduct.code })} 
+                       size={64}
+                       level="M"
+                     />
+                   </div>
+                   <div>
+                     <p className="text-sm font-bold text-gray-800">QR Kod</p>
+                     <p className="text-xs text-gray-500">Hızlı erişim ve envanter takibi için</p>
+                   </div>
+                 </div>
+              </div>
+              
+              <div className="hidden print:flex flex-col items-center justify-center pt-20 pb-10 w-full h-full bg-white absolute inset-0 z-50">
+                 <h2 className="text-4xl font-bold mb-4 text-center">{selectedProduct.name}</h2>
+                 <p className="text-2xl text-gray-600 mb-12">{selectedProduct.code} {selectedProduct.barcode ? `| Barkod: ${selectedProduct.barcode}` : ''}</p>
+                 <QRCodeSVG 
+                   value={JSON.stringify({ id: selectedProduct.id, code: selectedProduct.code })} 
+                   size={400}
+                   level="H"
+                 />
+                 <p className="mt-12 text-3xl font-bold text-gray-900">{Number(selectedProduct.price).toLocaleString('tr-TR', { style: 'currency', currency: selectedProduct.currency || 'TRY' })}</p>
+              </div>
+            
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3 print:hidden relative z-10">
+               <button 
+                 onClick={() => {
+                   setTimeout(() => window.print(), 100);
+                 }}
+                 className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium flex items-center gap-2 mr-auto"
+               >
+                 <QrCode size={18} />
+                 QR Yazdır
+               </button>
                <button 
                  onClick={(e) => { setIsDetailsOpen(false); handleEdit(selectedProduct); }}
                  className="px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors font-medium flex items-center gap-2"
@@ -1491,6 +1573,82 @@ export const Urunler: React.FC = () => {
             </div>
             
             <form onSubmit={handleSave} className="p-3 sm:p-4 space-y-3 overflow-y-auto flex-1">
+              
+              {/* Resim Yükleme Alanı */}
+              <div className="flex flex-col sm:flex-row gap-4 items-start mb-4">
+                <div className="w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden relative group shrink-0">
+                  {formData.image ? (
+                    <>
+                      <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({...formData, image: undefined})}
+                          className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                          title="Resmi Sil"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-gray-400 flex flex-col items-center">
+                      <Camera size={24} className="mb-2" />
+                      <span className="text-xs">Görsel</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1 flex flex-col gap-2 w-full">
+                  <label className="text-sm font-medium text-gray-700">Ürün Görseli</label>
+                  <p className="text-xs text-gray-500 mb-1">Maksimum 600x600 piksel olarak otomatik boyutlandırılır. (Kalite bozulmaz)</p>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <label className="flex-1 min-w-[120px] px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center justify-center gap-2 transition-colors">
+                      <Upload size={18} />
+                      Dosya Seç
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            try {
+                              const resized = await resizeImage(file);
+                              setFormData({...formData, image: resized});
+                            } catch (error) {
+                              toast.error('Resim işlenirken hata oluştu');
+                            }
+                          }
+                        }}
+                      />
+                    </label>
+                    <label className="flex-1 min-w-[120px] px-4 py-2 bg-white border border-emerald-300 rounded-lg shadow-sm text-sm font-medium text-emerald-700 hover:bg-emerald-50 cursor-pointer flex items-center justify-center gap-2 transition-colors">
+                      <Camera size={18} />
+                      Kamera ile Çek
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        capture="environment"
+                        className="hidden" 
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            try {
+                              const resized = await resizeImage(file);
+                              setFormData({...formData, image: resized});
+                            } catch (error) {
+                              toast.error('Resim işlenirken hata oluştu');
+                            }
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ürün Kodu</label>

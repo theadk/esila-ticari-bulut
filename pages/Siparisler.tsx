@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { 
   Plus, Search, ShoppingCart, User, Send, 
-  FileText, X, Package, Filter, ArrowUpDown, ChevronDown
+  FileText, X, Package, Filter, ArrowUpDown, ChevronDown, Printer, MessageSquare, MessageCircle
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Order, OrderStatus, OrderItem, Product, Customer } from '../types';
@@ -20,6 +20,7 @@ function useOrderForm() {
 
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState('');
+  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
 
   const updateCustomerInfo = (field: string, value: string) => {
     setCustomerInfo(prev => ({ ...prev, [field]: value }));
@@ -61,6 +62,7 @@ function useOrderForm() {
   };
 
   const clearForm = () => {
+    setExpectedDeliveryDate('');
     setCustomerInfo({ id: '', name: '', phone: '', email: '', address: '' });
     setCartItems([]);
     setNotes('');
@@ -97,7 +99,7 @@ export const Siparisler: React.FC = () => {
   const { 
     customerInfo, setCustomerInfo, updateCustomerInfo, 
     cartItems, setCartItems, addToCart, updateCartItem, removeFromCart, 
-    clearForm, notes, setNotes, totals 
+    clearForm, notes, setNotes, expectedDeliveryDate, setExpectedDeliveryDate, totals 
   } = useOrderForm();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,8 +108,70 @@ export const Siparisler: React.FC = () => {
   // Table State
   const [orderSearch, setOrderSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateStart, setDateStart] = useState<string>('');
+  const [dateEnd, setDateEnd] = useState<string>('');
   const [sortField, setSortField] = useState<'date' | 'total'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [newInternalNote, setNewInternalNote] = useState('');
+  
+  const handleSendWhatsApp = () => {
+    if (!selectedOrder) return;
+    
+    const customer = store.customers?.find(c => c.id === selectedOrder.customerId);
+    
+    const itemsText = selectedOrder.items.map(item => 
+      `- ${item.productName} (${item.quantity} x ${item.price.toLocaleString('tr-TR', { style: 'currency', currency: selectedOrder.currency || 'TRY' })})`
+    ).join('\n');
+    
+    const message = `Sayın ${selectedOrder.customerName},
+
+${new Date(selectedOrder.date).toLocaleDateString('tr-TR')} tarihli siparişiniz (No: #${selectedOrder.id.substring(0, 8).toUpperCase()}) ile ilgili detaylar aşağıdadır:
+
+*Sipariş İçeriği:*
+${itemsText}
+
+*Ara Toplam:* ${(selectedOrder.subTotal || selectedOrder.total).toLocaleString('tr-TR', { style: 'currency', currency: selectedOrder.currency || 'TRY' })}
+${selectedOrder.taxTotal ? `*KDV Tutarı:* ${selectedOrder.taxTotal.toLocaleString('tr-TR', { style: 'currency', currency: selectedOrder.currency || 'TRY' })}\n` : ''}*Genel Toplam:* ${selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: selectedOrder.currency || 'TRY' })}
+
+Bizi tercih ettiğiniz için teşekkür ederiz.`;
+
+    const encodedMessage = encodeURIComponent(message);
+    let url = '';
+    
+    if (customer && customer.phone) {
+      let cleanPhone = customer.phone.replace(/\D/g, '');
+      if (cleanPhone.startsWith('0')) cleanPhone = '9' + cleanPhone;
+      else if (!cleanPhone.startsWith('90')) cleanPhone = '90' + cleanPhone;
+      
+      url = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+    } else {
+      url = `https://api.whatsapp.com/send?text=${encodedMessage}`;
+    }
+    
+    window.open(url, '_blank');
+  };
+
+  const handleAddInternalNote = () => {
+    if (!newInternalNote.trim() || !selectedOrder) return;
+    
+    const note = {
+      id: crypto.randomUUID(),
+      text: newInternalNote.trim(),
+      date: new Date().toISOString()
+    };
+    
+    const updatedOrder = {
+      ...selectedOrder,
+      internalNotes: [...(selectedOrder.internalNotes || []), note]
+    };
+    
+    setSelectedOrder(updatedOrder);
+    store.setOrders((prev: Order[]) => prev.map(o => o.id === selectedOrder.id ? updatedOrder : o));
+    
+    setNewInternalNote('');
+    toast.success('Dahili not eklendi');
+  };
 
   // Filtered Products
   const products = store.products || [];
@@ -158,6 +222,7 @@ export const Siparisler: React.FC = () => {
     setIsSubmitting(true);
     try {
       const newOrder: Order = {
+        expectedDeliveryDate: expectedDeliveryDate || undefined,
         id: crypto.randomUUID(),
         customerId: customerInfo.id || crypto.randomUUID(),
         customerName: customerInfo.name,
@@ -256,6 +321,16 @@ export const Siparisler: React.FC = () => {
       );
     }
 
+    // Filter by date range
+    if (dateStart) {
+      result = result.filter(order => new Date(order.date) >= new Date(dateStart));
+    }
+    if (dateEnd) {
+      const end = new Date(dateEnd);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter(order => new Date(order.date) <= end);
+    }
+
     // Filter by status
     if (statusFilter !== 'all') {
       result = result.filter(order => order.status === statusFilter);
@@ -273,7 +348,7 @@ export const Siparisler: React.FC = () => {
     });
 
     return result;
-  }, [store.orders, orderSearch, statusFilter, sortField, sortDirection]);
+  }, [store.orders, orderSearch, statusFilter, dateStart, dateEnd, sortField, sortDirection]);
 
   const handleSort = (field: 'date' | 'total') => {
     if (sortField === field) {
@@ -294,9 +369,9 @@ export const Siparisler: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50/50">
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50/50 print:h-auto print:bg-white">
       {/* Header */}
-      <div className="flex-none px-6 py-4 border-b border-gray-200 bg-white shadow-sm flex items-center justify-between z-10">
+      <div className="flex-none px-6 py-4 border-b border-gray-200 bg-white shadow-sm flex items-center justify-between z-10 print:hidden">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Sipariş Yönetimi</h1>
           <p className="text-sm text-gray-500 mt-1">Sipariş oluşturun ve takip edin.</p>
@@ -326,7 +401,7 @@ export const Siparisler: React.FC = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden">
+      <div className={`flex-1 overflow-hidden print:overflow-visible ${selectedOrder ? "print:hidden" : ""}`}>
         {activeTab === 'create' ? (
           <div className="h-full flex flex-col lg:flex-row overflow-hidden">
             {/* Left Column: Form & Products */}
@@ -373,7 +448,7 @@ export const Siparisler: React.FC = () => {
                       placeholder="05XX XXX XX XX"
                     />
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-2 xl:col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Adres</label>
                     <input 
                       type="text" 
@@ -381,6 +456,15 @@ export const Siparisler: React.FC = () => {
                       onChange={e => updateCustomerInfo('address', e.target.value)}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none"
                       placeholder="Teslimat adresi"
+                    />
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Beklenen Teslimat</label>
+                    <input 
+                      type="date" 
+                      value={expectedDeliveryDate}
+                      onChange={e => setExpectedDeliveryDate(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none"
                     />
                   </div>
                 </div>
@@ -410,7 +494,7 @@ export const Siparisler: React.FC = () => {
                     <div 
                       key={product.id}
                       onClick={() => addToCart(product)}
-                      className="group cursor-pointer border border-gray-100 rounded-xl p-4 hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-between bg-white relative overflow-hidden h-32"
+                      className="group cursor-pointer border border-gray-100 rounded-xl p-4 hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-between bg-white relative overflow-hidden h-48"
                     >
                       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="bg-blue-500 text-white rounded-full p-1.5 shadow-sm">
@@ -419,6 +503,7 @@ export const Siparisler: React.FC = () => {
                       </div>
                       <div>
                         <div className="text-xs text-gray-400 mb-1">{product.code}</div>
+                        {product.image && <div className="w-full h-16 mb-2 overflow-hidden rounded-lg bg-gray-50 flex items-center justify-center"><img src={product.image} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" /></div>}
                         <h3 className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">{product.name}</h3>
                       </div>
                       <div className="mt-2 flex items-end justify-between">
@@ -465,6 +550,10 @@ export const Siparisler: React.FC = () => {
                   <div className="space-y-4">
                     {cartItems.map(item => (
                       <div key={item.productId} className="flex gap-3 items-start bg-gray-50/80 p-3 rounded-xl border border-gray-100/50 hover:border-gray-200 transition-colors">
+                        {(() => {
+                          const p = store.products.find(p => p.id === item.productId);
+                          return p?.image ? <img src={p.image} className="w-10 h-10 object-cover rounded shadow-sm border border-gray-100 shrink-0" /> : <div className="w-10 h-10 bg-white border border-gray-100 rounded flex items-center justify-center shrink-0"><Package className="w-5 h-5 text-gray-400" /></div>;
+                        })()}
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium text-gray-900 truncate pr-4" title={item.productName}>
                             {item.productName}
@@ -561,14 +650,60 @@ export const Siparisler: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="h-full p-6 overflow-y-auto bg-gray-50/50">
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+          <div className="h-full p-6 overflow-y-auto bg-gray-50/50 print:h-auto print:overflow-visible print:p-0 print:bg-white">
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col print:border-none print:shadow-none print:overflow-visible">
               
               {/* History Header & Controls */}
               <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center bg-gray-50/50">
-                <h2 className="text-lg font-medium text-gray-900">Sipariş Geçmişi</h2>
+                <div className="flex items-center gap-4">
+                  <h2 className="text-lg font-medium text-gray-900">Sipariş Geçmişi</h2>
+                  <button 
+                    onClick={() => {
+                      setTimeout(() => window.print(), 100);
+                    }}
+                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium flex items-center gap-2 text-sm print:hidden"
+                  >
+                    <Printer size={16} />
+                    Yazdır / PDF
+                  </button>
+                </div>
                 
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <div className="flex flex-col lg:flex-row gap-3 w-full lg:w-auto print:hidden">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex items-center">
+                      <input 
+                        type="date"
+                        value={dateStart}
+                        onChange={(e) => setDateStart(e.target.value)}
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none w-full sm:w-auto"
+                        title="Başlangıç Tarihi"
+                      />
+                    </div>
+                    <div className="relative flex items-center">
+                      <input 
+                        type="date"
+                        value={dateEnd}
+                        onChange={(e) => setDateEnd(e.target.value)}
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none w-full sm:w-auto"
+                        title="Bitiş Tarihi"
+                      />
+                    </div>
+                    <div className="relative flex items-center">
+                      <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none outline-none transition-colors w-full sm:w-auto"
+                      >
+                        <option value="all">Tüm Durumlar</option>
+                        {Object.values(OrderStatus).map(status => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                  </div>
+                  
                   <div className="relative">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input 
@@ -579,26 +714,11 @@ export const Siparisler: React.FC = () => {
                       className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full sm:w-64 transition-colors outline-none"
                     />
                   </div>
-                  
-                  <div className="relative flex items-center">
-                    <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none outline-none transition-colors"
-                    >
-                      <option value="all">Tüm Durumlar</option>
-                      {Object.values(OrderStatus).map(status => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  </div>
                 </div>
               </div>
 
               {/* Data Table */}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto print:overflow-visible">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -631,7 +751,7 @@ export const Siparisler: React.FC = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
                     {filteredAndSortedOrders.map((order: Order) => (
-                      <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer">
+                      <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => setSelectedOrder(order)}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center mr-3 group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
@@ -680,7 +800,7 @@ export const Siparisler: React.FC = () => {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                        ))}
                     {filteredAndSortedOrders.length === 0 && (
                       <tr>
                         <td colSpan={5} className="px-6 py-12 text-center">
@@ -708,6 +828,198 @@ export const Siparisler: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Order Details Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in print:bg-white print:relative print:inset-auto print:block" style={{ zIndex: 60 }}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col print:shadow-none print:max-w-full print:m-0 print:border-none print:rounded-none">
+            <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0 print:hidden">
+              <div>
+                <h3 className="font-bold text-xl text-gray-800">Sipariş Detayı</h3>
+                <p className="text-sm text-gray-500 mt-1">#{selectedOrder.id.substring(0, 8).toUpperCase()} - {new Date(selectedOrder.date).toLocaleString('tr-TR')}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={handleSendWhatsApp}
+                  className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-colors font-medium flex items-center gap-2 text-sm"
+                  title="WhatsApp'tan Gönder"
+                >
+                  <MessageCircle size={16} />
+                  <span className="hidden sm:inline">WhatsApp</span>
+                </button>
+                <button 
+                  onClick={() => {
+                    setTimeout(() => window.print(), 100);
+                  }}
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium flex items-center gap-2 text-sm"
+                >
+                  <Printer size={16} />
+                  Yazdır
+                </button>
+                <button type="button" onClick={() => setSelectedOrder(null)} className="text-gray-500 hover:text-red-500 transition-colors p-2">
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4 sm:p-6 overflow-y-auto print:p-0 flex-1 print:overflow-visible">
+              <div className="print-target bg-white">
+                <div className="hidden print:block mb-8 border-b pb-4">
+                  <h1 className="text-2xl font-bold mb-2">SİPARİŞ FİŞİ</h1>
+                  <p><strong>Sipariş No:</strong> #{selectedOrder.id.substring(0, 8).toUpperCase()}</p>
+                  <p><strong>Tarih:</strong> {new Date(selectedOrder.date).toLocaleString('tr-TR')}</p>
+                  <p><strong>Müşteri:</strong> {selectedOrder.customerName}</p>
+                  <p><strong>Durum:</strong> {selectedOrder.status}</p>
+                </div>
+
+                <div className="mb-6 print:hidden">
+                  <div className="p-5 bg-white border border-gray-100 shadow-sm rounded-xl mb-4">
+                    <div className="flex justify-between items-center mb-5">
+                      <p className="text-sm font-semibold text-gray-800">Sipariş Durumu</p>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedOrder.status)}`}>
+                        {selectedOrder.status}
+                      </span>
+                    </div>
+                    {selectedOrder.status === OrderStatus.CANCELLED ? (
+                      <div className="flex items-center justify-center p-4 bg-red-50 text-red-600 rounded-lg font-medium border border-red-100">
+                        <X className="w-5 h-5 mr-2" /> Sipariş İptal Edildi
+                      </div>
+                    ) : (
+                      <div className="relative pt-2">
+                        <div className="overflow-hidden h-2.5 mb-4 text-xs flex rounded-full bg-gray-100">
+                          <div style={{ width: 
+                            selectedOrder.status === OrderStatus.PENDING ? '25%' :
+                            selectedOrder.status === OrderStatus.PREPARED ? '50%' :
+                            selectedOrder.status === OrderStatus.SHIPPED ? '75%' :
+                            selectedOrder.status === OrderStatus.COMPLETED ? '100%' : '0%'
+                           }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-500"></div>
+                        </div>
+                        <div className="flex justify-between text-xs font-medium text-gray-400 px-1">
+                          <div className={`flex flex-col items-center gap-1 ${selectedOrder.status === OrderStatus.PENDING || selectedOrder.status === OrderStatus.PREPARED || selectedOrder.status === OrderStatus.SHIPPED || selectedOrder.status === OrderStatus.COMPLETED ? 'text-blue-600' : ''}`}>
+                             <span className="w-2 h-2 rounded-full bg-current hidden sm:block"></span>
+                             <span>Bekliyor</span>
+                          </div>
+                          <div className={`flex flex-col items-center gap-1 ${selectedOrder.status === OrderStatus.PREPARED || selectedOrder.status === OrderStatus.SHIPPED || selectedOrder.status === OrderStatus.COMPLETED ? 'text-blue-600' : ''}`}>
+                             <span className="w-2 h-2 rounded-full bg-current hidden sm:block"></span>
+                             <span>Hazır</span>
+                          </div>
+                          <div className={`flex flex-col items-center gap-1 ${selectedOrder.status === OrderStatus.SHIPPED || selectedOrder.status === OrderStatus.COMPLETED ? 'text-blue-600' : ''}`}>
+                             <span className="w-2 h-2 rounded-full bg-current hidden sm:block"></span>
+                             <span>Kargolandı</span>
+                          </div>
+                          <div className={`flex flex-col items-center gap-1 ${selectedOrder.status === OrderStatus.COMPLETED ? 'text-blue-600' : ''}`}>
+                             <span className="w-2 h-2 rounded-full bg-current hidden sm:block"></span>
+                             <span>Tamamlandı</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Müşteri</p>
+                      <p className="font-semibold text-gray-900">{selectedOrder.customerName}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <h4 className="font-semibold text-gray-800 mb-3 border-b pb-2">Ürünler</h4>
+                  <div className="overflow-x-auto print:overflow-visible">
+                    <table className="w-full text-left text-sm print:text-xs">
+                      <thead className="bg-gray-50 text-gray-600 print:bg-transparent border-b">
+                        <tr>
+                          <th className="px-4 py-2 font-semibold">Ürün</th>
+                          <th className="px-4 py-2 text-center font-semibold">Miktar</th>
+                          <th className="px-4 py-2 text-right font-semibold">Birim Fiyat</th>
+                          <th className="px-4 py-2 text-right font-semibold">Toplam</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {selectedOrder.items?.map((item, idx) => {
+                          const p = store.products.find(prod => prod.id === item.productId);
+                          return (
+                          <tr key={idx}>
+                            <td className="px-4 py-3 font-medium text-gray-900 flex items-center gap-2">
+                               {p?.image ? <img src={p.image} alt={item.productName} className="w-8 h-8 object-cover rounded-md border border-gray-200" /> : <Package className="w-8 h-8 p-1 text-gray-400 bg-gray-100 rounded-md" />}
+                               {item.productName}
+                            </td>
+                            <td className="px-4 py-3 text-center">{item.quantity} {item.unit || 'Adet'}</td>
+                            <td className="px-4 py-3 text-right">{(item.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                            <td className="px-4 py-3 text-right font-semibold text-gray-900">{((item.price || 0) * item.quantity).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
+                          </tr>
+                        );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t border-gray-100">
+                  <div className="w-full sm:w-1/2 md:w-1/3">
+                    <div className="flex justify-between items-center py-2 text-lg font-bold">
+                      <span>Genel Toplam:</span>
+                      <span className="text-blue-600">{(selectedOrder.total || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {selectedOrder.notes && (
+                  <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100">
+                    <p className="text-sm font-semibold text-amber-800 mb-1">Sipariş Notu:</p>
+                    <p className="text-sm text-amber-900">{selectedOrder.notes}</p>
+                  </div>
+                )}
+                
+                {/* Dahili Notlar */}
+                <div className="mt-8 border-t border-gray-100 pt-6 print:hidden">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-blue-500" />
+                    Dahili Yorumlar / Notlar
+                  </h4>
+                  
+                  <div className="space-y-3 mb-4">
+                    {(!selectedOrder.internalNotes || selectedOrder.internalNotes.length === 0) ? (
+                      <p className="text-xs text-gray-500 italic">Henüz not eklenmemiş.</p>
+                    ) : (
+                      selectedOrder.internalNotes.map(note => (
+                        <div key={note.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="text-[10px] font-medium text-gray-400 bg-white px-2 py-0.5 rounded border border-gray-100">
+                              {new Date(note.date).toLocaleString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.text}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <input 
+                      type="text"
+                      value={newInternalNote}
+                      onChange={(e) => setNewInternalNote(e.target.value)}
+                      onKeyDown={(e) => { if(e.key === 'Enter') handleAddInternalNote(); }}
+                      placeholder="Sipariş için dahili not yazın..."
+                      className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                    <button 
+                      onClick={handleAddInternalNote}
+                      disabled={!newInternalNote.trim()}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <Send className="w-4 h-4" />
+                      Ekle
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,6 @@
 import express from "express";
+import crypto from 'crypto';
+
 
 function generateSecurePassword() {
   const lowercase = "abcdefghijklmnopqrstuvwxyz";
@@ -53,6 +55,9 @@ const loginAttempts = new Map<
   { attempts: number; lockUntil: number | null }
 >();
 
+
+
+
 async function startServer() {
   try {
     await initDb();
@@ -72,6 +77,7 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   app.use(cors());
+  app.use('/resimler', express.static(path.join(process.cwd(), 'resimler')));
 
   app.get("/api/system-status", async (req, res) => {
     try {
@@ -907,7 +913,7 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+      
       insertFallbackRow("categories", { ...newCat, vkn });
       return res.json(newCat);
     }
@@ -934,7 +940,7 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+      
       updateFallbackRow("categories", req.params.id, vkn, req.body);
       return res.json({ id: req.params.id, ...req.body });
     }
@@ -1031,7 +1037,7 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+      
       updateFallbackRow("brands", req.params.id, vkn, req.body);
       return res.json({ id: req.params.id, ...req.body });
     }
@@ -1098,7 +1104,7 @@ async function startServer() {
   });
 
   app.get("/api/stock_transfers", async (req, res) => {
-    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+    
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1117,7 +1123,7 @@ async function startServer() {
   });
 
   app.post("/api/stock_transfers", async (req, res) => {
-    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+    
     const data = req.body;
 
     if (
@@ -1250,7 +1256,7 @@ async function startServer() {
   });
 
   app.put("/api/warehouses/:id", async (req, res) => {
-    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+    
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1336,7 +1342,7 @@ async function startServer() {
   });
 
   app.delete("/api/warehouses/:id", async (req, res) => {
-    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+    
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1415,11 +1421,14 @@ async function startServer() {
   });
 
   app.put("/api/products/:id", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] || "1111111111");
+
+
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+      
       updateFallbackRow("products", req.params.id, vkn, req.body);
       return res.json({ id: req.params.id, ...req.body });
     }
@@ -1439,11 +1448,12 @@ async function startServer() {
       warehouseStocks,
       showInQuickSale,
       supplierPrice,
+      image,
     } = req.body;
     try {
       const pool = getPool();
       await pool.query(
-        "UPDATE products SET code = ?, name = ?, price = ?, stock = ?, category = ?, warehouse = ?, barcode = ?, description = ?, brand = ?, `taxRate` = ?, `warehouseStocks` = ?, `purchasePrice` = ?, `showInQuickSale` = ?, `supplierPrice` = ? WHERE id = ? AND vkn = ?",
+        "UPDATE products SET code = ?, name = ?, price = ?, stock = ?, category = ?, warehouse = ?, barcode = ?, description = ?, brand = ?, `taxRate` = ?, `warehouseStocks` = ?, `purchasePrice` = ?, `showInQuickSale` = ?, `supplierPrice` = ?, `image` = ? WHERE id = ? AND vkn = ?",
         [
           code,
           name,
@@ -1459,6 +1469,7 @@ async function startServer() {
           purchasePrice,
           showInQuickSale ? 1 : 0,
           supplierPrice,
+          image || null,
           id,
           (req.headers["x-tenant-id"] as string) || "1111111111",
         ],
@@ -1470,11 +1481,14 @@ async function startServer() {
   });
 
   app.post("/api/products", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] || "1111111111");
+
+
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+      
       insertFallbackRow("products", {
         ...req.body,
         vkn,
@@ -1498,11 +1512,12 @@ async function startServer() {
       warehouseStocks,
       showInQuickSale,
       supplierPrice,
+      image,
     } = req.body;
     try {
       const pool = getPool();
       await pool.query(
-        "INSERT INTO products (vkn, id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`, `showInQuickSale`, `supplierPrice`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO products (vkn, id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`, `showInQuickSale`, `supplierPrice`, `image`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           (req.headers["x-tenant-id"] as string) || "1111111111",
           id,
@@ -1520,6 +1535,7 @@ async function startServer() {
           purchasePrice,
           showInQuickSale ? 1 : 0,
           supplierPrice,
+          image || null,
         ],
       );
       res.json(req.body);
@@ -1568,7 +1584,7 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+      
       insertFallbackRow("reconciliations", { ...mutabakat, vkn });
       return res.json(mutabakat);
     }
@@ -2642,7 +2658,7 @@ async function startServer() {
 
   app.get("/api/purchase-recommendations", async (req, res) => {
     try {
-      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+      
       if (
         !process.env.DATABASE_URL ||
         !process.env.DATABASE_URL.startsWith("mysql")
@@ -2665,7 +2681,7 @@ async function startServer() {
 
   app.get("/api/tenant-info", async (req, res) => {
     try {
-      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+      
       if (
         !process.env.DATABASE_URL ||
         !process.env.DATABASE_URL.startsWith("mysql")
@@ -3046,6 +3062,8 @@ async function startServer() {
     app.get(`/api/${table}`, async (req, res) => {
       try {
         const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+
+        
         const userId = (req.headers["x-user-id"] as string);
         if (
           !process.env.DATABASE_URL ||
@@ -3078,11 +3096,14 @@ async function startServer() {
 
     app.post(`/api/${table}`, async (req, res) => {
       try {
+        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+
+
         if (
           !process.env.DATABASE_URL ||
           !process.env.DATABASE_URL.startsWith("mysql")
         ) {
-          const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+          
           insertFallbackRow(table, { ...req.body, vkn });
           return res.json(req.body);
         }
@@ -3106,7 +3127,7 @@ async function startServer() {
         const questionMarks = keys.map(() => "?").join(", ");
         const backtick = String.fromCharCode(96);
         const fields = keys.map((k) => backtick + k + backtick).join(", ");
-        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+        
         const query = `INSERT IGNORE INTO ${table} (vkn, ${fields}) VALUES (?, ${questionMarks})`;
         await pool.query(query, [vkn, ...values]);
         res.json(req.body);
@@ -3117,11 +3138,14 @@ async function startServer() {
 
     app.put(`/api/${table}/:id`, async (req, res) => {
       try {
+        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+
+
         if (
           !process.env.DATABASE_URL ||
           !process.env.DATABASE_URL.startsWith("mysql")
         ) {
-          const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+          
           updateFallbackRow(table, req.params.id, vkn, req.body);
           return res.json({ id: req.params.id, ...req.body });
         }
@@ -3153,7 +3177,7 @@ async function startServer() {
         const setString = keys
           .map((k) => backtick + k + backtick + " = ?")
           .join(", ");
-        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+        
         const query = `UPDATE ${table} SET ${setString} WHERE id = ? AND vkn = ?`;
         const [result]: any = await pool.query(query, [...values, req.params.id, vkn]);
         
@@ -3170,16 +3194,18 @@ async function startServer() {
 
     app.delete(`/api/${table}/:id`, async (req, res) => {
       try {
+        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+
         if (
           !process.env.DATABASE_URL ||
           !process.env.DATABASE_URL.startsWith("mysql")
         ) {
-          const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+          
           deleteFallbackRow(table, req.params.id, vkn);
           return res.json({ success: true });
         }
         const pool = getPool();
-        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+        
         await pool.query(`DELETE FROM ${table} WHERE id = ? AND vkn = ?`, [
           req.params.id,
           vkn,

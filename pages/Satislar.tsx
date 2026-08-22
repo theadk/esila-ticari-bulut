@@ -658,9 +658,14 @@ export const Satislar: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {(selectedOrder.items || []).map((item, idx) => (
+                      {(selectedOrder.items || []).map((item, idx) => {
+                        const product = store.products.find(p => p.id === item.productId);
+                        return (
                         <tr key={idx}>
-                          <td className="px-4 py-3 font-medium text-gray-900">{item.productName}</td>
+                          <td className="px-4 py-3 font-medium text-gray-900 flex items-center gap-2">
+                             {product?.image ? <img src={product.image} alt={item.productName} className="w-8 h-8 object-cover rounded-md border border-gray-200" /> : <Package className="w-8 h-8 p-1 text-gray-400 bg-gray-100 rounded-md" />}
+                             {item.productName}
+                          </td>
                           <td className="px-4 py-3 text-center text-gray-600">{item.quantity}</td>
                           <td className="px-4 py-3 text-right text-gray-600">
                             {(item.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {selectedOrder.currency || '₺'}
@@ -669,7 +674,8 @@ export const Satislar: React.FC = () => {
                             {((item.price || 0) * item.quantity).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {selectedOrder.currency || '₺'}
                           </td>
                         </tr>
-                      ))}
+                        );
+                        })}
                     </tbody>
                   </table>
                 </div>

@@ -314,7 +314,7 @@ export const Kasa: React.FC = () => {
           onClick={() => setActiveTab('masraf')}
           className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${activeTab === 'masraf' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
         >
-          Gider/Masraf Takibi
+          Gider Yönetimi
         </button>
         <button
           onClick={() => setActiveTab('taksitler')}
@@ -373,7 +373,44 @@ export const Kasa: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+      
+           {(() => {
+              const giderler = cashTransactions.filter(tx => tx.type === 'Gider');
+              const currentMonth = new Date().getMonth();
+              const currentYear = new Date().getFullYear();
+              const thisMonthGiderler = giderler.filter(tx => {
+                 const d = new Date(tx.date);
+                 return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+              });
+              
+              const totalKira = thisMonthGiderler.filter(t => t.category === 'Kira Ödemesi').reduce((sum, t) => sum + t.amount, 0);
+              const totalFatura = thisMonthGiderler.filter(t => t.category === 'Fatura Ödemesi').reduce((sum, t) => sum + t.amount, 0);
+              const totalPersonel = thisMonthGiderler.filter(t => ['Personel Maaşı', 'Personel Avans'].includes(t.category)).reduce((sum, t) => sum + t.amount, 0);
+              const totalGenel = thisMonthGiderler.reduce((sum, t) => sum + t.amount, 0);
+
+              return (
+                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                       <h4 className="text-gray-500 text-sm font-medium mb-1">Bu Ay Toplam Gider</h4>
+                       <div className="text-2xl font-bold text-red-600">{totalGenel.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</div>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                       <h4 className="text-gray-500 text-sm font-medium mb-1">Kira Giderleri (Bu Ay)</h4>
+                       <div className="text-xl font-bold text-gray-800">{totalKira.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</div>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                       <h4 className="text-gray-500 text-sm font-medium mb-1">Fatura Ödemeleri (Bu Ay)</h4>
+                       <div className="text-xl font-bold text-gray-800">{totalFatura.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</div>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                       <h4 className="text-gray-500 text-sm font-medium mb-1">Personel Giderleri (Bu Ay)</h4>
+                       <div className="text-xl font-bold text-gray-800">{totalPersonel.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</div>
+                    </div>
+                 </div>
+              )
+           })()}
+
+           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
         <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center bg-gray-50/50">
           <div className="relative w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -591,6 +628,8 @@ export const Kasa: React.FC = () => {
                        <option value="Fatura Ödemesi">Fatura Ödemesi</option>
                        <option value="Personel Maaşı">Personel Maaşı</option>
                        <option value="Personel Avans">Personel Avans</option>
+                       <option value="Kira Ödemesi">Kira Ödemesi</option>
+                       <option value="Vergi Ödemesi">Vergi Ödemesi</option>
                      </>
                    )}
                  </select>
@@ -1040,7 +1079,7 @@ export const Kasa: React.FC = () => {
       {activeTab === 'masraf' && (
         <div className="space-y-6 animate-in fade-in">
            <div className="flex justify-between items-center">
-             <h3 className="text-xl font-bold text-gray-800">Masraf ve Gider Takibi</h3>
+             <h3 className="text-xl font-bold text-gray-800">Gider Yönetimi (Kira, Fatura, Personel vs.)</h3>
              <button 
                onClick={() => {
                  setFormData({

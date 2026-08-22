@@ -206,7 +206,7 @@ export async function initializeStore(force = false) {
   isInitialized = true;
   try {
     const tables = [
-      { name: 'users', ref: (data: any) => { globalUsers = data; } },
+      { name: 'users', ref: (data: any) => { globalUsers = data.map((u: any) => ({ ...u, permissions: typeof u.permissions === 'string' ? safeJSONParse(u.permissions, {}) : u.permissions })); } },
       { name: 'settings', ref: (data: any) => { 
         if(data.length > 0) {
           const setting = data[0];

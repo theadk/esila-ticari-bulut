@@ -401,9 +401,9 @@ export const Personel: React.FC = () => {
     doc.text("5. Zimmet Kayitlari (Demirbaslar)", 40, currentY);
 
     const fixtureData = (p.fixtures || []).map((f) => [
-      tr(f.fixtureName),
-      tr(f.serialNumber || "-"),
-      new Date(f.issueDate).toLocaleDateString("tr-TR"),
+      tr(f.productName || f.fixtureName || "-"),
+      tr(f.quantity?.toString() || "1"),
+      f.dateGiven ? new Date(f.dateGiven).toLocaleDateString("tr-TR") : (f.issueDate ? new Date(f.issueDate).toLocaleDateString("tr-TR") : "-"),
       f.returnDate
         ? new Date(f.returnDate).toLocaleDateString("tr-TR")
         : "Kullanimda",
@@ -412,7 +412,7 @@ export const Personel: React.FC = () => {
 
     autoTable(doc, {
       head: [
-        ["Demirbas Adi", "Seri No", "Verilis Tarihi", "Iade Tarihi", "Durum"],
+        ["Urun/Demirbas Adi", "Miktar", "Verilis Tarihi", "Iade Tarihi", "Durum"],
       ],
       body:
         fixtureData.length > 0
@@ -1877,10 +1877,10 @@ export const Personel: React.FC = () => {
                             <div className="flex justify-between items-start mb-2">
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold text-gray-800 text-lg">
-                                  {f.productName}
+                                  {f.productName || f.fixtureName || "Bilinmiyor"}
                                 </span>
                                 <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-medium">
-                                  {f.quantity} Adet
+                                  {f.quantity || 1} Adet
                                 </span>
                               </div>
                               <button
@@ -1888,7 +1888,7 @@ export const Personel: React.FC = () => {
                                   handleReturnFixture(
                                     f.id,
                                     f.productId,
-                                    f.quantity,
+                                    f.quantity || 1,
                                   )
                                 }
                                 className="text-red-500 hover:bg-red-50 text-xs px-2 py-1 rounded font-medium border border-red-200 transition-colors"
@@ -1899,9 +1899,9 @@ export const Personel: React.FC = () => {
                             <div className="text-sm text-gray-500 flex gap-4">
                               <span>
                                 Veriliş:{" "}
-                                {new Date(f.dateGiven).toLocaleDateString(
-                                  "tr-TR",
-                                )}
+                                {f.dateGiven 
+                                  ? new Date(f.dateGiven).toLocaleDateString("tr-TR") 
+                                  : (f.issueDate ? new Date(f.issueDate).toLocaleDateString("tr-TR") : "-")}
                               </span>
                             </div>
                           </div>

@@ -187,7 +187,7 @@ const App: React.FC = () => {
       <Toaster position="top-right" />
       <ToastSpeaker />
       {/* Sidebar - Hidden on print */}
-      <div className={`fixed inset-y-0 left-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-200 ease-in-out no-print`}>
+      <div className={`fixed inset-y-0 left-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-200 ease-in-out print:hidden`}>
         <Sidebar activePage={activePage} setActivePage={(page) => { setActivePage(page); setIsMobileMenuOpen(false); }} tenantInfo={tenantInfo} />
       </div>
 
@@ -200,7 +200,7 @@ const App: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 no-print-margin transition-all duration-300 w-full overflow-hidden print:block">
+      <div className="flex-1 flex flex-col min-w-0 print:hidden-margin transition-all duration-300 w-full overflow-hidden print:block">
         
         {/* Header - Hidden on print */}
         <Header 
@@ -223,8 +223,8 @@ const App: React.FC = () => {
 
       <style>{`
         @media print {
-          .no-print { display: none !important; }
-          .no-print-margin { margin-left: 0 !important; }
+          .print:hidden { display: none !important; }
+          .print:hidden-margin { margin-left: 0 !important; }
           body { overflow: visible !important; }
           html, body, #root { height: auto !important; }
           .h-screen { height: auto !important; }
