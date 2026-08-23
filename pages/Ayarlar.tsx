@@ -164,6 +164,19 @@ export const Ayarlar: React.FC = () => {
     if(event.target) event.target.value = '';
   };
 
+  
+const uploadImageToServer = async (base64String: string): Promise<string> => {
+  const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
+  const res = await fetch('/api/upload-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-tenant-id': tenantId },
+    body: JSON.stringify({ imageBase64: base64String })
+  });
+  if (!res.ok) throw new Error('Resim sunucuya yüklenemedi.');
+  const data = await res.json();
+  return data.url;
+};
+
   const handleSave = () => {
     store.setSettings(settings);
     alert('Ayarlar kaydedildi.');
@@ -173,9 +186,14 @@ export const Ayarlar: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const base64String = reader.result as string;
-        handleChange('companyLogo', base64String);
+        try {
+          const serverUrl = await uploadImageToServer(base64String);
+          handleChange('companyLogo', serverUrl);
+        } catch(e) {
+          alert('Logo yüklenemedi.');
+        }
       };
       reader.readAsDataURL(file);
     }

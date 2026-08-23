@@ -9,6 +9,7 @@ import { Pagination } from '../components/Pagination';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { QRCodeSVG } from 'qrcode.react';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
+import toast from 'react-hot-toast';
 
 const INITIAL_FORM: Product = {
   id: '',
@@ -31,6 +32,19 @@ const INITIAL_FORM: Product = {
   currency: 'TRY'
 };
 
+
+
+const uploadImageToServer = async (base64String: string): Promise<string> => {
+  const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
+  const res = await fetch('/api/upload-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-tenant-id': tenantId },
+    body: JSON.stringify({ imageBase64: base64String })
+  });
+  if (!res.ok) throw new Error('Resim sunucuya yüklenemedi.');
+  const data = await res.json();
+  return data.url;
+};
 
 const resizeImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -159,6 +173,59 @@ export const Urunler: React.FC = () => {
         updateFn(text);
       });
     }
+  };
+
+
+  const speak = (text: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'tr-TR';
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const processAssistantQuery = (query: string) => {
+    if (!query) return;
+    const lowerQuery = query.toLowerCase();
+    
+    let matchedProduct = null;
+    for (const p of products) {
+      if (lowerQuery.includes(p.name.toLowerCase())) {
+        if (!matchedProduct || p.name.length > matchedProduct.name.length) {
+          matchedProduct = p;
+        }
+      }
+    }
+
+    if (matchedProduct) {
+      const answer = `${matchedProduct.name} ürününden stokta ${matchedProduct.stock} ${matchedProduct.unit || 'adet'} bulunmaktadır.`;
+      speak(answer);
+      toast.success(answer, { icon: '🎙️' });
+    } else {
+      const answer = "Söylediğiniz isimde bir ürün stoklarda bulunamadı.";
+      speak(answer);
+      toast.error(answer, { icon: '🎙️' });
+    }
+  };
+
+  const startAssistant = () => {
+    if (isListening && activeSpeechField === 'assistant') {
+      stop();
+      setActiveSpeechField(null);
+      return;
+    }
+    
+    if (isListening) stop();
+    setActiveSpeechField('assistant');
+    
+    listen((text) => {
+      if (text.trim().length > 2) {
+         stop();
+         setActiveSpeechField(null);
+         processAssistantQuery(text.trim());
+      }
+    });
   };
 
   // Marka Formu State
@@ -930,6 +997,22 @@ export const Urunler: React.FC = () => {
               Markalar
             </button>
           </div>
+          {supported && (
+            <button
+              onClick={startAssistant}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm ${
+                isListening && activeSpeechField === 'assistant' 
+                  ? 'bg-red-100 text-red-600 animate-pulse' 
+                  : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+              }`}
+              title="Sesli Stok Asistanı (Örn: Elma kaç adet kaldı?)"
+            >
+              {isListening && activeSpeechField === 'assistant' ? <MicOff size={16} /> : <Mic size={16} />}
+              <span className="hidden sm:inline">
+                {isListening && activeSpeechField === 'assistant' ? 'Dinleniyor...' : 'Sesli Asistan'}
+              </span>
+            </button>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {activeTab === 'urunler' ? (
@@ -1616,7 +1699,8 @@ export const Urunler: React.FC = () => {
                           if (file) {
                             try {
                               const resized = await resizeImage(file);
-                              setFormData({...formData, image: resized});
+                              const serverUrl = await uploadImageToServer(resized);
+                              setFormData({...formData, image: serverUrl});
                             } catch (error) {
                               toast.error('Resim işlenirken hata oluştu');
                             }
@@ -1637,7 +1721,8 @@ export const Urunler: React.FC = () => {
                           if (file) {
                             try {
                               const resized = await resizeImage(file);
-                              setFormData({...formData, image: resized});
+                              const serverUrl = await uploadImageToServer(resized);
+                              setFormData({...formData, image: serverUrl});
                             } catch (error) {
                               toast.error('Resim işlenirken hata oluştu');
                             }

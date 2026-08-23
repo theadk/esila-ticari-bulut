@@ -1,42 +1,43 @@
 const fs = require('fs');
+
 let code = fs.readFileSync('pages/Ayarlar.tsx', 'utf8');
 
-const reminderSettings = `
-                <div className="mt-4 pt-4 border-t col-span-1">
-                  <h4 className="text-md font-medium text-gray-800 mb-4">Otomatik Taksit Hatırlatma Ayarları</h4>
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={settings.reminder_3_days_before ?? true}
-                        onChange={(e) => handleChange('reminder_3_days_before', e.target.checked)}
-                        className="rounded border-gray-300 text-emerald-600 shadow-sm focus:border-emerald-300 focus:ring focus:ring-emerald-200 focus:ring-opacity-50"
-                      />
-                      <span className="text-sm text-gray-700">Vade tarihinden 3 gün önce hatırlat</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={settings.reminder_1_day_before ?? true}
-                        onChange={(e) => handleChange('reminder_1_day_before', e.target.checked)}
-                        className="rounded border-gray-300 text-emerald-600 shadow-sm focus:border-emerald-300 focus:ring focus:ring-emerald-200 focus:ring-opacity-50"
-                      />
-                      <span className="text-sm text-gray-700">Vade tarihinden 1 gün önce hatırlat</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={settings.reminder_overdue ?? true}
-                        onChange={(e) => handleChange('reminder_overdue', e.target.checked)}
-                        className="rounded border-gray-300 text-emerald-600 shadow-sm focus:border-emerald-300 focus:ring focus:ring-emerald-200 focus:ring-opacity-50"
-                      />
-                      <span className="text-sm text-gray-700">Vadesi gecikmiş olanlar için her gün hatırlat (Sabah 09:00)</span>
-                    </label>
-                  </div>
-                </div>
+const uploadHelper = `
+const uploadImageToServer = async (base64String: string): Promise<string> => {
+  const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
+  const res = await fetch('/api/upload-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-tenant-id': tenantId },
+    body: JSON.stringify({ imageBase64: base64String })
+  });
+  if (!res.ok) throw new Error('Resim sunucuya yüklenemedi.');
+  const data = await res.json();
+  return data.url;
+};
 `;
 
-code = code.replace('<div className="mt-4 pt-4 border-t">', reminderSettings + '\n                <div className="mt-4 pt-4 border-t">');
+if (!code.includes('uploadImageToServer')) {
+  code = code.replace(
+    'const handleSave = () => {',
+    uploadHelper + '\n  const handleSave = () => {'
+  );
+}
+
+code = code.replace(
+  `      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        handleChange('companyLogo', base64String);
+      };`,
+  `      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        try {
+          const serverUrl = await uploadImageToServer(base64String);
+          handleChange('companyLogo', serverUrl);
+        } catch(e) {
+          alert('Logo yüklenemedi.');
+        }
+      };`
+);
 
 fs.writeFileSync('pages/Ayarlar.tsx', code);
-console.log("Patched Ayarlar.tsx");
+console.log('Patched Ayarlar.tsx');
