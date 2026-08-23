@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote, BOM, WorkOrder, AppNotification, AttendanceRecord, SalaryAdjustment, PersonnelKPI, PersonnelTask, MeetingNote, Campaign, BankAccount } from '../types';
+import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote, BOM, WorkOrder, AppNotification, AttendanceRecord, SalaryAdjustment, PersonnelKPI, PersonnelTask, MeetingNote, Campaign, BankAccount, PayrollApproval, PerformanceScore } from '../types';
 
 const safeJSONParse = (val: any, defaultVal: any = []) => {
   if (typeof val === 'string') {
@@ -50,6 +50,7 @@ let globalServiceTickets: ServiceTicket[] = [];
 let globalReminderNotes: ReminderNote[] = [];
 let globalNotifications: AppNotification[] = [];
 let globalAttendance: AttendanceRecord[] = [];
+let globalPayrollApprovals: PayrollApproval[] = [];
 let globalSalaryAdjustments: SalaryAdjustment[] = [];
 let globalPersonnelTasks: PersonnelTask[] = [];
 let globalPersonnelKPIs: PersonnelKPI[] = [];
@@ -201,6 +202,27 @@ async function syncObject(table: string, oldObj: any, newObj: any) {
 }
 
 let isInitialized = false;
+
+  export const refreshProposalsFromServer = async () => {
+    try {
+      const res = await apiFetch('/api/proposals');
+      if (res.ok) {
+         const data = await res.json();
+         globalProposals = data.map((d:any)=>{
+           const parsedItems = safeJSONParse(d.items, []);
+           const fixedItems = parsedItems.map((i: any) => ({
+               ...i, 
+               price: Number(i.price !== undefined ? i.price : (i.unitPrice || 0))
+           }));
+           return { ...d, items: fixedItems, total: Number(d.total !== undefined ? d.total : (d.totalAmount || 0)) };
+        });
+        emit();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
 export async function initializeStore(force = false) {
   if (isInitialized && !force) return;
   isInitialized = true;
@@ -244,6 +266,7 @@ export async function initializeStore(force = false) {
       } },
       { name: 'job_applications', ref: (data: any) => { globalJobApplications = data; } },
       { name: 'attendance', ref: (data: any) => { globalAttendance = data; } },
+      { name: 'payroll_approvals', ref: (data: any) => { globalPayrollApprovals = data; } },
       { name: 'salary_adjustments', ref: (data: any) => { globalSalaryAdjustments = data; } },
       { name: 'personnel_tasks', ref: (data: any) => { globalPersonnelTasks = data; } },
       { name: 'documents', ref: (data: any) => {
@@ -416,6 +439,7 @@ export const useAppStore = () => {
       emit();
     },
     get proposals() { return globalProposals; },
+    refreshProposals: refreshProposalsFromServer,
     setProposals(updater: any) {
       const old = [...globalProposals];
       globalProposals = typeof updater === 'function' ? updater(globalProposals) : updater;
@@ -476,6 +500,13 @@ export const useAppStore = () => {
       const old = [...globalSuspendedCarts];
       globalSuspendedCarts = typeof updater === 'function' ? updater(globalSuspendedCarts) : updater;
       syncArray('suspended_carts', old, globalSuspendedCarts);
+      emit();
+    },
+    get payrollApprovals() { return globalPayrollApprovals; },
+    setPayrollApprovals(updater: any) {
+      const old = [...globalPayrollApprovals];
+      globalPayrollApprovals = typeof updater === 'function' ? updater(globalPayrollApprovals) : updater;
+      syncArray('payroll_approvals', old, globalPayrollApprovals);
       emit();
     },
     get attendance() { return globalAttendance; },

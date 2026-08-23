@@ -80,6 +80,7 @@ async function startServer() {
   app.use('/resimler', express.static(path.join(process.cwd(), 'resimler')));
 
   app.get("/api/system-status", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const os = await import('os');
       const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
@@ -132,6 +133,7 @@ async function startServer() {
   });
 
   app.get("/api/exchange-rates", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const response = await fetch("https://www.tcmb.gov.tr/kurlar/today.xml");
       if (!response.ok) {
@@ -147,6 +149,7 @@ async function startServer() {
   });
 
   app.post("/api/earsiv/send", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { username, password, invoice } = req.body;
       // invoice object contains: documentUUID, xmlContent, destinationUrn, documentId, documentDate
@@ -245,6 +248,7 @@ async function startServer() {
   });
 
   app.post("/api/efatura/send", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { username, password, invoice } = req.body;
       // invoice object contains: documentUUID, xmlContent, destinationUrn, documentId, documentDate
@@ -344,6 +348,7 @@ async function startServer() {
   });
 
   app.post("/api/test-email", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { email } = req.body;
       const result = await sendMail(
@@ -367,6 +372,7 @@ async function startServer() {
   });
 
   app.post("/api/send-email", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const vkn =
         typeof req.headers["x-tenant-id"] === "string"
@@ -435,6 +441,7 @@ async function startServer() {
   });
 
   app.post("/api/send-sms", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const vkn =
         typeof req.headers["x-tenant-id"] === "string"
@@ -510,6 +517,7 @@ async function startServer() {
   });
 
   app.post("/api/forgot-password", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     const { email } = req.body;
     try {
       if (
@@ -590,6 +598,7 @@ async function startServer() {
   };
 
   app.post("/api/login", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     const { username, password } = req.body;
     try {
       const now = Date.now();
@@ -721,6 +730,7 @@ async function startServer() {
   });
 
   app.post("/api/logout", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
      try {
        const { vkn, userId, username } = req.body;
        if (vkn && userId) {
@@ -815,6 +825,7 @@ async function startServer() {
   });
 
   app.get("/api/products", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -845,6 +856,7 @@ async function startServer() {
   });
 
   app.delete("/api/products/:id", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -870,6 +882,7 @@ async function startServer() {
   });
 
   app.get("/api/categories", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -908,6 +921,7 @@ async function startServer() {
   });
 
   app.post("/api/categories", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     const newCat = { ...req.body, id: req.body.id || String(Date.now()) };
     if (
       !process.env.DATABASE_URL ||
@@ -936,6 +950,7 @@ async function startServer() {
   });
 
   app.put("/api/categories/:id", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -964,6 +979,7 @@ async function startServer() {
   });
 
   app.delete("/api/categories/:id", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -989,6 +1005,7 @@ async function startServer() {
   });
 
   app.get("/api/brands", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1008,6 +1025,7 @@ async function startServer() {
   });
 
   app.post("/api/brands", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1033,6 +1051,7 @@ async function startServer() {
   });
 
   app.put("/api/brands/:id", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1057,6 +1076,7 @@ async function startServer() {
   });
 
   app.delete("/api/brands/:id", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1081,6 +1101,7 @@ async function startServer() {
   });
 
   app.get("/api/warehouses", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1104,6 +1125,7 @@ async function startServer() {
   });
 
   app.get("/api/stock_transfers", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     
     if (
       !process.env.DATABASE_URL ||
@@ -1123,6 +1145,7 @@ async function startServer() {
   });
 
   app.post("/api/stock_transfers", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     
     const data = req.body;
 
@@ -1226,6 +1249,7 @@ async function startServer() {
   });
 
   app.post("/api/warehouses", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1256,6 +1280,7 @@ async function startServer() {
   });
 
   app.put("/api/warehouses/:id", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     
     if (
       !process.env.DATABASE_URL ||
@@ -1342,6 +1367,7 @@ async function startServer() {
   });
 
   app.delete("/api/warehouses/:id", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     
     if (
       !process.env.DATABASE_URL ||
@@ -1545,6 +1571,7 @@ async function startServer() {
   });
 
   app.get("/api/reconciliations", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1568,6 +1595,7 @@ async function startServer() {
   });
 
   app.post("/api/reconciliations", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     const mutabakat = {
       ...req.body,
       id: req.body.id || String(Date.now()),
@@ -1615,6 +1643,7 @@ async function startServer() {
   });
 
   app.put("/api/reconciliations/:id", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     const { id } = req.params;
     const {
       customerId,
@@ -1666,6 +1695,7 @@ async function startServer() {
   });
 
   app.delete("/api/reconciliations/:id", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
@@ -1691,9 +1721,9 @@ async function startServer() {
 
   app.get("/api/reconciliations/:id/approve", async (req, res) => {
     const id = req.params.id;
-    const notes = req.query.notes || "";
-    const date = new Date().toISOString();
-    const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "1111111111";
+const notes = req.query.notes || "";
+const date = new Date().toISOString();
+const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "1111111111";
 
     if (
       !process.env.DATABASE_URL ||
@@ -1721,9 +1751,9 @@ async function startServer() {
 
   app.get("/api/reconciliations/:id/reject", async (req, res) => {
     const id = req.params.id;
-    const notes = req.query.notes || "";
-    const date = new Date().toISOString();
-    const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "1111111111";
+const notes = req.query.notes || "";
+const date = new Date().toISOString();
+const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "1111111111";
 
     if (
       !process.env.DATABASE_URL ||
@@ -1750,6 +1780,7 @@ async function startServer() {
   });
 
   app.get("/api/tenants", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       if (
         !process.env.DATABASE_URL ||
@@ -1781,6 +1812,7 @@ async function startServer() {
   });
 
   app.post("/api/tenants/:vkn/reset-password", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { vkn } = req.params;
       const newAdminPass = generateSecurePassword();
@@ -1870,6 +1902,7 @@ async function startServer() {
   });
 
   app.post("/api/tenants", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const data = req.body;
       const newAdminPass = generateSecurePassword();
@@ -2004,6 +2037,7 @@ async function startServer() {
   });
 
   app.put("/api/tenants/:vkn/toggle-status", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { vkn } = req.params;
 
@@ -2051,6 +2085,7 @@ async function startServer() {
   });
 
   app.put("/api/tenants/:vkn/activate", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { vkn } = req.params;
 
@@ -2358,6 +2393,7 @@ async function startServer() {
   });
 
   app.get("/api/session-logs", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
         const logs = getFallbackTable("session_logs");
@@ -2372,6 +2408,7 @@ async function startServer() {
   });
 
   app.get("/api/activation-logs", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
         const logs = getFallbackTable("activation_logs");
@@ -2386,6 +2423,7 @@ async function startServer() {
   });
 
   app.get("/api/tenants/inactive", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
         const tenants = getFallbackTable("tenants");
@@ -2434,6 +2472,7 @@ async function startServer() {
   });
 
   app.get("/api/tenants/pending-timeout", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith("mysql")) {
         const fallbacks = getFallbackTable("tenants");
@@ -2455,6 +2494,7 @@ async function startServer() {
   });
 
   app.put("/api/tenants/:vkn/reject", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { vkn } = req.params;
 
@@ -2531,6 +2571,7 @@ async function startServer() {
   });
 
   app.put("/api/tenants/:vkn", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { vkn } = req.params;
       const data = req.body;
@@ -2618,6 +2659,7 @@ async function startServer() {
   });
 
   app.delete("/api/tenants/:vkn", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { vkn } = req.params;
       if (
@@ -2639,6 +2681,7 @@ async function startServer() {
   });
 
   app.get("/api/admin/email-logs", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       if (
         !process.env.DATABASE_URL ||
@@ -2657,6 +2700,7 @@ async function startServer() {
   });
 
   app.get("/api/purchase-recommendations", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       
       if (
@@ -2680,8 +2724,9 @@ async function startServer() {
   });
 
   app.get("/api/tenant-info", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
-      
+      const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
       if (
         !process.env.DATABASE_URL ||
         !process.env.DATABASE_URL.startsWith("mysql")
@@ -2713,6 +2758,7 @@ async function startServer() {
   >();
 
   app.post("/api/public-form/request-code", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { id, type, t } = req.body;
       if (!id || !type || !t)
@@ -2812,6 +2858,7 @@ async function startServer() {
   });
 
   app.post("/api/public-form/verify", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { id, type, t, code } = req.body;
       const key = `${t}_${type}_${id}`;
@@ -2927,6 +2974,7 @@ async function startServer() {
   });
 
   app.post("/api/public-form/verify-token", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const { token } = req.body;
       if (!token) return res.status(400).json({ error: "Token eksik" });
@@ -3028,6 +3076,7 @@ async function startServer() {
     "work_orders",
     "personnel",
     "personnel_records",
+    "payroll_approvals",
     "orders",
     "proposals",
     "service_tickets",
@@ -3238,6 +3287,7 @@ async function startServer() {
   });
 
   app.post("/api/take-tenant-backup", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const vkn = req.headers["x-tenant-id"] as string;
       if (!vkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
@@ -3297,6 +3347,7 @@ async function startServer() {
   });
 
   app.post("/api/restore-tenant-upload", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
         const vkn = req.headers["x-tenant-id"] as string;
         if (!vkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
@@ -3384,6 +3435,7 @@ async function startServer() {
   });
 
   app.post("/api/restore-tenant-backup", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const vkn = req.headers["x-tenant-id"] as string;
       if (!vkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
@@ -3480,6 +3532,7 @@ async function startServer() {
   });
 
   app.post("/api/restore-nightly-backup", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const fs = await import('fs');
       const BACKUP_FILE = path.join(process.cwd(), 'backup.json');

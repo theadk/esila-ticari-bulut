@@ -100,6 +100,7 @@ export interface CustomerTransaction {
   type: 'Satış' | 'Alış' | 'Tahsilat' | 'Ödeme';
   amount: number;
   description: string;
+  status?: 'Bekliyor' | 'Onaylandı' | 'Reddedildi';
 }
 
 export interface CustomerInstallment {
@@ -200,6 +201,7 @@ export interface Proposal {
   notes?: string;
   internalNotes?: { id: string; text: string; date: string; }[];
   isConvertedToOrder?: boolean;
+  updatedAt?: string;
 }
 
 export interface CashTransaction {
@@ -274,6 +276,7 @@ export interface Personnel {
   endDate?: string;
   employmentStatus: 'Aktif' | 'Ayrıldı' | 'İzinde';
   salary: number;
+  advanceLimit?: number;
   iban: string;
   socialSecurityNo: string; // SGK No
   branch?: string; // Şube
@@ -645,3 +648,20 @@ export interface Document {
   relatedEntityId?: string;
 }
 
+
+export interface PayrollApproval {
+  id: string;
+  month: string; // YYYY-MM
+  status: 'Onaylandı' | 'Taslak';
+  approvedAt?: string;
+  approvedBy?: string;
+}
+
+export interface PerformanceScore {
+  id: string;
+  personnelId: string;
+  month: string; // YYYY-MM
+  score: number; // 0-100
+  notes?: string;
+  createdAt: string;
+}

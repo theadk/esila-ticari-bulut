@@ -198,6 +198,7 @@ export const Header: React.FC<HeaderProps> = ({ setActivePage, onLogout, toggleM
       onClick: () => {
         store.setNotifications(store.notifications.map(x => x.id === n.id ? { ...x, isRead: true } : x));
         if (n.link === 'uretim') setActivePage('uretim');
+        if (n.link === '/personel') setActivePage('personel');
       }
     }));
 

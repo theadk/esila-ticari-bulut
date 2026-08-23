@@ -54,7 +54,7 @@ export const PublicProposalView: React.FC<Props> = ({ id, tenantId }) => {
 
   const handleApprove = async () => {
     if (!proposal) return;
-    const updated = { ...proposal, status: ProposalStatus.ACCEPTED };
+    const updated = { ...proposal, status: ProposalStatus.ACCEPTED, updatedAt: new Date().toISOString() };
     
     try {
       const res = await fetch(`/api/proposals/${proposal.id}`, {
@@ -82,7 +82,7 @@ export const PublicProposalView: React.FC<Props> = ({ id, tenantId }) => {
 
   const handleReject = async () => {
     if (!proposal) return;
-    const updated = { ...proposal, status: ProposalStatus.REJECTED };
+    const updated = { ...proposal, status: ProposalStatus.REJECTED, updatedAt: new Date().toISOString() };
     
     try {
       const res = await fetch(`/api/proposals/${proposal.id}`, {

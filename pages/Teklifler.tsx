@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileBadge, Plus, Search, FileText, Printer, CheckCircle, XCircle, Trash2, Share2, Mail, MessageCircle, Package } from 'lucide-react';
+import { Clock, FileBadge, Plus, Search, FileText, Printer, CheckCircle, XCircle, Trash2, Share2, Mail, MessageCircle, Package } from 'lucide-react';
 import { Proposal, ProposalStatus, ProposalItem, Customer, Product, Order, OrderStatus } from '../types';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
@@ -16,7 +16,15 @@ export const Teklifler: React.FC = () => {
 
   const proposals = store.proposals;
   const setProposals = store.setProposals;
+  const refreshProposals = (store as any).refreshProposals;
   const customers = store.customers;
+
+  useEffect(() => {
+    if (refreshProposals) {
+      const int = setInterval(refreshProposals, 10000);
+      return () => clearInterval(int);
+    }
+  }, [refreshProposals]);
   
   // also need to be able to create an order from a proposal
   const orders = store.orders;
@@ -318,8 +326,10 @@ export const Teklifler: React.FC = () => {
           </div>
         </div>
 
-        {/* Proposlas Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div className="xl:col-span-3 space-y-6">
+          {/* Proposlas Table */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-gray-600">
@@ -378,14 +388,104 @@ export const Teklifler: React.FC = () => {
             </tbody>
           </table>
         </div>
-        <Pagination 
-          currentPage={currentPage}
+      <Pagination currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
           itemsPerPage={itemsPerPage}
           onItemsPerPageChange={setItemsPerPage}
           totalItems={filteredProposals.length}
         />
+        </div>
+        <div className="xl:col-span-1 space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-6">
+            <div className="border-b border-gray-100 p-4 bg-gray-50 flex items-center gap-2">
+              <Clock size={18} className="text-gray-500" />
+              <h3 className="font-semibold text-gray-700">İşlem Geçmişi</h3>
+            </div>
+            <div className="p-0 max-h-[calc(100vh-200px)] overflow-y-auto">
+              {proposals
+                .filter(p => p.status === 'Onaylandı' || p.status === 'Reddedildi')
+                .sort((a, b) => new Date(b.updatedAt || b.date).getTime() - new Date(a.updatedAt || a.date).getTime())
+                .slice(0, 15)
+                .map((p, i) => (
+                  <div key={p.id + i} className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors last:border-0">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <span className="font-medium text-sm text-gray-800 line-clamp-1" title={p.customerName}>{p.customerName}</span>
+                      {p.status === 'Onaylandı' ? (
+                        <CheckCircle size={16} className="text-emerald-500 shrink-0" />
+                      ) : (
+                        <XCircle size={16} className="text-red-500 shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mb-1 flex items-center flex-wrap gap-x-1">
+                      <span className="font-medium text-gray-600">#{p.id}</span>
+                      <span>•</span>
+                      <span className={p.status === 'Onaylandı' ? 'text-emerald-600' : 'text-red-600'}>
+                        {p.status}
+                      </span>
+                      <span>•</span>
+                      {new Date(p.updatedAt || p.date).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    <p className="text-xs text-gray-600 font-medium">
+                      {(p.total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                    </p>
+                  </div>
+                ))}
+              {proposals.filter(p => p.status === 'Onaylandı' || p.status === 'Reddedildi').length === 0 && (
+                <div className="p-6 text-center text-sm text-gray-500">
+                  Henüz onay veya red işlemi bulunmuyor.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+        <div className="xl:col-span-1 space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-6">
+            <div className="border-b border-gray-100 p-4 bg-gray-50 flex items-center gap-2">
+              <Clock size={18} className="text-gray-500" />
+              <h3 className="font-semibold text-gray-700">İşlem Geçmişi</h3>
+            </div>
+            <div className="p-0 max-h-[calc(100vh-200px)] overflow-y-auto">
+              {proposals
+                .filter(p => p.status === 'Onaylandı' || p.status === 'Reddedildi')
+                .sort((a, b) => new Date(b.updatedAt || b.date).getTime() - new Date(a.updatedAt || a.date).getTime())
+                .slice(0, 15)
+                .map((p, i) => (
+                  <div key={p.id + i} className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors last:border-0">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <span className="font-medium text-sm text-gray-800 line-clamp-1" title={p.customerName}>{p.customerName}</span>
+                      {p.status === 'Onaylandı' ? (
+                        <CheckCircle size={16} className="text-emerald-500 shrink-0" />
+                      ) : (
+                        <XCircle size={16} className="text-red-500 shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mb-1 flex items-center flex-wrap gap-x-1">
+                      <span className="font-medium text-gray-600">#{p.id}</span>
+                      <span>•</span>
+                      <span className={p.status === 'Onaylandı' ? 'text-emerald-600' : 'text-red-600'}>
+                        {p.status}
+                      </span>
+                      <span>•</span>
+                      {new Date(p.updatedAt || p.date).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    <p className="text-xs text-gray-600 font-medium">
+                      {p.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                    </p>
+                  </div>
+                ))}
+              {proposals.filter(p => p.status === 'Onaylandı' || p.status === 'Reddedildi').length === 0 && (
+                <div className="p-6 text-center text-sm text-gray-500">
+                  Henüz onay veya red işlemi bulunmuyor.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* Details Modal */}

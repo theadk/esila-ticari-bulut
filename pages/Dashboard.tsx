@@ -86,8 +86,51 @@ const DEFAULT_CHARTS_ORDER = [
 ];
 
 export const Dashboard: React.FC<{ setActivePage?: (page: string) => void }> = ({ setActivePage }) => {
-  const { customers, transactions, serviceTickets, settings, setServiceTickets, cashTransactions, personnel, jobApplications, orders, eInvoices, proposals, reminderNotes, setReminderNotes } = useAppStore();
+  const { customers, transactions, serviceTickets, settings, setServiceTickets, cashTransactions, personnel, jobApplications, orders, eInvoices, proposals, reminderNotes, setReminderNotes, payrollApprovals, notifications, setNotifications, users } = useAppStore();
   const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const currentUserId = localStorage.getItem('esila_user_id');
+    const currentUser = users.find(u => u.id === currentUserId);
+    if (currentUser?.role !== 'Admin') return;
+
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.toISOString().substring(0, 7);
+    
+    const prevDate = new Date();
+    prevDate.setMonth(prevDate.getMonth() - 1);
+    const prevMonth = prevDate.toISOString().substring(0, 7);
+
+    const checkAndNotify = (month, message, idSuffix) => {
+      const isApproved = payrollApprovals?.some(a => a.month === month && a.status === 'Onaylandı');
+      if (!isApproved) {
+        const notifId = `payroll-rem-${month}-${idSuffix}`;
+        const exists = notifications?.some(n => n.id === notifId);
+        if (!exists) {
+          setNotifications(prev => [...(prev || []), {
+            id: notifId,
+            userId: currentUserId,
+            title: 'Maaş Bordrosu Onayı',
+            message,
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            type: 'warning',
+            link: '/personel'
+          }]);
+        }
+      }
+    };
+
+    if (currentDay >= 20) {
+      checkAndNotify(currentMonth, `${currentMonth} dönemi maaş ödeme günleri yaklaşıyor. Lütfen bordroları kontrol edip onaylayın.`, 'upcoming');
+    }
+
+    if (currentDay <= 15) { 
+      checkAndNotify(prevMonth, `${prevMonth} dönemine ait maaş bordroları henüz onaylanmadı! Lütfen onay işlemini tamamlayın.`, 'overdue');
+    }
+  }, [payrollApprovals, notifications, setNotifications, users]);
+  
   const [tenantInfo, setTenantInfo] = useState<any>(null);
   const [exchangeRates, setExchangeRates] = useState<import('../lib/currency').ExchangeRates | null>(null);
 

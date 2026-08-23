@@ -37,6 +37,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { PuantajMaasView } from "../components/PuantajMaasView";
+import { EmployeePortal } from "../components/EmployeePortal";
+import { MaasBordrosuView } from "../components/MaasBordrosuView";
 import { KPIView } from "../components/KPIView";
 import { Personnel, PersonnelRecord, Payroll } from "../types";
 import { sendSMS } from "../src/utils/smsRequest";
@@ -1056,6 +1058,7 @@ export const Personel: React.FC = () => {
     | "İzin Yönetimi"
     | "Görev Takibi"
     | "Puantaj & Maaş"
+    | "Maaş Bordrosu"
     | "KPI & Performans"
   >("Personeller");
 
@@ -1065,13 +1068,7 @@ export const Personel: React.FC = () => {
   };
 
   if (!canView) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-500">
-        <User size={48} className="mb-4 opacity-50" />
-        <h2 className="text-xl font-semibold mb-2">Yetkisiz Erişim</h2>
-        <p>Personel modülünü görüntüleme yetkiniz bulunmamaktadır.</p>
-      </div>
-    );
+    return <EmployeePortal currentUser={currentUser} />;
   }
 
   return (
@@ -1110,6 +1107,12 @@ export const Personel: React.FC = () => {
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "Puantaj & Maaş" ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
           >
             Puantaj & Maaş
+          </button>
+          <button
+            onClick={() => setActiveTab("Maaş Bordrosu")}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "Maaş Bordrosu" ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+          >
+            Maaş Bordrosu
           </button>
           <button
             onClick={() => setActiveTab("KPI & Performans")}
@@ -1750,6 +1753,23 @@ export const Personel: React.FC = () => {
                               })
                             }
                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Aylık Avans Limiti (₺)
+                          </label>
+                          <input
+                            type="number"
+                            value={formData.advanceLimit || 0}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                advanceLimit: Number(e.target.value),
+                              })
+                            }
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            placeholder="Limit Yok"
                           />
                         </div>
                       </div>
@@ -3380,6 +3400,7 @@ export const Personel: React.FC = () => {
       {activeTab === "Görev Takibi" && <TaskTrackingView />}
 
       {activeTab === "Puantaj & Maaş" && <PuantajMaasView />}
+      {activeTab === "Maaş Bordrosu" && <MaasBordrosuView />}
 
       {activeTab === "KPI & Performans" && <KPIView />}
     </div>
