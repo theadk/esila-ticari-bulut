@@ -145,10 +145,30 @@ export const Satislar: React.FC = () => {
     order.items.forEach(item => {
       const idx = products.findIndex(p => p.id === item.productId);
       if (idx >= 0) {
-        products[idx] = { ...products[idx], stock: products[idx].stock + item.quantity };
+        products[idx] = { ...products[idx], stock: (products[idx].stock || 0) + item.quantity };
       }
     });
     store.setProducts(products);
+    
+    // Reverse customer balance if it was a sale that affected balance
+    if (order.customerId) {
+        const customers = [...(store.customers || [])];
+        const custIdx = customers.findIndex((c: any) => c.id === order.customerId);
+        if (custIdx >= 0) {
+            customers[custIdx] = { ...customers[custIdx], balance: (customers[custIdx].balance || 0) - order.total };
+            store.setCustomers(customers);
+            
+            const refundTx = {
+                id: `CTX-REF-${Date.now()}`,
+                customerId: order.customerId,
+                date: new Date().toISOString().split('T')[0],
+                type: 'Alacak' as const,
+                amount: order.total,
+                description: `İptal Edilen Satış/Sipariş #${order.id}`
+            };
+            store.setTransactions((prev: any) => [refundTx, ...(prev || [])]);
+        }
+    }
 
     // Cancel order
     const orders = store.orders.map(o => {

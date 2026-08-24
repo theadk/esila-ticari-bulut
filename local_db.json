@@ -101,7 +101,14 @@
     }
   ],
   "products": [],
-  "warehouses": [],
+  "warehouses": [
+    {
+      "id": "wh-1",
+      "name": "Merkez Depo",
+      "capacity": 1000,
+      "vkn": "1111111111"
+    }
+  ],
   "stock_transfers": [],
   "customers": [
     {
@@ -166,5 +173,33 @@
   ],
   "email_logs": [],
   "reminder_notes": [],
-  "job_applications": []
+  "job_applications": [],
+  "notifications": [
+    {
+      "id": "payroll-rem-2026-08-upcoming",
+      "userId": "u1",
+      "title": "Maaş Bordrosu Onayı",
+      "message": "2026-08 dönemi maaş ödeme günleri yaklaşıyor. Lütfen bordroları kontrol edip onaylayın.",
+      "isRead": false,
+      "createdAt": "2026-08-24T20:06:48.355Z",
+      "type": "warning",
+      "link": "/personel",
+      "vkn": "1111111111"
+    }
+  ],
+  "boms": [],
+  "work_orders": [],
+  "bank_accounts": [],
+  "attendance": [],
+  "payroll_approvals": [],
+  "salary_adjustments": [],
+  "personnel_tasks": [],
+  "documents": [],
+  "campaigns": [],
+  "waybills": [],
+  "purchase_requests": [],
+  "cheque_notes": [],
+  "suspended_carts": [],
+  "personnel_kpis": [],
+  "meeting_notes": []
 }

@@ -38,6 +38,7 @@ let globalSettings: Settings = {
   plumbingChecklistTemplate: ['Filtre Kontrolü', 'Boru Sızıntı Kontrolü', 'Su Basıncı Testi', 'Vana Kontrolü', 'Ekipman Temizliği'],
 };
 
+let globalWarehouses: any[] = [];
 let globalCustomers: Customer[] = [];
 let globalUsers: User[] = [];
 let globalProducts: Product[] = [];
@@ -242,7 +243,7 @@ export async function initializeStore(force = false) {
       { name: 'products', ref: (data: any) => { globalProducts = data.map((d:any)=>({...d, showInQuickSale: !!d.showInQuickSale, warehouseStocks: safeJSONParse(d.warehouseStocks, [])})); } },
       { name: 'categories', ref: (data: any) => { /* already in another branch but if we migrate.. */ } },
       { name: 'brands', ref: (data: any) => { /* ... */ } },
-      { name: 'warehouses', ref: (data: any) => { /* ... */ } },
+      { name: 'warehouses', ref: (data: any) => { globalWarehouses = data; } },
       { name: 'customer_transactions', ref: (data: any) => { globalTransactions = data.map((d: any) => ({ ...d, amount: Number(d.amount) || 0 })); } },
       { name: 'cash_transactions', ref: (data: any) => { globalCashTransactions = data.map((d: any) => ({ ...d, amount: Number(d.amount) || 0 })); } },
       { name: 'boms', ref: (data: any) => { 
@@ -394,6 +395,13 @@ export const useAppStore = () => {
       const old = [...globalProducts];
       globalProducts = typeof updater === 'function' ? updater(globalProducts) : updater;
       syncArray('products', old, globalProducts);
+      emit();
+    },
+    get warehouses() { return globalWarehouses; },
+    setWarehouses(updater: any) {
+      const old = [...globalWarehouses];
+      globalWarehouses = typeof updater === 'function' ? updater(globalWarehouses) : updater;
+      syncArray('warehouses', old, globalWarehouses);
       emit();
     },
     get transactions() { return globalTransactions; },

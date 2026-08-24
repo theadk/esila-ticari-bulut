@@ -1,221 +1,95 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { 
-  Plus, Search, ShoppingCart, User, Send, 
-  FileText, X, Package, Filter, ArrowUpDown, ChevronDown, Printer, MessageSquare, MessageCircle
+  Plus, Search, ShoppingCart, User, Send, FileText, 
+  X, Package, Filter, ArrowUpDown, ChevronDown, Printer, Trash2
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Order, OrderStatus, OrderItem, Product, Customer } from '../types';
-
-// Modular State Hook for Order Form
-function useOrderForm() {
-  const [customerInfo, setCustomerInfo] = useState({
-    id: '',
-    name: '',
-    phone: '',
-    email: '',
-    address: '',
-    type: ''
-  });
-
-  const [cartItems, setCartItems] = useState<OrderItem[]>([]);
-  const [notes, setNotes] = useState('');
-  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
-
-  const updateCustomerInfo = (field: string, value: string) => {
-    setCustomerInfo(prev => ({ ...prev, [field]: value }));
-  };
-
-  const addToCart = (product: Product, quantity: number = 1) => {
-    setCartItems(prev => {
-      const existing = prev.find(item => item.productId === product.id);
-      if (existing) {
-        return prev.map(item => 
-          item.productId === product.id 
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
-      }
-      return [...prev, {
-        productId: product.id,
-        productName: product.name,
-        quantity,
-        price: (customerInfo.type === 'Satıcı' && product.supplierPrice) ? product.supplierPrice : product.price,
-        taxRate: product.taxRate || 20,
-        unit: product.unit || 'Adet'
-      }];
-    });
-  };
-
-  const updateCartItem = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-    setCartItems(prev => prev.map(item => 
-      item.productId === productId ? { ...item, quantity } : item
-    ));
-  };
-
-  const removeFromCart = (productId: string) => {
-    setCartItems(prev => prev.filter(item => item.productId !== productId));
-  };
-
-  const clearForm = () => {
-    setExpectedDeliveryDate('');
-    setCustomerInfo({ id: '', name: '', phone: '', email: '', address: '' });
-    setCartItems([]);
-    setNotes('');
-  };
-
-  const totals = useMemo(() => {
-    const subTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const taxTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity * ((item.taxRate || 20) / 100)), 0);
-    const total = subTotal + taxTotal;
-    return { subTotal, taxTotal, total };
-  }, [cartItems]);
-
-  return {
-    customerInfo,
-    setCustomerInfo,
-    updateCustomerInfo,
-    cartItems,
-    setCartItems,
-    addToCart,
-    updateCartItem,
-    removeFromCart,
-    clearForm,
-    notes,
-    setNotes,
-    totals
-  };
-}
 
 export const Siparisler: React.FC = () => {
   const store = useAppStore();
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
   
-  // Custom Hook for modular state management
-  const { 
-    customerInfo, setCustomerInfo, updateCustomerInfo, 
-    cartItems, setCartItems, addToCart, updateCartItem, removeFromCart, 
-    clearForm, notes, setNotes, expectedDeliveryDate, setExpectedDeliveryDate, totals 
-  } = useOrderForm();
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Create Order State
+  const [customerInfo, setCustomerInfo] = useState({ id: '', name: '', phone: '', email: '', address: '', type: '' });
+  const [cartItems, setCartItems] = useState<OrderItem[]>([]);
+  const [notes, setNotes] = useState('');
+  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
   const [productSearch, setProductSearch] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Table State
-  const [orderSearch, setOrderSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateStart, setDateStart] = useState<string>('');
-  const [dateEnd, setDateEnd] = useState<string>('');
-  const [sortField, setSortField] = useState<'date' | 'total'>('date');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  // History State
+  const [historySearch, setHistorySearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [newInternalNote, setNewInternalNote] = useState('');
-  
-  const handleSendWhatsApp = () => {
-    if (!selectedOrder) return;
-    
-    const customer = store.customers?.find(c => c.id === selectedOrder.customerId);
-    
-    const itemsText = selectedOrder.items.map(item => 
-      `- ${item.productName} (${item.quantity} x ${item.price.toLocaleString('tr-TR', { style: 'currency', currency: selectedOrder.currency || 'TRY' })})`
-    ).join('\n');
-    
-    const message = `Sayın ${selectedOrder.customerName},
 
-${new Date(selectedOrder.date).toLocaleDateString('tr-TR')} tarihli siparişiniz (No: #${selectedOrder.id.substring(0, 8).toUpperCase()}) ile ilgili detaylar aşağıdadır:
-
-*Sipariş İçeriği:*
-${itemsText}
-
-*Ara Toplam:* ${(selectedOrder.subTotal || selectedOrder.total).toLocaleString('tr-TR', { style: 'currency', currency: selectedOrder.currency || 'TRY' })}
-${selectedOrder.taxTotal ? `*KDV Tutarı:* ${selectedOrder.taxTotal.toLocaleString('tr-TR', { style: 'currency', currency: selectedOrder.currency || 'TRY' })}\n` : ''}*Genel Toplam:* ${selectedOrder.total.toLocaleString('tr-TR', { style: 'currency', currency: selectedOrder.currency || 'TRY' })}
-
-Bizi tercih ettiğiniz için teşekkür ederiz.`;
-
-    const encodedMessage = encodeURIComponent(message);
-    let url = '';
-    
-    if (customer && customer.phone) {
-      let cleanPhone = customer.phone.replace(/\D/g, '');
-      if (cleanPhone.startsWith('0')) cleanPhone = '9' + cleanPhone;
-      else if (!cleanPhone.startsWith('90')) cleanPhone = '90' + cleanPhone;
-      
-      url = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
-    } else {
-      url = `https://api.whatsapp.com/send?text=${encodedMessage}`;
-    }
-    
-    window.open(url, '_blank');
-  };
-
-  const handleAddInternalNote = () => {
-    if (!newInternalNote.trim() || !selectedOrder) return;
-    
-    const note = {
-      id: crypto.randomUUID(),
-      text: newInternalNote.trim(),
-      date: new Date().toISOString()
-    };
-    
-    const updatedOrder = {
-      ...selectedOrder,
-      internalNotes: [...(selectedOrder.internalNotes || []), note]
-    };
-    
-    setSelectedOrder(updatedOrder);
-    store.setOrders((prev: Order[]) => prev.map(o => o.id === selectedOrder.id ? updatedOrder : o));
-    
-    setNewInternalNote('');
-    toast.success('Dahili not eklendi');
-  };
-
-  // Filtered Products
-  const products = store.products || [];
   const filteredProducts = useMemo(() => {
-    if (!productSearch) return products.slice(0, 12);
-    const lowerSearch = productSearch.toLowerCase();
-    return products.filter(p => 
-      p.name?.toLowerCase().includes(lowerSearch) || 
-      p.code?.toLowerCase().includes(lowerSearch)
-    ).slice(0, 12);
-  }, [products, productSearch]);
+    const prods = store.products || [];
+    if (!productSearch) return prods.slice(0, 12);
+    const lower = productSearch.toLowerCase();
+    return prods.filter((p: any) => p.name?.toLowerCase().includes(lower) || p.code?.toLowerCase().includes(lower)).slice(0, 12);
+  }, [store.products, productSearch]);
 
-  const addOrderToDB = async (order: Order) => {
-    try {
-      const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
-      const userId = localStorage.getItem('esila_user_id') || '';
-      
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-tenant-id': tenantId,
-          'x-user-id': userId
-        },
-        body: JSON.stringify(order)
-      });
+  const totals = useMemo(() => {
+    const subTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const taxTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity * (item.taxRate || 20) / 100), 0);
+    return { subTotal, taxTotal, total: subTotal + taxTotal };
+  }, [cartItems]);
 
-      let data;
-      const text = await response.text();
-      try { data = JSON.parse(text); } catch(e) { data = { error: text }; }
-
-      if (!response.ok) {
-        throw new Error(data?.error || text || 'Veritabanı kayıt hatası');
+  const addToCart = (product: Product) => {
+    setCartItems(prev => {
+      const existing = prev.find(i => i.productId === product.id);
+      if (existing) {
+        return prev.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return data;
-    } catch (error: any) {
-      console.error("addOrder veritabanı kayıt hatası:", error);
-      throw error;
+      return [...prev, {
+        productId: product.id,
+        productName: product.name,
+        quantity: 1,
+        price: product.price,
+        taxRate: product.taxRate || 20,
+        unit: product.unit || 'Adet'
+      }];
+    });
+    toast.success(`${product.name} sepete eklendi`);
+  };
+
+  const updateQuantity = (productId: string, delta: number) => {
+    setCartItems(prev => prev.map(item => {
+      if (item.productId === productId) {
+        const newQ = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQ };
+      }
+      return item;
+    }));
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCartItems(prev => prev.filter(i => i.productId !== productId));
+  };
+
+  const clearForm = () => {
+    setCustomerInfo({ id: '', name: '', phone: '', email: '', address: '', type: '' });
+    setCartItems([]);
+    setNotes('');
+    setExpectedDeliveryDate('');
+  };
+
+  const handleCustomerSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const custId = e.target.value;
+    const cust = store.customers?.find((c: Customer) => c.id === custId);
+    if (cust) {
+      setCustomerInfo({
+        id: cust.id, name: cust.name, phone: cust.phone || '', email: cust.email || '', address: cust.address || '', type: cust.type || ''
+      });
+    } else {
+      setCustomerInfo({ id: '', name: '', phone: '', email: '', address: '', type: '' });
     }
   };
 
   const handleCreateOrder = async () => {
-    if (!customerInfo.name || cartItems.length === 0) {
-      toast.error('Lütfen müşteri bilgilerini girin ve sepete ürün ekleyin.');
+    if (!customerInfo.id || cartItems.length === 0) {
+      toast.error('Lütfen bir müşteri seçin ve sepete ürün ekleyin.');
       return;
     }
 
@@ -223,10 +97,10 @@ Bizi tercih ettiğiniz için teşekkür ederiz.`;
     try {
       const newOrder: Order = {
         expectedDeliveryDate: expectedDeliveryDate || undefined,
-        id: crypto.randomUUID(),
-        customerId: customerInfo.id || crypto.randomUUID(),
+        id: `ORD-${Date.now()}`,
+        customerId: customerInfo.id,
         customerName: customerInfo.name,
-        date: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        date: new Date().toISOString(),
         items: cartItems,
         subTotal: totals.subTotal,
         taxTotal: totals.taxTotal,
@@ -235,244 +109,130 @@ Bizi tercih ettiğiniz için teşekkür ederiz.`;
         notes: notes,
       };
 
-      await addOrderToDB(newOrder);
-
-      // Optimistic update
       store.setOrders((prev: Order[]) => [newOrder, ...(prev || [])]);
-      
+
+      // Update customer balance and add transaction
+      if (customerInfo.id) {
+        const customer = store.customers?.find((c: any) => c.id === customerInfo.id);
+        if (customer) {
+           const newTx = {
+             id: `CTX-ORD-${Date.now()}`,
+             customerId: customer.id,
+             date: new Date().toISOString().split('T')[0],
+             type: 'Borç' as const,
+             amount: totals.total,
+             description: `Sipariş #${newOrder.id.substring(0,8).toUpperCase()}`
+           };
+           
+           const currentBalance = Number(customer.balance) || 0;
+           store.setCustomers((prev: any) => prev.map((c: any) => 
+              c.id === customer.id ? { ...c, balance: currentBalance + totals.total } : c
+           ));
+           store.setTransactions((prev: any) => [newTx, ...(prev || [])]);
+        }
+      }
+
       toast.success('Sipariş başarıyla oluşturuldu!');
       clearForm();
       setActiveTab('history');
     } catch (error: any) {
-      toast.error(error.message || 'Sipariş oluşturulurken bir hata oluştu.');
+      toast.error(error.message || 'Hata oluştu');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Select customer from existing
-  const handleCustomerSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const custId = e.target.value;
-    if (!custId) {
-      clearForm();
-      return;
-    }
-    const cust = store.customers?.find((c: Customer) => c.id === custId);
-    if (cust) {
-      setCustomerInfo({
-        id: cust.id,
-        name: cust.name,
-        phone: cust.phone || '',
-        email: cust.email || '',
-        address: cust.address || '',
-        type: cust.type || ''
-      });
-      setCartItems(prev => prev.map(item => {
-        const product = store.products?.find(p => p.id === item.productId);
-        if (product) {
-           const newPrice = (cust.type === 'Satıcı' && product.supplierPrice) ? product.supplierPrice : product.price;
-           return { ...item, price: newPrice };
-        }
-        return item;
-      }));
-    }
-  };
+  const filteredOrders = useMemo(() => {
+    const orders = store.orders || [];
+    if (!historySearch) return orders;
+    return orders.filter(o => o.id.includes(historySearch) || o.customerName?.toLowerCase().includes(historySearch.toLowerCase()));
+  }, [store.orders, historySearch]);
 
-  // Filtered and Sorted Orders
-  const handleCreateInvoiceDraft = (order: Order) => {
-    const existing = store.eInvoices?.find((inv: any) => inv.orderId === order.id);
-    if (existing) {
-       toast.error('Bu sipariş için zaten bir fatura oluşturulmuş.');
-       return;
+  const handleCancelOrder = (order: Order) => {
+    if (!window.confirm('Bu siparişi iptal etmek istediğinize emin misiniz? Cari işlem iade edilecektir.')) return;
+    
+    // Reverse balance
+    const customer = store.customers?.find((c: any) => c.id === order.customerId);
+    if (customer) {
+        const refundTx = {
+            id: `CTX-REF-${Date.now()}`,
+            customerId: customer.id,
+            date: new Date().toISOString().split('T')[0],
+            type: 'Alacak' as const,
+            amount: order.total,
+            description: `İptal Edilen Sipariş #${order.id.substring(0,8).toUpperCase()}`
+        };
+        const currentBalance = Number(customer.balance) || 0;
+        store.setCustomers((prev: any) => prev.map((c: any) => 
+            c.id === customer.id ? { ...c, balance: currentBalance - order.total } : c
+        ));
+        store.setTransactions((prev: any) => [refundTx, ...(prev || [])]);
     }
     
-    const customer = store.customers?.find((c: Customer) => c.id === order.customerId);
-    const taxNumber = customer?.taxNumber || customer?.tcNumber || '';
-    const invoiceType = taxNumber.length === 10 ? 'e-Fatura' : 'e-Arşiv';
-    
-    const newInvoice = {
-      id: `INV-${Date.now()}`,
-      orderId: order.id,
-      customerName: order.customerName,
-      amount: order.total,
-      type: invoiceType,
-      invoiceType: 'SATIS',
-      scenario: 'TEMELFATURA',
-      date: new Date().toISOString().split('T')[0],
-      status: 'Taslak',
-      currency: 'TRY'
-    };
-    
-    if (store.setEInvoices) {
-      store.setEInvoices([...(store.eInvoices || []), newInvoice]);
-      toast.success(invoiceType + ' taslağı başarıyla oluşturuldu.');
-    }
-  };
-
-  const filteredAndSortedOrders = useMemo(() => {
-    let result = [...(store.orders || [])];
-
-    // Filter by search term
-    if (orderSearch) {
-      const term = orderSearch.toLowerCase();
-      result = result.filter(order => 
-        order.id.toLowerCase().includes(term) || 
-        order.customerName.toLowerCase().includes(term)
-      );
-    }
-
-    // Filter by date range
-    if (dateStart) {
-      result = result.filter(order => new Date(order.date) >= new Date(dateStart));
-    }
-    if (dateEnd) {
-      const end = new Date(dateEnd);
-      end.setHours(23, 59, 59, 999);
-      result = result.filter(order => new Date(order.date) <= end);
-    }
-
-    // Filter by status
-    if (statusFilter !== 'all') {
-      result = result.filter(order => order.status === statusFilter);
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      let comparison = 0;
-      if (sortField === 'date') {
-        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
-      } else if (sortField === 'total') {
-        comparison = a.total - b.total;
-      }
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-
-    return result;
-  }, [store.orders, orderSearch, statusFilter, dateStart, dateEnd, sortField, sortDirection]);
-
-  const handleSort = (field: 'date' | 'total') => {
-    if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('desc');
-    }
-  };
-
-  const getStatusColor = (status: OrderStatus) => {
-    switch (status) {
-      case OrderStatus.COMPLETED: return 'bg-green-50 text-green-700 border-green-200';
-      case OrderStatus.PENDING: return 'bg-amber-50 text-amber-700 border-amber-200';
-      case OrderStatus.CANCELLED: return 'bg-red-50 text-red-700 border-red-200';
-      default: return 'bg-blue-50 text-blue-700 border-blue-200';
-    }
+    store.setOrders((prev: Order[]) => prev.map(o => o.id === order.id ? { ...o, status: OrderStatus.CANCELLED } : o));
+    setSelectedOrder(null);
+    toast.success('Sipariş iptal edildi');
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50/50 print:h-auto print:bg-white">
-      {/* Header */}
-      <div className="flex-none px-6 py-4 border-b border-gray-200 bg-white shadow-sm flex items-center justify-between z-10 print:hidden">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Sipariş Yönetimi</h1>
-          <p className="text-sm text-gray-500 mt-1">Sipariş oluşturun ve takip edin.</p>
-        </div>
-        <div className="flex items-center space-x-2 bg-gray-100/80 p-1 rounded-xl">
-          <button
-            onClick={() => setActiveTab('create')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'create' 
-                ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' 
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Yeni Sipariş
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'history' 
-                ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5' 
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Sipariş Geçmişi
-          </button>
+    <div className="h-full flex flex-col bg-gray-50/50">
+      <div className="bg-white border-b border-gray-200 p-4 shrink-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+              <ShoppingCart size={24} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Sipariş Yönetimi</h1>
+              <p className="text-sm text-gray-500">Müşteri siparişlerini oluşturun ve yönetin</p>
+            </div>
+          </div>
+          
+          <div className="flex p-1 bg-gray-100 rounded-lg">
+            <button
+              onClick={() => { setActiveTab('create'); setSelectedOrder(null); }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'create' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
+            >
+              Yeni Sipariş
+            </button>
+            <button
+              onClick={() => { setActiveTab('history'); setSelectedOrder(null); }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'history' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
+            >
+              Geçmiş Siparişler
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className={`flex-1 overflow-hidden print:overflow-visible ${selectedOrder ? "print:hidden" : ""}`}>
+      <div className="flex-1 overflow-hidden">
         {activeTab === 'create' ? (
           <div className="h-full flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
-            {/* Left Column: Form & Products */}
-            <div className="flex-1 flex flex-col lg:h-full lg:overflow-y-auto p-4 lg:p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-200 shrink-0">
-              
-              {/* Customer Details Section */}
+            {/* Left Column */}
+            <div className="flex-1 flex flex-col lg:h-full lg:overflow-y-auto p-4 lg:p-6 space-y-6 shrink-0">
+              {/* Customer */}
               <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-lg font-medium text-gray-900 flex items-center">
                     <User className="w-5 h-5 text-blue-500 mr-2" />
-                    Müşteri Bilgileri
+                    Müşteri Seçimi
                   </h2>
-                  {store.customers && store.customers.length > 0 && (
-                    <select 
-                      className="text-sm border border-gray-200 rounded-lg text-gray-600 focus:ring-blue-500 focus:border-blue-500 py-1.5 px-3 bg-gray-50"
-                      onChange={handleCustomerSelect}
-                      value={customerInfo.id}
-                    >
-                      <option value="">-- Kayıtlı Müşteri Seç --</option>
-                      {store.customers.map((c: Customer) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  )}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ad Soyad / Ünvan *</label>
-                    <input 
-                      type="text" 
-                      value={customerInfo.name}
-                      onChange={e => updateCustomerInfo('name', e.target.value)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none"
-                      placeholder="Müşteri Adı"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
-                    <input 
-                      type="tel" 
-                      value={customerInfo.phone}
-                      onChange={e => updateCustomerInfo('phone', e.target.value)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none"
-                      placeholder="05XX XXX XX XX"
-                    />
-                  </div>
-                  <div className="md:col-span-2 xl:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Adres</label>
-                    <input 
-                      type="text" 
-                      value={customerInfo.address}
-                      onChange={e => updateCustomerInfo('address', e.target.value)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none"
-                      placeholder="Teslimat adresi"
-                    />
-                  </div>
-                  <div className="md:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Beklenen Teslimat</label>
-                    <input 
-                      type="date" 
-                      value={expectedDeliveryDate}
-                      onChange={e => setExpectedDeliveryDate(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none"
-                    />
-                  </div>
-                </div>
+                <select 
+                  className="w-full border border-gray-200 rounded-lg p-2"
+                  value={customerInfo.id}
+                  onChange={handleCustomerSelect}
+                >
+                  <option value="">-- Müşteri Seç --</option>
+                  {store.customers?.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               </section>
 
-              {/* Product Selection Section */}
-              <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex-1 flex flex-col min-h-[400px]">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-4">
+              {/* Products */}
+              <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex-1 flex flex-col min-h-[300px]">
+                <div className="flex items-center justify-between mb-5">
                   <h2 className="text-lg font-medium text-gray-900 flex items-center">
                     <Package className="w-5 h-5 text-blue-500 mr-2" />
                     Ürün Seçimi
@@ -484,542 +244,130 @@ Bizi tercih ettiğiniz için teşekkür ederiz.`;
                       placeholder="Ürün ara..." 
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
-                      className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full sm:w-64 transition-colors outline-none"
+                      className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm w-full outline-none"
                     />
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-4 pr-2 scrollbar-thin scrollbar-thumb-gray-200">
-                  {filteredProducts.map(product => (
-                    <div 
-                      key={product.id}
-                      onClick={() => addToCart(product)}
-                      className="group cursor-pointer border border-gray-100 rounded-xl p-4 hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-between bg-white relative overflow-hidden h-48"
-                    >
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="bg-blue-500 text-white rounded-full p-1.5 shadow-sm">
-                          <Plus className="w-4 h-4" />
-                        </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pr-2 pb-4">
+                  {filteredProducts.map((p: any) => (
+                    <div key={p.id} onClick={() => addToCart(p)} className="cursor-pointer border border-gray-100 rounded-xl p-4 hover:border-blue-500 flex flex-col items-center text-center">
+                      <div className="w-16 h-16 bg-gray-50 rounded-lg flex items-center justify-center mb-2 overflow-hidden">
+                         {p.image ? <img src={p.image} className="w-full h-full object-cover" /> : <Package className="text-gray-400" />}
                       </div>
-                      <div>
-                        <div className="text-xs text-gray-400 mb-1">{product.code}</div>
-                        {product.image && <div className="w-full h-16 mb-2 overflow-hidden rounded-lg bg-gray-50 flex items-center justify-center"><img src={product.image} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" /></div>}
-                        <h3 className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">{product.name}</h3>
-                      </div>
-                      <div className="mt-2 flex items-end justify-between">
-                        <span className="text-sm font-semibold text-blue-600">
-                          {(product.price || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                        </span>
-                        <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
-                          Stok: {product.stock}
-                        </span>
-                      </div>
+                      <span className="text-sm font-medium line-clamp-2">{p.name}</span>
+                      <span className="text-xs text-blue-600 font-bold mt-1">{p.price} ₺</span>
                     </div>
                   ))}
-                  {filteredProducts.length === 0 && (
-                    <div className="col-span-full py-12 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                      Ürün bulunamadı.
-                    </div>
-                  )}
                 </div>
               </section>
             </div>
 
-            {/* Right Column: Order Summary (Cart) */}
+            {/* Right Column: Cart */}
             <div className="w-full lg:w-96 bg-white lg:border-l border-t lg:border-t-0 border-gray-200 flex flex-col lg:h-full shadow-sm z-20 shrink-0">
               <div className="p-5 border-b border-gray-100 bg-gray-50/50">
-                <h2 className="text-lg font-medium text-gray-900 flex items-center">
-                  <ShoppingCart className="w-5 h-5 text-blue-500 mr-2" />
-                  Sipariş Özeti
-                  <span className="ml-2 bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {cartItems.length}
-                  </span>
-                </h2>
+                <h2 className="text-lg font-medium text-gray-900">Sipariş Özeti ({cartItems.length})</h2>
               </div>
-
-              <div className="flex-1 overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-gray-200">
+              <div className="flex-1 overflow-y-auto p-5">
                 {cartItems.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3">
-                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100">
-                      <ShoppingCart className="w-8 h-8 text-gray-300" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-500">Sepetiniz boş</p>
-                    <p className="text-xs text-gray-400 text-center">Sol taraftan ürün ekleyin</p>
-                  </div>
+                  <div className="text-center text-gray-400 mt-10">Sepetiniz boş</div>
                 ) : (
                   <div className="space-y-4">
                     {cartItems.map(item => (
-                      <div key={item.productId} className="flex gap-3 items-start bg-gray-50/80 p-3 rounded-xl border border-gray-100/50 hover:border-gray-200 transition-colors">
-                        {(() => {
-                          const p = store.products.find(p => p.id === item.productId);
-                          return p?.image ? <img src={p.image} className="w-10 h-10 object-cover rounded shadow-sm border border-gray-100 shrink-0" /> : <div className="w-10 h-10 bg-white border border-gray-100 rounded flex items-center justify-center shrink-0"><Package className="w-5 h-5 text-gray-400" /></div>;
-                        })()}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-gray-900 truncate pr-4" title={item.productName}>
-                            {item.productName}
-                          </h4>
-                          <div className="text-xs font-semibold text-blue-600 mt-1">
-                            {(item.price || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                          </div>
+                      <div key={item.productId} className="flex flex-col bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-sm font-medium text-gray-900">{item.productName}</span>
+                          <button onClick={() => removeFromCart(item.productId)} className="text-red-500"><X size={16}/></button>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <button 
-                            onClick={() => removeFromCart(item.productId)}
-                            className="text-gray-400 hover:text-red-500 transition-colors p-1 -mr-1 -mt-1"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                          <div className="flex items-center border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden">
-                            <button 
-                              onClick={() => updateCartItem(item.productId, item.quantity - 1)}
-                              className="px-2.5 py-1 text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors font-medium"
-                            >-</button>
-                            <input 
-                              type="number" 
-                              value={item.quantity}
-                              onChange={(e) => updateCartItem(item.productId, parseInt(e.target.value) || 0)}
-                              className="w-10 text-center text-sm font-medium text-gray-900 bg-transparent border-x border-gray-200 py-1 outline-none appearance-none"
-                              min="1"
-                            />
-                            <button 
-                              onClick={() => updateCartItem(item.productId, item.quantity + 1)}
-                              className="px-2.5 py-1 text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors font-medium"
-                            >+</button>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-blue-600">{item.price} ₺</span>
+                          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg">
+                            <button onClick={() => updateQuantity(item.productId, -1)} className="px-2 py-1 text-gray-500 hover:bg-gray-50">-</button>
+                            <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                            <button onClick={() => updateQuantity(item.productId, 1)} className="px-2 py-1 text-gray-500 hover:bg-gray-50">+</button>
                           </div>
                         </div>
                       </div>
                     ))}
-                    
-                    {/* Notes Field */}
-                    <div className="pt-4 border-t border-gray-100">
-                      <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Sipariş Notu</label>
-                      <textarea 
-                        value={notes}
-                        onChange={e => setNotes(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors resize-none outline-none"
-                        rows={2}
-                        placeholder="Örn: Hediye paketi yapılacak..."
-                      />
-                    </div>
                   </div>
                 )}
               </div>
-
-              {/* Totals & Submit */}
-              <div className="p-5 bg-gray-50 border-t border-gray-200 space-y-3">
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Ara Toplam</span>
-                  <span className="font-medium text-gray-900">{(totals.subTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+              <div className="p-5 border-t border-gray-100 bg-gray-50/50">
+                <div className="flex justify-between text-lg font-bold text-gray-900 mb-4">
+                  <span>Toplam</span>
+                  <span>{totals.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
                 </div>
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>KDV</span>
-                  <span className="font-medium text-gray-900">{(totals.taxTotal || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
-                </div>
-                <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
-                  <span className="text-base font-semibold text-gray-900">Genel Toplam</span>
-                  <span className="text-xl font-bold text-blue-600">
-                    {(totals.total || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                  </span>
-                </div>
-                
-                <button
-                  onClick={handleCreateOrder}
-                  disabled={cartItems.length === 0 || !customerInfo.name || isSubmitting}
-                  className={`w-full py-3.5 mt-4 rounded-xl flex items-center justify-center font-medium text-sm transition-all shadow-sm ${
-                    cartItems.length > 0 && customerInfo.name && !isSubmitting
-                      ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0' 
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
+                <button 
+                  onClick={handleCreateOrder} 
+                  disabled={isSubmitting || cartItems.length === 0}
+                  className="w-full bg-blue-600 text-white rounded-xl py-3 font-medium flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {isSubmitting ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      İşleniyor...
-                    </span>
-                  ) : (
-                    <span className="flex items-center">
-                      <Send className="w-4 h-4 mr-2" />
-                      Siparişi Oluştur
-                    </span>
-                  )}
+                  <Send size={18} /> Siparişi Tamamla
                 </button>
               </div>
             </div>
           </div>
         ) : (
-          <div className="h-full p-6 overflow-y-auto bg-gray-50/50 print:h-auto print:overflow-visible print:p-0 print:bg-white">
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col print:border-none print:shadow-none print:overflow-visible">
-              
-              {/* History Header & Controls */}
-              <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center bg-gray-50/50">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-lg font-medium text-gray-900">Sipariş Geçmişi</h2>
-                  <button 
-                    onClick={() => {
-                      setTimeout(() => window.print(), 100);
-                    }}
-                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium flex items-center gap-2 text-sm print:hidden"
-                  >
-                    <Printer size={16} />
-                    Yazdır / PDF
-                  </button>
-                </div>
-                
-                <div className="flex flex-col lg:flex-row gap-3 w-full lg:w-auto print:hidden">
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex items-center">
-                      <input 
-                        type="date"
-                        value={dateStart}
-                        onChange={(e) => setDateStart(e.target.value)}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none w-full sm:w-auto"
-                        title="Başlangıç Tarihi"
-                      />
-                    </div>
-                    <div className="relative flex items-center">
-                      <input 
-                        type="date"
-                        value={dateEnd}
-                        onChange={(e) => setDateEnd(e.target.value)}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors outline-none w-full sm:w-auto"
-                        title="Bitiş Tarihi"
-                      />
-                    </div>
-                    <div className="relative flex items-center">
-                      <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none outline-none transition-colors w-full sm:w-auto"
-                      >
-                        <option value="all">Tüm Durumlar</option>
-                        {Object.values(OrderStatus).map(status => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    </div>
-                  </div>
-                  
-                  <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input 
-                      type="text" 
-                      placeholder="Sipariş no veya müşteri..." 
-                      value={orderSearch}
-                      onChange={(e) => setOrderSearch(e.target.value)}
-                      className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full sm:w-64 transition-colors outline-none"
-                    />
-                  </div>
-                </div>
+          <div className="h-full flex flex-col p-6 overflow-y-auto">
+            <div className="mb-6 flex gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input 
+                  type="text" 
+                  placeholder="Sipariş ara (Müşteri, No)..." 
+                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 outline-none"
+                  value={historySearch}
+                  onChange={e => setHistorySearch(e.target.value)}
+                />
               </div>
-
-              {/* Data Table */}
-              <div className="overflow-x-auto print:overflow-visible">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th 
-                        className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100 transition-colors"
-                        onClick={() => handleSort('date')}
-                      >
-                        <div className="flex items-center">
-                          Sipariş No / Tarih
-                          {sortField === 'date' && (
-                            <ArrowUpDown className="w-3.5 h-3.5 ml-1.5 text-blue-500" />
-                          )}
-                        </div>
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Müşteri</th>
-                      <th 
-                        className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer group hover:bg-gray-100 transition-colors"
-                        onClick={() => handleSort('total')}
-                      >
-                        <div className="flex items-center">
-                          Tutar
-                          {sortField === 'total' && (
-                            <ArrowUpDown className="w-3.5 h-3.5 ml-1.5 text-blue-500" />
-                          )}
-                        </div>
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Durum</th>
-                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlemler</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Sipariş No</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tarih</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Müşteri</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Tutar</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Durum</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">İşlem</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {filteredAndSortedOrders.map((order: Order) => (
-                      <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => setSelectedOrder(order)}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center mr-3 group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
-                              <FileText className="w-4 h-4 text-gray-500 group-hover:text-blue-600 transition-colors" />
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-gray-900 font-mono group-hover:text-blue-600 transition-colors">
-                                #{order.id.substring(0, 8).toUpperCase()}
-                              </div>
-                              <div className="text-xs text-gray-500 mt-0.5">
-                                {new Date(order.date).toLocaleString('tr-TR', { 
-                                  day: '2-digit', month: 'short', year: 'numeric', 
-                                  hour: '2-digit', minute: '2-digit' 
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{order.customerName}</div>
-                          {order.items?.length > 0 && (
-                            <div className="text-xs text-gray-500 mt-0.5">{order.items.length} çeşit ürün</div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900">
-                            {(order.total || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
-                            {order.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCreateInvoiceDraft(order);
-                            }}
-                            className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-medium transition-colors border border-blue-100"
-                            title="E-Fatura Taslağı Oluştur"
-                          >
-                            <FileText className="w-3.5 h-3.5 mr-1.5" />
-                            Taslak Oluştur
-                          </button>
-                        </td>
-                      </tr>
-                        ))}
-                    {filteredAndSortedOrders.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center">
-                          <div className="flex flex-col items-center justify-center text-gray-400 space-y-3">
-                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100">
-                              <Search className="w-6 h-6 text-gray-300" />
-                            </div>
-                            <p className="text-base font-medium text-gray-900">Sipariş Bulunamadı</p>
-                            <p className="text-sm text-gray-500">Arama kriterlerinize uygun sipariş eşleşmedi.</p>
-                          </div>
-                        </td>
-                      </tr>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredOrders.length === 0 ? (
+                      <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">Kayıt bulunamadı</td></tr>
+                    ) : (
+                      filteredOrders.map((order: any) => (
+                        <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900">{order.id}</td>
+                          <td className="px-6 py-4 text-sm text-gray-500">{new Date(order.date).toLocaleDateString('tr-TR')}</td>
+                          <td className="px-6 py-4 text-sm text-gray-900">{order.customerName}</td>
+                          <td className="px-6 py-4 text-sm font-semibold text-gray-900 text-right">{order.total?.toLocaleString('tr-TR')} ₺</td>
+                          <td className="px-6 py-4 text-center">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                              order.status === OrderStatus.COMPLETED ? 'bg-emerald-100 text-emerald-700' :
+                              order.status === OrderStatus.CANCELLED ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {order.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            {order.status !== OrderStatus.CANCELLED && (
+                              <button onClick={() => handleCancelOrder(order)} className="text-red-500 hover:text-red-700 p-1">
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
               </div>
-              
-              {/* Pagination Placeholder (if needed later) */}
-              {filteredAndSortedOrders.length > 0 && (
-                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 text-xs text-gray-500 flex justify-between items-center">
-                  <span>Toplam <strong>{filteredAndSortedOrders.length}</strong> sipariş gösteriliyor</span>
-                </div>
-              )}
             </div>
           </div>
         )}
       </div>
-
-      {/* Order Details Modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in print:bg-white print:relative print:inset-auto print:block" style={{ zIndex: 60 }}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col print:shadow-none print:max-w-full print:m-0 print:border-none print:rounded-none">
-            <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0 print:hidden">
-              <div>
-                <h3 className="font-bold text-xl text-gray-800">Sipariş Detayı</h3>
-                <p className="text-sm text-gray-500 mt-1">#{selectedOrder.id.substring(0, 8).toUpperCase()} - {new Date(selectedOrder.date).toLocaleString('tr-TR')}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={handleSendWhatsApp}
-                  className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-colors font-medium flex items-center gap-2 text-sm"
-                  title="WhatsApp'tan Gönder"
-                >
-                  <MessageCircle size={16} />
-                  <span className="hidden sm:inline">WhatsApp</span>
-                </button>
-                <button 
-                  onClick={() => {
-                    setTimeout(() => window.print(), 100);
-                  }}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium flex items-center gap-2 text-sm"
-                >
-                  <Printer size={16} />
-                  Yazdır
-                </button>
-                <button type="button" onClick={() => setSelectedOrder(null)} className="text-gray-500 hover:text-red-500 transition-colors p-2">
-                  <X size={24} />
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-4 sm:p-6 overflow-y-auto print:p-0 flex-1 print:overflow-visible">
-              <div className="print-target bg-white">
-                <div className="hidden print:block mb-8 border-b pb-4">
-                  <h1 className="text-2xl font-bold mb-2">SİPARİŞ FİŞİ</h1>
-                  <p><strong>Sipariş No:</strong> #{selectedOrder.id.substring(0, 8).toUpperCase()}</p>
-                  <p><strong>Tarih:</strong> {new Date(selectedOrder.date).toLocaleString('tr-TR')}</p>
-                  <p><strong>Müşteri:</strong> {selectedOrder.customerName}</p>
-                  <p><strong>Durum:</strong> {selectedOrder.status}</p>
-                </div>
-
-                <div className="mb-6 print:hidden">
-                  <div className="p-5 bg-white border border-gray-100 shadow-sm rounded-xl mb-4">
-                    <div className="flex justify-between items-center mb-5">
-                      <p className="text-sm font-semibold text-gray-800">Sipariş Durumu</p>
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedOrder.status)}`}>
-                        {selectedOrder.status}
-                      </span>
-                    </div>
-                    {selectedOrder.status === OrderStatus.CANCELLED ? (
-                      <div className="flex items-center justify-center p-4 bg-red-50 text-red-600 rounded-lg font-medium border border-red-100">
-                        <X className="w-5 h-5 mr-2" /> Sipariş İptal Edildi
-                      </div>
-                    ) : (
-                      <div className="relative pt-2">
-                        <div className="overflow-hidden h-2.5 mb-4 text-xs flex rounded-full bg-gray-100">
-                          <div style={{ width: 
-                            selectedOrder.status === OrderStatus.PENDING ? '25%' :
-                            selectedOrder.status === OrderStatus.PREPARED ? '50%' :
-                            selectedOrder.status === OrderStatus.SHIPPED ? '75%' :
-                            selectedOrder.status === OrderStatus.COMPLETED ? '100%' : '0%'
-                           }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-500"></div>
-                        </div>
-                        <div className="flex justify-between text-xs font-medium text-gray-400 px-1">
-                          <div className={`flex flex-col items-center gap-1 ${selectedOrder.status === OrderStatus.PENDING || selectedOrder.status === OrderStatus.PREPARED || selectedOrder.status === OrderStatus.SHIPPED || selectedOrder.status === OrderStatus.COMPLETED ? 'text-blue-600' : ''}`}>
-                             <span className="w-2 h-2 rounded-full bg-current hidden sm:block"></span>
-                             <span>Bekliyor</span>
-                          </div>
-                          <div className={`flex flex-col items-center gap-1 ${selectedOrder.status === OrderStatus.PREPARED || selectedOrder.status === OrderStatus.SHIPPED || selectedOrder.status === OrderStatus.COMPLETED ? 'text-blue-600' : ''}`}>
-                             <span className="w-2 h-2 rounded-full bg-current hidden sm:block"></span>
-                             <span>Hazır</span>
-                          </div>
-                          <div className={`flex flex-col items-center gap-1 ${selectedOrder.status === OrderStatus.SHIPPED || selectedOrder.status === OrderStatus.COMPLETED ? 'text-blue-600' : ''}`}>
-                             <span className="w-2 h-2 rounded-full bg-current hidden sm:block"></span>
-                             <span>Kargolandı</span>
-                          </div>
-                          <div className={`flex flex-col items-center gap-1 ${selectedOrder.status === OrderStatus.COMPLETED ? 'text-blue-600' : ''}`}>
-                             <span className="w-2 h-2 rounded-full bg-current hidden sm:block"></span>
-                             <span>Tamamlandı</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Müşteri</p>
-                      <p className="font-semibold text-gray-900">{selectedOrder.customerName}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <h4 className="font-semibold text-gray-800 mb-3 border-b pb-2">Ürünler</h4>
-                  <div className="overflow-x-auto print:overflow-visible">
-                    <table className="w-full text-left text-sm print:text-xs">
-                      <thead className="bg-gray-50 text-gray-600 print:bg-transparent border-b">
-                        <tr>
-                          <th className="px-4 py-2 font-semibold">Ürün</th>
-                          <th className="px-4 py-2 text-center font-semibold">Miktar</th>
-                          <th className="px-4 py-2 text-right font-semibold">Birim Fiyat</th>
-                          <th className="px-4 py-2 text-right font-semibold">Toplam</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {selectedOrder.items?.map((item, idx) => {
-                          const p = store.products.find(prod => prod.id === item.productId);
-                          return (
-                          <tr key={idx}>
-                            <td className="px-4 py-3 font-medium text-gray-900 flex items-center gap-2">
-                               {p?.image ? <img src={p.image} alt={item.productName} className="w-8 h-8 object-cover rounded-md border border-gray-200" /> : <Package className="w-8 h-8 p-1 text-gray-400 bg-gray-100 rounded-md" />}
-                               {item.productName}
-                            </td>
-                            <td className="px-4 py-3 text-center">{item.quantity} {item.unit || 'Adet'}</td>
-                            <td className="px-4 py-3 text-right">{(item.price || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
-                            <td className="px-4 py-3 text-right font-semibold text-gray-900">{((item.price || 0) * item.quantity).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</td>
-                          </tr>
-                        );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-4 border-t border-gray-100">
-                  <div className="w-full sm:w-1/2 md:w-1/3">
-                    <div className="flex justify-between items-center py-2 text-lg font-bold">
-                      <span>Genel Toplam:</span>
-                      <span className="text-blue-600">{(selectedOrder.total || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {selectedOrder.notes && (
-                  <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100">
-                    <p className="text-sm font-semibold text-amber-800 mb-1">Sipariş Notu:</p>
-                    <p className="text-sm text-amber-900">{selectedOrder.notes}</p>
-                  </div>
-                )}
-                
-                {/* Dahili Notlar */}
-                <div className="mt-8 border-t border-gray-100 pt-6 print:hidden">
-                  <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-blue-500" />
-                    Dahili Yorumlar / Notlar
-                  </h4>
-                  
-                  <div className="space-y-3 mb-4">
-                    {(!selectedOrder.internalNotes || selectedOrder.internalNotes.length === 0) ? (
-                      <p className="text-xs text-gray-500 italic">Henüz not eklenmemiş.</p>
-                    ) : (
-                      selectedOrder.internalNotes.map(note => (
-                        <div key={note.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                          <div className="flex justify-between items-start mb-1">
-                            <span className="text-[10px] font-medium text-gray-400 bg-white px-2 py-0.5 rounded border border-gray-100">
-                              {new Date(note.date).toLocaleString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.text}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <input 
-                      type="text"
-                      value={newInternalNote}
-                      onChange={(e) => setNewInternalNote(e.target.value)}
-                      onKeyDown={(e) => { if(e.key === 'Enter') handleAddInternalNote(); }}
-                      placeholder="Sipariş için dahili not yazın..."
-                      className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    />
-                    <button 
-                      onClick={handleAddInternalNote}
-                      disabled={!newInternalNote.trim()}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      <Send className="w-4 h-4" />
-                      Ekle
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

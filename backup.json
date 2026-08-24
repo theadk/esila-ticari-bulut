@@ -101,7 +101,14 @@
     }
   ],
   "products": [],
-  "warehouses": [],
+  "warehouses": [
+    {
+      "id": "wh-1",
+      "name": "Merkez Depo",
+      "capacity": 1000,
+      "vkn": "1111111111"
+    }
+  ],
   "stock_transfers": [],
   "customers": [
     {

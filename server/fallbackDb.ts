@@ -17,6 +17,9 @@ let dbData: Record<string, any[]> = {
     { vkn: '1111111111', id: '1', name: 'Elektronik', sub_categories: ['Telefon', 'Bilgisayar', 'Aksesuar'] },
     { vkn: '1111111111', id: '2', name: 'Giyim', sub_categories: ['Erkek', 'Kadın', 'Çocuk'] }
   ],
+  warehouses: [
+    { vkn: '1111111111', id: 'wh-1', name: 'Merkez Depo', capacity: 1000 }
+  ],
   brands: [
      { vkn: '1111111111', id: '1', name: 'Sony' },
      { vkn: '1111111111', id: '2', name: 'Apple' },

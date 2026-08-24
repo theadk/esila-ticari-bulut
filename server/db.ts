@@ -12,8 +12,16 @@ export function getPool() {
     } else {
       pool = mysql.createPool({
         uri: process.env.DATABASE_URL,
-        connectTimeout: 10000 // 10 seconds timeout
+        waitForConnections: true,
+        connectionLimit: 10,
+        maxIdle: 10, 
+        idleTimeout: 60000, 
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 0,
+        connectTimeout: 10000
       });
+    }
 
       // --- ETIMEDOUT Interceptor ---
       const originalQuery = pool.query.bind(pool);
@@ -46,7 +54,6 @@ export function getPool() {
         }
       };
       // -----------------------------
-    }
   }
   return pool;
 }
@@ -276,6 +283,7 @@ export async function initDb() {
     /*
     await client.query(`
       CREATE TABLE IF NOT EXISTS warehouses (
+        vkn VARCHAR(50),
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255),
         address TEXT,
@@ -285,6 +293,7 @@ export async function initDb() {
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS categories (
+        vkn VARCHAR(50),
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255),
         sub_categories JSON
@@ -293,6 +302,7 @@ export async function initDb() {
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS products (
+        vkn VARCHAR(50),
         id VARCHAR(255) PRIMARY KEY,
         code VARCHAR(255),
         name VARCHAR(255),
@@ -312,6 +322,7 @@ export async function initDb() {
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS brands (
+        vkn VARCHAR(50),
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255)
       );
@@ -319,6 +330,7 @@ export async function initDb() {
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS reconciliations (
+        vkn VARCHAR(50),
         id VARCHAR(255) PRIMARY KEY,
         customerId VARCHAR(255),
         customerName VARCHAR(255),
