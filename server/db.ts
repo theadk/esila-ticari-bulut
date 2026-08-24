@@ -23,34 +23,71 @@ export function getPool() {
       });
     }
 
-      // --- ETIMEDOUT Interceptor ---
+      // --- ETIMEDOUT & Reconnect Interceptor ---
       const originalQuery = pool.query.bind(pool);
       (pool as any).query = async function(...args: any[]) {
-        const startTime = Date.now();
-        try {
-          return await originalQuery(...args);
-        } catch (error: any) {
-          const duration = Date.now() - startTime;
-          if (error.code === 'ETIMEDOUT' || (error.message && error.message.includes('ETIMEDOUT'))) {
-            console.error(`[DB Timeout Logger] Veritabanı sorgusu zaman aşımına uğradı (${duration}ms). Hata: ${error.message}`);
-            throw new Error(`Veritabanı bağlantısı zaman aşımına uğradı (ETIMEDOUT - ${duration}ms). Sunucu IP'mizi engelliyor olabilir. Lütfen hosting panelinizden Uzak MySQL (Remote MySQL) erişimine izin verin.`);
+        let retries = 3;
+        while (retries > 0) {
+          const startTime = Date.now();
+          try {
+            return await originalQuery(...args);
+          } catch (error: any) {
+            const isConnectionError = error.code === 'ETIMEDOUT' || 
+                                      error.code === 'ECONNRESET' || 
+                                      error.code === 'PROTOCOL_CONNECTION_LOST' || 
+                                      error.code === 'EPIPE' ||
+                                      (error.message && error.message.includes('ETIMEDOUT'));
+            
+            if (isConnectionError) {
+              const duration = Date.now() - startTime;
+              console.warn(`[DB Timeout/Disconnect] Bağlantı koptu veya zaman aşımı (${duration}ms). Hata: ${error.code}. Kalan deneme: ${retries - 1}`);
+              retries--;
+              if (retries === 0) {
+                 throw new Error(`Veritabanı bağlantısı koptu ve yeniden bağlanılamadı (${error.code} - ${duration}ms). Lütfen hosting panelinizden 'Uzak MySQL' erişimine izin verin.`);
+              }
+              await new Promise(res => setTimeout(res, 500));
+            } else {
+              throw error;
+            }
           }
-          throw error;
         }
       };
 
       const originalGetConnection = pool.getConnection.bind(pool);
       (pool as any).getConnection = async function() {
-        const startTime = Date.now();
-        try {
-          return await originalGetConnection();
-        } catch (error: any) {
-          const duration = Date.now() - startTime;
-          if (error.code === 'ETIMEDOUT' || (error.message && error.message.includes('ETIMEDOUT'))) {
-            console.error(`[DB Timeout Logger] Veritabanı bağlantısı zaman aşımına uğradı (${duration}ms). Hata: ${error.message}`);
-            throw new Error(`Veritabanı bağlantısı zaman aşımına uğradı (ETIMEDOUT - ${duration}ms). Lütfen cPanel/Plesk üzerinden 'Uzak MySQL' (Remote MySQL) erişimine izin verin.`);
+        let retries = 3;
+        while (retries > 0) {
+          const startTime = Date.now();
+          try {
+            const conn = await originalGetConnection();
+            
+            try {
+              await conn.ping();
+            } catch (pingErr: any) {
+              conn.destroy(); // Kill dead connection
+              throw pingErr;  // Throw to trigger retry
+            }
+            
+            return conn;
+          } catch (error: any) {
+            const isConnectionError = error.code === 'ETIMEDOUT' || 
+                                      error.code === 'ECONNRESET' || 
+                                      error.code === 'PROTOCOL_CONNECTION_LOST' || 
+                                      error.code === 'EPIPE' ||
+                                      (error.message && error.message.includes('ETIMEDOUT'));
+                                      
+            if (isConnectionError) {
+              const duration = Date.now() - startTime;
+              console.warn(`[DB GetConnection] Bağlantı hatası (${duration}ms). Hata: ${error.code}. Kalan deneme: ${retries - 1}`);
+              retries--;
+              if (retries === 0) {
+                 throw new Error(`Veritabanına bağlanılamadı (${error.code} - ${duration}ms). Lütfen hosting panelinizden 'Uzak MySQL' erişimine izin verin.`);
+              }
+              await new Promise(res => setTimeout(res, 500));
+            } else {
+              throw error;
+            }
           }
-          throw error;
         }
       };
       // -----------------------------
