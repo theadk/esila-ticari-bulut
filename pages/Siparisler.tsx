@@ -403,9 +403,9 @@ Bizi tercih ettiğiniz için teşekkür ederiz.`;
       {/* Main Content Area */}
       <div className={`flex-1 overflow-hidden print:overflow-visible ${selectedOrder ? "print:hidden" : ""}`}>
         {activeTab === 'create' ? (
-          <div className="h-full flex flex-col lg:flex-row overflow-hidden">
+          <div className="h-full flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
             {/* Left Column: Form & Products */}
-            <div className="flex-1 flex flex-col h-full overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-200">
+            <div className="flex-1 flex flex-col lg:h-full lg:overflow-y-auto p-4 lg:p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-200 shrink-0">
               
               {/* Customer Details Section */}
               <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -526,7 +526,7 @@ Bizi tercih ettiğiniz için teşekkür ederiz.`;
             </div>
 
             {/* Right Column: Order Summary (Cart) */}
-            <div className="w-full lg:w-96 bg-white border-l border-gray-200 flex flex-col h-full shadow-sm z-20">
+            <div className="w-full lg:w-96 bg-white lg:border-l border-t lg:border-t-0 border-gray-200 flex flex-col lg:h-full shadow-sm z-20 shrink-0">
               <div className="p-5 border-b border-gray-100 bg-gray-50/50">
                 <h2 className="text-lg font-medium text-gray-900 flex items-center">
                   <ShoppingCart className="w-5 h-5 text-blue-500 mr-2" />
