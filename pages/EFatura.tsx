@@ -26,6 +26,7 @@ import {  api } from "../lib/api";
 import {  InvoiceTemplateEditor } from "../components/InvoiceTemplateEditor";
 import {  Pagination } from "../components/Pagination";
 import {  hasPermission } from '../lib/permissions';
+import * as XLSX from "xlsx";
 
 export const EFatura: React.FC = () => {
   const store = useAppStore();
@@ -517,6 +518,47 @@ export const EFatura: React.FC = () => {
     setSelectedIds([]);
   };
 
+  
+  const handleExportExcel = () => {
+    let invoicesToExport = invoices.filter(inv => inv.status === "Taslak" && inv.type !== "Gelen Fatura");
+    if (selectedIds.length > 0) {
+      invoicesToExport = invoicesToExport.filter(inv => selectedIds.includes(inv.id));
+    }
+
+    if (invoicesToExport.length === 0) {
+      alert("Dışa aktarılacak taslak fatura bulunamadı.");
+      return;
+    }
+
+    const data = invoicesToExport.map(inv => {
+      const order = store.orders?.find((o) => o.id === inv.orderId);
+      const customer = store.customers?.find((c) => c.name === inv.customerName || c.id === order?.customerId);
+      
+      return {
+        "Belge Türü": inv.type || "e-Arşiv Fatura",
+        "Fatura Tipi": inv.invoiceType || "SATIS",
+        "Senaryo": inv.scenario || "TEMELFATURA",
+        "Fatura Numarası": inv.id,
+        "Tarih": new Date(inv.date).toLocaleDateString("tr-TR"),
+        "Cari Kodu": customer?.id || "",
+        "VKN/TCKN": customer?.taxNumber || "",
+        "Unvan": customer?.companyName || customer?.name || inv.customerName,
+        "Vergi Dairesi": customer?.taxOffice || "",
+        "İl": customer?.city || "",
+        "İlçe": customer?.district || "",
+        "Toplam Tutar": Number(inv.amount || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 }),
+        "Para Birimi": inv.currency || "TRY",
+        "Döviz Kuru": inv.exchangeRate || 1,
+        "Durum": inv.status
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Taslak Faturalar");
+    XLSX.writeFile(workbook, `Taslak_Faturalar_${new Date().getTime()}.xlsx`);
+  };
+
   const handleBulkPrint = () => {
     if (selectedIds.length === 0) return;
     alert(`${selectedIds.length} adet faturanın PDF çıktıları hazırlanıyor...`);
@@ -846,6 +888,43 @@ export const EFatura: React.FC = () => {
             <><Palette size={16} className="inline mr-1 mb-0.5" />Tasarım Editörü</>
           </button>
         </div>
+        
+        {activeTab === "Taslak" && (
+            <div className="flex ml-4 mt-4 sm:mt-0 items-center justify-end">
+              <button
+                onClick={() => {
+                  // If we are clicking this top button, maybe we clear selections or just export all
+                  let invoicesToExport = invoices.filter(inv => inv.status === "Taslak" && inv.type !== "Gelen Fatura");
+                  if (invoicesToExport.length === 0) {
+                    alert("Dışa aktarılacak taslak fatura bulunamadı.");
+                    return;
+                  }
+              
+                  const data = invoicesToExport.map(inv => ({
+                    "Fatura Numarası": inv.id,
+                    "Fatura Tarihi": new Date(inv.date).toLocaleDateString("tr-TR"),
+                    "Müşteri Adı": inv.customerName,
+                    "Fatura Tipi": inv.type,
+                    "Senaryo": inv.scenario,
+                    "Fatura Türü": inv.invoiceType || 'SATIS',
+                    "Durum": inv.status,
+                    "Tutar": Number(inv.amount || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 }),
+                    "Para Birimi": inv.currency || 'TRY',
+                    "Döviz Kuru": inv.exchangeRate || 1
+                  }));
+              
+                  const worksheet = XLSX.utils.json_to_sheet(data);
+                  const workbook = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(workbook, worksheet, "Taslak Faturalar");
+                  XLSX.writeFile(workbook, `Taslak_Faturalar_${new Date().getTime()}.xlsx`);
+                }}
+                className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+              >
+                <Download size={16} /> Tüm Taslakları Excel İndir
+              </button>
+            </div>
+        )}
+
         {activeTab === "Giden" && (
             <div className="flex ml-4 mt-4 sm:mt-0 items-center justify-end">
               <button
@@ -895,6 +974,16 @@ export const EFatura: React.FC = () => {
                     <Send size={14} /> Toplu GİB'e Gönder
                   </button>
                 )}
+
+                {activeTab === "Taslak" && (
+                  <button
+                    onClick={handleExportExcel}
+                    className="px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 shadow-sm"
+                  >
+                    <Download size={14} /> Excel'e Aktar
+                  </button>
+                )}
+
                 <button
                   onClick={handleBulkPrint}
                   className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 shadow-sm"

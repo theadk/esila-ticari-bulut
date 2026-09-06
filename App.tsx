@@ -21,6 +21,7 @@ import { Uretim } from './pages/Uretim';
 import { Raporlar } from './pages/Raporlar';
 import { Ariza } from './pages/Ariza';
 import { EFatura } from './pages/EFatura';
+import { CustomerDisplay } from './pages/CustomerDisplay';
 import { Ajanda } from './pages/Ajanda';
 import { Dokumanlar } from './pages/Dokumanlar';
 import { SuperAdminLogin } from './src/pages/SuperAdminLogin';
@@ -123,6 +124,11 @@ const App: React.FC = () => {
     'ctrl+b': () => setIsMobileMenuOpen(prev => !prev),
     'ctrl+h': () => setActivePage('dashboard'),
   });
+
+
+  if (window.location.pathname.startsWith('/musteri-ekrani')) {
+    return <CustomerDisplay />;
+  }
 
   if (publicFormToken) {
     return <PublicFormView token={publicFormToken} />;

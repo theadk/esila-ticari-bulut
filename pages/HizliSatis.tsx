@@ -27,6 +27,21 @@ export const HizliSatis: React.FC = () => {
     api.getWarehouses().then(setWarehouses).catch(console.error);
   }, []);
   
+  
+  useEffect(() => {
+    localStorage.setItem('esila_customer_display_state', JSON.stringify({
+      cart: cart.map(c => ({
+        id: c.product.id,
+        name: c.product.name,
+        price: getProductPrice(c.product),
+        quantity: c.quantity,
+        discount: c.discount
+      })),
+      total: calculateTotal(),
+      customerId: selectedCustomerId
+    }));
+  }, [cart, selectedCustomerId]);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Default parameters
@@ -499,8 +514,19 @@ export const HizliSatis: React.FC = () => {
             <ShoppingCart className="text-emerald-600" />
             <h2 className="text-lg font-bold text-emerald-800">Satış Sepeti</h2>
           </div>
-          <button 
-            onClick={() => setShowSuspendedModal(true)}
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => window.open('/musteri-ekrani', '_blank', 'width=1024,height=768')}
+              className="flex items-center gap-1 px-3 py-1 bg-white border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+              title="Müşteri Ekranı"
+            >
+               <Camera size={16} />
+               <span className="hidden sm:inline">Müşteri Ekranı</span>
+            </button>
+            <button 
+              onClick={() => setShowSuspendedModal(true)}
+
             className="flex items-center gap-1 px-3 py-1 bg-white border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-medium"
           >
              <Clock size={16} />
@@ -511,6 +537,7 @@ export const HizliSatis: React.FC = () => {
                </span>
              )}
           </button>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto p-2">
