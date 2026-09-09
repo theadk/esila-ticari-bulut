@@ -28,20 +28,6 @@ export const HizliSatis: React.FC = () => {
   }, []);
   
   
-  useEffect(() => {
-    localStorage.setItem('esila_customer_display_state', JSON.stringify({
-      cart: cart.map(c => ({
-        id: c.product.id,
-        name: c.product.name,
-        price: getProductPrice(c.product),
-        quantity: c.quantity,
-        discount: c.discount
-      })),
-      total: calculateTotal(),
-      customerId: selectedCustomerId
-    }));
-  }, [cart, selectedCustomerId]);
-
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Default parameters
@@ -146,6 +132,36 @@ export const HizliSatis: React.FC = () => {
   const calculateTotal = () => {
     return cart.reduce((total, item) => total + (getProductPrice(item.product) * item.quantity * (1 - item.discount / 100)), 0);
   };
+
+  const channelRef = useRef<BroadcastChannel | null>(null);
+
+  useEffect(() => {
+    channelRef.current = new BroadcastChannel('customer_display_channel');
+    return () => {
+      channelRef.current?.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const state = {
+        cart: cart.map(c => ({
+          id: c.product.id,
+          name: c.product.name,
+          price: getProductPrice(c.product),
+          quantity: c.quantity,
+          discount: c.discount
+        })),
+        total: calculateTotal(),
+        customerId: selectedCustomerId
+      };
+      localStorage.setItem('esila_customer_display_state', JSON.stringify(state));
+      channelRef.current?.postMessage(state);
+    } catch(e) {
+      console.error('Customer display broadcast error:', e);
+    }
+  }, [cart, selectedCustomerId, customers]);
+
 
   const handlePrintReceipt = (currentCustomer: Customer | any, paymentMethod: string, totalAmount: number, items: typeof cart) => {
     import('../lib/printUtils').then(({ generateThermalReceiptHtml, printHtml }) => {

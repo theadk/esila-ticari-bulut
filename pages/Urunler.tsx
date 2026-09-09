@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import { useAppStore } from '../lib/store';
 import { hasPermission } from '../lib/permissions';
 import { Pagination } from '../components/Pagination';
+import { AdsManager } from '../components/AdsManager';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { QRCodeSVG } from 'qrcode.react';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
@@ -95,7 +96,7 @@ export const Urunler: React.FC = () => {
   const canEdit = hasPermission(currentUser, 'urunler', 'edit');
   const canDelete = hasPermission(currentUser, 'urunler', 'delete');
 
-  const [activeTab, setActiveTab] = useState<'urunler' | 'kategoriler' | 'markalar'>('urunler');
+  const [activeTab, setActiveTab] = useState<'urunler' | 'kategoriler' | 'markalar' | 'reklamlar'>('urunler');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
@@ -996,6 +997,16 @@ export const Urunler: React.FC = () => {
             >
               Markalar
             </button>
+            <button
+              onClick={() => setActiveTab('reklamlar')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                activeTab === 'reklamlar' 
+                  ? 'bg-white text-emerald-600 shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Müşteri Ekranı Reklamları
+            </button>
           </div>
           {supported && (
             <button
@@ -1081,6 +1092,8 @@ export const Urunler: React.FC = () => {
                 </button>
               )}
             </>
+          ) : activeTab === 'reklamlar' ? (
+            <></>
           ) : activeTab === 'kategoriler' ? (
             canCreate && (
               <button 
@@ -2110,6 +2123,8 @@ export const Urunler: React.FC = () => {
         </div>
       )}
       </>
+      ) : activeTab === 'reklamlar' ? (
+        <AdsManager />
       ) : activeTab === 'kategoriler' ? (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
         <table className="w-full text-left">
