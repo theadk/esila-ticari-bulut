@@ -64,11 +64,12 @@ export const CustomerDisplay: React.FC = () => {
 
   useEffect(() => {
     if (ads.length <= 1) return;
+    const intervalSeconds = store.settings?.customerDisplay_sliderInterval || 5;
     const interval = setInterval(() => {
       setCurrentAdIndex((prev) => (prev + 1) % ads.length);
-    }, 5000); // 5 seconds per slide
+    }, intervalSeconds * 1000);
     return () => clearInterval(interval);
-  }, [ads]);
+  }, [ads, store.settings?.customerDisplay_sliderInterval]);
 
   const companyName = store.settings?.companyName || 'Hoş Geldiniz';
   

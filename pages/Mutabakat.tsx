@@ -60,10 +60,15 @@ export const Mutabakat: React.FC = () => {
   const fetchReconciliations = async () => {
     try {
       const res = await apiFetch('/api/reconciliations');
+      if (!res.ok) {
+        setReconciliations([]);
+        return;
+      }
       const data = await res.json();
-      setReconciliations(data);
+      setReconciliations(Array.isArray(data) ? data : (Array.isArray(data?.reconciliations) ? data.reconciliations : []));
     } catch (e) {
       console.error(e);
+      setReconciliations([]);
     } finally {
       setLoading(false);
     }

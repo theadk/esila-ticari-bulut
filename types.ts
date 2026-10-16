@@ -407,6 +407,7 @@ export interface Settings {
   receiptTemplate_logoPosition?: 'left' | 'center' | 'right' | 'hidden';
   receiptTemplate_logoSize?: number;
   receiptTemplate_showTaxInfo?: boolean;
+  customerDisplay_sliderInterval?: number;
   receiptTemplate_showAddress?: boolean;
   receiptTemplate_showPhone?: boolean;
   receiptTemplate_fontSize?: string;
