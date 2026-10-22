@@ -1066,6 +1066,31 @@ export const Urunler: React.FC = () => {
                   <span>Seçilenleri Yazdır ({selectedProductIds.length})</span>
                 </button>
               )}
+              {selectedProductIds.length > 0 && canDelete && (
+                <button 
+                  onClick={async () => {
+                    if (!confirm(`Seçilen ${selectedProductIds.length} ürünü silmek istediğinize emin misiniz?`)) return;
+                    try {
+                      const vkn = localStorage.getItem("esila_tenant_id") || "1111111111";
+                      for (const id of selectedProductIds) {
+                        await fetch(`/api/products/${id}`, {
+                          method: 'DELETE',
+                          headers: { 'x-tenant-id': vkn }
+                        });
+                      }
+                      setProducts(products.filter(p => !selectedProductIds.includes(p.id)));
+                      setSelectedProductIds([]);
+                      toast.success(`${selectedProductIds.length} ürün başarıyla silindi.`);
+                    } catch (err) {
+                      toast.error('Toplu silme sırasında hata oluştu.');
+                    }
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                >
+                  <Trash2 size={18} />
+                  <span>Seçilenleri Sil ({selectedProductIds.length})</span>
+                </button>
+              )}
               <button 
                 onClick={() => setIsPriceRevisionModalOpen(true)}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"

@@ -11,6 +11,8 @@ import { sendSMS } from '../src/utils/smsRequest';
 import { useSpeechRecognition } from '../lib/useSpeechRecognition';
 import { CRM } from './CRM';
 import { CariRaporModal } from '../components/CariRaporModal';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const INITIAL_FORM: Customer = {
   id: '',
@@ -765,6 +767,24 @@ export const Cariler: React.FC = () => {
 
   const printCustomerHistory = (customer: Customer) => {
     setPrintEkstreModalOpen(true);
+  };
+  const downloadEkstrePDF = async () => {
+    const printElement = document.getElementById('ekstre-print-content');
+    if (!printElement || !selectedCustomerForHistory) return;
+    const toastId = toast.loading("PDF hazırlanıyor...");
+    try {
+      const canvas = await html2canvas(printElement, { scale: 2, useCORS: true, logging: false });
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Cari_Ekstre_${selectedCustomerForHistory.name.replace(/\s+/g, '_')}.pdf`);
+      toast.success("PDF başarıyla indirildi.", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("PDF oluşturulurken hata oluştu.", { id: toastId });
+    }
   };
 
   const fileInputRefHistory = useRef<HTMLInputElement>(null);
@@ -2788,7 +2808,7 @@ export const Cariler: React.FC = () => {
             </div>
 
             {/* Print Content - A4 Document Format */}
-            <div className="p-8 md:p-12 print:p-4 print:text-black font-sans bg-white">
+            <div id="ekstre-print-content" className="p-8 md:p-12 print:p-4 print:text-black font-sans bg-white">
               <div className="flex justify-between items-start mb-8 border-b-2 pb-6" style={{ borderColor: store.settings?.invoiceTemplate_color || '#1f2937' }}>
                 <div>
                   <h1 className="text-3xl font-bold mb-2" style={{ color: store.settings?.invoiceTemplate_color || '#111827' }}>CARİ HESAP EKSTRESİ</h1>

@@ -33,6 +33,18 @@ export function getPool() {
             return await originalQuery(...args);
           } catch (error: any) {
             const isConnectionError = error.code === 'ETIMEDOUT' || 
+                                       error.code === 'ECONNRESET' || 
+                                       error.code === 'PROTOCOL_CONNECTION_LOST' || 
+                                       error.code === 'EPIPE' ||
+                                       error.code === 'ER_ACCESS_DENIED_ERROR' ||
+                                       error.code === 'ECONNREFUSED' ||
+                                       error.code === 'ENOTFOUND' ||
+                                      (error.message && error.message.includes('ETIMEDOUT'));
+
+            if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+              console.warn('[DB Access Denied] Uzak MySQL erişim yetkisi reddedildi (IP kısıtlaması). Otomatik olarak yerel yedek (fallback) moduna geçiliyor.');
+              process.env.DATABASE_URL = '';
+            } 
                                       error.code === 'ECONNRESET' || 
                                       error.code === 'PROTOCOL_CONNECTION_LOST' || 
                                       error.code === 'EPIPE' ||
@@ -123,6 +135,7 @@ export async function initDb() {
         name: '007_add_new_fields_for_expenses_and_prices',
         up: async () => {
           const alterStatements = [
+            'ALTER TABLE products ADD COLUMN unit VARCHAR(50) DEFAULT \'Adet\';',
             'ALTER TABLE products ADD COLUMN supplierPrice DECIMAL(15,2);',
             'ALTER TABLE cash_transactions ADD COLUMN personnelId VARCHAR(255);',
             'ALTER TABLE cash_transactions ADD COLUMN accountId VARCHAR(255);'
@@ -353,7 +366,8 @@ export async function initDb() {
         brand VARCHAR(255),
         taxRate REAL,
         warehouseStocks JSON,
-        showInQuickSale BOOLEAN DEFAULT false
+        showInQuickSale BOOLEAN DEFAULT false,
+        unit VARCHAR(50) DEFAULT 'Adet'
       );
     `);
 
@@ -362,6 +376,25 @@ export async function initDb() {
         vkn VARCHAR(50),
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255)
+      );
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS e_invoices (
+        vkn VARCHAR(50),
+        id VARCHAR(255) PRIMARY KEY,
+        type VARCHAR(100),
+        invoiceType VARCHAR(50),
+        scenario VARCHAR(50),
+        date VARCHAR(50),
+        customerName VARCHAR(255),
+        amount DECIMAL(15,2),
+        currency VARCHAR(10),
+        exchangeRate DECIMAL(10,4),
+        status VARCHAR(50),
+        items JSON,
+        notes TEXT,
+        isProcessed BOOLEAN DEFAULT false,
+        supplierTaxNumber VARCHAR(50)
       );
     `);
 

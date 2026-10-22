@@ -519,47 +519,74 @@ export const EFatura: React.FC = () => {
   };
 
   
-  const handleExportExcel = () => {
+    const handleExportExcel = () => {
     let invoicesToExport = invoices.filter(inv => inv.status === "Taslak" && inv.type !== "Gelen Fatura");
     if (selectedIds.length > 0) {
       invoicesToExport = invoicesToExport.filter(inv => selectedIds.includes(inv.id));
     }
-
     if (invoicesToExport.length === 0) {
       alert("Dışa aktarılacak taslak fatura bulunamadı.");
       return;
     }
 
-    const data = invoicesToExport.map(inv => {
+    const rows: any[] = [];
+    invoicesToExport.forEach(inv => {
       const order = store.orders?.find((o) => o.id === inv.orderId);
       const customer = store.customers?.find((c) => c.name === inv.customerName || c.id === order?.customerId);
-      
-      return {
-        "Belge Türü": inv.type || "e-Arşiv Fatura",
-        "Fatura Tipi": inv.invoiceType || "SATIS",
-        "Senaryo": inv.scenario || "TEMELFATURA",
-        "Fatura Numarası": inv.id,
-        "Tarih": new Date(inv.date).toLocaleDateString("tr-TR"),
-        "Cari Kodu": customer?.id || "",
-        "VKN/TCKN": customer?.taxNumber || "",
-        "Unvan": customer?.companyName || customer?.name || inv.customerName,
-        "Vergi Dairesi": customer?.taxOffice || "",
-        "İl": customer?.city || "",
-        "İlçe": customer?.district || "",
-        "Toplam Tutar": Number(inv.amount || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 }),
-        "Para Birimi": inv.currency || "TRY",
-        "Döviz Kuru": inv.exchangeRate || 1,
-        "Durum": inv.status
-      };
+      const items = (inv as any).items && (inv as any).items.length > 0 ? (inv as any).items : (order?.items || [{ name: 'Hizmet / Ürün', quantity: 1, price: inv.amount || 0, code: 'URUN-01' }]);
+
+      items.forEach((item: any) => {
+        rows.push({
+          "PARA_BIRI": inv.currency || "TRY",
+          "KUR_DEGERI": inv.exchangeRate && inv.exchangeRate !== 1 ? inv.exchangeRate : "",
+          "ALICI_VKN": customer?.taxNumber || "1111111111",
+          "ALICI_UNVAN": customer?.companyName || customer?.name || inv.customerName || "Esila Test",
+          "ALICI_ADI": customer?.name || "Arşiv Fatura",
+          "ALICI_SOYAD": "",
+          "ILCE": customer?.district || "Çankaya",
+          "IL": customer?.city || "Ankara",
+          "ULKE": "Türkiye",
+          "ADRES": customer?.address || "HÜSAMETTİN...",
+          "VERGI_DAIRESI": customer?.taxOffice || "",
+          "IADE_FATURA_NO": "",
+          "IADE_FATURA_TARIHI": "",
+          "IADE_FATURA_DURUMU": "",
+          "URUN_ADI": item.name || "Genel Ürün",
+          "ALICI_URUN_KODU": item.code || "00123456789",
+          "SATICI_URUN_KODU": item.code || "SATICI-001",
+          "MIKTAR": item.quantity || 1,
+          "BIRIM_FIYATI": item.price || 0,
+          "BIRIM": item.unit || "ADET",
+          "ISKONTO(%)": item.discount || 0,
+          "KDV(%)": item.taxRate || 20,
+          "ISTISNA_KODU": "",
+          "FATURA_ACIKLAMASI": inv.notes || "AÇIKLAMA",
+          "IRSALIYE_NO": "",
+          "IRSALIYE_TARIHI": "",
+          "GTIP_NUMARASI": "",
+          "KDV_TEVKIFATI": "",
+          "BUNDAN_SONRAKİ": "DOLDURMASI_GEREKEN_ALAN",
+          "WEB_SITESI": "www.esilaticari.com",
+          "ODEME_SEKLI": "ODEME_SEKLI",
+          "ODEME_DURUMU": "ODEME_DURUMU",
+          "ODEME_TARIHI": new Date(inv.date).toLocaleDateString("tr-TR"),
+          "TASIYICI_ADI": "",
+          "TASIYICI_SOYADI": "",
+          "TASIYICI_UNVANI": "",
+          "TASIYICI_VKN": "",
+          "GONDEREN": "",
+          "ALICI_TELEFON_NO": customer?.phone || "905555555555"
+        });
+      });
     });
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
+    const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Taslak Faturalar");
-    XLSX.writeFile(workbook, `Taslak_Faturalar_${new Date().getTime()}.xlsx`);
+    XLSX.writeFile(workbook, `Taslak_Faturalar_Format_${new Date().getTime()}.xlsx`);
   };
 
-  const handleBulkPrint = () => {
+const handleBulkPrint = () => {
     if (selectedIds.length === 0) return;
     alert(`${selectedIds.length} adet faturanın PDF çıktıları hazırlanıyor...`);
     // Simulated PDF print delay

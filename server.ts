@@ -1510,11 +1510,12 @@ async function startServer() {
       showInQuickSale,
       supplierPrice,
       image,
+      unit,
     } = req.body;
     try {
       const pool = getPool();
       await pool.query(
-        "UPDATE products SET code = ?, name = ?, price = ?, stock = ?, category = ?, warehouse = ?, barcode = ?, description = ?, brand = ?, `taxRate` = ?, `warehouseStocks` = ?, `purchasePrice` = ?, `showInQuickSale` = ?, `supplierPrice` = ?, `image` = ? WHERE id = ? AND vkn = ?",
+        "UPDATE products SET code = ?, name = ?, price = ?, stock = ?, category = ?, warehouse = ?, barcode = ?, description = ?, brand = ?, `taxRate` = ?, `warehouseStocks` = ?, `purchasePrice` = ?, `showInQuickSale` = ?, `supplierPrice` = ?, `image` = ?, `unit` = ? WHERE id = ? AND vkn = ?",
         [
           code,
           name,
@@ -1531,6 +1532,7 @@ async function startServer() {
           showInQuickSale ? 1 : 0,
           supplierPrice,
           image || null,
+          unit || 'Adet',
           id,
           (req.headers["x-tenant-id"] as string) || "1111111111",
         ],
@@ -1578,7 +1580,7 @@ async function startServer() {
     try {
       const pool = getPool();
       await pool.query(
-        "INSERT INTO products (vkn, id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`, `showInQuickSale`, `supplierPrice`, `image`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO products (vkn, id, code, name, price, stock, category, warehouse, barcode, description, brand, `taxRate`, `warehouseStocks`, `purchasePrice`, `showInQuickSale`, `supplierPrice`, `image`, `unit`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           (req.headers["x-tenant-id"] as string) || "1111111111",
           id,
@@ -1597,6 +1599,7 @@ async function startServer() {
           showInQuickSale ? 1 : 0,
           supplierPrice,
           image || null,
+          unit || 'Adet',
         ],
       );
       res.json(req.body);
