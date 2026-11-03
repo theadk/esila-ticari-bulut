@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => {
             ]
           },
           workbox: {
-            maximumFileSizeToCacheInBytes: 5 * 1024 * 1024 /* 5MB */
+            maximumFileSizeToCacheInBytes: 15 * 1024 * 1024 /* 15MB */
           }
         })
       ],
@@ -55,6 +55,12 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      build: {
+        sourcemap: false,
+      },
+      esbuild: {
+        legalComments: 'none',
       }
     };
 });

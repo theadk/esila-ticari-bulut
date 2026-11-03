@@ -21,7 +21,11 @@ export const Teklifler: React.FC = () => {
 
   useEffect(() => {
     if (refreshProposals) {
-      const int = setInterval(refreshProposals, 10000);
+      const int = setInterval(() => {
+        if (!document.hidden) {
+          refreshProposals();
+        }
+      }, 30000);
       return () => clearInterval(int);
     }
   }, [refreshProposals]);
@@ -30,10 +34,14 @@ export const Teklifler: React.FC = () => {
   const orders = store.orders;
   const setOrders = store.setOrders;
 
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => store.products || []);
   useEffect(() => {
-    api.getProducts().then(setProducts).catch(console.error);
-  }, []);
+    if (store.products && store.products.length > 0) {
+      setProducts(store.products);
+    } else {
+      api.getProducts().then(setProducts).catch(console.error);
+    }
+  }, [store.products]);
 
   const [searchTerm, setSearchTerm] = useState('');
   

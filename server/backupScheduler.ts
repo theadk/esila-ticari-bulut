@@ -109,12 +109,26 @@ async function runBackup() {
 }
 
 export function startBackupScheduler() {
-    // Ilk calistiginda sistemin durumunu kaydet
+    // Yalnızca bugün alınmış bir sistem yedeği yoksa başlangıçta yedek al (gereksiz arka plan DB/disk trafiğini önler)
     setTimeout(() => {
-        runBackup();
-    }, 1000 * 10); // 10 saniye sonra al
+        try {
+            const globalBackupFile = path.join(process.cwd(), 'backup.json');
+            if (fs.existsSync(globalBackupFile)) {
+                const stat = fs.statSync(globalBackupFile);
+                const todayStr = new Date().toISOString().split('T')[0];
+                const fileDateStr = stat.mtime.toISOString().split('T')[0];
+                if (fileDateStr === todayStr) {
+                    return;
+                }
+            }
+            runBackup();
+        } catch (_e) {
+            runBackup();
+        }
+    }, 1000 * 30);
 
     // Her gece 03:00'te çalışır
     cron.schedule('0 3 * * *', runBackup);
 }
+
 

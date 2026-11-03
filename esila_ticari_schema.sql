@@ -449,3 +449,100 @@ CREATE TABLE IF NOT EXISTS suspended_carts (
     items JSON,
     customerId VARCHAR(255)
 );
+
+CREATE TABLE IF NOT EXISTS job_applications (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    firstName VARCHAR(255),
+    lastName VARCHAR(255),
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    positionApplied VARCHAR(255),
+    applicationDate DATETIME,
+    status VARCHAR(50) DEFAULT 'Yeni',
+    resumeUrl VARCHAR(1000),
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS bank_accounts (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    bankName VARCHAR(255),
+    accountName VARCHAR(255),
+    iban VARCHAR(255),
+    balance DECIMAL(15,2)
+);
+
+CREATE TABLE IF NOT EXISTS boms (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    targetProductId VARCHAR(255),
+    name VARCHAR(255),
+    items JSON,
+    estimatedTimeMinutes INTEGER,
+    isActive BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS work_orders (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    bomId VARCHAR(255),
+    plannedQuantity INTEGER,
+    producedQuantity INTEGER DEFAULT 0,
+    status VARCHAR(50) DEFAULT 'Planlandı',
+    targetProductId VARCHAR(255),
+    priority VARCHAR(50) DEFAULT 'Normal'
+);
+
+CREATE TABLE IF NOT EXISTS personnel_tasks (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    personnelId VARCHAR(255),
+    title VARCHAR(255),
+    description TEXT,
+    status VARCHAR(50),
+    dueDate VARCHAR(50),
+    createdAt VARCHAR(50),
+    priority VARCHAR(50)
+);
+
+CREATE TABLE IF NOT EXISTS documents (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255),
+    category VARCHAR(100),
+    tags JSON,
+    uploadDate VARCHAR(50),
+    size INTEGER,
+    type VARCHAR(100),
+    url TEXT,
+    uploadedBy VARCHAR(255),
+    relatedEntityId VARCHAR(255)
+);
+
+CREATE TABLE IF NOT EXISTS waybills (
+    vkn VARCHAR(50),
+    id VARCHAR(255) PRIMARY KEY,
+    supplierId VARCHAR(255),
+    documentNo VARCHAR(255),
+    date DATETIME,
+    items JSON,
+    totalAmount DECIMAL(15,2)
+);
+
+CREATE TABLE IF NOT EXISTS payment_notifications (
+    id VARCHAR(255) PRIMARY KEY,
+    vkn VARCHAR(50),
+    tenantName VARCHAR(255),
+    senderName VARCHAR(255),
+    senderBank VARCHAR(255),
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    package VARCHAR(100),
+    amount DECIMAL(15,2),
+    transferDate VARCHAR(100),
+    notes TEXT,
+    status VARCHAR(50) DEFAULT 'Bekliyor',
+    date DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+

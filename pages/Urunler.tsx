@@ -839,24 +839,34 @@ export const Urunler: React.FC = () => {
     setDeleteData({ id: brand.id, type: 'brand', name: brand.name });
   };
 
-  const confirmDelete = async () => {
+    const confirmDelete = async () => {
     if (!deleteData) return;
     try {
       if (deleteData.type === 'product') {
         await api.deleteProduct(deleteData.id);
+        const updated = products.filter(p => p.id !== deleteData.id);
+        setProducts(updated);
+        if (store.setProducts) store.setProducts(updated);
       } else if (deleteData.type === 'category') {
         await api.deleteCategory(deleteData.id);
+        const updated = categories.filter(c => c.id !== deleteData.id);
+        setCategories(updated);
+        if (store.setCategories) store.setCategories(updated);
       } else if (deleteData.type === 'brand') {
         await api.deleteBrand(deleteData.id);
+        const updated = brands.filter(b => b.id !== deleteData.id);
+        setBrands(updated);
+        if (store.setBrands) store.setBrands(updated);
       }
-      await loadData();
+      toast.success(`${deleteData.type === 'product' ? 'Ürün' : deleteData.type === 'category' ? 'Kategori' : 'Marka'} başarıyla silindi.`);
       setDeleteData(null);
     } catch (error) {
       console.error('Failed to delete:', error);
+      toast.error('Silme işlemi sırasında hata oluştu.');
     }
   };
 
-  const handleSaveBrand = async (e: React.FormEvent) => {
+const handleSaveBrand = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (isBrandEditing) {
@@ -1078,7 +1088,9 @@ export const Urunler: React.FC = () => {
                           headers: { 'x-tenant-id': vkn }
                         });
                       }
-                      setProducts(products.filter(p => !selectedProductIds.includes(p.id)));
+                      const updated = products.filter(p => !selectedProductIds.includes(p.id));
+                      setProducts(updated);
+                      if (store.setProducts) store.setProducts(updated);
                       setSelectedProductIds([]);
                       toast.success(`${selectedProductIds.length} ürün başarıyla silindi.`);
                     } catch (err) {

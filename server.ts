@@ -37,7 +37,7 @@ if (fs.existsSync(".env")) {
 
 import { getPool, initDb } from "./server/db.js";
 import cors from "cors";
-import { sendMail } from "./server/mailer.js";
+import { sendMail, notifyAdminDbDisconnect, getDbAlertStatus, getAdminNotificationEmails } from "./server/mailer.js";
 import { startMailScheduler } from "./server/mailScheduler.js";
 import { startBackupScheduler } from "./server/backupScheduler.js";
 import {
@@ -47,6 +47,24 @@ import {
   deleteFallbackRow,
   reloadFallbackDb
 } from "./server/fallbackDb.js";
+import {
+  securityMiddleware,
+  getSecurityStats,
+  getTrafficStats,
+  recordBootstrapBatch,
+  recordExchangeRateCacheHit,
+  isValidSqlIdentifier,
+  sanitizeTenantId,
+  sanitizeRecordId,
+  sanitizeFilename,
+  isValidEmail,
+  isValidPhone,
+  isValidVkn,
+  escapeHtml,
+  escapeXml,
+  sanitizeRichHtml,
+  ALLOWED_TABLES
+} from "./server/security.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -64,24 +82,39 @@ async function startServer() {
     console.log("Database initialized successfully.");
   } catch (error) {
     console.error("Failed to initialize database:", error);
+    notifyAdminDbDisconnect(error, "Sunucu Başlangıcı (startServer)").catch(console.error);
   }
   startMailScheduler();
   startBackupScheduler();
 
+  // Periodic DB connection monitor (every 60s when MySQL is configured)
+  setInterval(async () => {
+    if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql")) {
+      try {
+        const pool = getPool();
+        await pool.query("SELECT 1");
+      } catch (err) {
+        notifyAdminDbDisconnect(err, "Periyodik Veritabanı Bağlantı Kontrolü").catch(console.error);
+      }
+    }
+  }, 60000);
+
   let activeConnectionsCount = 0;
 
   const app = express();
+  app.disable("x-powered-by");
   const PORT = 3000;
 
   // 50mb is a lot, but handles large payload images and PDFs
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   app.use(cors());
-  app.use('/resimler', express.static(path.join(process.cwd(), 'resimler')));
+  app.use(securityMiddleware);
+  app.use('/resimler', express.static(path.join(process.cwd(), 'resimler'), { maxAge: '1d', etag: true }));
 
   
   app.post('/api/upload-image', async (req, res) => {
-    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+    const vkn = sanitizeTenantId(req.headers["x-tenant-id"]);
     try {
       const { imageBase64 } = req.body;
       if (!imageBase64) {
@@ -93,7 +126,9 @@ async function startServer() {
         return res.status(400).json({ error: 'Invalid base64 string' });
       }
 
-      const ext = matches[1].split('/')[1] || 'jpg';
+      const rawExt = (matches[1].split('/')[1] || 'jpg').toLowerCase();
+      const allowedExts = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
+      const ext = allowedExts.has(rawExt) ? rawExt : 'jpg';
       const data = Buffer.from(matches[2], 'base64');
       
       const tenantDir = path.join(process.cwd(), 'resimler', vkn);
@@ -132,6 +167,7 @@ async function startServer() {
           dbStatus = 'connected';
         } catch (err) {
           dbStatus = 'error';
+          notifyAdminDbDisconnect(err, 'Sistem Durumu Kontrolü (/api/system-status)').catch(console.error);
         }
       }
 
@@ -147,7 +183,8 @@ async function startServer() {
         db: {
           status: dbStatus,
           responseTime: dbResponseTime,
-          isFallback: isFallback
+          isFallback: isFallback,
+          alertInfo: getDbAlertStatus()
         },
         memory: {
           total: totalMem,
@@ -160,24 +197,564 @@ async function startServer() {
           model: cpus[0]?.model,
           loadAvgs: cpuLoads
         },
-        uptime: os.uptime()
+        uptime: os.uptime(),
+        security: getSecurityStats(),
+        traffic: getTrafficStats()
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch system status" });
     }
   });
 
-  app.get("/api/exchange-rates", async (req, res) => {
-    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+  app.post("/api/system-status/test-db-alert", async (req, res) => {
     try {
+      const { email } = req.body || {};
+      const result = await notifyAdminDbDisconnect(
+        { code: "DB_CONNECTION_LOST", message: "Veritabanı bağlantısı kesildi (Yönetici Bildirim Testi / Simülasyonu)" },
+        "Manuel Bağlantı Kesintisi Bildirim Testi",
+        true,
+        email || undefined
+      );
+      res.json({ success: true, ...result, alertInfo: getDbAlertStatus() });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: String(error?.message || error) });
+    }
+  });
+
+  // --- PayTR & IBAN Payment Integration Endpoints ---
+  app.get("/api/payment-info", async (req, res) => {
+    try {
+      const settingsList = getFallbackTable("settings", "1111111111") || [];
+      const masterSettings = settingsList[0] || {};
+      const bankAccounts = getFallbackTable("bank_accounts", "1111111111") || [];
+
+      const ibanList: { id: string; bankName: string; accountName: string; iban: string }[] = [];
+
+      if (masterSettings.iban) {
+        ibanList.push({
+          id: "master-iban",
+          bankName: masterSettings.bankName || "Kurumsal Banka Hesabı",
+          accountName: masterSettings.companyName || "Esila Yazılım ve Bilişim Sistemleri",
+          iban: masterSettings.iban
+        });
+      }
+
+      if (Array.isArray(masterSettings.invoiceTemplate_banks)) {
+        for (const b of masterSettings.invoiceTemplate_banks) {
+          if (b.iban && !ibanList.some(x => x.iban === b.iban)) {
+            ibanList.push({
+              id: b.id || String(Date.now()),
+              bankName: b.bankName || "Banka Hesabı",
+              accountName: b.accountName || masterSettings.companyName || "Esila Yazılım",
+              iban: b.iban
+            });
+          }
+        }
+      }
+
+      for (const acc of bankAccounts) {
+        if (acc.iban && !ibanList.some(x => x.iban === acc.iban)) {
+          ibanList.push({
+            id: acc.id || String(Date.now()),
+            bankName: acc.bankName || "Banka Hesabı",
+            accountName: acc.accountName || masterSettings.companyName || "Esila Yazılım",
+            iban: acc.iban
+          });
+        }
+      }
+
+      if (ibanList.length === 0) {
+        ibanList.push(
+          {
+            id: "default-1",
+            bankName: "Ziraat Bankası",
+            accountName: "Esila Yazılım ve Bilişim Sistemleri",
+            iban: "TR32 0001 0017 4567 8901 2350 01"
+          },
+          {
+            id: "default-2",
+            bankName: "Garanti BBVA",
+            accountName: "Esila Yazılım ve Bilişim Sistemleri",
+            iban: "TR64 0006 2000 4120 0006 2987 41"
+          }
+        );
+      }
+
+      const hasLivePaytr = Boolean(
+        process.env.PAYTR_MERCHANT_ID &&
+        process.env.PAYTR_MERCHANT_KEY &&
+        process.env.PAYTR_MERCHANT_SALT
+      );
+
+      res.json({
+        ibanAccounts: ibanList,
+        paytrConfigured: hasLivePaytr,
+        packages: [
+          { id: "aylik", name: "Aylık Bulut Lisans Paketi", price: 1250, period: "Aylık" }
+        ]
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: String(error?.message || error) });
+    }
+  });
+
+  app.post("/api/paytr/get-token", async (req, res) => {
+    try {
+      const {
+        name,
+        vkn,
+        email,
+        phone,
+        address,
+        packageName,
+        amount,
+        installment = 0
+      } = req.body || {};
+
+      if (!name || !email || !phone || !amount || Number(amount) <= 0) {
+        return res.status(400).json({
+          status: "failed",
+          reason: "Lütfen ad/unvan, e-posta, telefon ve geçerli bir ödeme tutarı giriniz."
+        });
+      }
+
+      const merchant_id = process.env.PAYTR_MERCHANT_ID || "";
+      const merchant_key = process.env.PAYTR_MERCHANT_KEY || "";
+      const merchant_salt = process.env.PAYTR_MERCHANT_SALT || "";
+      const test_mode = process.env.PAYTR_TEST_MODE || "1";
+
+      const merchant_oid = `ESL${Date.now()}${Math.floor(Math.random() * 900 + 100)}`;
+      const payment_amount = Math.round(Number(amount) * 100); // Kuruş cinsinden
+      const currency = "TL";
+      const no_installment = installment > 1 ? "0" : "1";
+      const max_installment = "12";
+      const user_ip =
+        (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+        req.socket.remoteAddress ||
+        "127.0.0.1";
+
+      const basketArray = [[packageName || "Esila Ticari Lisans Ödemesi", Number(amount).toFixed(2), 1]];
+      const user_basket = Buffer.from(JSON.stringify(basketArray)).toString("base64");
+
+      // Record pending payment
+      insertFallbackRow("payments", {
+        id: merchant_oid,
+        merchant_oid,
+        vkn: vkn || "1111111111",
+        name,
+        email,
+        phone,
+        address: address || "Türkiye",
+        packageName: packageName || "Esila Ticari Lisans Ödemesi",
+        amount: Number(amount),
+        method: "PayTR",
+        status: "Bekliyor",
+        createdAt: new Date().toISOString()
+      });
+
+      if (merchant_id && merchant_key && merchant_salt) {
+        const hashStr = `${merchant_id}${user_ip}${merchant_oid}${email}${payment_amount}${user_basket}${no_installment}${max_installment}${currency}${test_mode}`;
+        const paytr_token = crypto
+          .createHmac("sha256", merchant_key)
+          .update(hashStr + merchant_salt)
+          .digest("base64");
+
+        const origin = req.headers.origin || `https://${req.headers.host}`;
+        const params = new URLSearchParams({
+          merchant_id,
+          user_ip,
+          merchant_oid,
+          email,
+          payment_amount: String(payment_amount),
+          paytr_token,
+          user_basket,
+          debug_on: "1",
+          no_installment,
+          max_installment,
+          user_name: name,
+          user_address: address || "Türkiye",
+          user_phone: phone,
+          merchant_ok_url: `${origin}/?payment=success&oid=${merchant_oid}`,
+          merchant_fail_url: `${origin}/?payment=failed&oid=${merchant_oid}`,
+          timeout_limit: "30",
+          currency,
+          test_mode,
+          lang: "tr"
+        });
+
+        const paytrRes = await fetch("https://www.paytr.com/odeme/api/get-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params.toString()
+        });
+
+        const paytrData: any = await paytrRes.json();
+        if (paytrData.status === "success" && paytrData.token) {
+          return res.json({
+            status: "success",
+            mode: "live_iframe",
+            merchant_oid,
+            token: paytrData.token,
+            iframeUrl: `https://www.paytr.com/odeme/guvenli/${paytrData.token}`
+          });
+        } else {
+          return res.status(400).json({
+            status: "failed",
+            reason: paytrData.reason || "PayTR token alınamadı."
+          });
+        }
+      }
+
+      // When live merchant credentials are not set in .env, return PayTR Direct Checkout mode
+      return res.json({
+        status: "success",
+        mode: "direct_checkout",
+        merchant_oid,
+        amount: Number(amount),
+        packageName: packageName || "Esila Ticari Lisans Ödemesi"
+      });
+    } catch (error: any) {
+      console.error("PayTR token error:", error);
+      res.status(500).json({ status: "failed", reason: String(error?.message || error) });
+    }
+  });
+
+  app.post("/api/paytr/complete-checkout", async (req, res) => {
+    try {
+      const { merchant_oid, cardHolder, cardNumberMasked, installment } = req.body || {};
+      const payments = getFallbackTable("payments") || [];
+      const payment = payments.find((p: any) => p.merchant_oid === merchant_oid || p.id === merchant_oid);
+
+      const amount = payment?.amount || Number(req.body?.amount || 0);
+      const name = payment?.name || req.body?.name || "Müşteri";
+      const email = payment?.email || req.body?.email || "";
+      const phone = payment?.phone || req.body?.phone || "";
+      const vkn = payment?.vkn || req.body?.vkn || "";
+      const packageName = payment?.packageName || req.body?.packageName || "Lisans Ödemesi";
+
+      if (payment) {
+        updateFallbackRow("payments", payment.id, payment.vkn || "1111111111", {
+          status: "Onaylandı",
+          paidAt: new Date().toISOString(),
+          cardHolder,
+          cardNumberMasked,
+          installment: installment || 1
+        });
+      }
+
+      insertFallbackRow("cash_transactions", {
+        id: `CSH-${Date.now()}`,
+        vkn: "1111111111",
+        date: new Date().toISOString().split("T")[0],
+        type: "Gelir",
+        category: "Lisans / PayTR Tahsilat",
+        amount: Number(amount),
+        method: "Kredi Kartı",
+        description: `PayTR Online Ödeme (${merchant_oid}) - ${name} (${packageName})`
+      });
+
+      const adminEmail = process.env.ADMIN_EMAIL || "ahdurko@gmail.com";
+      await sendMail(
+        adminEmail,
+        `💳 Yeni PayTR Online Ödeme Alındı - ${name}`,
+        `
+          <h2 style="color: #059669; font-size: 20px; font-weight: 600; margin-top: 0;">PayTR Online Ödeme Bildirimi</h2>
+          <p>Sistem üzerinden <strong>PayTR</strong> aracılığıyla yeni bir online ödeme başarıyla tamamlanmıştır.</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+            <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Sipariş / İşlem No</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${merchant_oid}</td></tr>
+            <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Firma / Ad Soyad</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${name}</td></tr>
+            <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">VKN / TCKN</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${vkn || "-"}</td></tr>
+            <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">E-Posta / Telefon</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${email} / ${phone}</td></tr>
+            <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Paket / Açıklama</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${packageName}</td></tr>
+            <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600;">Ödenen Tutar</td><td style="padding: 8px; border: 1px solid #e5e7eb; color: #059669; font-weight: 700;">${Number(amount).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td></tr>
+          </table>
+        `
+      );
+
+      if (email && email.includes("@")) {
+        await sendMail(
+          email,
+          "Ödemeniz Başarıyla Alındı - Esila Ticari",
+          `
+            <h2 style="color: #059669; font-size: 20px; font-weight: 600; margin-top: 0;">Sayın ${name},</h2>
+            <p><strong>${packageName}</strong> kapsamında <strong>${Number(amount).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</strong> tutarındaki PayTR online ödemeniz başarıyla alınmıştır.</p>
+            <p><strong>İşlem Referans No:</strong> ${merchant_oid}</p>
+            <p>Bizi tercih ettiğiniz için teşekkür ederiz.</p>
+          `
+        );
+      }
+
+      res.json({ success: true, merchant_oid });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: String(error?.message || error) });
+    }
+  });
+
+  app.post("/api/paytr/callback", async (req, res) => {
+    try {
+      const { merchant_oid, status, total_amount, hash } = req.body || {};
+      const merchant_key = process.env.PAYTR_MERCHANT_KEY || "";
+      const merchant_salt = process.env.PAYTR_MERCHANT_SALT || "";
+
+      if (merchant_key && merchant_salt) {
+        const expectedHash = crypto
+          .createHmac("sha256", merchant_key)
+          .update(`${merchant_oid}${merchant_salt}${status}${total_amount}`)
+          .digest("base64");
+
+        if (hash !== expectedHash) {
+          console.error("PayTR callback bad hash");
+          return res.status(400).send("PAYTR notification failed: bad hash");
+        }
+      }
+
+      const payments = getFallbackTable("payments") || [];
+      const payment = payments.find((p: any) => p.merchant_oid === merchant_oid || p.id === merchant_oid);
+
+      if (status === "success") {
+        if (payment) {
+          updateFallbackRow("payments", payment.id, payment.vkn || "1111111111", {
+            status: "Onaylandı",
+            paidAt: new Date().toISOString()
+          });
+        }
+        const adminEmail = process.env.ADMIN_EMAIL || "ahdurko@gmail.com";
+        await sendMail(
+          adminEmail,
+          `💳 PayTR Ödeme Onaylandı (${merchant_oid})`,
+          `<p><strong>${merchant_oid}</strong> numaralı PayTR ödemesi (${(Number(total_amount || 0) / 100).toLocaleString("tr-TR")} ₺) başarıyla onaylandı.</p>`
+        );
+      } else if (payment) {
+        updateFallbackRow("payments", payment.id, payment.vkn || "1111111111", {
+          status: "Başarısız"
+        });
+      }
+
+      res.send("OK");
+    } catch (error) {
+      console.error("PayTR callback error:", error);
+      res.status(500).send("ERROR");
+    }
+  });
+
+  app.post("/api/payment/iban-notify", async (req, res) => {
+    try {
+      const {
+        name,
+        vkn,
+        email,
+        phone,
+        amount,
+        packageName,
+        senderName,
+        selectedBank,
+        receiptNote
+      } = req.body || {};
+
+      const numericAmount = Number(amount);
+      if (!name || !email || !phone || !senderName || !Number.isFinite(numericAmount) || numericAmount <= 0 || numericAmount > 100000000) {
+        return res.status(400).json({
+          success: false,
+          error: "Lütfen zorunlu alanları (Ad/Unvan, E-posta, Telefon, Gönderen Adı ve geçerli Tutar) doldurunuz."
+        });
+      }
+
+      if (!isValidEmail(email)) {
+        return res.status(400).json({
+          success: false,
+          error: "Lütfen geçerli bir e-posta adresi giriniz."
+        });
+      }
+
+      if (!isValidPhone(phone)) {
+        return res.status(400).json({
+          success: false,
+          error: "Lütfen geçerli bir telefon numarası giriniz."
+        });
+      }
+
+      const safeName = escapeHtml(String(name).trim().slice(0, 150));
+      const safeVkn = escapeHtml(vkn ? sanitizeTenantId(vkn) : "-");
+      const safeEmail = escapeHtml(String(email).trim().slice(0, 150));
+      const safePhone = escapeHtml(String(phone).trim().slice(0, 30));
+      const safeSenderName = escapeHtml(String(senderName).trim().slice(0, 150));
+      const safeBank = escapeHtml(String(selectedBank || "-").trim().slice(0, 100));
+      const safeNote = escapeHtml(String(receiptNote || "-").trim().slice(0, 500));
+
+      const referenceNo = `HVL-${Date.now().toString().slice(-6)}`;
+      const adminEmails = getAdminNotificationEmails();
+      const createdAt = new Date().toISOString();
+      const dateStr = new Date().toLocaleString("tr-TR", {
+        timeZone: "Europe/Istanbul",
+        dateStyle: "medium",
+        timeStyle: "short"
+      });
+
+      const adminMailHtml = `
+        <div style="border-left: 4px solid #059669; background-color: #ecfdf5; padding: 14px 16px; border-radius: 8px; margin-bottom: 18px;">
+          <h2 style="color: #065f46; font-size: 18px; font-weight: 700; margin: 0 0 6px 0;">
+            🏦 Yeni Banka Havale / EFT Ödeme Bildirimi
+          </h2>
+          <p style="color: #047857; margin: 0; font-size: 13px;">
+            Giriş ekranı üzerinden yeni bir <strong>Havale / EFT ödeme bildirimi</strong> gönderilmiştir. Lütfen banka hesabınızı kontrol ederek ödemeyi onaylayınız.
+          </p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+          <tr><td style="padding: 9px 12px; border: 1px solid #e5e7eb; background-color: #f9fafb; font-weight: 600; width: 38%;">Referans No</td><td style="padding: 9px 12px; border: 1px solid #e5e7eb; font-family: monospace; font-weight: 700;">${referenceNo}</td></tr>
+          <tr><td style="padding: 9px 12px; border: 1px solid #e5e7eb; background-color: #f9fafb; font-weight: 600;">Bildirim Tarihi</td><td style="padding: 9px 12px; border: 1px solid #e5e7eb;">${dateStr}</td></tr>
+          <tr><td style="padding: 9px 12px; border: 1px solid #e5e7eb; background-color: #f9fafb; font-weight: 600;">Firma / Müşteri</td><td style="padding: 9px 12px; border: 1px solid #e5e7eb;">${safeName} (VKN/TCKN: ${safeVkn})</td></tr>
+          <tr><td style="padding: 9px 12px; border: 1px solid #e5e7eb; background-color: #f9fafb; font-weight: 600;">Havale Gönderen Ad Soyad</td><td style="padding: 9px 12px; border: 1px solid #e5e7eb;">${safeSenderName}</td></tr>
+          <tr><td style="padding: 9px 12px; border: 1px solid #e5e7eb; background-color: #f9fafb; font-weight: 600;">Gönderim Yapılan Banka</td><td style="padding: 9px 12px; border: 1px solid #e5e7eb;">${safeBank}</td></tr>
+          <tr><td style="padding: 9px 12px; border: 1px solid #e5e7eb; background-color: #f9fafb; font-weight: 600;">Bildirilen Tutar</td><td style="padding: 9px 12px; border: 1px solid #e5e7eb; color: #059669; font-weight: 700; font-size: 16px;">${numericAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td></tr>
+          <tr><td style="padding: 9px 12px; border: 1px solid #e5e7eb; background-color: #f9fafb; font-weight: 600;">Müşteri E-Posta / Telefon</td><td style="padding: 9px 12px; border: 1px solid #e5e7eb;">${safeEmail} / ${safePhone}</td></tr>
+          <tr><td style="padding: 9px 12px; border: 1px solid #e5e7eb; background-color: #f9fafb; font-weight: 600;">Açıklama / Dekont Notu</td><td style="padding: 9px 12px; border: 1px solid #e5e7eb;">${safeNote}</td></tr>
+        </table>
+      `;
+
+      const mailResults: { email: string; success: boolean }[] = [];
+      for (const adminRecipient of adminEmails) {
+        const mRes = await sendMail(
+          adminRecipient,
+          `🏦 Yeni Havale/EFT Ödeme Bildirimi (${numericAmount.toLocaleString("tr-TR")} ₺) - ${String(name).trim().slice(0, 80)}`,
+          adminMailHtml
+        );
+        mailResults.push({ email: adminRecipient, success: Boolean(mRes?.success) });
+      }
+
+      insertFallbackRow("payments", {
+        id: referenceNo,
+        merchant_oid: referenceNo,
+        vkn: vkn ? sanitizeTenantId(vkn) : "1111111111",
+        name: String(name).trim().slice(0, 150),
+        email: String(email).trim().slice(0, 150),
+        phone: String(phone).trim().slice(0, 30),
+        packageName: String(packageName || "Banka Havale / EFT Ödemesi").slice(0, 100),
+        amount: numericAmount,
+        method: "IBAN / Havale-EFT",
+        senderName: String(senderName).trim().slice(0, 150),
+        selectedBank: String(selectedBank || "").trim().slice(0, 100),
+        receiptNote: String(receiptNote || "").trim().slice(0, 500),
+        notifiedAdmins: adminEmails,
+        adminMailSent: mailResults.some(r => r.success),
+        status: "Kontrol Bekliyor",
+        createdAt
+      });
+
+      if (isValidEmail(email)) {
+        await sendMail(
+          String(email).trim(),
+          `Havale / EFT Ödeme Bildiriminiz Alındı (${referenceNo}) - Esila Ticari`,
+          `
+            <h2 style="color: #059669; font-size: 20px; font-weight: 600; margin-top: 0;">Sayın ${safeName},</h2>
+            <p><strong>${numericAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</strong> tutarındaki Banka Havale / EFT ödeme bildiriminiz sistem yöneticimize e-posta olarak iletilmiş ve kayıt altına alınmıştır.</p>
+            <p><strong>Bildirim Referans No:</strong> ${referenceNo}</p>
+            <p><strong>Gönderim Yapılan Banka:</strong> ${safeBank}</p>
+            <p>Muhasebe ekibimiz tarafından banka kontrolü yapıldıktan sonra ödemeniz onaylanarak tarafınıza bilgi verilecektir.</p>
+          `
+        );
+      }
+
+      res.json({
+        success: true,
+        referenceNo,
+        notifiedAdmins: adminEmails,
+        mailResults
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: String(error?.message || error) });
+    }
+  });
+
+  app.get("/api/payment/notifications", async (req, res) => {
+    try {
+      const payments = (getFallbackTable("payments") || []).slice().sort((a: any, b: any) => {
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      });
+      res.json({
+        success: true,
+        adminEmails: getAdminNotificationEmails(),
+        payments
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: String(error?.message || error) });
+    }
+  });
+
+  app.post("/api/payment/notifications/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body || {};
+      const payments = getFallbackTable("payments") || [];
+      const payment = payments.find((p: any) => p.id === id || p.merchant_oid === id);
+
+      if (!payment) {
+        return res.status(404).json({ success: false, error: "Ödeme bildirimi bulunamadı." });
+      }
+
+      updateFallbackRow("payments", payment.id, payment.vkn || "1111111111", {
+        status: status || "Onaylandı",
+        updatedAt: new Date().toISOString()
+      });
+
+      if (status === "Onaylandı") {
+        insertFallbackRow("cash_transactions", {
+          id: `CSH-${Date.now()}`,
+          vkn: "1111111111",
+          date: new Date().toISOString().split("T")[0],
+          type: "Gelir",
+          category: "Havale / EFT Tahsilat",
+          amount: Number(payment.amount || 0),
+          method: "Havale/EFT",
+          description: `Havale/EFT Ödeme Onayı (${payment.referenceNo || payment.id}) - ${payment.name}`
+        });
+
+        if (payment.email && payment.email.includes("@")) {
+          await sendMail(
+            payment.email,
+            `✅ Havale / EFT Ödemeniz Onaylandı (${payment.id}) - Esila Ticari`,
+            `
+              <h2 style="color: #059669; font-size: 20px; font-weight: 600; margin-top: 0;">Sayın ${payment.name},</h2>
+              <p><strong>${Number(payment.amount || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</strong> tutarındaki (Ref: <strong>${payment.id}</strong>) Banka Havale / EFT ödemeniz yönetici tarafından kontrol edilerek <strong>onaylanmıştır</strong>.</p>
+              <p>Bizi tercih ettiğiniz için teşekkür ederiz.</p>
+            `
+          );
+        }
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: String(error?.message || error) });
+    }
+  });
+  // ---------------------------------------------------
+
+  let exchangeRateCache: { xml: string; fetchedAt: number } = { xml: "", fetchedAt: 0 };
+  const EXCHANGE_RATE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+  app.get("/api/exchange-rates", async (req, res) => {
+    try {
+      const now = Date.now();
+      if (exchangeRateCache.xml && now - exchangeRateCache.fetchedAt < EXCHANGE_RATE_TTL_MS) {
+        recordExchangeRateCacheHit(Buffer.byteLength(exchangeRateCache.xml, "utf-8"));
+        res.set("Content-Type", "application/xml; charset=utf-8");
+        res.set("Cache-Control", "public, max-age=900");
+        return res.send(exchangeRateCache.xml);
+      }
+
       const response = await fetch("https://www.tcmb.gov.tr/kurlar/today.xml");
       if (!response.ok) {
         throw new Error("TCMB API error: " + response.statusText);
       }
       const xmlData = await response.text();
+      exchangeRateCache = { xml: xmlData, fetchedAt: now };
       res.set("Content-Type", "application/xml; charset=utf-8");
+      res.set("Cache-Control", "public, max-age=900");
       res.send(xmlData);
     } catch (error) {
+      if (exchangeRateCache.xml) {
+        res.set("Content-Type", "application/xml; charset=utf-8");
+        return res.send(exchangeRateCache.xml);
+      }
       console.error("Exchange rate error:", error);
       res.status(500).json({ error: "Failed to fetch exchange rates" });
     }
@@ -196,16 +773,17 @@ async function startServer() {
         });
       }
 
-      // 1. Generate InputDocumentList xml string
+      // 1. Generate InputDocumentList xml string with XML/CDATA injection escaping
+      const safeXmlContent = String(invoice.xmlContent || "").replace(/\]\]>/g, "]]&gt;");
       const soapEnvelopes = `
             <inputDocumentList>
-                <documentUUID>${invoice.documentUUID}</documentUUID>
-                <xmlContent><![CDATA[${invoice.xmlContent}]]></xmlContent>
+                <documentUUID>${escapeXml(invoice.documentUUID)}</documentUUID>
+                <xmlContent><![CDATA[${safeXmlContent}]]></xmlContent>
                 <sourceUrn></sourceUrn>
-                <destinationUrn>${invoice.destinationUrn || ""}</destinationUrn>
-                <localId>${invoice.documentId}</localId>
-                <documentDate>${invoice.documentDate}</documentDate>
-                <documentId>${invoice.documentId}</documentId>
+                <destinationUrn>${escapeXml(invoice.destinationUrn || "")}</destinationUrn>
+                <localId>${escapeXml(invoice.documentId)}</localId>
+                <documentDate>${escapeXml(invoice.documentDate)}</documentDate>
+                <documentId>${escapeXml(invoice.documentId)}</documentId>
             </inputDocumentList>
         `;
 
@@ -295,16 +873,17 @@ async function startServer() {
         });
       }
 
-      // 1. Generate InputDocumentList xml string
+      // 1. Generate InputDocumentList xml string with XML/CDATA injection escaping
+      const safeXmlContent = String(invoice.xmlContent || "").replace(/\]\]>/g, "]]&gt;");
       const soapEnvelopes = `
             <inputDocumentList>
-                <documentUUID>${invoice.documentUUID}</documentUUID>
-                <xmlContent><![CDATA[${invoice.xmlContent}]]></xmlContent>
+                <documentUUID>${escapeXml(invoice.documentUUID)}</documentUUID>
+                <xmlContent><![CDATA[${safeXmlContent}]]></xmlContent>
                 <sourceUrn></sourceUrn>
-                <destinationUrn>${invoice.destinationUrn || ""}</destinationUrn>
-                <localId>${invoice.documentId}</localId>
-                <documentDate>${invoice.documentDate}</documentDate>
-                <documentId>${invoice.documentId}</documentId>
+                <destinationUrn>${escapeXml(invoice.destinationUrn || "")}</destinationUrn>
+                <localId>${escapeXml(invoice.documentId)}</localId>
+                <documentDate>${escapeXml(invoice.documentDate)}</documentDate>
+                <documentId>${escapeXml(invoice.documentId)}</documentId>
             </inputDocumentList>
         `;
 
@@ -457,10 +1036,15 @@ async function startServer() {
       }
 
       const { to, subject, html, wrapped, attachments } = req.body;
+      if (!isValidEmail(to)) {
+        return res.status(400).json({ error: "Geçersiz alıcı e-posta adresi." });
+      }
+      const safeSubject = String(subject || "").replace(/[\r\n]/g, " ").slice(0, 250);
+      const safeHtml = sanitizeRichHtml(html);
       const result = await sendMail(
-        to,
-        subject,
-        html,
+        String(to).trim(),
+        safeSubject,
+        safeHtml,
         wrapped ?? false,
         attachments,
         vkn,
@@ -633,8 +1217,14 @@ async function startServer() {
   };
 
   app.post("/api/login", async (req, res) => {
-    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
-    const { username, password } = req.body;
+    const vkn = sanitizeTenantId(req.headers["x-tenant-id"]);
+    const rawUsername = typeof req.body?.username === "string" ? req.body.username.trim().slice(0, 128) : "";
+    const rawPassword = typeof req.body?.password === "string" ? req.body.password.slice(0, 128) : "";
+    const username = rawUsername;
+    const password = rawPassword;
+    if (!username || !password) {
+      return res.status(400).json({ error: "Lütfen kullanıcı adı ve şifre giriniz." });
+    }
     try {
       const now = Date.now();
       const userAttempt = loginAttempts.get(username) || {
@@ -1942,7 +2532,14 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
   app.post("/api/tenants", async (req, res) => {
     const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
-      const data = req.body;
+      const data = req.body || {};
+      if (!data.vkn || !isValidVkn(data.vkn) || !data.name || !isValidEmail(data.email)) {
+        return res.status(400).json({ error: "Lütfen geçerli VKN/TCKN, firma unvanı ve e-posta adresi giriniz." });
+      }
+      data.vkn = sanitizeTenantId(data.vkn);
+      data.name = String(data.name).trim().slice(0, 150);
+      data.email = String(data.email).trim().slice(0, 150);
+
       const newAdminPass = generateSecurePassword();
       let expInterval = "1 YEAR";
       if (data.package === "Aylık") expInterval = "1 MONTH";
@@ -1952,11 +2549,13 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
         tenantEmail: string,
         tenantName: string,
       ) => {
+        const safeTenantName = escapeHtml(tenantName);
+        const safeTenantEmail = escapeHtml(tenantEmail);
         if (tenantEmail) {
           await sendMail(
             tenantEmail,
             "Yeni Kayıt Talebi - Esila Ticari",
-            `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 16px;">Sayın ${tenantName},</h2>
+            `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 16px;">Sayın ${safeTenantName},</h2>
 <p style="margin-bottom: 16px;">Esila Ticari Yönetim Sistemi'ne kayıt talebiniz başarıyla bize ulaşmıştır. Bizi tercih ettiğiniz için teşekkür ederiz.</p>
 
 <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
@@ -1975,8 +2574,8 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
              `<h2 style="color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 16px;">Merhaba Süper Admin,</h2>
 <p style="margin-bottom: 16px;">Esila Ticari sistemine yeni bir firma kayıt talebinde bulundu.</p>
 <ul style="margin-bottom: 16px;">
-  <li><b>Firma Adı:</b> ${tenantName}</li>
-  <li><b>E-posta:</b> ${tenantEmail || '-'}</li>
+  <li><b>Firma Adı:</b> ${safeTenantName}</li>
+  <li><b>E-posta:</b> ${safeTenantEmail || '-'}</li>
 </ul>
 <p>Lütfen SuperAdmin paneli üzerinden ilgili başvuruyu kontrol edip yönetin.</p>`,
           );
@@ -2725,7 +3324,8 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
         !process.env.DATABASE_URL ||
         !process.env.DATABASE_URL.startsWith("mysql")
       ) {
-        return res.json([]);
+        const logs = getFallbackTable("email_logs") || [];
+        return res.json([...logs].reverse().slice(0, 200));
       }
       const pool = getPool();
       const [rows] = await pool.query(
@@ -3097,8 +3697,8 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
     }
   });
 
-  app.get("/api/test-users", (req, res) => {
-    res.json(getFallbackTable("users"));
+  app.get("/api/test-users", (_req, res) => {
+    res.status(403).json({ error: "Erişim Reddedildi: Bu uç nokta güvenlik politikası gereği devre dışı bırakılmıştır." });
   });
 
   // Generic CRUD API for all tables
@@ -3134,8 +3734,75 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
     "suspended_carts",
     "personnel_kpis"
   ];
+
+  const bootstrapExtraTables = ["categories", "brands", "warehouses", "stock_transfers"];
+
+  // Batched Bootstrap Endpoint: Replaces 31+ separate startup HTTP GET calls with 1 single compressed request
+  app.get("/api/bootstrap", async (req, res) => {
+    try {
+      const vkn = sanitizeTenantId(req.headers["x-tenant-id"]);
+      const userId = (req.headers["x-user-id"] as string) || "";
+      const allBootstrapTables = [...tables, ...bootstrapExtraTables];
+      const payload: Record<string, any> = {};
+
+      const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
+      if (!isMySQL) {
+        for (const t of allBootstrapTables) {
+          payload[t] = getFallbackTable(t, vkn);
+        }
+        const tenants = getFallbackTable("tenants");
+        payload.tenantInfo = tenants.find((x: any) => x.vkn === vkn) || {
+          expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        };
+      } else {
+        const pool = getPool();
+        let userBranch: string | null = null;
+        if (userId) {
+          try {
+            const [userRows]: any = await pool.query(
+              "SELECT role, branch FROM users WHERE id = ? AND vkn = ?",
+              [userId, vkn]
+            );
+            if (Array.isArray(userRows) && userRows.length > 0 && userRows[0].role !== "Admin" && userRows[0].branch) {
+              userBranch = userRows[0].branch;
+            }
+          } catch (_e) {}
+        }
+
+        await Promise.all(
+          allBootstrapTables.map(async (t) => {
+            try {
+              let query = `SELECT * FROM \`${t}\` WHERE vkn = ?`;
+              const params: any[] = [vkn];
+              if (userBranch && (t === "personnel" || t === "stock_transfers" || t === "warehouses")) {
+                query += " AND branch = ?";
+                params.push(userBranch);
+              }
+              const [rows] = await pool.query(query, params);
+              payload[t] = rows || [];
+            } catch (_err) {
+              payload[t] = [];
+            }
+          })
+        );
+
+        try {
+          const [tRows]: any = await pool.query("SELECT * FROM tenants WHERE vkn = ?", [vkn]);
+          payload.tenantInfo = Array.isArray(tRows) && tRows.length > 0 ? tRows[0] : {};
+        } catch (_err) {
+          payload.tenantInfo = {};
+        }
+      }
+
+      recordBootstrapBatch(allBootstrapTables.length);
+      res.json(payload);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  const tableColumnsCache: Record<string, string[]> = {};
   for (const table of tables) {
-    const tableColumnsCache: Record<string, string[]> = {};
     async function getTableColumns(pool: any, table: string) {
       if (tableColumnsCache[table]) return tableColumnsCache[table];
       try {
@@ -3207,15 +3874,16 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
            }
         }
 
-        const keys = Object.keys(data);
-        const values = Object.values(data).map((v) =>
-          typeof v === "object" && v !== null ? JSON.stringify(v) : v,
-        );
+        const keys = Object.keys(data).filter(isValidSqlIdentifier);
+        const values = keys.map((k) => {
+          const v = data[k];
+          return typeof v === "object" && v !== null ? JSON.stringify(v) : v;
+        });
         const questionMarks = keys.map(() => "?").join(", ");
         const backtick = String.fromCharCode(96);
         const fields = keys.map((k) => backtick + k + backtick).join(", ");
         
-        const query = `INSERT IGNORE INTO ${table} (vkn, ${fields}) VALUES (?, ${questionMarks})`;
+        const query = `INSERT IGNORE INTO \`${table}\` (vkn, ${fields}) VALUES (?, ${questionMarks})`;
         await pool.query(query, [vkn, ...values]);
         res.json(req.body);
       } catch (e) {
@@ -3225,16 +3893,18 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
 
     app.put(`/api/${table}/:id`, async (req, res) => {
       try {
-        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
-
+        const vkn = sanitizeTenantId(req.headers["x-tenant-id"]);
+        const recordId = sanitizeRecordId(req.params.id);
+        if (!recordId) {
+          return res.status(400).json({ error: "Geçersiz kayıt kimliği." });
+        }
 
         if (
           !process.env.DATABASE_URL ||
           !process.env.DATABASE_URL.startsWith("mysql")
         ) {
-          
-          updateFallbackRow(table, req.params.id, vkn, req.body);
-          return res.json({ id: req.params.id, ...req.body });
+          updateFallbackRow(table, recordId, vkn, req.body);
+          return res.json({ id: recordId, ...req.body });
         }
         const pool = getPool();
         const data = { ...req.body };
@@ -3250,9 +3920,9 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
            }
         }
 
-        const keys = Object.keys(data);
+        const keys = Object.keys(data).filter(isValidSqlIdentifier);
         if (keys.length === 0) {
-            return res.json({ id: req.params.id, ...req.body });
+            return res.json({ id: recordId, ...req.body });
         }
 
         const values = keys.map((k) =>
@@ -3265,15 +3935,15 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
           .map((k) => backtick + k + backtick + " = ?")
           .join(", ");
         
-        const query = `UPDATE ${table} SET ${setString} WHERE id = ? AND vkn = ?`;
-        const [result]: any = await pool.query(query, [...values, req.params.id, vkn]);
+        const query = `UPDATE \`${table}\` SET ${setString} WHERE id = ? AND vkn = ?`;
+        const [result]: any = await pool.query(query, [...values, recordId, vkn]);
         
         if (result.affectedRows === 0 && table === 'settings') {
            const insertQuery = `INSERT INTO settings (id, vkn, ${keys.map(k => backtick + k + backtick).join(', ')}) VALUES (?, ?, ${keys.map(() => '?').join(', ')})`;
-           await pool.query(insertQuery, [req.params.id, vkn, ...values]);
+           await pool.query(insertQuery, [recordId, vkn, ...values]);
         }
         
-        res.json({ id: req.params.id, ...data });
+        res.json({ id: recordId, ...data });
       } catch (e) {
         res.status(500).json({ error: String(e) });
       }
@@ -3281,20 +3951,23 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
 
     app.delete(`/api/${table}/:id`, async (req, res) => {
       try {
-        const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+        const vkn = sanitizeTenantId(req.headers["x-tenant-id"]);
+        const recordId = sanitizeRecordId(req.params.id);
+        if (!recordId) {
+          return res.status(400).json({ error: "Geçersiz kayıt kimliği." });
+        }
 
         if (
           !process.env.DATABASE_URL ||
           !process.env.DATABASE_URL.startsWith("mysql")
         ) {
-          
-          deleteFallbackRow(table, req.params.id, vkn);
+          deleteFallbackRow(table, recordId, vkn);
           return res.json({ success: true });
         }
         const pool = getPool();
         
-        await pool.query(`DELETE FROM ${table} WHERE id = ? AND vkn = ?`, [
-          req.params.id,
+        await pool.query(`DELETE FROM \`${table}\` WHERE id = ? AND vkn = ?`, [
+          recordId,
           vkn,
         ]);
         res.json({ success: true });
@@ -3307,8 +3980,9 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
   // Vite middleware setup
   app.get("/api/tenant-backups", (req, res) => {
     try {
-      const vkn = req.headers["x-tenant-id"] as string;
-      if (!vkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
+      const rawVkn = req.headers["x-tenant-id"] as string;
+      if (!rawVkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
+      const vkn = sanitizeTenantId(rawVkn);
 
       const tenantDir = path.join(process.cwd(), 'backups', vkn);
       if (!fs.existsSync(tenantDir)) {
@@ -3325,10 +3999,10 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
   });
 
   app.post("/api/take-tenant-backup", async (req, res) => {
-    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
-      const vkn = req.headers["x-tenant-id"] as string;
-      if (!vkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
+      const rawVkn = req.headers["x-tenant-id"] as string;
+      if (!rawVkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
+      const vkn = sanitizeTenantId(rawVkn);
 
       const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
       const tenantDir = path.join(process.cwd(), 'backups', vkn);
@@ -3412,7 +4086,9 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
                     
                     if ((rows as any[]).length > 0) {
                         const columnsSet = new Set<string>();
-                        rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
+                        rows.forEach((r: any) => Object.keys(r).forEach(k => {
+                          if (isValidSqlIdentifier(k)) columnsSet.add(k);
+                        }));
                         columnsSet.add('vkn'); // Ensure vkn is there
                         let columns = Array.from(columnsSet);
                         
@@ -3473,12 +4149,13 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
   });
 
   app.post("/api/restore-tenant-backup", async (req, res) => {
-    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
-      const vkn = req.headers["x-tenant-id"] as string;
-      if (!vkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
+      const rawVkn = req.headers["x-tenant-id"] as string;
+      if (!rawVkn) return res.status(400).json({ success: false, error: "VKN/Tenant ID eksik." });
+      const vkn = sanitizeTenantId(rawVkn);
       
-      const { filename } = req.body;
+      const rawFilename = req.body?.filename;
+      const filename = sanitizeFilename(rawFilename);
       if (!filename || !filename.startsWith("backup_") || !filename.endsWith(".json")) {
         return res.status(400).json({ success: false, error: "Geçersiz dosya adı." });
       }
@@ -3509,7 +4186,9 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
                   
                   if ((rows as any[]).length > 0) {
                       const columnsSet = new Set<string>();
-                      rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
+                      rows.forEach((r: any) => Object.keys(r).forEach(k => {
+                        if (isValidSqlIdentifier(k)) columnsSet.add(k);
+                      }));
                       columnsSet.add('vkn'); // Ensure vkn is there
                       let columns = Array.from(columnsSet);
                       
@@ -3590,6 +4269,7 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
             const data = JSON.parse(fs.readFileSync(BACKUP_FILE, "utf-8"));
             await pool.query('SET FOREIGN_KEY_CHECKS = 0');
             for (const table of Object.keys(data)) {
+              if (!ALLOWED_TABLES.has(table) || !isValidSqlIdentifier(table)) continue;
               try {
                 // TRUNCATE is faster than DELETE FROM, but requires DROP privilege.
                 // DELETE FROM is generally safer syntax-wise.
@@ -3597,7 +4277,9 @@ const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "11111111
                 const rows = data[table];
                 if (rows && (rows as any[]).length > 0) {
                   const columnsSet = new Set<string>();
-                  rows.forEach((r: any) => Object.keys(r).forEach(k => columnsSet.add(k)));
+                  rows.forEach((r: any) => Object.keys(r).forEach(k => {
+                    if (isValidSqlIdentifier(k)) columnsSet.add(k);
+                  }));
                   let columns = Array.from(columnsSet);
                   
                   // Keep only valid columns from the DB schema

@@ -11,7 +11,6 @@ import {
   UserCheck, 
   FileText, 
   Settings as SettingsIcon,
-  Globe,
   FileBadge,
   Handshake,
   Zap,
@@ -21,12 +20,15 @@ import {
   HelpCircle,
   AlertCircle,
   CheckCircle2,
-  Mail,
-  MessageSquare,
   Search,
   DollarSign,
   ShoppingBag,
-  Factory
+  Factory,
+  Landmark,
+  Trash2,
+  TrendingUp,
+  ShieldCheck,
+  Mic
 } from 'lucide-react';
 
 export const UserManual: React.FC = () => {
@@ -54,7 +56,10 @@ export const UserManual: React.FC = () => {
     | 'teklif'
     | 'ayarlar'
     | 'sesliasistan'
+    | 'lisansodeme'
   >('dashboard');
+
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handlePrint = () => {
     window.focus();
@@ -64,28 +69,33 @@ export const UserManual: React.FC = () => {
   const sectionsList = [
     { id: 'dashboard', label: '1. Panel (Dashboard)', icon: LayoutDashboard },
     { id: 'hizlisatis', label: '2. Hızlı Satış (POS)', icon: Zap },
-    { id: 'terminal', label: '3. El Terminali', icon: ScanLine },
+    { id: 'terminal', label: '3. El Terminali & Mobil Barkod', icon: ScanLine },
     { id: 'cariler', label: '4. Cari Yönetimi', icon: Users },
     { id: 'crm', label: '5. CRM & Kampanya', icon: Users },
     { id: 'urunler', label: '6. Ürün Envanteri (Stok)', icon: Package },
     { id: 'siparisler', label: '7. Sipariş Yönetimi', icon: ShoppingCart },
-    { id: 'satinalma', label: '8. Satın Alma', icon: ShoppingBag },
-    { id: 'uretim', label: '9. Üretim', icon: Factory },
-    { id: 'efatura', label: '10. E-Fatura & E-Arşiv', icon: FileText },
+    { id: 'satinalma', label: '8. Satın Alma Yönetimi', icon: ShoppingBag },
+    { id: 'uretim', label: '9. Üretim & Reçete (BOM)', icon: Factory },
+    { id: 'efatura', label: '10. E-Fatura & Termal E-Arşiv', icon: FileText },
     { id: 'depo', label: '11. Çoklu Depo & Sevk', icon: Warehouse },
     { id: 'sayim', label: '12. Stok Sayım & Denetim', icon: ScanLine },
-    { id: 'kasa', label: '13. Kasa & Nakit Akışı', icon: Wallet },
+    { id: 'kasa', label: '13. Kasa & Gider Yönetimi', icon: Wallet },
     { id: 'ceksenet', label: '14. Çek & Senet Takibi', icon: DollarSign },
     { id: 'dokumanlar', label: '15. Döküman Yönetimi', icon: BookOpen },
-    { id: 'personel', label: '16. Personel & Granüler İzin', icon: UserCheck },
+    { id: 'personel', label: '16. Personel, Puantaj & İzin', icon: UserCheck },
     { id: 'mutabakat', label: '17. Cari Mutabakat (Dijital)', icon: Handshake },
     { id: 'ariza', label: '18. Arıza & Teknik Servis', icon: Wrench },
     { id: 'ajanda', label: '19. Ajanda & Hatırlatıcı', icon: CalendarDays },
-    { id: 'raporlar', label: '20. Gelişmiş Finansal Raporlar', icon: FileText },
+    { id: 'raporlar', label: '20. Finansal Raporlar & Nakit Akışı', icon: TrendingUp },
     { id: 'teklif', label: '21. Teklif & Bulut Onay', icon: FileBadge },
-    { id: 'ayarlar', label: '22. Ayarlar, SMTP & Yedekleme', icon: SettingsIcon },
-    { id: 'sesliasistan', label: '23. Sesli Asistan (TTS Bildirim)', icon: AlertCircle },
+    { id: 'ayarlar', label: '22. Ayarlar, DB İzleme & Yedekleme', icon: SettingsIcon },
+    { id: 'sesliasistan', label: '23. Sesli Asistan & Komut Paleti', icon: Mic },
+    { id: 'lisansodeme', label: '24. Lisans & Havale/EFT Bildirimi', icon: Landmark },
   ];
+
+  const filteredSections = sectionsList.filter((s) =>
+    s.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div id="printable-user-manual" className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden animate-fade-in w-full text-gray-800 print-target">
@@ -97,7 +107,7 @@ export const UserManual: React.FC = () => {
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-sans">ESİLA TİCARİ MODÜLER KULLANIM REHBERİ</h1>
           </div>
           <p className="text-emerald-100 text-sm md:text-base mt-2 max-w-2xl">
-            Sistem içindeki tüm <strong>19 ana modülün</strong> detaylı çalışma prensipleri, görsel arayüz simülasyonları ve kurumsal akış ayarları aşağıda modüler olarak listelenmiştir.
+            Sistem içindeki tüm <strong>24 ana modülün</strong> güncel çalışma prensipleri, yeni eklenen operasyonel özellikler, görsel arayüz simülasyonları ve kurumsal iş akışları aşağıda detaylı olarak listelenmiştir.
           </p>
         </div>
         <button
@@ -113,9 +123,21 @@ export const UserManual: React.FC = () => {
       <div className="flex flex-col lg:flex-row min-h-[750px] w-full">
         {/* Left Navigation Menu - HIDE ON PRINT */}
         <div className="w-full lg:w-80 bg-gray-50 border-r border-gray-100 p-4 no-print shrink-0">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-3">Menü Seçenekleri</h2>
-          <nav className="space-y-1 max-h-[640px] overflow-y-auto pr-1">
-            {sectionsList.map((section) => {
+          <div className="mb-3 px-1">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Modül veya konu ara..."
+                className="w-full pl-8 pr-3 py-2 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-3">Modül Rehberi ({sectionsList.length})</h2>
+          <nav className="space-y-1 max-h-[600px] overflow-y-auto pr-1">
+            {filteredSections.map((section) => {
               const Icon = section.icon;
               return (
                 <button
@@ -141,9 +163,9 @@ export const UserManual: React.FC = () => {
             <div className="text-[11px] text-emerald-700/90 leading-relaxed space-y-1">
               <p>Mükemmel A4 mizanpajı için:</p>
               <ul className="list-disc pl-4 space-y-0.5">
-                <li>Baskı Hedefi: <strong>PDF Kaydet</strong></li>
-                <li><strong>Arka Plan Grafikleri</strong> aktif.</li>
-                <li>Kenarlıklar: <strong>Yumuşak Sıfır</strong></li>
+                <li>Baskı Hedefi: <strong>PDF Olarak Kaydet</strong></li>
+                <li><strong>Arka Plan Grafikleri</strong> seçeneğini açın.</li>
+                <li>Kenar Boşlukları: <strong>Varsayılan / Minimum</strong></li>
               </ul>
             </div>
           </div>
@@ -156,7 +178,7 @@ export const UserManual: React.FC = () => {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-4xl font-extrabold text-emerald-800 m-0">ESİLA TİCARİ ERP</h1>
-                <p className="text-gray-600 text-xs m-1">Kapsamlı Bulut Entegre Ticari Otomasyon ve Kurumsal Kaynak Yönetimi Kılavuzu</p>
+                <p className="text-gray-600 text-xs m-1">Kapsamlı Bulut Entegre Ticari Otomasyon ve Kurumsal Kaynak Yönetimi Kılavuzu (v4.5 Güncel Sürüm)</p>
               </div>
               <div className="text-right">
                 <span className="font-bold text-xs bg-emerald-50 text-emerald-800 px-3 py-1 rounded border border-emerald-200 uppercase">Resmi Modüler El Kitabı</span>
@@ -177,7 +199,7 @@ export const UserManual: React.FC = () => {
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Yönetici Paneli, firmanızın anlık finansal özetini, kritik seviyedeki stok uyarılarını, günlük ciro grafiklerini ve bekleyen iş listelerini tek bir ekranda toplayan konsolide izleme merkezidir.
+              Yönetici Paneli, firmanızın anlık finansal özetini, kritik seviyedeki stok uyarılarını, günlük ciro grafiklerini, sistem bağlantı durumunu ve bekleyen iş listelerini tek bir ekranda toplayan konsolide izleme merkezidir.
             </p>
 
             {/* Portal Visual Mockup: Dashboard */}
@@ -247,9 +269,10 @@ export const UserManual: React.FC = () => {
 
             <h3 className="text-base font-bold text-gray-800 mt-4">1.1 Temel Kullanım Prensipleri</h3>
             <ul className="text-sm space-y-2 text-gray-650 pl-5 list-disc">
-              <li><strong>Anlık Finansal Takip:</strong> Sayfayı her yenilediğinizde veritabanından en güncel satış, alış, kasa ve cari bakiyeleri anında derlenir. Bilgiler önbelleğe alınmaz, dinamiktir.</li>
-              <li><strong>Kritik Seviye Mal Alarmları:</strong> Tanımladığınız asgari stok limitinin (örneğin rafta en az 5 adet olmalıdır sınırlaması) altına düşen malzemeler otomatik algılanarak satınalmacınıza iş emri olarak listelenir.</li>
-              <li><strong>Hızlı Erişim Kartları:</strong> İlgili finansal kutunun üzerine tıkladığınızda sistem sizi otomatik olarak ilgili detaylı raporlama veya kayıt listesi sayfasına yönlendirir.</li>
+              <li><strong>Anlık Finansal Takip:</strong> Sayfayı her açtığınızda veritabanından en güncel satış, alış, kasa ve cari bakiyeleri anında derlenir. Bilgiler dinamiktir.</li>
+              <li><strong>Kritik Seviye Mal Alarmları:</strong> Tanımladığınız asgari stok limitinin altına düşen malzemeler otomatik algılanarak satın alma sorumlularına uyarı olarak listelenir.</li>
+              <li><strong>Özelleştirilebilir Widget Düzeni:</strong> Panel üzerindeki finansal özet kartlarını ve hızlı işlem kısayollarını sürükle-bırak mimarisiyle çalışma alışkanlığınıza göre sıralayabilirsiniz.</li>
+              <li><strong>Canlı Sistem & Veritabanı Durumu:</strong> Üst bilgi çubuğundaki durum göstergesi üzerinden sunucu ve veritabanı sağlığını anlık izleyebilirsiniz.</li>
             </ul>
           </section>
 
@@ -261,18 +284,18 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Zap className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">2. Hızlı Satış Modülü (Perakende POS Kasa)</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">2. Hızlı Satış Modülü (Perakende POS Kasa & Müşteri Ekranı)</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Barkod okuyucular, dikey dokunmatik LCD ekranlar ve hızlı fiş yazıcılar ile anlık perakende satışı sağlayan; kasiyerlerin fatura kesme hızını maksimize eden pratik satış ekranıdır.
+              Barkod okuyucular, dokunmatik POS ekranlar, ikinci ekran (Customer Display) desteği ve hızlı fiş yazıcılar ile anlık perakende satışı sağlayan; kasiyerlerin işlem hızını maksimize eden pratik satış ekranıdır.
             </p>
 
             {/* Portal Visual Mockup: Hizli Satis */}
             <div className="my-6 border border-emerald-950/20 rounded-xl bg-slate-900 text-slate-100 p-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3 text-[10px]">
-                <span className="font-bold text-emerald-400 uppercase tracking-widest">KASA terminal // pos-1</span>
-                <span className="font-mono bg-slate-800 text-slate-350 px-2 py-0.5 rounded">Kasiyer: Ahmet D.</span>
+                <span className="font-bold text-emerald-400 uppercase tracking-widest">KASA TERMİNAL // POS-1</span>
+                <span className="font-mono bg-slate-800 text-slate-350 px-2 py-0.5 rounded">Kasiyer: Ahmet D. | Müşteri Ekranı: Aktif</span>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
@@ -331,19 +354,21 @@ export const UserManual: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">2.1 Hızlı Satış, Barkod ve Mobil Kamera Entegrasyonu</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Sisteminizdeki fiziki USB barkod okuyucu tabancayı bilgisayara bağladığınızda sisteme başka hiçbir işlem yapmanıza gerek kalmaz. Okutulan barkod doğrudan arama alanını tetikler ve ürünü sepete ekleyerek imleci yeniden tarama aşamasına hazır hale getirir.
+            <h3 className="text-base font-bold text-gray-800 mt-4">2.1 Hızlı Satış, Barkod, Müşteri Ekranı ve Mobil Kamera Entegrasyonu</h3>
+            <ul className="text-sm space-y-2 text-gray-700 pl-5 list-disc">
+              <li><strong>Tak-Çalıştır Barkod Okuyucu:</strong> USB veya kablosuz barkod tabancası ile okutulan barkod doğrudan ürünü sepete ekler ve imleci bir sonraki okutmaya hazır tutar.</li>
+              <li><strong>Çift Ekran (Müşteri Bilgi Ekranı / Customer Display):</strong> Kasa arkasında müşteriye dönük ikinci monitörde sepetteki ürünler, ara toplam, kampanya görselleri ve para üstü bilgisi gerçek zamanlı gösterilir.</li>
+              <li><strong>Fiyat Gör & Bekleyen Sepet (Park):</strong> Kasada sıra bekleyen müşterileri bekletmemek için mevcut sepeti "Beklemeye Al" ile park edebilir, yeni müşterinin satışını tamamlayıp bekleyen sepete geri dönebilirsiniz.</li>
+            </ul>
+            <p className="text-sm text-gray-700 leading-relaxed mt-3 bg-emerald-50/50 p-3 rounded-lg border border-emerald-150">
+              <strong>Mobil Cihaz ve Telefon Kamerası ile Tarama:</strong> Saha satışlarında veya el terminallerinin bulunmadığı durumlarda, kasiyerler veya satış personeli doğrudan akıllı telefon veya tablet kameralarını kullanarak barkod okutabilir. Ekrandaki kamera ikonuna basıldığında tarayıcı kamera katmanı açılır ve cihazın kamerasını barkoda tutarak saniyeler içerisinde ürünü tanır ve sepete atar.
             </p>
-            <p className="text-sm text-gray-700 leading-relaxed mt-2 bg-emerald-50/50 p-3 rounded-lg border border-emerald-150">
-              <strong>Mobil Cihaz ve Telefon Kamerası ile Tarama:</strong> Saha satışlarında veya el terminallerinin bulunmadığı durumlarda, kasiyerler veya satış personeli doğrudan akıllı telefon veya tablet kameralarını kullanarak barkod okutabilir. Ekrandaki kamera ikonuna basıldığında tarayıcı kamera katmanı açılır ve cihazın kamerasını barkoda tutarak saniyeler içerisinde ürünü tanır ve sepete atar. Bu özellik sayesinde pahalı el terminallerine yatırım yapmadan işyerinizdeki her akıllı telefonu anında tam donanımlı bir mobil POS terminaline dönüştürebilirsiniz.
-            </p>
-            <h3 className="text-base font-bold text-gray-800 mt-4">2.2 Klavye Kısayolları (Süper Hızlı Çalışma Mantığı)</h3>
+            <h3 className="text-base font-bold text-gray-800 mt-4">2.2 Klavye Kısayolları</h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 text-xs">
               <div className="bg-slate-50 p-2.5 border rounded-lg text-center"><span className="font-mono bg-white border px-1.5 py-0.5 rounded shadow-xs font-bold text-gray-800 mr-2">F1</span> <span className="font-semibold text-emerald-800">Nakit Satış</span></div>
-              <div className="bg-slate-50 p-2.5 border rounded-lg text-center"><span className="font-mono bg-white border px-1.5 py-0.5 rounded shadow-xs font-bold text-gray-800 mr-2">F2</span> Ara & Odaklan</div>
+              <div className="bg-slate-50 p-2.5 border rounded-lg text-center"><span className="font-mono bg-white border px-1.5 py-0.5 rounded shadow-xs font-bold text-gray-800 mr-2">F2</span> Barkod Odakla</div>
               <div className="bg-slate-50 p-2.5 border rounded-lg text-center"><span className="font-mono bg-white border px-1.5 py-0.5 rounded shadow-xs font-bold text-gray-800 mr-2">F4</span> <span className="font-semibold text-blue-800">Kredi Kartı</span></div>
-              <div className="bg-slate-50 p-2.5 border rounded-lg text-center"><span className="font-mono bg-white border px-1.5 py-0.5 rounded shadow-xs font-bold text-gray-800 mr-2">F5</span> <span className="font-semibold text-amber-800">Cariye Borç</span></div>
+              <div className="bg-slate-50 p-2.5 border rounded-lg text-center"><span className="font-mono bg-white border px-1.5 py-0.5 rounded shadow-xs font-bold text-gray-800 mr-2">F5</span> <span className="font-semibold text-amber-800">Cariye Veresiye</span></div>
             </div>
           </section>
 
@@ -355,11 +380,17 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <ScanLine className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">3. El Terminali Entegrasyonu</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">3. El Terminali ve Mobil Saha Barkod Operasyonları</h2>
             </div>
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Depo içerisindeki mal kabul, sevk, sayım ve sipariş toplama süreçlerini barkod okuyuculu endüstriyel mobil cihazlar üzerinden hatasız ve hızlı şekilde gerçekleştirmenizi sağlayan modüldür.
+              Depo içerisindeki mal kabul, raf adresleme, sevk toplama, fiyat sorgulama ve anlık stok sayım süreçlerini endüstriyel Android el terminalleri veya cep telefonları üzerinden hatasız gerçekleştirmenizi sağlayan modüldür.
             </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">3.1 El Terminali İşlevleri</h3>
+            <ul className="text-sm space-y-2 text-gray-650 pl-5 list-disc">
+              <li><strong>Hızlı Barkod & Fiyat Kontrolü:</strong> Reyon veya depoda barkodu okutulan ürünün güncel satış fiyatı, KDV oranı ve hangi depoda kaç adet bulunduğu anında ekrana gelir.</li>
+              <li><strong>Mal Kabul & İrsaliye Doğrulama:</strong> Tedarikçiden gelen kolilerin barkodları okutularak sipariş edilen miktar ile fiili teslim alınan miktar karşılaştırılır.</li>
+              <li><strong>Sipariş Toplama (Picking):</strong> Müşteri siparişlerindeki ürünlerin depo raflarından doğru adet ve barkodla toplanmasını sağlayarak yanlış ürün gönderimini sıfıra indirir.</li>
+            </ul>
           </section>
 
           {/* ========================================================= */}
@@ -374,7 +405,7 @@ export const UserManual: React.FC = () => {
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Müşteri ve alıcı firmalar ile mal aldığınız tedarikçi (toptancı) hesaplarının borç/alacak bakiyelerini, vadelendirmelerini, yasal fatura kimliklerini ve risk sınırlarını organize eden ana modüldür.
+              Müşteri ve alıcı firmalar ile mal aldığınız tedarikçi (toptancı) hesaplarının borç/alacak bakiyelerini, vadelendirmelerini, taksit planlarını, yasal fatura kimliklerini ve risk sınırlarını organize eden ana modüldür.
             </p>
 
             {/* Portal Visual Mockup: Cariler */}
@@ -415,34 +446,19 @@ export const UserManual: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">3.1 Granüler Saha Satış Temsilcisi Sınırlaması</h3>
+            <h3 className="text-base font-bold text-gray-800 mt-4">4.1 Granüler Saha Satış Temsilcisi Sınırlaması</h3>
             <p className="text-sm text-gray-700">
               Bu sistemin en kritik kurumsal yeteneği <strong>Müşteri Temsilcisi Atama</strong> altyapısıdır. Şahıs/Tüzel cari açılırken kartın altından bir personel "Satış Temsilcisi" tayin edildiğinde:
             </p>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
               <li>Eğer sisteme giriş yapan kullanıcı "admin" değilse, yalnızca <strong>kendisinin sorumlu olduğu carileri</strong> listeleyebilir.</li>
               <li>Diğer satışçıların carilerini, onların bakiyelerini veya telefon numaralarını göremez ve değiştiremez.</li>
-              <li>Böylelikle saha satış operasyonlarında müşteri portföy hırsızlığı engellenir.</li>
             </ul>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">3.2 Cari Hesap Hareket Detayları (Cari Ekstre)</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Her müşterinin veya tedarikçinin profiline girdiğinizde, onlarla yapılan tüm finansal geçmişi kronolojik bir sırada gösteren <strong>Cari Hareket Detayı</strong> yer alır. Cari harekette:
-            </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">4.2 Cari Hesap Hareket Detayları (Cari Ekstre) ve Taksit Takibi</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc mt-1">
-              <li>Her faturanın, tahsilat makbuzunun, tediye fişinin, iade faturasının ve kur farkı dekontunun tarihi, evrak numarası, işlem türü ve borç/alacak tutarları net olarak tablo halinde listelenir.</li>
-              <li>Kayıtların yanındaki butonlar ile doğrudan ilgili faturaya veya tahsilatın kaynağına (kasa, banka) saniyeler içerisinde köprü bağlantı ile ulaşabilirsiniz.</li>
-              <li>Seçili tarih aralıklarına göre cari hesap ekstresi süzülebilir, anlık bakiye yürütmeli liste çıktısı alınabilir.</li>
-            </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">3.3 Çok Kanallı Dijital Cari Bildirim Sistemi</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Müşterilerinize borç bakiye durumlarını, vadesi gelmiş ödemeleri ve cari hesap ekstrelerini bildirmek için Esila Ticari son derece pratik ve esnek bildirim kanalları sunar:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc mt-1">
-              <li><strong>WhatsApp Bildirimi:</strong> Tek tıklama ile müşteriye özel hazırlanmış bakiye şablon metni WhatsApp Web / Masaüstü uygulaması üzerinden (ya da API entegrasyonuyla) müşterinin GSM hattına gönderilir. Müşteri mesajın içindeki güvenli bağlantıya basarak anlık borcunu görebilir.</li>
-              <li><strong>SMS Bildirimi:</strong> Entegre SMS paneli (Netgsm, Mutlucell vb.) üzerinden hazırladığınız özel dinamik parametreli SMS şablonu alıcının cep telefonuna anında SMS olarak fırlatılır.</li>
-              <li><strong>E-Posta Bildirimi:</strong> Cari hareket detaylarının ve borç durumunun şık, kurumsal bir HTML e-posta tasarımı ile müşteriye gönderilmesidir. Cari ekstre PDF formatında e-postaya otomatik olarak eklenir.</li>
+              <li>Her faturanın, tahsilat makbuzunun, tediye fişinin, iade faturasının ve taksit ödemesinin tarihi, evrak numarası, işlem türü ve borç/alacak tutarları net olarak tablo halinde listelenir.</li>
+              <li>Seçili tarih aralıklarına göre cari hesap ekstresi süzülebilir, PDF/yazıcı çıktısı alınabilir veya doğrudan müşteriye WhatsApp, SMS ya da E-Posta ile gönderilebilir.</li>
             </ul>
           </section>
 
@@ -454,11 +470,16 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Users className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">5. CRM & Kampanya Yönetimi</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">5. CRM, Müşteri İlişkileri & Kampanya Yönetimi</h2>
             </div>
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Müşteri ilişkilerini yönettiğiniz, fırsatları takip ettiğiniz ve pazarlama kampanyaları (SMS, E-Posta vb.) düzenleyerek satışlarınızı artırmanızı sağlayan araçlar bütünüdür.
+              Potansiyel müşteri adaylarını (Lead), satış fırsatlarını, müşteri görüşme notlarını takip ettiğiniz ve hedef kitlelere toplu SMS, E-Posta veya WhatsApp kampanyaları düzenleyerek satışlarınızı artırmanızı sağlayan modüldür.
             </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">5.1 Fırsat Pipeline ve Kampanya Özellikleri</h3>
+            <ul className="text-sm space-y-2 text-gray-650 pl-5 list-disc">
+              <li><strong>Aday ve Fırsat Yönetimi:</strong> Henüz cari kartı açılmamış potansiyel müşterilerle yapılan telefon/saha görüşmelerini kaydedebilir, "İlk Görüşme", "Teklif Verildi", "Müzakere", "Kazanıldı" aşamalarıyla takip edebilirsiniz.</li>
+              <li><strong>Hedefli Kampanya Kurgusu:</strong> Belirli bir şehirdeki, belirli bir ciro üzerindeki veya uzun süredir alım yapmayan müşterileri filtreleyerek özel indirim kampanyaları ve duyurular gönderebilirsiniz.</li>
+            </ul>
           </section>
 
           {/* ========================================================= */}
@@ -469,7 +490,7 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Package className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">6. Ürün Envanter Kaydı (Mal, Stok & Barkod Kartları)</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">6. Ürün Envanter Kaydı (Stok, Barkod & Toplu İşlemler)</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
@@ -479,8 +500,8 @@ export const UserManual: React.FC = () => {
             {/* Portal Visual Mockup: Ürünler */}
             <div className="my-6 border border-gray-200 rounded-xl bg-slate-50 p-4">
               <div className="flex justify-between items-center text-[10px] text-gray-500 border-b pb-2 mb-3">
-                <span className="font-bold uppercase text-emerald-800">Sanal Ekran: Envanter Detay Kartı</span>
-                <span className="bg-emerald-100/60 text-emerald-900 px-2 rounded">Tip: Fiziksel Mal</span>
+                <span className="font-bold uppercase text-emerald-800">Sanal Ekran: Envanter Detay Kartı & Toplu İşlem Çubuğu</span>
+                <span className="bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-bold inline-flex items-center gap-1"><Trash2 size={10} /> Seçilenleri Sil Aktif</span>
               </div>
               
               <div className="bg-white border rounded-lg p-3 text-xs space-y-3">
@@ -515,10 +536,12 @@ export const UserManual: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4 font-sans">4.1 Toplu Fiyat ve Barkod Özellikleri</h3>
+            <h3 className="text-base font-bold text-gray-800 mt-4 font-sans">6.1 Toplu Seçim, Seçilenleri Sil, Fiyat Güncelleme ve Barkod Özellikleri</h3>
             <ul className="text-sm space-y-2 text-gray-650 pl-5 list-disc">
-              <li><strong>Toplu Fiyat Revizyon Sihirbazı:</strong> Enflasyonist dönemlerde veya maliyet değişimlerinde belirli bir kategori, marka bazında toplu olarak satış fiyatlarına tek tıkla yüzdesel artış (+%) uygulayabilir, bütün veritabanını 2 saniyede güncelleyebilirsiniz.</li>
-              <li><strong>Toplu Barkod Etiket Şablonu:</strong> Seçili ürünlerden istediğiniz adetlerde <strong>50x30mm standart termal sticker etiketler</strong> oluşturarak masaüstü veya sarmal etiket yazıcılarından çıkarabilirsiniz.</li>
+              <li><strong>Çoklu Ürün Seçimi ve "Seçilenleri Sil" Özelliği:</strong> Ürün listesinin solundaki onay kutularını (checkbox) kullanarak tek tek veya sayfadaki tüm ürünleri seçebilir; üst barda beliren <strong>"Seçilenleri Sil"</strong> butonu ve güvenlik onay penceresi ile birden fazla ürünü veritabanından kalıcı ve güvenli şekilde temizleyebilirsiniz.</li>
+              <li><strong>Toplu Fiyat Revizyon Sihirbazı:</strong> Maliyet değişimlerinde belirli bir kategori veya seçili ürünler bazında toplu olarak alış/satış fiyatlarına yüzdesel artış/indirim (+/-%) veya sabit tutar uygulayabilirsiniz.</li>
+              <li><strong>Toplu Barkod Etiket Şablonu:</strong> Seçili ürünlerden istediğiniz adetlerde <strong>termal sticker barkod etiketleri</strong> oluşturarak etiket yazıcılarından çıktı alabilirsiniz.</li>
+              <li><strong>Excel İle Toplu Ürün Aktarımı:</strong> Binlerce ürünü Excel şablonu üzerinden tek seferde içeri aktarabilir veya mevcut stok listenizi dışa aktarabilirsiniz.</li>
             </ul>
           </section>
 
@@ -530,11 +553,11 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <ShoppingCart className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">7. Sipariş Yönetim Modülü (Alış & Satış Siparişleri)</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">7. Sipariş Yönetim Modülü (Alış, Satış & Geçmiş Sipariş Filtreleme)</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Müşterilerinizden toplanan tedarik siparişleri ile sizin toptancı firmalara geçtiğiniz satınalma siparişlerini ve bunların lojistik aşamalarını koordine eden ticari akış motorudur.
+              Müşterilerinizden toplanan satış siparişleri ile tedarikçi firmalara geçtiğiniz satınalma siparişlerini, lojistik sevk aşamalarını ve geçmiş sipariş arşivini koordine eden ticari akış motorudur.
             </p>
 
             {/* Portal Visual Mockup: Siparişler */}
@@ -545,7 +568,6 @@ export const UserManual: React.FC = () => {
               </div>
 
               <div className="flex justify-between items-center max-w-lg mx-auto py-3 relative">
-                {/* Simulated Step bar */}
                 <div className="absolute top-1/2 left-0 right-0 h-1 bg-emerald-200 -translate-y-1/2 -z-10"></div>
                 <div className="flex flex-col items-center bg-white border border-emerald-200 p-1.5 rounded-full z-10 w-8 h-8 justify-center shadow-xs"><CheckCircle2 className="text-emerald-600 w-4 h-4" /></div>
                 <div className="flex flex-col items-center bg-white border border-emerald-200 p-1.5 rounded-full z-10 w-8 h-8 justify-center shadow-xs"><CheckCircle2 className="text-emerald-600 w-4 h-4" /></div>
@@ -560,14 +582,15 @@ export const UserManual: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">5.1 Siparişte Rezerve Stok ve Tamamlama Mantığı</h3>
+            <h3 className="text-base font-bold text-gray-800 mt-4">7.1 Siparişte Rezerve Stok, Kısmi Sevk ve Tamamlama Mantığı</h3>
             <p className="text-sm text-gray-700 leading-relaxed">
-              Sipariş statüsü **Oluşturuldu/Hazırlanıyor** durumunda iken eklediğiniz ürünlerin adetleri fiziksel stoktan kalıcı olarak düşülmez; ancak sistemde o siparişe adanmış olarak **rezerve** edilir. Sipariş statüsü yönetici tarafından **Tamamlandı** statüsüne geçirildiğinde:
+              Sipariş statüsü <strong>Oluşturuldu / Hazırlanıyor</strong> durumunda iken eklediğiniz ürünlerin adetleri fiziksel stoktan kalıcı olarak düşülmez; ancak sistemde o siparişe adanmış olarak <strong>rezerve</strong> edilir. Sipariş <strong>Tamamlandı</strong> statüsüne geçirildiğinde:
             </p>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li>Müşteri cari hesabına borç otomatik işlenir.</li>
+              <li>Müşteri cari hesabına borç (veya alış siparişinde tedarikçi alacak) otomatik işlenir.</li>
               <li>Rezerve edilen stok adetleri ilgili depodan kalıcı olarak düşer ve envanter defteri resmiyet kazanır.</li>
-              <li>Sayfadaki yan menüden tek tıkla Esila E-Fatura entegrasyonlu faturalandırma adımı tetiklenebilir.</li>
+              <li><strong>Gelişmiş Geçmiş Sipariş Filtreleme:</strong> Tarih aralığı, sipariş durumu (Bekleyen, Sevk Edilen, Tamamlanan, İptal), sipariş türü (Alınan/Verilen) ve cari unvanına göre geçmiş siparişleri detaylı süzebilir, Excel/PDF raporu alabilirsiniz.</li>
+              <li>Tek tıkla siparişten <strong>E-Fatura / E-Arşiv Fatura</strong> oluşturabilir veya sevkiyat fişi yazdırabilirsiniz.</li>
             </ul>
           </section>
 
@@ -579,11 +602,17 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <ShoppingBag className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">8. Satın Alma Yönetimi</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">8. Satın Alma ve Tedarik Zinciri Yönetimi</h2>
             </div>
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Kurum içi satın alma taleplerini onay süreçleriyle yönetebileceğiniz, teklifleri değerlendirip tedarikçi siparişlerine dönüştürebileceğiniz otomasyondur.
+              Kurum içi departmanlardan gelen satın alma taleplerini onay süreçleriyle yönetebileceğiniz, tedarikçilerden alınan fiyat tekliflerini karşılaştırıp en uygun teklifi satın alma siparişine ve alış faturasına dönüştürebileceğiniz otomasyondur.
             </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">8.1 Satın Alma Akışı</h3>
+            <ul className="text-sm space-y-2 text-gray-650 pl-5 list-disc">
+              <li><strong>Kritik Stoktan Otomatik Talep:</strong> Kritik stok seviyesinin altına düşen ürünler için tek tıkla satın alma talep fişi oluşturulur.</li>
+              <li><strong>Tedarikçi Teklif Mukayesesi:</strong> Aynı malzeme için farklı toptancılardan alınan birim fiyat, vade ve teslim süresi koşulları yan yana karşılaştırılır.</li>
+              <li><strong>Mal Kabul ve Maliyet Güncelleme:</strong> Onaylanan satın alma siparişi depoya ulaştığında stoklar otomatik artar ve ürünlerin son alış maliyetleri güncellenir.</li>
+            </ul>
           </section>
 
           {/* ========================================================= */}
@@ -594,11 +623,16 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Factory className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">9. Üretim Yönetimi (Reçete & İş Emirleri)</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">9. Üretim Yönetimi (Ürün Reçeteleri / BOM & İş Emirleri)</h2>
             </div>
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Hammadde ve yarı mamullerinizi ürün reçeteleri (BOM) altında tanımlayarak iş emirleri oluşturabileceğiniz ve maliyet analizi yapabileceğiniz ileri seviye üretim modülüdür.
+              Hammadde ve yarı mamullerinizi ürün reçeteleri (BOM - Bill of Materials) altında tanımlayarak üretim iş emirleri oluşturabileceğiniz, fire oranlarını ve birim üretim maliyetlerini takip edebileceğiniz ileri seviye üretim modülüdür.
             </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">9.1 Reçete ve Üretim Tamamlama Prensibi</h3>
+            <ul className="text-sm space-y-2 text-gray-650 pl-5 list-disc">
+              <li><strong>Ürün Reçetesi (BOM) Tanımı:</strong> 1 adet nihai mamul üretmek için hangi hammaddeden kaç birim/gram/metre kullanılacağı ve işçilik/enerji ek maliyetleri reçeteye tanımlanır.</li>
+              <li><strong>Otomatik Hammadde Sarfiyatı ve Mamul Girişi:</strong> Üretim iş emri "Tamamlandı" durumuna getirildiğinde, reçetedeki hammaddeler ilgili depodan otomatik düşülür ve üretilen nihai ürün stoğa otomatik eklenir.</li>
+            </ul>
           </section>
 
           {/* ========================================================= */}
@@ -609,11 +643,11 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <FileText className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">10. Esila E-Fatura Entegrasyonu ve E-Arşiv Portalı</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">10. Esila E-Fatura, E-Arşiv ve Termal E-Arşiv Portalı</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Resmi standartlarda, kağıt fatura kesim ve basım ihtiyacını ortadan kaldırarak saniyeler içinde kurumsal e-fatura veya vatandaş e-arşiv belgeleri üreten, kurumsal muhasebenizi buluta taşıyan <strong>Esila E-Fatura Entegrasyonu</strong> altyapısıdır.
+              Resmi standartlarda, kağıt fatura kesim ihtiyacını ortadan kaldırarak saniyeler içinde kurumsal E-Fatura, E-Arşiv Fatura veya 80mm yazar kasa uyumlu <strong>Termal E-Arşiv Fatura</strong> üreten, taslak fatura yönetimini destekleyen entegrasyon altyapısıdır.
             </p>
 
             {/* Portal Visual Mockup: EFatura */}
@@ -649,19 +683,18 @@ export const UserManual: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">6.1 Akıllı Müşteri Sorgulama ve Gönderim Akışı</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Müşteriye ait vergi kimlik numarası (VKN) veya T.C. Kimlik numarası sorgulandığı an sistem <strong>Esila E-Fatura Entegrasyonu</strong> bulut sunucularımıza gider. Alıcının e-fatura havuzunda tescili varsa faturayı otomatik olarak yeşil renkli **E-Fatura** formatına alır ve onun resmi gelen kutusuna fırlatır. Alıcı mükellef değilse, sistem resmi **E-Arşiv Fatura (PDF)** oluşturup, müşterinin cep telefonuna ve e-posta adresine anında gönderimi sağlar.
-            </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">10.1 Akıllı Mükellef Sorgulama, Taslak Kayıt ve Termal E-Arşiv</h3>
+            <ul className="text-sm space-y-2 text-gray-700 pl-5 list-disc">
+              <li><strong>Mükellef Otomatik Algılama:</strong> Müşteriye ait VKN veya TCKN sorgulandığında alıcının E-Fatura mükellefi olup olmadığı otomatik denetlenir; mükellef ise E-Fatura, değilse E-Arşiv Fatura senaryosu seçilir.</li>
+              <li><strong>Taslak E-Fatura Yönetimi:</strong> Faturayı resmileştirmeden önce <strong>Taslak</strong> olarak kaydedebilir, sonradan kalemlerini, para birimini veya dipnotlarını düzenleyip onaylayabilirsiniz.</li>
+              <li><strong>Termal E-Arşiv (80mm POS Yazıcı):</strong> Perakende ve saha satışlarında A4 yazıcıya ihtiyaç duymadan, karekodlu (QR) resmi E-Arşiv faturanızı 80mm termal fiş yazıcısından anında basabilirsiniz.</li>
+            </ul>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">6.2 Gelen Faturaların Otomatik Cari ve Ürün Eşleştirmesi</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Tedarikçilerinizin size kestiği faturalar da <strong>Esila E-Fatura Entegrasyonu</strong> gelen kutunuza anlık olarak düşer. Sistem bu gelen XML faturalarını tarayarak size olağanüstü kolaylıklar sunar:
-            </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">10.2 Gelen Faturaların Otomatik Cari ve Ürün Eşleştirmesi</h3>
             <ul className="text-sm space-y-2 text-gray-650 pl-5 list-disc mt-1.5">
-              <li><strong>Otomatik Cari Kaydı:</strong> Faturayı kesen firma sisteminizde kayıtlı değilse, XML dosyasındaki VKN, Unvan, Adres ve İletişim bilgilerini ayrıştırarak saniyeler içinde yeni bir **Tedarikçi Cari Kartı** açar.</li>
-              <li><strong>Otomatik Ürün Eşleştirme ve Stok Kaydı:</strong> Gelen faturadaki ürün kalemlerinin barkodlarını veya ürün isimlerini sistem envanterinizle kıyaslar. Eğer ürün sisteminizde bulunuyorsa stoğunu faturadaki miktar kadar artırır. Eğer ürün sisteminizde mevcut değilse, faturadaki adı, birimi, alış fiyatı ve KDV oranını alarak sistemde otomatik olarak yeni bir **Ürün Kartı** tanımlar.</li>
-              <li><strong>Otomatik Ödeme Hatırlatıcı Takvimi:</strong> Faturanın vade tarihini / ödeme koşulunu ayrıştırarak **Ajanda (Takvim)** modülüne otomatik olarak <strong>Gelen Fatura Ödeme Hatırlatması</strong> ekler, böylece tedarikçi borçlarının ödeme gününü kaçırmanızı engeller.</li>
+              <li><strong>Otomatik Cari Kaydı:</strong> Gelen faturayı kesen firma sisteminizde kayıtlı değilse, XML dosyasındaki VKN, Unvan ve Adres bilgilerini ayrıştırarak yeni bir <strong>Tedarikçi Cari Kartı</strong> açar.</li>
+              <li><strong>Otomatik Ürün Eşleştirme ve Stok Girişi:</strong> Gelen faturadaki ürün kalemlerini envanterinizle eşleştirerek stoğunu artırır; sistemde olmayan ürünleri otomatik olarak yeni ürün kartı olarak tanımlar.</li>
+              <li><strong>Otomatik Ödeme Hatırlatıcı Takvimi:</strong> Faturanın vade tarihini ayrıştırarak <strong>Ajanda</strong> modülüne otomatik ödeme hatırlatması ekler.</li>
             </ul>
           </section>
 
@@ -677,7 +710,7 @@ export const UserManual: React.FC = () => {
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              İşletmenizin şubeleri, merkez ambarı veya farklı bölge depoları arasındaki güncel stok dağılımını izleyen ve kontrollü ürün transferini sağlayan lokasyon bazlı envanter modülüdür.
+              İşletmenizin şubeleri, merkez ambarı veya araç depoları arasındaki güncel stok dağılımını izleyen ve kontrollü ürün transferini sağlayan lokasyon bazlı envanter modülüdür.
             </p>
 
             {/* Portal Visual Mockup: Depo */}
@@ -716,9 +749,9 @@ export const UserManual: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">7.1 Çoklu Depo Çalışma Akışı</h3>
+            <h3 className="text-base font-bold text-gray-800 mt-4">11.1 Çoklu Depo Çalışma Akışı</h3>
             <p className="text-sm text-gray-700 leading-relaxed">
-              Esila Ticari'de bir ürünün stok adeti şirketin tamamında tek bir sayı olarak birikmez. Her ürünün tanımlanan her deponun gözünde farklı miktarda stok sayıları yer alır. Mağazalar arası ürün gönderirken mutlaka **Depolar Arası Sevk Fişi** kullanılmalıdır. Fiş onaylandığında kaynak depodaki stok miktarı azalırken hedef depodaki stok miktarı otomatik olarak artar, böylece malzemeleriniz nakliye sürecince de sanal olarak tam olarak izlenir.
+              Her ürünün tanımlanan her deponun gözünde ayrı stok miktarları tutulur. Şubeler veya depolar arası ürün gönderirken <strong>Depolar Arası Sevk Fişi</strong> kullanılır. Fiş onaylandığında kaynak depodaki stok miktarı azalırken hedef depodaki stok miktarı otomatik olarak artar ve sevk irsaliyesi basılabilir.
             </p>
           </section>
 
@@ -751,7 +784,7 @@ export const UserManual: React.FC = () => {
                       <th className="p-2">Malzeme Adı</th>
                       <th className="p-2">Sistem Stoğu</th>
                       <th className="p-2">Sayılan (Fiili)</th>
-                      <th className="p-2">Sapma Sapması</th>
+                      <th className="p-2">Fark / Sapma</th>
                       <th className="p-2">Finans Fark Fişi</th>
                     </tr>
                   </thead>
@@ -760,7 +793,7 @@ export const UserManual: React.FC = () => {
                       <td className="p-2 font-medium">Esila Pro Kablosuz Mouse</td>
                       <td className="p-2 font-mono">152 Adet</td>
                       <td className="p-2 font-mono">150 Adet</td>
-                      <td className="p-2 font-bold text-red-650 font-mono">-2 Adet (Kayıp)</td>
+                      <td className="p-2 font-bold text-red-650 font-mono">-2 Adet (Eksik)</td>
                       <td className="p-2"><span className="bg-rose-100 text-rose-800 px-1 py-0.2 rounded text-[7px] font-bold">Stok Gideri</span></td>
                     </tr>
                     <tr>
@@ -775,19 +808,10 @@ export const UserManual: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">8.1 Sayım Sıfırlama ve Geri Yükleme</h3>
+            <h3 className="text-base font-bold text-gray-800 mt-4">12.1 Sayım Onaylama ve Mobil Kamera ile Sayım</h3>
             <p className="text-sm text-gray-700 leading-relaxed">
-              Mağaza personeli el terminali ile rafları taratıp sayılan adeti sisteme girdiğinde, sistem anlık olarak karşılaştırma raporu üretir. Yönetici **Sayımı Onayla ve Stoğu Güncelle** butonuna bastığı an bilgisayardaki stoklar otomatik olarak **fiili sayılan** gerçek sayılara güncellenir. Oluşan eksiklikler için otomatik olarak gider fişi, fazlalıklar içinse gelir fişi kesilerek muhasebe dengesi korunur.
+              Mağaza personeli el terminali veya cep telefonu kamerası ile rafları taratıp sayılan adeti sisteme girdiğinde, sistem anlık olarak karşılaştırma raporu üretir. Yönetici <strong>Sayımı Onayla ve Stoğu Güncelle</strong> butonuna bastığı an bilgisayardaki stoklar otomatik olarak fiili sayılan gerçek sayılara eşitlenir.
             </p>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">8.2 Barkod ve Telefon Kamerası ile Esnek Mobil Sayım</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Esila Ticari stok sayım modülü, geniş veya parçalı depolarda sayım yaparken operasyonel esnekliği en üst düzeye çıkarır. Standart el terminali kablosuz barkod okuyucuların yanı sıra:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Telefon veya Tablet Kamerası ile Doğrudan Tarama:</strong> Kendi cihazınızın kamerasını kullanarak doğrudan raflardaki ürünlerin barkodunu saniyeler içerisinde okutabilir, miktar girişini anında cep telefonunuzdan yapabilirsiniz.</li>
-              <li><strong>Eşanlı Çoklu Cihaz Desteği:</strong> Farklı koridorlarda ve depolarda görevli birden fazla personel kendi cep telefonlarıyla aynı anda sisteme bağlanıp ortak bir sayım listesine veri tarayabilir; sistem miktar çakışmalarını akıllıca birleştirir.</li>
-            </ul>
           </section>
 
           {/* ========================================================= */}
@@ -798,11 +822,11 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Wallet className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">13. Finansal Kasa ve Genel Nakit Akışı Yönetimi</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">13. Finansal Kasa, Banka POS ve Genel Gider Yönetimi</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              İşletmenizin sıcak para girdi ve çıktılarını takip eden Nakit, Kredi Kartı POS (Banka) kasalarını; personel yol/yemek, dükkan kirası gibi şirket genel giderlerini kayıt altına alan merkezdir.
+              İşletmenizin sıcak para girdi ve çıktılarını takip eden Nakit, Kredi Kartı POS ve Banka hesaplarını; personel yol/yemek, kira, fatura gibi şirket genel giderlerini kayıt altına alan merkezdir.
             </p>
 
             {/* Portal Visual Mockup: Kasa */}
@@ -831,9 +855,9 @@ export const UserManual: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">9.1 Günlük Kasa Kapatma ve Gider Tasnifi</h3>
+            <h3 className="text-base font-bold text-gray-800 mt-4">13.1 Günlük Kasa Kapatma ve Gider Tasnifi</h3>
             <p className="text-sm text-gray-700 leading-relaxed">
-              Her akşam dükkan kapanırken kasa görevlisi fiziki çekmecedeki nakit parayı sayarak sistemdeki "Nakit Kasası" değeriyle mutabık kalır. Gider kayıt ederken elektrik faturası, kargo bedeli, dükkan kirası gibi alt etiketlerin girilmesi fırın, market veya ofis maliyetlerinizin ay sonunda net kârlılık rasyosuna kusursuz yansımanı sağlar.
+              Her akşam gün sonu alınırken fiziki çekmecedeki nakit para ile sistemdeki "Nakit Kasası" bakiyesi mutabık kılınır. Gider kaydederken kategori seçilmesi, Raporlar modülündeki <strong>Nakit Akışı</strong> ve <strong>Kar/Zarar</strong> analizlerine doğrudan yansır.
             </p>
           </section>
 
@@ -845,18 +869,18 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <DollarSign className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">14. Çek & Senet Takibi</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">14. Çek & Senet Portföy Takibi</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Alınan ve verilen çeklerin/senetlerin vade, portföy durumu, ciro ve banka tahsilat gibi aşamalarını dijital olarak yönetebileceğiniz finansal evrak takip merkezidir.
+              Alınan ve verilen çeklerin/senetlerin vade, portföy durumu, ciro, banka tahsilat ve karşılıksız/protesto gibi aşamalarını dijital olarak yönetebileceğiniz finansal evrak takip merkezidir.
             </p>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">10.1 Portföy & Ciro İşlemleri</h3>
+            <h3 className="text-base font-bold text-gray-800 mt-4">14.1 Portföy & Ciro İşlemleri</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc mt-1.5">
-              <li>Müşterilerden tahsilat olarak alınan çekler sistemde "Portföyde" durumunda saklanır.</li>
-              <li>Alınan çekleri ödeme olarak tedarikçinize verebilir, tek tıkla "Ciro Edildi" konumuna güncelleyebilirsiniz.</li>
-              <li>Kendi firmanıza ait keşide ettiğiniz evrakların takibini ayrı bir ekrandan görüntüleyerek vade günlerinde finansal akışınızı planlayabilirsiniz.</li>
+              <li>Müşterilerden tahsilat olarak alınan çekler sistemde "Portföyde" durumunda saklanır ve cari bakiyeden düşülür.</li>
+              <li>Portföydeki müşteri çeklerini ödeme olarak tedarikçinize ciro edebilir, tek tıkla "Ciro Edildi" konumuna güncelleyebilirsiniz.</li>
+              <li>Kendi firmanıza ait keşide ettiğiniz çek ve senetlerin yaklaşan vadelerini takip ederek nakit akışınızı planlayabilirsiniz.</li>
             </ul>
           </section>
 
@@ -868,18 +892,17 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <BookOpen className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">15. Döküman Yönetimi</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">15. Kurumsal Döküman ve Dijital Arşiv Yönetimi</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Fatura, teklif, irsaliye, sözleşme gibi kurum içi veya carilerle ilgili resmi belgeleri bulut depolama mantığıyla saklayan, etiket ve kategori tabanlı akıllı dosya arşiv modülüdür.
+              Fatura, teklif, irsaliye, sözleşme, imza sirküleri ve vergi levhası gibi kurum içi veya carilerle ilgili resmi belgeleri bulut depolama mantığıyla saklayan, etiket ve kategori tabanlı akıllı dosya arşiv modülüdür.
             </p>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">11.1 Akıllı Kategorilendirme ve Hızlı Arama</h3>
+            <h3 className="text-base font-bold text-gray-800 mt-4">15.1 Akıllı Kategorilendirme ve Hızlı Arama</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc mt-1.5">
-              <li>Dosyaları türlerine göre (Fatura, Teklif, Sözleşme, vb.) otomatik simgelerle görüntüleyebilirsiniz.</li>
-              <li>Eklediğiniz dosyalara anlık etiketler (örn. "2026", "Acil", "Onaylı") ekleyerek, sonrasında binlerce dosya arasından saniyeler içinde süzme işlemi yapabilirsiniz.</li>
-              <li>Bulut tabanlı mimarisi sayesinde tüm cihazlardan dosyalarınıza anlık erişim ve indirme imkanı sunar.</li>
+              <li>Dosyaları türlerine göre (Fatura, Teklif, Sözleşme, Resmi Evrak vb.) otomatik simgelerle görüntüleyebilirsiniz.</li>
+              <li>Eklediğiniz dosyalara özel etiketler ekleyerek binlerce belge arasından saniyeler içinde filtreleme yapabilirsiniz.</li>
             </ul>
           </section>
 
@@ -891,23 +914,23 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <UserCheck className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-855 my-0">16. Personel Kartları ve Granüler Modül İzin Yetkileri</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-855 my-0">16. Personel, Puantaj, Maaş Bordrosu & Granüler İzin Yetkileri</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              İşletmenizde çalışan personelleri, maaş bordro tarihlerini, yıllık/hastalık izin dökümlerini yöneten ve en önemlisi her personelin sisteme giriş yetkilerini granüler olarak kısıtlayan yönetim modülüdür.
+              İşletmenizde çalışan personellerin özlük dosyalarını, günlük puantaj ve mesai hesaplarını, maaş bordrolarını, avans/prim ödemelerini, yıllık izin dökümlerini ve sisteme giriş yetkilerini yöneten İK modülüdür.
             </p>
 
             {/* Portal Visual Mockup: Personel */}
             <div className="my-6 border border-gray-200 rounded-xl bg-slate-50 p-4">
               <div className="flex justify-between items-center text-[10px] text-gray-500 border-b pb-2 mb-3">
-                <span className="font-bold uppercase text-emerald-800">Sanal Ekran: Kısıtlı Kullanıcı İzin Paneli</span>
-                <span className="text-xs bg-red-55 text-red-800 font-bold px-1.5 rounded">Erişim Sınırlı</span>
+                <span className="font-bold uppercase text-emerald-800">Sanal Ekran: Kısıtlı Kullanıcı İzin & Bordro Paneli</span>
+                <span className="text-xs bg-red-55 text-red-800 font-bold px-1.5 rounded">Granüler Yetki Aktif</span>
               </div>
 
               <div className="bg-white border rounded-lg p-3 text-xs space-y-2">
                 <div className="flex justify-between border-b pb-1.5">
-                  <span className="font-bold text-gray-700">Ad Soyad: Aylin Kaya (Tezgahtar / Ön Muhasebe)</span>
+                  <span className="font-bold text-gray-700">Ad Soyad: Aylin Kaya (Ön Muhasebe)</span>
                   <span className="text-slate-450 italic">[Kullanıcı Yetki Düzeyi: Kısıtlı]</span>
                 </div>
                 
@@ -921,36 +944,11 @@ export const UserManual: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">10.1 Personel İzin Yönetimi (izin_yonetimi) Güvenlik Prensibi</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Ayarlar altında yer alan kullanıcı tanımlama ve personeller sayfasında, her çalışan için **Personel İzin Yetkisi** parametresi yer alır. Bu güvenlik parametresi kapalı olan personeller asla "İzin Yönetimi" sayfasına girip diğer personellerin maaş, özlük, izin hakediş bilgilerini görüntüleyemez, kendilerine izin tanımlayamaz veya diğer kullanıcıların giriş parametrelerini manipüle edemezler.
-            </p>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">10.2 Personel Özlük Dosyası ve Evrak Arşivi</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Şirketinizin insan kaynakları standartlarına tam uyum sağlamak için her çalışanın profili altında dijital bir **Özlük Dosyası** bulunur:
-            </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">16.1 Puantaj, Maaş Bordrosu ve Personel Self-Servis Portalı</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Dijital Evrak Saklama:</strong> Kimlik fotokopisi, ikametgah belgesi, adli sicil kaydı, sağlık raporları, SGK işe giriş bildirimleri ve iş sözleşmeleri gibi zorunlu tüm resmi evraklar bulut sunucunuzda PDF veya resim formatında güvenle saklanır.</li>
-              <li><strong>Sözleşme Bitiş Alarmları:</strong> Belirli süreli iş akitlerinin veya deneme süresi bitiş tarihlerinin takibi yapılarak önceden İK yetkilisine sistem içi uyarı fırlatılır.</li>
-            </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">10.3 Şirket Demirbaş Zimmet Takip Sistemi</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Personele tahsis edilen tüm şirket demirbaşları ve operasyonel ekipmanlar, **Zimmet Takip Modülü** ile kayıt altına alınır:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Demirbaş Eşleştirme:</strong> Bilgisayar, akıllı telefon, araç, el terminali gibi şirket malları seri numaraları ve teslim alma fotoğraflarıyla birlikte ilgili personelin zimmet dökümüne işlenir.</li>
-              <li><strong>Zimmet Tutanağı Çıktısı:</strong> Tek tıkla yasal olarak geçerli ıslak imzalı zimmet teslim/geri alma tutanağı A4 formatında basılarak arşivlenebilir.</li>
-            </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">10.4 Yıllık İzin, Rapor ve Mazeret Süreçleri</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Personellerin hakediş ve çalışma takvimlerini koordine eden entegre **İzin Yönetim Motoru**:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Otomatik Kıdem ve Hakediş Hesaplama:</strong> İşe giriş tarihine göre mevzuata uygun yıllık ücretli izin hakediş gün sayıları sistem tarafından otomatik olarak hesaplanır ve devredilir.</li>
-              <li><strong>İzin Onay Akışı:</strong> Çalışan tarafından girilen veya yöneticinin işlediği yıllık izin, hastalık raporu ve mazeret izinleri İK takvimine anında yansır ve personelin maaş/bordro gün hesaplarında otomatik dikkate alınır.</li>
+              <li><strong>Puantaj ve Mesai Hesaplama:</strong> Çalışanların aylık çalışma günleri, fazla mesai saatleri, kesintiler, avanslar ve primler üzerinden net hak edişleri otomatik hesaplanır.</li>
+              <li><strong>Resmi Maaş Bordrosu Çıktısı:</strong> Hesaplanan maaşlar için imzalı A4 Maaş Bordrosu ve Tediye Pusulası oluşturulur.</li>
+              <li><strong>Personel Portalı & Zimmet Takibi:</strong> Personeller kendi ekranlarından izin talebi oluşturabilir ve üzerlerine zimmetli şirket demirbaşlarını görüntüleyebilirler.</li>
             </ul>
           </section>
 
@@ -962,11 +960,11 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <Handshake className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">17. Dijital Cari Mutabakat ve Online Bulut Onaylama</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">17. Dijital Cari Mutabakat (BA/BS & Bakiye) ve Bulut Onaylama</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Müşterileriniz ile aranızdaki dönem sonu (Örn: 31.12.2025) bakiyelerinin karşılıklı uyuşup uyuşmadığını, kağıt mektup göndermeden doğrudan cep telefonlarına şifreli link göndererek sağlayan dijital doğrulama otomasyonudur.
+              Müşterileriniz ve tedarikçileriniz ile aranızdaki dönem sonu bakiyelerinin karşılıklı uyuşup uyuşmadığını, kağıt mektup göndermeden doğrudan e-posta veya WhatsApp üzerinden şifreli link göndererek doğrulayan dijital mutabakat otomasyonudur.
             </p>
 
             {/* Portal Visual Mockup: Mutabakat */}
@@ -978,37 +976,20 @@ export const UserManual: React.FC = () => {
                 Sayın Müşteri Yetkilisi, sistemlerimizde kayıtlı bakiye dökümünüz aşağıdadır:
               </p>
               <div className="bg-slate-850 border border-slate-800 rounded-lg p-3 my-2.5 text-center">
-                <span className="text-[9px] text-slate-400 font-medium block uppercase tracking-wide">31.12.2025 İtibariyle Karşılıklı Bakiye</span>
-                <p className="text-xl font-bold text-emerald-400 m-0 mt-0.5">₺87,950.00 <span className="text-xs font-normal text-slate-350">Müşteri Alacak bakiye</span></p>
+                <span className="text-[9px] text-slate-400 font-medium block uppercase tracking-wide">Dönem Sonu Karşılıklı Bakiye</span>
+                <p className="text-xl font-bold text-emerald-400 m-0 mt-0.5">₺87,950.00 <span className="text-xs font-normal text-slate-350">Borç Bakiye</span></p>
               </div>
               
               <div className="grid grid-cols-2 gap-2 text-[10px]">
-                <button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-1.5 rounded transition-transform active:scale-95 text-center">✓ BAKİYE DOĞRUDUR</button>
-                <button className="bg-rose-600 hover:bg-rose-700 text-white font-bold p-1.5 rounded transition-transform active:scale-95 text-center">✗ REDDET / İTİRAZ ET</button>
+                <button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-1.5 rounded text-center">✓ BAKİYE DOĞRUDUR</button>
+                <button className="bg-rose-600 hover:bg-rose-700 text-white font-bold p-1.5 rounded text-center">✗ REDDET / İTİRAZ ET</button>
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">11.1 Online Doğrulama Link Paylaşım Yaklaşımı</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Her mutabakat kaydı için sistem kendine has şifreli güvenlik token'ı barındıran tamamen bulut tabanlı bir <strong>"Onay Paylaşım Linki"</strong> üretir. Kartı açan müşteri "Bakiye Doğrudur" butonuna dokunduğu an mutabakat kaydı sizde anlık olarak **Doğrulandı** statüsüne yeşil ışık olarak döner. Kağıt, kargo, kurye, kaşe ve ıslak imza yükü tamamen tarihe karışır.
-            </p>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">11.2 WhatsApp ile Hızlı Mutabakat Gönderimi</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Müşterilerinize resmi mutabakat mektupları hazırlamak ve bunları faks veya e-posta ile günlerce takip etmek yerine, anlık olarak WhatsApp üzerinden bildirim gönderebilirsiniz:
-            </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">17.1 Online Doğrulama Linki, WhatsApp ve E-Posta Gönderimi</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Şablonlu İleti Gönderimi:</strong> Sistem otomatik olarak "Sayın Yetkili, [Firma_Adi] olarak [Tarih] tarihi itibariyle cari bakiye mutabakatımız ₺[Bakiye] tutarındadır..." şablonunu oluşturur ve sonuna online doğrulama linkini ekler.</li>
-              <li><strong>Tek Tıkla Mobil Gönderim:</strong> "WhatsApp ile Gönder" seçeneğine bastığınızda WhatsApp Web veya mobil uygulaması otomatik tetiklenerek ilgili numaranın sohbet ekranına mesajı hazır olarak bırakır.</li>
-            </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">11.3 E-Posta ile Resmi Mutabakat İşlemleri</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Resmiyet derecesi yüksek kurumsal mutabakat operasyonları için sistemin SMTP e-posta motoru kullanılır:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>PDF Ekli HTML Mail Tasarımı:</strong> Cari mutabakat ekstresi otomatik olarak PDF formatında e-postaya eklenir. Mail gövdesinde müşterinin tıklayacağı "Mutabıkız" veya "Mutabık Değiliz" hızlı onay butonları yer alır.</li>
-              <li><strong>Otomatik Durum Güncelleme:</strong> Alıcı e-postadaki butona bastığında, tarayıcısında açılan güvenli Esila doğrulama portalı üzerinden mutabakatı doğrular. Süreç anlık olarak sizin panelinize "Müşteri Tarafından Onaylandı (E-Posta)" simgesiyle yansır.</li>
+              <li>Her mutabakat kaydı için benzersiz güvenlik token'ı içeren <strong>Onay Paylaşım Linki</strong> üretilir.</li>
+              <li>Müşteri linke tıklayıp "Bakiye Doğrudur" veya "İtiraz Et" butonuna bastığında, mutabakat durumu panelinizde anında güncellenir.</li>
             </ul>
           </section>
 
@@ -1024,7 +1005,7 @@ export const UserManual: React.FC = () => {
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Mağazanıza tamir veya servis bakım amacıyla getirilen elektronik cihazların, beyaz eşyaların veya endüstriyel makinelerin seri numaralarından takibini koordine eden servis otomasyonudur.
+              Tamir, garanti veya periyodik bakım amacıyla getirilen cihazların seri numaralarından takibini, yedek parça kullanımını ve servis durum sorgulamasını koordine eden teknik servis otomasyonudur.
             </p>
 
             {/* Portal Visual Mockup: Ariza */}
@@ -1040,44 +1021,21 @@ export const UserManual: React.FC = () => {
                     <strong className="text-slate-800">Esila Pro Soundbar V12</strong>
                   </div>
                   <div>
-                    <span className="text-gray-450 block uppercase text-[8px] font-bold">Cihaz Seri No (serialNumber)</span>
+                    <span className="text-gray-450 block uppercase text-[8px] font-bold">Cihaz Seri No</span>
                     <strong className="text-slate-800 font-mono">SN987654321A</strong>
                   </div>
                   <div>
-                    <span className="text-gray-450 block uppercase text-[8px]">Bakım Periyodu (recurrencePeriod)</span>
-                    <strong className="text-emerald-800">Her 6 Ayda Bir (Zorunlu)</strong>
+                    <span className="text-gray-450 block uppercase text-[8px]">Bakım Periyodu</span>
+                    <strong className="text-emerald-800">Her 6 Ayda Bir</strong>
                   </div>
-                </div>
-                <div className="bg-slate-50 p-2 rounded">
-                  <p className="m-0 font-bold text-gray-700 text-[10px]">Tespit Edilen Arıza Açıklaması:</p>
-                  <p className="m-0 text-slate-500 text-[10px] mt-0.5">Müşteri cihazın sol hoparlöründen cızırtı geldiğini belirtti. Kablosu soyuk. Sorumlu Teknisyen: Ali Rıza.</p>
                 </div>
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">12.1 Seri Numara (serialNumber) ve Periyodik Bakım Sözleşmeleri</h3>
+            <h3 className="text-base font-bold text-gray-800 mt-4">18.1 Seri Numarası, Periyodik Bakım ve QR Kodlu Takip</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc leading-relaxed">
-              <li><strong>Seri Numarası:</strong> Servise giren her cihazın **Seri Numarasını (serialNumber)** kaydetmek, gelecekte o cihazın kronik arıza geçmişini arayıp bulmaya yarar.</li>
-              <li><strong>Bakım Periyodu (maintenancePeriodMonths):</strong> Profesyonel cihaz kiralayan, jeneratör, klima satan veya asansör teknik bakımı yapan firmalar için cihaza **Bakım Periyodu Ay (recurrencePeriod)** girildiğinde, sistem teslim tarihinden o ay kadar sonrasına takvimde otomatik **Periyodik Bakım İş Emri** randevusu üretir. Personel takvimi her sabah açtığında hangi binada veya fırında rutin bakım günü geldiğini görerek adrese sevk edilir.</li>
-            </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">12.2 QR Kod ile Uzaktan Servis Sorgulama Sistemi</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Kabulü yapılan her teknik servis cihazı için sistem benzersiz bir takip bağlantısı ve buna bağlı **QR Kod** üretir:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Müşteri Tarafından Uzaktan Takip:</strong> Servis kabul fişinde basılan QR kodu, cihaz sahibi firma veya şahıs kendi akıllı telefonunun kamerasını kullanarak taratabilir.</li>
-              <li><strong>Sorgulama Ekranı:</strong> Açılan canlı sorgulama sayfasında, telefonla aramaya gerek bulunmaksızın, cihazın "Parça Bekliyor", "Onay Bekliyor", "Tamir Aşamasında" veya "Teslimata Hazır" durum bilgisine ve varsa revizyon tutar detayına uzaktan saniyeler içerisinde erişebilir.</li>
-            </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">12.3 Çoklu Yazıcı Çıktı ve PDF Belgeleri (A4, 80mm Termal Slip)</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Teknik iş emirlerinizin ve teslim tutanaklarınızın fiziksel veya dijital döküm entegrasyonu mevcuttur:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>A4 Kurumsal Form Formatı:</strong> Detaylı parça dökümleri, garanti şartları ve karşılıklı imza alanları içeren A4 ebatında resmi mukavele mizanpajlı çıktı.</li>
-              <li><strong>80mm Termal Slip Fiş Basımı:</strong> Müşteriye cihaz teslim edilirken saniyeler içinde sevk edilecek küçük, ekonomik termal tezgah boyu slip yazıcılardan basılan 80mm'lik kompakt teslim slips kartı.</li>
-              <li><strong>Dijital PDF Formatı:</strong> Tek bir dokunuşla tüm servis fişini PDF belgesi haline getirerek müşteriye WhatsApp veya E-Posta kanalıyla dijital olarak gönderebilme özgürlüğü.</li>
+              <li><strong>Seri Numarası ve Periyodik Bakım:</strong> Cihaza bakım periyodu girildiğinde, sistem teslim tarihinden ilgili ay kadar sonrasına Ajanda'da otomatik <strong>Periyodik Bakım İş Emri</strong> oluşturur.</li>
+              <li><strong>QR Kodlu Servis Fişi (A4 & 80mm Termal):</strong> Kabul fişi üzerindeki QR kodu okutan müşteri, cihazının tamir durumunu online olarak sorgulayabilir.</li>
             </ul>
           </section>
 
@@ -1089,40 +1047,17 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <CalendarDays className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">19. Ajanda, Randevu Planlayıcı ve Görev Takvimi</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">19. Ajanda, Randevu Planlayıcı ve Konsolide Görev Takvimi</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Şirketinizin tüm saha operasyonlarını, ziyaret sözleşmelerini, ödeme ve tahsilat takvimlerini tek bir akıllı takvime bağlayarak ekibi yöneten planlama modülüdür.
+              Şirketinizin tüm saha operasyonlarını, müşteri ziyaretlerini, gelen fatura son ödeme günlerini, çek/senet vadelerini ve periyodik servis bakımlarını tek bir akıllı takvimde birleştiren planlama modülüdür.
             </p>
 
-            {/* Portal Visual Mockup: Ajanda */}
-            <div className="my-6 border border-gray-200 rounded-xl bg-slate-50 p-4">
-              <div className="bg-white border rounded-lg p-3 shadow-xs space-y-2 text-xs">
-                <span className="text-[10px] font-bold text-emerald-800 uppercase block tracking-wider">Takvim Randevu ve Görev Kartı</span>
-                <div className="border-l-4 border-emerald-600 bg-emerald-50/50 p-2.5 rounded-r">
-                  <div className="flex justify-between items-center.">
-                    <h5 className="font-bold text-emerald-900 m-0">Ufuk Bilgi Teknolojileri - Yasal Bakiye Tahsilatı Ziyareti</h5>
-                    <span className="text-[9px] bg-emerald-600 text-white font-bold px-1.5 rounded">Saat: 14:00</span>
-                  </div>
-                  <p className="m-0 text-[10px] text-emerald-800/80 mt-1">Görüşülecek Personel: Finans Müdürü Sinem Hanım. Adres: Kadıköy Şube.</p>
-                </div>
-              </div>
-            </div>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4 font-sans">13.1 Randevu ve Görev Ekleme Prensipleri</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Ajanda üzerinde oluşturduğunuz her randevunun durumunu (Taslak, Devam Ediyor, Tamamlandı, İptal Edildi) anlık olarak değiştirebilirsiniz. Saha satış personelleri kendi hesaplarıyla bağlandıklarında yalnızca idari kadronun kendilerine tayin ettiği randevu kartlarını görebilir, diğer temsilcilerin müşteri randevu günlüklerine erişmeleri yazılımsal güvenlik mekanizmaları gereğince kapatılmıştır.
-            </p>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">13.2 Randevunun Ötesinde: Konsolide Takvim Görevleri</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Esila Ticari Ajandası sadece kuru bir randevu listesi değildir. Sistem içindeki diğer bütün dinamik süreçlerle tam entegre çalışır:
-            </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">19.1 Otomatik Entegre Hatırlatıcılar</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Gelen Fatura Ödeme Hatırlatmaları:</strong> E-Fatura gelen kutunuza düşen veya faturası sisteme işlenen alımların vade tarihleri (son ödeme günleri) ajandanıza otomatik olarak **Ödeme Hatırlatması** şeklinde kırmızı etiketle yansır. Böylece tedarikçi ödemelerinizi atlamazsınız.</li>
-              <li><strong>Sistem İçi Yapılacak İşler (To-Do List):</strong> Kendinize veya sorumluluğunuzdaki personellere gün bazlı tamamlanması gereken görevler (Örn: "Cari bakiyesini sorgula", "Siparişi kargola") tanımlayabilir, tamamlandığında üzerine tik atarak progress'i izleyebilirsiniz.</li>
-              <li><strong>Servisteki Periyodik Bakım Planlamaları:</strong> Teknik servis modülünde periyodik bakım aralığı tanımlanmış olan sözleşmeli jeneratör, asansör, klima vb. makinelerin rutin kontrol tarihleri geldiğinde, ajandanıza otomatik olarak **Saha Servis Randevusu** olarak düşer.</li>
+              <li><strong>Fatura ve Çek Vadeleri:</strong> Gelen faturaların ve çek/senetlerin vade günleri takvime otomatik işlenir.</li>
+              <li><strong>Görev Atama (To-Do):</strong> Personellere gün ve saat bazlı görev atanabilir, tamamlanma durumları izlenebilir.</li>
             </ul>
           </section>
 
@@ -1132,73 +1067,49 @@ export const UserManual: React.FC = () => {
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'raporlar' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
-                <FileText className="w-5 h-5" />
+                <TrendingUp className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">20. Gelişmiş Finansal Hacim ve KDV Raporlama Modülü</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">20. Gelişmiş Finansal Raporlar, Nakit Akışı & KDV Analizi</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Mali müşavirinizin, yöneticilerin veya şirket sahiplerinin dilediği iki tarih aralığında vergi kırılımlarını, ciro trendlerini ve ödeme yöntemlerini analiz ettiği ihracat uyumlu raporlama panelidir.
+              Mali müşavirinizin ve yöneticilerin iki tarih aralığında <strong>Nakit Akışı (Cash Flow)</strong>, vergi kırılımları, ürün/cari karlılığı, KPI hedefleri ve ölü stokları analiz ettiği Excel/CSV ihracat uyumlu raporlama merkezidir.
             </p>
 
-            {/* Portal Visual Mockup: Raporlar */}
+            {/* Portal Visual Mockup: Raporlar & Nakit Akisi */}
             <div className="my-6 border border-gray-200 rounded-xl bg-slate-55 p-3">
               <div className="bg-white border rounded-lg p-3 text-xs shadow-xs space-y-2">
                 <div className="flex justify-between items-center border-b pb-1.5">
-                  <span className="font-bold text-slate-800 text-[10px] uppercase">Aylık KDV Kırılım Konsolidasyon Raporu</span>
-                  <span className="text-[9px] text-gray-400">Tarih Aralığı: 01.06.2026 - 30.06.2026</span>
+                  <span className="font-bold text-slate-800 text-[10px] uppercase">Nakit Akışı (Cash Flow) & KDV Konsolidasyon Raporu</span>
+                  <span className="text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">CSV / Excel İhracat Aktif</span>
                 </div>
-                <div className="space-y-1 text-[10px]">
-                  <div className="flex justify-between border-b py-1">
-                    <span>%20 KDV Matrah Satışı:</span>
-                    <strong className="font-mono text-gray-700">₺154,000.00 (KDV: ₺30,800.00)</strong>
+                <div className="grid grid-cols-3 gap-2 text-center text-[10px] py-1">
+                  <div className="bg-emerald-50 p-2 rounded border border-emerald-100">
+                    <span className="text-emerald-700 block">Toplam Nakit Girişi</span>
+                    <strong className="text-emerald-900 font-mono text-xs">₺412,800.00</strong>
                   </div>
-                  <div className="flex justify-between border-b py-1">
-                    <span>%10 KDV Matrah Satışı:</span>
-                    <strong className="font-mono text-gray-700">₺82,500.00 (KDV: ₺8,250.00)</strong>
+                  <div className="bg-rose-50 p-2 rounded border border-rose-100">
+                    <span className="text-rose-700 block">Toplam Nakit Çıkışı</span>
+                    <strong className="text-rose-900 font-mono text-xs">₺184,300.00</strong>
                   </div>
-                  <div className="flex justify-between border-b py-1">
-                    <span>%1 KDV Matrah Satışı:</span>
-                    <strong className="font-mono text-gray-700">₺12,000.00 (KDV: ₺120.00)</strong>
-                  </div>
-                  <div className="flex justify-between py-1 bg-slate-50 font-bold px-2 rounded mt-2 text-slate-800 text-[11px]">
-                    <span>Kümülâtif Toplam Hasılat:</span>
-                    <strong className="font-mono">₺248,500.00 (Vergi: ₺39,170.00)</strong>
+                  <div className="bg-blue-50 p-2 rounded border border-blue-100">
+                    <span className="text-blue-700 block">Net Nakit Akışı</span>
+                    <strong className="text-blue-900 font-mono text-xs">+₺228,500.00</strong>
                   </div>
                 </div>
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">14.1 Excel / CSV Akıcı İhracat Standardı</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Tüm finansal rapor tabloları, filtrelediğiniz kriterlerle tek tıkla **XLSX (Microsoft Excel)** formatına birebir hücre kayması olmadan dışa aktarılır. Mali müşavirinize beyanname dönemlerinde e-posta ile gönderilerek iş hızı kazandırılır. Raporlar her işlem esnasında arka planda çalışan matematik motorları yardımıyla anlık kümüle edilerek raporlanır.
-            </p>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">14.2 İşlem Görmeyen Ürünler (Ölü Stok Raporu)</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              İşletmenizin devir hızını artırmak ve atıl sermayeyi çözmek için geliştirilen **İşlem Görmeyen Ürünler** raporu:
-            </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">20.1 Nakit Akışı (Cash Flow) Sekmesi</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Rafta Bekleyen Stok Tespiti:</strong> Belirli tarihler arasında (Örn: son 6 ay) hiç satış görmemiş ve depolarda boş yer kaplayan ürünleri satın alma tarihleri ve toplam maliyet değerleriyle listeler.</li>
-              <li><strong>Kampanya ve Sipariş Aksiyonu:</strong> Bu listenin tespiti sayesinde ölü stoklar için hızlıca iskonto/kampanya adımı planlayabilir veya gereksiz yeni alımları durdurabilirsiniz.</li>
+              <li><strong>Detaylı Nakit Akışı Analizi:</strong> Seçilen dönemdeki toplam nakit girişleri, nakit çıkışları, net nakit akışı, tahsilat oranı, ödeme yöntemi dağılımı (Nakit, Kredi Kartı, Havale/EFT) ve günlük nakit hareketleri grafiksel ve tablosal olarak sunulur.</li>
+              <li><strong>Tek Tıkla CSV / Excel Aktarımı:</strong> Nakit akışı ve KDV raporlarını muhasebe süreçleriniz için tek tıkla indirebilirsiniz.</li>
             </ul>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">14.3 Gelişmiş Cari Raporları ve Finansal Yaşlandırma</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Müşteri ve alacak portföyünüzün sağlığını denetlemeye yarayan konsolide **Cari Hesap Raporları**:
-            </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">20.2 Ölü Stok, Cari Yaşlandırma ve Kar-Zarar Raporları</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Bakiye Yaşalandırma:</strong> Alacakların ne kadar süredir tahsil edilmediğini (30, 60, 90+ gün) sınıflandırarak riskli cari hesapları listeler.</li>
-              <li><strong>Cari Karlılık Analizi:</strong> Seçilen iki tarih arasında hangi müşterinin toplamda ne kadarlık ciro bıraktığı ve onlara ortalama uygulanan iskonto oranlarını listeler.</li>
-            </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">14.4 Kapsamlı Ürün Satış ve Kar-Zarar Raporları</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Satış grafiklerinizi ve envanter kârlılığını rasyonel olarak ölçen **Ürün Envanter Raporları**:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>En Çok/En Az Satan Ürünler:</strong> Adet bazında en hızlı sirküle olan ürünleri ve kümülatif getiri hacimlerini azalan sırada listeler.</li>
-              <li><strong>Maliyet Ölçümlü Brüt Kar Analizi:</strong> Satış faturalarındaki değerler ile o ürünlerin ortalama/son alış maliyetlerini karşılaştırarak, ürün bazlı brüt kar-zarar yüzdesini tam olarak raporlar.</li>
+              <li><strong>İşlem Görmeyen Ürünler (Ölü Stok):</strong> Belirli tarihler arasında hiç satılmamış ürünleri maliyet değerleriyle tespit eder.</li>
+              <li><strong>Cari Yaşlandırma ve Ürün Karlılık Analizi:</strong> Alacakların gecikme sürelerini ve ürün bazlı net brüt kar marjlarını raporlar.</li>
             </ul>
           </section>
 
@@ -1210,52 +1121,17 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <FileBadge className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">21. Teklif Hazırlama ve İnteraktif Müşteri Bulut linki</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">21. Teklif Hazırlama ve İnteraktif Müşteri Bulut Onay Linki</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Müşterilerinize şık fiyat teklifleri hazırlayan, teklif durumlarını aşama aşama (Bekliyor, Onaylandı, Reddedildi) izleyen ve müşterinin önüne online şifreli web linki çıkaran interaktif satış teklif modülüdür.
+              Müşterilerinize kurumsal fiyat teklifleri hazırlayan, teklif durumlarını izleyen ve müşterinin online şifreli web linki üzerinden teklifi onaylamasını veya revize talep etmesini sağlayan modüldür.
             </p>
 
-            {/* Portal Visual Mockup: Teklif */}
-            <div className="my-6 border border-gray-200 rounded-xl bg-slate-50 p-4">
-              <div className="flex justify-between items-center text-[10px] text-gray-500 border-b pb-2 mb-3">
-                <span className="font-bold uppercase text-emerald-800">Teklif Bulut Paylaşım Linki Sihirbazı</span>
-                <span className="bg-emerald-600 text-white font-bold px-1.5 rounded">ETKİN</span>
-              </div>
-              
-              <div className="bg-white border rounded p-3 text-xs space-y-3">
-                <div className="bg-emerald-50 p-2.5 rounded border border-emerald-150 flex justify-between items-center">
-                  <div className="text-[10px] text-emerald-900 leading-normal">
-                    <p className="m-0 font-bold">Özel Güvenlikli Bulut Teklif Linki Üretildi:</p>
-                    <p className="m-0 font-mono text-emerald-700 text-[9px] mt-0.5 select-all">https://cloud.esila.com/proposal/verify?token=e04b2a8d</p>
-                  </div>
-                  <button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded p-1 px-2 text-[9px] font-bold">LİNKİ KOPYALA</button>
-                </div>
-              </div>
-            </div>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">15.1 Online Teklif Kabulü ve Bildirim Motoru</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Teklifi oluşturup **Linki Kopyala** dediğinizde oluşan benzersiz ve şifreli adresi müşterinize ilettiğinizde, müşteri linke tıklayarak teklifin detaylarını, logolarını ve dipnotlarını görebilir. En alt kısımda bulunan **Onaylıyorum** veya **Reddediyorum** butonlarına bastığı an veritabanındaki teklif aşaması otomatik olarak "Onaylandı" durumuna dönüştürülür ve sizi yeni bir telefon trafiğinden bütünüyle kurtarır.
-            </p>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">15.2 Teklif Aşamasında Ürün Kontrolü ve Envanter Sorgusu</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Fiyat teklifi hazırlarken hatalı taahhüt vermenizi engellemek için sistem arka planda sıkı kontroller uygular:
-            </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">21.1 Online Teklif Kabulü ve Tek Tıkla Satışa/Faturaya Dönüştürme</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Anlık Stok Seviyesi Denetimi:</strong> Teklif kalemlerini eklerken, o ürünlerin depodaki güncel fiziksel stok adetleri anlık listelenir. Stokta yetersiz olan ürünler için sarı renkli uyarı sembolü gösterilir.</li>
-              <li><strong>Taban Fiyat ve Maliyet Bariyeri:</strong> Teklif edilen satış fiyatı ürünün en son alış maliyetinin altındaysa, sistem teklif hazırlayan personeli uyararak şirketin zararına satış yapılmasının önüne geçer.</li>
-            </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">15.3 Teklif Onay Sonrası Otomatik Satışa Çevirme ve Stoktan Düşüş</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Buluttaki müşteriniz teklife onay verdikten sonra, idari iş yükünüz sıfıra indirilir:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Tek Tıkla Siparişe/Faturaya Dönüştürme:</strong> Yönetici "Onaylı" statüdeki teklifin yanındaki "Satışa Çevir" veya "Faturalandır" butonuna tıklar. Teklifteki tüm ürünler, adetler, iskontolar ve KDV oranları yeniden yazmaya gerek kalmadan doğrudan resmi faturaya veya sevk siparişine dönüştürülür.</li>
-              <li><strong>Anlık Stoktan Düşüş:</strong> Dönüştürme işlemi tamamlandığı an, teklife konu olan emtiaların adetleri ilgili depodan otomatik olarak düşer, cari hesaba borç bakiye kalıcı olarak kaydedilir ve stok kontrol döngüsü tamamlanmış olur.</li>
+              <li><strong>Bulut Paylaşım Linki:</strong> Müşteriye gönderilen güvenli link üzerinden müşteri teklifi inceleyip "Onaylıyorum" butonuna bastığında teklif statüsü anında "Onaylandı" olur.</li>
+              <li><strong>Tek Tıkla Siparişe/Faturaya Dönüştürme:</strong> Onaylanan teklif yeniden veri girişine gerek kalmadan doğrudan satış faturasına veya siparişe dönüştürülür.</li>
             </ul>
           </section>
 
@@ -1267,95 +1143,45 @@ export const UserManual: React.FC = () => {
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
                 <SettingsIcon className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">22. Sistem Ayarları, SMTP & Kritik Kurtarma Yedekleme</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">22. Sistem Ayarları, Veritabanı Kesinti Alarmı, Şablonlar & Yedekleme</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Şirketinizin fatura alt-yazı genel şablonlarını, e-posta gönderimi sağlayan SMTP parametrelerini, SMS servis entegrasyonlarını kurup her saniye veritabanı kopyasını indiren sistem ayarları yönetimidir.
+              Şirket bilgilerinizi, fatura/fiş görsel tasarım şablonlarını, SMTP e-posta ayarlarını, veritabanı bağlantı kesintisi uyarı sistemini ve JSON tam sistem yedeklemesini yönettiğiniz merkezdir.
             </p>
 
             {/* Portal Visual Mockup: Ayarlar */}
             <div className="my-6 border border-gray-200 rounded-xl bg-slate-50 p-4">
               <div className="flex justify-between items-center text-[10px] text-gray-500 border-b pb-2 mb-3">
-                <span className="font-bold uppercase text-emerald-850">Geri Yükleme & Bulut Kurtarma Yardımcısı</span>
-                <span className="text-red-700 bg-red-50 px-1.5 rounded font-bold">Kritik Güvenlik Alanı</span>
+                <span className="font-bold uppercase text-emerald-850">Veritabanı Kesinti Koruması & Yedekleme Merkezi</span>
+                <span className="text-emerald-700 bg-emerald-50 px-1.5 rounded font-bold inline-flex items-center gap-1"><ShieldCheck size={11} /> Otomatik Yönetici Mail Uyarısı Aktif</span>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1 text-xs">
-                <div className="bg-white border rounded p-3 text-center transition-shadow hover:shadow-xs">
+                <div className="bg-white border rounded p-3 text-center">
                   <span className="font-bold text-emerald-800 block uppercase text-[10px] mb-1">Veritabanı Yedek Dosyası İndir</span>
                   <p className="text-[10px] text-gray-450 mb-2">Bütün şirket verilerinizi tek tıklamayla JSON olarak yerel bilgisayarınıza saklar.</p>
-                  <button className="bg-emerald-600 text-white rounded p-1.5 px-3 font-bold text-[10px] inline-flex items-center gap-1.5"><DollarSign size={11} /> Şirket Yedeğini İndir (.json)</button>
+                  <button className="bg-emerald-600 text-white rounded p-1.5 px-3 font-bold text-[10px]">Şirket Yedeğini İndir (.json)</button>
                 </div>
-                <div className="bg-white border rounded p-3 text-center transition-shadow hover:shadow-xs">
-                  <span className="font-bold text-rose-800 block uppercase text-[10px] mb-1">JSON Dosyasından Geri Yükle</span>
-                  <p className="text-[10px] text-gray-450 mb-2">Olası çökme veya sistem arızasında son yedeğinizi yükleyerek sistemi kurtarır.</p>
-                  <button className="bg-rose-600 text-white rounded p-1.5 px-3 font-bold text-[10px] inline-flex items-center gap-1.5"><DollarSign size={11} /> Yedek Dosyasını Yükle</button>
+                <div className="bg-white border rounded p-3 text-center">
+                  <span className="font-bold text-rose-800 block uppercase text-[10px] mb-1">Kesinti Anında Yönetici E-Posta Alarmı</span>
+                  <p className="text-[10px] text-gray-450 mb-2">Uzak MySQL bağlantısı kesildiğinde yöneticiye otomatik uyarı e-postası gönderilir ve yerel koruma devreye girer.</p>
+                  <button className="bg-slate-800 text-white rounded p-1.5 px-3 font-bold text-[10px]">Bağlantı Testi & Bildirim Gönder</button>
                 </div>
               </div>
             </div>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">16.1 Şirket Kurulumu ve Firma Bilgileri Yönetimi</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Esila Ticari sisteminizin resmi evraklara döküm yapacak tüm yasal kimliği **Firma Bilgileri** altından yönetilir. Bu bölümde; şirket resmi unvanı, TCKN/Vergi Kimlik Numarası (VKN), tescilli ticari adres, aktif telefon hatları, yetkili e-posta adresleri ve fatura dips alanlarında müşterilere gösterilecek banka hesap IBAN bilgileri tek bir ekrandan merkezi olarak düzenlenir.
-            </p>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">16.2 Kurumsal Logo Yönetimi</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Müşterilerinize giden her türlü basılı ve dijital dökümün kurumsal kimliğinizi yansıtması için tasarlanmış logo yerleşim motorudur:
-            </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">22.1 Veritabanı Bağlantı Kesintisinde Otomatik Yönetici E-Posta Bildirimi</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Çok Amaçlı Logo Yükleme:</strong> Sisteme yüklediğiniz PNG veya JPEG formatındaki şeffaf yüksek çözünürlüklü logolar faturalarda, tekliflerde, mutabakat formlarında ve mobil sipariş çıktılarında otomatik olarak ölçeklenerek basılır.</li>
-              <li><strong>Küçük Boyutlu Slip Logosu:</strong> Termal 80mm fiş yazıcılarında hızlı basılabilmesi için logonun siyah-beyaz (monochrome) optimize edilmiş hafif bir kopya ayarı da ayrıca bu alandan yönetilir.</li>
+              <li><strong>Otomatik Kesinti Algılama ve E-Posta Uyarısı:</strong> Ana MySQL veritabanı ile bağlantı koptuğunda veya erişim hatası oluştuğunda sistem otomatik olarak sistem yöneticisine (admin e-posta adresine) hata kodu, zaman damgası ve çözüm adımlarını içeren acil durum e-postası gönderir.</li>
+              <li><strong>Kesintisiz Yerel Yedek (Fallback) Modu:</strong> Uzak veritabanı bağlantısı kopsa dahi işlerinizin durmaması için sistem otomatik olarak yerel veritabanı moduna geçiş yapar ve veri kaybını önler.</li>
             </ul>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">16.3 Fiş ve Donanım Yazıcı Ayarları</h3>
-            <p className="text-sm text-gray-705 leading-relaxed">
-              Hızlı perakende aşamasında kasiyerlerin donanım entegrasyonu dökümüdür:
-            </p>
+            <h3 className="text-base font-bold text-gray-800 mt-4">22.2 Fatura & Fiş Tasarım Editörü, SMTP ve Yedekleme</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Yazıcı Seçimi ve Bağlantı Protokolleri:</strong> USB, Ethernet/LAN, Bluetooth veya Seri Port (COM) üzerinden bağlı her marka 80mm ve 58mm termal slip rulo yazıcıları sisteme kolayca tanıtılır.</li>
-              <li><strong>Kağıt Kesme ve Fiş Alt Bilgi Düzenleme:</strong> Satış tamamlandığında otomatik kağıt kesme mekanizmasının aktifleşmesi, fişin üstünde ve altında görüntülenecek özel müşteri teşekkür mesajları (Örn: "Bizi tercih ettiğiniz için teşekkür ederiz, iade süremiz 14 gündür.") bu menüden tasarlanır.</li>
+              <li><strong>Görsel Fatura ve Fiş Şablon Editörü:</strong> E-Fatura ve 80mm termal satış fişlerinizin logosunu, kaşe/imza görselini, banka IBAN tablosunu ve alt bilgi notlarını canlı önizleme ile özelleştirebilirsiniz.</li>
+              <li><strong>Anlık Manuel ve Otomatik Yedekleme:</strong> Tüm veritabanını tek tıkla <code>.json</code> formatında indirebilir veya mevcut bir yedeği geri yükleyebilirsiniz.</li>
             </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">16.4 E-Fatura Şablon Tasarım Ayarları (Esila E-Fatura)</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Esila E-Fatura entegrasyonu kapsamında müşterilerinize giden XML ve PDF fatura şablonlarının görsel görünümünü özelleştirmek için kullanılır:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Görsel Tasarım Şablonları:</strong> Hazır mizanpaj tasarımları içinden firmanıza en uygun olan tasarımı seçebilirsiniz. E-Faturada gösterilecek kurumsal renk paletini belirleyebilir, faturanın alt kısmına şirket içi kaşe ve ıslak imza görsellerini dijital olarak yerleştirebilirsiniz.</li>
-              <li><strong>Banka Hesap Yerleşimleri:</strong> Havale/EFT ile ödeme alabilmek için faturanın dipnot alanında liste halinde çıkacak aktif banka bilgilerini ve şube kodlarını şablon üzerine yerleştirebilirsiniz.</li>
-            </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">16.5 Belge ve Sayaç Numaralandırma Hizmetleri</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Oluşturulan yasal belgelerin takip serileridir:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Özel Ön Ek Yönetimi:</strong> Satış faturaları (Örn: ESL2026000000001), teklifler (Örn: TEK20260000001), sevk irsaliyeleri (Örn: IRS20260000001) ve servis formları (Örn: SRV20260000001) için dilediğiniz 3 haneli harf ön ekini ve yıl parametresini belirleyebilirsiniz.</li>
-              <li><strong>Sıralı Sayaç Kontrolü:</strong> Belge numaralarının veritabanında sıralı bir şekilde ilerlemesini sağlayan otomatik sayaç ayarları, yıl sonu devirleri esnasında manuel olarak sıfırlanabilir veya güncellenebilir.</li>
-            </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">16.6 Giden E-Posta (Mail SMTP) Şablon Düzenlemeleri</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Müşterilerinize giden bilgilendirici e-postaların kurumsal dilini ve mizanpajını özelleştiren SMTP ayar modülüdür:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Giden SMTP Sunucu Entegrasyonu:</strong> Şirketinize ait info@firmaniz.com veya benzeri kurumsal mail adreslerini barındıran SMTP sunucu bilgilerini (Host, Port, SSL, Kullanıcı Adı ve Şifre) girerek maillerin direkt şirket adınızla gitmesini sağlarsınız.</li>
-              <li><strong>Zengin Gövde (HTML) Şablon Sihirbazı:</strong> Teklif Onay Mailleri, Cari Mutabakat Duyuruları, E-Fatura Sevkiyat Bildirimleri ve Şifre Sıfırlama mailleri için gönderilecek e-postaların başlıklarını, imza alanlarını ve gövde içerik metinlerini dilediğiniz gibi tasarlayabilirsiniz.</li>
-            </ul>
-
-            <h3 className="text-base font-bold text-gray-800 mt-4">16.7 Otomatik Bulut Yedekleme ve Anlık Manuel Kurtarma</h3>
-            <p className="text-sm text-gray-705 leading-relaxed">
-              Esila Ticari envanter dökümünüz, finansal hareketleriniz ve yasal tüm arşiviniz yüksek güvenlik standartları altında koruma altına alınır:
-            </p>
-            <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li><strong>Zaman Ayarlı Otomatik Yedekleme:</strong> Sistem, her gece saat **03:00'da** hiçbir personel müdahalesine gerek kalmadan tüm veritabanının şifreli ve sıkıştırılmış yedek kopyasını otomatik alarak güvenli AWS S3 veya Google Drive bulut depolarınıza depolar.</li>
-              <li><strong>Anlık Manuel Yedekleme:</strong> Kritik bir güncelleme yapmadan veya dükkanı kapatmadan önce istediğiniz her an "Manuel Yedek Al" butonuna basarak, tüm verilerinizi içeren güncel bir `.json` yedek dosyasını anında yerel bilgisayarınıza indirebilirsiniz.</li>
-              <li><strong>Yedekten Geri Kurtarma:</strong> Olası bir bilgisayar çökmesi durumunda indirdiğiniz en son `.json` dosyasını sisteme sürükleyip bırakarak şirketinizin tüm veri akışını saniyeler içerisinde kaldığı yerden kusursuz çalışacak şekilde kurtarabilirsiniz.</li>
-            </ul>
-
-            {/* Support footer */}
           </section>
 
           {/* ========================================================= */}
@@ -1364,25 +1190,69 @@ export const UserManual: React.FC = () => {
           <section className={`section-block transition-opacity duration-200 ${activeSection === 'sesliasistan' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
             <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
               <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
-                <AlertCircle className="w-5 h-5" />
+                <Mic className="w-5 h-5" />
               </span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">23. Sesli Asistan (TTS Bildirim ve Uyarılar)</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">23. Sesli Asistan (TTS Bildirim), Sesli Navigasyon & Komut Paleti</h2>
             </div>
             
             <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-              Esila Ticari Pro sistemi sadece görsel uyarılarla kalmaz; anlık hata, başarı ve bilgi bildirimlerini (toast mesajlarını) Web Speech API kullanarak <strong>kadın sesiyle Türkçe olarak okur.</strong>
+              Esila Ticari Pro, görsel uyarıların yanı sıra sistem bildirimlerini Türkçe seslendirir, sesli komutlarla menüler arası geçiş yapmanızı sağlar ve <strong>Ctrl+K</strong> Hızlı Komut Paleti ile tüm modüllere klavyeden erişim sunar.
             </p>
 
-            <h3 className="text-base font-bold text-gray-800 mt-4">19.1 Çalışma Mantığı</h3>
+            <h3 className="text-base font-bold text-gray-800 mt-4">23.1 Çalışma Mantığı</h3>
             <ul className="text-sm space-y-1.5 text-gray-650 pl-5 list-disc">
-              <li>Sistemde gerçekleşen stok yetersizliği, müşteri kayıt onayı, veya tahsilat başarıları gibi tüm uyarı metinleri ekranda belirdiği an otomatik olarak cihazınızın hoparlöründen seslendirilir.</li>
-              <li>TTS (Text-to-Speech) modülü arka planda Türkçe dil ve kadın ses profillerini (Zeynep, Yelda vb.) arayarak en uyumlu sesi seçer.</li>
-              <li>Aynı anda gelen bildirimler arka arkaya, karışıklığa yol açmadan sırayla okunur.</li>
+              <li><strong>Sesli Bildirim (TTS):</strong> Stok yetersizliği, satış onayı veya tahsilat bildirimleri Türkçe ses profiliyle seslendirilir.</li>
+              <li><strong>Sesli Navigasyon:</strong> Mikrofon ikonuna tıklayarak "Hızlı Satışa git", "Carileri aç", "Raporları göster" gibi sesli komutlarla ekranlar arasında eller serbest geçiş yapabilirsiniz.</li>
+              <li><strong>Hızlı Komut Paleti (Ctrl+K):</strong> Klavyeden <code>Ctrl + K</code> tuşlarına basarak arama penceresini açabilir, saniyeler içinde istediğiniz modüle veya işleme atlayabilirsiniz.</li>
+            </ul>
+          </section>
+
+          {/* ========================================================= */}
+          {/* 24. LİSANS YENİLEME & HAVALE/EFT ÖDEME BİLDİRİMİ */}
+          {/* ========================================================= */}
+          <section className={`section-block transition-opacity duration-200 ${activeSection === 'lisansodeme' ? 'block' : 'hidden print:block print:mb-12 print:page-break-before'}`}>
+            <div className="flex items-center gap-3 border-b-2 border-emerald-600 pb-3 mb-6">
+              <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
+                <Landmark className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-805 my-0">24. Kurumsal Kayıt, Lisans Aktivasyonu ve Banka Havale / EFT Ödeme Bildirimi</h2>
+            </div>
+            
+            <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+              Kullanıcı giriş ekranında yer alan <strong>"Kayıt Ol"</strong> ve <strong>"Ödeme Yap"</strong> sekmeleri üzerinden yeni firma kaydı oluşturabilir veya mevcut lisans ödemelerinizi doğrudan <strong>Banka Havale / EFT Bildirimi</strong> ile gerçekleştirebilirsiniz.
+            </p>
+
+            {/* Portal Visual Mockup: Lisans Odeme */}
+            <div className="my-6 border border-emerald-600/25 rounded-xl bg-slate-900 text-slate-100 p-4">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-3 text-[10px]">
+                <span className="font-bold text-emerald-400 uppercase tracking-wider">GİRİŞ EKRANI // BANKA HAVALE & EFT ÖDEME BİLDİRİMİ</span>
+                <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold">IBAN Kopyala & Bildir</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div className="bg-slate-850 border border-slate-800 rounded-lg p-3 space-y-1.5">
+                  <span className="text-[9px] text-emerald-400 font-bold uppercase block">1. Kurumsal Banka Hesapları (IBAN)</span>
+                  <p className="text-[11px] font-bold text-white m-0">QNB Finansbank / Garanti BBVA / Ziraat Bankası</p>
+                  <p className="text-[10px] font-mono text-slate-300 m-0">TR93 0011 1000 0000 0098 7654 32</p>
+                  <span className="text-[9px] text-slate-400 block">Tek tıkla IBAN kopyalama ve açıklama kısmına VKN/TCKN yazma</span>
+                </div>
+                <div className="bg-slate-850 border border-slate-800 rounded-lg p-3 space-y-1.5">
+                  <span className="text-[9px] text-emerald-400 font-bold uppercase block">2. Havale / EFT Bildirim Formu</span>
+                  <p className="text-[10px] text-slate-300 m-0">Firma Adı, VKN/TCKN, Gönderen Ad Soyad, Gönderim Yapılan Banka ve Gönderilen Tutar (TL) girilerek onaylanır.</p>
+                  <span className="text-[9px] bg-emerald-600 text-white px-2 py-0.5 rounded inline-block font-bold">✓ Yöneticiye & Müşteriye Otomatik Mail</span>
+                </div>
+              </div>
+            </div>
+
+            <h3 className="text-base font-bold text-gray-800 mt-4">24.1 Banka Havale / EFT ile Ödeme ve Bildirim Akışı</h3>
+            <ul className="text-sm space-y-2 text-gray-650 pl-5 list-disc">
+              <li><strong>Kurumsal IBAN Hesapları:</strong> Giriş ekranındaki <strong>"Ödeme Yap"</strong> sekmesine tıkladığınızda anlaşmalı kurumsal banka hesaplarımız ve IBAN numaralarımız listelenir. Yanındaki kopyala butonu ile IBAN numarasını tek tıkla kopyalayabilirsiniz.</li>
+              <li><strong>Havale / EFT Bildirim Formu:</strong> Banka üzerinden transferinizi gerçekleştirdikten sonra aynı ekrandaki bildirim formuna <strong>Firma Adı / Ad Soyad, Vergi No / TCKN, Telefon, E-Posta, Havale Gönderen Ad Soyad, Gönderim Yapılan Banka, Gönderilen Tutar (TL)</strong> ve dekont açıklamasını girerek <strong>"Havale / EFT Ödeme Bildirimini Gönder"</strong> butonuna basmanız yeterlidir.</li>
+              <li><strong>Anlık Kayıt ve Otomatik E-Posta Onayı:</strong> Bildiriminiz veritabanına referans numarasıyla kaydedilir, sistem yöneticisine anında onay bildirimi düşer ve e-posta adresinize bilgilendirme mesajı iletilir.</li>
             </ul>
           </section>
 
           <div className="mt-12 pt-6 border-t border-gray-200 flex flex-col items-center text-center">
-            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Esila Ticari Pro Otomasyonu - Versiyon 4.2</span>
+            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Esila Ticari Pro Otomasyonu - Versiyon 4.5 (24 Modül Güncel Rehber)</span>
             <p className="text-xs text-gray-500 m-1">Bulut veri tescili Esila Ticari kurumsal sözleşmesi kapsamında koruma altındadır.</p>
             <p className="text-[9px] text-gray-405 mt-1">Esila E-Fatura entegrasyon lisans ortağı tarafından tescil edilmiştir.</p>
           </div>

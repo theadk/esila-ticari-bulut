@@ -241,8 +241,8 @@ const uploadImageToServer = async (base64String: string): Promise<string> => {
       </div>
 
       {/* Settings Content */}
-      <div className="flex-1 p-4 sm:p-6 md:p-4 md:p-8 overflow-y-auto">
-        <div className={`w-full ${activeTab === 'kilavuz' ? 'max-w-full' : 'max-w-full sm:max-w-3xl'}`}>
+      <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+        <div className={`w-full ${['kilavuz', 'yazici', 'efatura', 'sistem'].includes(activeTab) ? 'max-w-full' : 'max-w-full sm:max-w-3xl'}`}>
           {activeTab === 'genel' && (
             <div className="space-y-6 animate-fade-in">
               {tenantInfo && (
@@ -740,8 +740,8 @@ const uploadImageToServer = async (base64String: string): Promise<string> => {
           )}
 
           {activeTab === 'yazici' && (
-            <div className="animate-fade-in p-4 md:p-8">
-              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-6">Fiş Tasarım Editörü</h3>
+            <div className="animate-fade-in">
+              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Fiş Tasarım Editörü</h3>
               <ReceiptTemplateEditor store={store} />
             </div>
           )}
@@ -1112,12 +1112,14 @@ const uploadImageToServer = async (base64String: string): Promise<string> => {
             </div>
           )}
 
-          <div className="pt-6 mt-6 border-t flex justify-end">
-            <button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
-              <Save size={18} />
-              <span>Ayarları Kaydet</span>
-            </button>
-          </div>
+          {!['yazici', 'kilavuz', 'sistem', 'kullanicilar'].includes(activeTab) && (
+            <div className="pt-6 mt-6 border-t flex justify-end">
+              <button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+                <Save size={18} />
+                <span>Ayarları Kaydet</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     

@@ -36,6 +36,9 @@ import { VoiceNavigator } from './components/VoiceNavigator';
 import { CommandPalette } from './components/CommandPalette';
 import { useKeyboardShortcuts } from './lib/useKeyboardShortcuts';
 import { ToastSpeaker } from './components/ToastSpeaker';
+import { initClientSecurityGuard } from './lib/securityGuard';
+
+initClientSecurityGuard();
 
 const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
   <div className="flex flex-col items-center justify-center h-full text-gray-400">
@@ -83,8 +86,12 @@ const App: React.FC = () => {
 
   useEffect(() => {
     let timeoutId: any;
-    
+    let lastActivityReset = 0;
+
     const resetTimeout = () => {
+      const now = Date.now();
+      if (now - lastActivityReset < 5000) return;
+      lastActivityReset = now;
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         if (isAuthenticated) {
@@ -95,10 +102,10 @@ const App: React.FC = () => {
 
     if (isAuthenticated) {
       resetTimeout();
-      window.addEventListener('mousemove', resetTimeout);
-      window.addEventListener('keypress', resetTimeout);
-      window.addEventListener('click', resetTimeout);
-      window.addEventListener('scroll', resetTimeout);
+      window.addEventListener('mousemove', resetTimeout, { passive: true });
+      window.addEventListener('keypress', resetTimeout, { passive: true });
+      window.addEventListener('click', resetTimeout, { passive: true });
+      window.addEventListener('scroll', resetTimeout, { passive: true });
     }
 
     return () => {
@@ -112,10 +119,20 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      initializeStore(true);
-      fetch('/api/tenant-info', {
-        headers: { 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '' }
-      }).then(res => res.json()).then(data => setTenantInfo(data)).catch(console.error);
+      initializeStore(true)
+        .then((bootstrappedTenant) => {
+          if (bootstrappedTenant) {
+            setTenantInfo(bootstrappedTenant);
+          } else {
+            fetch('/api/tenant-info', {
+              headers: { 'x-tenant-id': localStorage.getItem('esila_tenant_id') || '' }
+            })
+              .then((res) => res.json())
+              .then((data) => setTenantInfo(data))
+              .catch(console.error);
+          }
+        })
+        .catch(console.error);
     }
   }, [isAuthenticated]);
 

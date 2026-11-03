@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Customer, CustomerTransaction, CashTransaction, Personnel, Order, OrderStatus, Proposal, ProposalStatus, Settings, Product, User, ServiceTicket, JobApplication, ReminderNote, BOM, WorkOrder, AppNotification, AttendanceRecord, SalaryAdjustment, PersonnelKPI, PersonnelTask, MeetingNote, Campaign, BankAccount, PayrollApproval, PerformanceScore } from '../types';
+import { primeApiCache, invalidateApiCache } from './api';
+import { sanitizeClientPayload } from './securityGuard';
 
 const safeJSONParse = (val: any, defaultVal: any = []) => {
   if (typeof val === 'string') {
@@ -110,45 +112,52 @@ function emit() {
 }
 
 
+// ETag conditional GET cache to avoid re-downloading unchanged JSON payloads
+const etagCache = new Map<string, { etag: string; bodyText: string }>();
+const objectSyncTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
 // Use this for all API requests to pass the tenant context
 async function apiFetch(input: RequestInfo, init?: RequestInit) {
   const tenantId = localStorage.getItem('esila_tenant_id') || '1111111111';
   const userId = localStorage.getItem('esila_user_id') || '';
+  const method = (init?.method || 'GET').toUpperCase();
+  const url = typeof input === 'string' ? input : input.url;
+  const cacheKey = `${tenantId}:${url}`;
+
   const headers = new Headers(init?.headers || {});
   headers.set('x-tenant-id', tenantId);
   if (userId) {
     headers.set('x-user-id', userId);
   }
-  headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-  headers.set('Pragma', 'no-cache');
-  headers.set('Expires', '0');
-  
-  const response = await fetch(input, { ...init, headers, cache: 'no-store' });
-  
-  // Debugging layer for API responses
-  try {
-    const clonedResponse = response.clone();
-    const method = init?.method || 'GET';
-    const url = typeof input === 'string' ? input : input.url;
-    
-    if (method !== 'GET') {
-      console.log(`[API REQUEST] ${method} ${url}`);
-      
-      if (!clonedResponse.ok) {
-        const errorText = await clonedResponse.text();
-        console.error(`[API ERROR] ${method} ${url} - Status: ${clonedResponse.status}`, errorText);
-        if (init?.body) {
-           console.error(`[API ERROR PAYLOAD]`, init.body);
-        }
-      } else {
-        const data = await clonedResponse.json();
-        console.log(`[API SUCCESS] ${method} ${url} - Status: ${clonedResponse.status}`, data);
+
+  if (method === 'GET') {
+    const cached = etagCache.get(cacheKey);
+    if (cached?.etag) {
+      headers.set('If-None-Match', cached.etag);
+    }
+  }
+
+  const response = await fetch(input, { ...init, headers });
+
+  if (method === 'GET') {
+    const cached = etagCache.get(cacheKey);
+    if (response.status === 304 && cached) {
+      return new Response(cached.bodyText, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    if (response.ok) {
+      const etag = response.headers.get('ETag');
+      if (etag) {
+        try {
+          const clonedText = await response.clone().text();
+          etagCache.set(cacheKey, { etag, bodyText: clonedText });
+        } catch (_e) {}
       }
     }
-  } catch (err) {
-    console.error("[API DEBUG ERROR]", err);
   }
-  
+
   return response;
 }
 
@@ -167,21 +176,27 @@ async function syncArray(table: string, oldArray: any[], newArray: any[]) {
     // Inserts and Updates
     for (const item of newArray) {
       if (!oldIds.has(item.id)) {
+        const cleanItem = sanitizeClientPayload(item);
         apiFetch(`/api/${table}`, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify(item) 
+          body: JSON.stringify(cleanItem) 
         }).catch(console.error);
       } else {
         const oldItem = oldArray.find(x => x.id === item.id);
         if (JSON.stringify(oldItem) !== JSON.stringify(item)) {
+          const cleanItem = sanitizeClientPayload(item);
           apiFetch(`/api/${table}/${item.id}`, { 
             method: 'PUT', 
             headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify(item) 
+            body: JSON.stringify(cleanItem) 
           }).catch(console.error);
         }
       }
+    }
+
+    if (table === 'products' || table === 'warehouses' || table === 'categories' || table === 'brands') {
+      invalidateApiCache(`/api/${table}`);
     }
   } catch (err) {
     console.error("Sync error:", err);
@@ -190,180 +205,233 @@ async function syncArray(table: string, oldArray: any[], newArray: any[]) {
 
 async function syncObject(table: string, oldObj: any, newObj: any) {
   try {
-     if (JSON.stringify(oldObj) !== JSON.stringify(newObj)) {
-         apiFetch(`/api/${table}/1`, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(newObj)
-         }).catch(console.error);
-     }
+    if (JSON.stringify(oldObj) !== JSON.stringify(newObj)) {
+      const existingTimer = objectSyncTimers.get(table);
+      if (existingTimer) clearTimeout(existingTimer);
+      const timer = setTimeout(() => {
+        objectSyncTimers.delete(table);
+        const cleanObj = sanitizeClientPayload(newObj);
+        apiFetch(`/api/${table}/1`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cleanObj)
+        }).catch(console.error);
+      }, 250);
+      objectSyncTimers.set(table, timer);
+    }
   } catch (err) {
     console.error("Sync object error:", err);
   }
 }
 
 let isInitialized = false;
+let activeBootstrapPromise: Promise<any> | null = null;
+let cachedTenantInfo: any = null;
 
-  export const refreshProposalsFromServer = async () => {
-    try {
-      const res = await apiFetch('/api/proposals');
-      if (res.ok) {
-         const data = await res.json();
-         globalProposals = data.map((d:any)=>{
-           const parsedItems = safeJSONParse(d.items, []);
-           const fixedItems = parsedItems.map((i: any) => ({
-               ...i, 
-               price: Number(i.price !== undefined ? i.price : (i.unitPrice || 0))
-           }));
-           return { ...d, items: fixedItems, total: Number(d.total !== undefined ? d.total : (d.totalAmount || 0)) };
-        });
-        emit();
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+export const getBootstrappedTenantInfo = () => cachedTenantInfo;
 
-export async function initializeStore(force = false) {
-  if (isInitialized && !force) return;
-  isInitialized = true;
+export const refreshProposalsFromServer = async () => {
+  // Skip background polling when browser tab is hidden
+  if (typeof document !== 'undefined' && document.hidden) return;
   try {
-    const tables = [
-      { name: 'users', ref: (data: any) => { globalUsers = data.map((u: any) => ({ ...u, permissions: typeof u.permissions === 'string' ? safeJSONParse(u.permissions, {}) : u.permissions })); } },
-      { name: 'settings', ref: (data: any) => { 
-        if(data.length > 0) {
-          const setting = data[0];
-          globalSettings = {
-            ...setting,
-            plumbingChecklistTemplate: typeof setting.plumbingChecklistTemplate === 'string' ? JSON.parse(setting.plumbingChecklistTemplate) : (setting.plumbingChecklistTemplate || ['Filtre Kontrolü', 'Boru Sızıntı Kontrolü', 'Su Basıncı Testi', 'Vana Kontrolü', 'Ekipman Temizliği'])
-          };
-        } 
-      } },
-      { name: 'customers', ref: (data: any) => { globalCustomers = data.map((d: any) => ({ ...d, balance: Number(d.balance) || 0, installments: safeJSONParse(d.installments, []) })); } },
-      { name: 'products', ref: (data: any) => { globalProducts = data.map((d:any)=>({...d, showInQuickSale: !!d.showInQuickSale, warehouseStocks: safeJSONParse(d.warehouseStocks, [])})); } },
-      { name: 'categories', ref: (data: any) => { /* already in another branch but if we migrate.. */ } },
-      { name: 'brands', ref: (data: any) => { /* ... */ } },
-      { name: 'warehouses', ref: (data: any) => { globalWarehouses = data; } },
-      { name: 'customer_transactions', ref: (data: any) => { globalTransactions = data.map((d: any) => ({ ...d, amount: Number(d.amount) || 0 })); } },
-      { name: 'cash_transactions', ref: (data: any) => { globalCashTransactions = data.map((d: any) => ({ ...d, amount: Number(d.amount) || 0 })); } },
-      { name: 'boms', ref: (data: any) => { 
-        globalBoms = data.map((d: any) => ({
-           ...d,
-           items: safeJSONParse(d.items, []),
-           isActive: d.isActive == 1 || d.isActive === true
-        })); 
-      } },
-      { name: 'work_orders', ref: (data: any) => { globalWorkOrders = data; } },
-      { name: 'bank_accounts', ref: (data: any) => { globalBankAccounts = data.map((b: any) => ({ ...b, balance: Number(b.balance) || 0 })); } },
-      { name: 'personnel', ref: (data: any) => { 
-        globalPersonnel = data.map((p: any) => ({
-          ...p,
-          records: safeJSONParse(p.records, []),
-          payrollRecords: safeJSONParse(p.payrollRecords, []),
-          fixtures: safeJSONParse(p.fixtures, []),
-          payrolls: safeJSONParse(p.payrolls, []),
-          leaveRecords: safeJSONParse(p.leaveRecords, [])
-        })); 
-      } },
-      { name: 'job_applications', ref: (data: any) => { globalJobApplications = data; } },
-      { name: 'attendance', ref: (data: any) => { globalAttendance = data; } },
-      { name: 'payroll_approvals', ref: (data: any) => { globalPayrollApprovals = data; } },
-      { name: 'salary_adjustments', ref: (data: any) => { globalSalaryAdjustments = data; } },
-      { name: 'personnel_tasks', ref: (data: any) => { globalPersonnelTasks = data; } },
-      { name: 'documents', ref: (data: any) => {
-        globalDocuments = data.map((d: any) => ({
-          ...d,
-          tags: safeJSONParse(d.tags, [])
+    const res = await apiFetch('/api/proposals');
+    if (res.ok) {
+      const data = await res.json();
+      globalProposals = data.map((d: any) => {
+        const parsedItems = safeJSONParse(d.items, []);
+        const fixedItems = parsedItems.map((i: any) => ({
+          ...i,
+          price: Number(i.price !== undefined ? i.price : (i.unitPrice || 0))
         }));
-      } },
-      { name: 'orders', ref: (data: any) => { 
-        globalOrders = data.map((d:any)=>{
-           const parsedItems = safeJSONParse(d.items, []);
-           const fixedItems = parsedItems.map((i: any) => ({
-               ...i, 
-               price: Number(i.price !== undefined ? i.price : (i.unitPrice || 0))
-           }));
-           return { ...d, items: fixedItems, total: Number(d.total !== undefined ? d.total : (d.totalAmount || 0)) };
-        }); 
-      } },
-      { name: 'proposals', ref: (data: any) => { 
-        globalProposals = data.map((d:any)=>{
-           const parsedItems = safeJSONParse(d.items, []);
-           const fixedItems = parsedItems.map((i: any) => ({
-               ...i, 
-               price: Number(i.price !== undefined ? i.price : (i.unitPrice || 0))
-           }));
-           return { ...d, items: fixedItems, total: Number(d.total !== undefined ? d.total : (d.totalAmount || 0)) };
-        }); 
-      } },
-      { name: 'e_invoices', ref: (data: any) => {
-        globalEInvoices = data;
-      } },
-      { name: 'service_tickets', ref: (data: any) => {
-        globalServiceTickets = data.map((d:any) => ({
+        return { ...d, items: fixedItems, total: Number(d.total !== undefined ? d.total : (d.totalAmount || 0)) };
+      });
+      emit();
+    }
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+export async function initializeStore(force = false): Promise<any> {
+  if (isInitialized && !force) return cachedTenantInfo;
+  if (activeBootstrapPromise) return activeBootstrapPromise;
+  isInitialized = true;
+
+  activeBootstrapPromise = (async () => {
+    try {
+      const tables = [
+        { name: 'users', ref: (data: any) => { globalUsers = data.map((u: any) => ({ ...u, permissions: typeof u.permissions === 'string' ? safeJSONParse(u.permissions, {}) : u.permissions })); } },
+        { name: 'settings', ref: (data: any) => { 
+          if (data.length > 0) {
+            const setting = data[0];
+            globalSettings = {
+              ...setting,
+              plumbingChecklistTemplate: typeof setting.plumbingChecklistTemplate === 'string' ? safeJSONParse(setting.plumbingChecklistTemplate, ['Filtre Kontrolü', 'Boru Sızıntı Kontrolü', 'Su Basıncı Testi', 'Vana Kontrolü', 'Ekipman Temizliği']) : (setting.plumbingChecklistTemplate || ['Filtre Kontrolü', 'Boru Sızıntı Kontrolü', 'Su Basıncı Testi', 'Vana Kontrolü', 'Ekipman Temizliği'])
+            };
+          } 
+        } },
+        { name: 'customers', ref: (data: any) => { globalCustomers = data.map((d: any) => ({ ...d, balance: Number(d.balance) || 0, installments: safeJSONParse(d.installments, []) })); } },
+        { name: 'products', ref: (data: any) => {
+          const mapped = data.map((d: any) => ({ ...d, showInQuickSale: !!d.showInQuickSale, warehouseStocks: safeJSONParse(d.warehouseStocks, []) }));
+          globalProducts = mapped;
+          primeApiCache('/api/products', mapped);
+        } },
+        { name: 'categories', ref: (data: any) => { primeApiCache('/api/categories', data); } },
+        { name: 'brands', ref: (data: any) => { primeApiCache('/api/brands', data); } },
+        { name: 'warehouses', ref: (data: any) => {
+          globalWarehouses = data;
+          primeApiCache('/api/warehouses', data);
+        } },
+        { name: 'customer_transactions', ref: (data: any) => { globalTransactions = data.map((d: any) => ({ ...d, amount: Number(d.amount) || 0 })); } },
+        { name: 'cash_transactions', ref: (data: any) => { globalCashTransactions = data.map((d: any) => ({ ...d, amount: Number(d.amount) || 0 })); } },
+        { name: 'boms', ref: (data: any) => { 
+          globalBoms = data.map((d: any) => ({
+            ...d,
+            items: safeJSONParse(d.items, []),
+            isActive: d.isActive == 1 || d.isActive === true
+          })); 
+        } },
+        { name: 'work_orders', ref: (data: any) => { globalWorkOrders = data; } },
+        { name: 'bank_accounts', ref: (data: any) => { globalBankAccounts = data.map((b: any) => ({ ...b, balance: Number(b.balance) || 0 })); } },
+        { name: 'personnel', ref: (data: any) => { 
+          globalPersonnel = data.map((p: any) => ({
+            ...p,
+            records: safeJSONParse(p.records, []),
+            payrollRecords: safeJSONParse(p.payrollRecords, []),
+            fixtures: safeJSONParse(p.fixtures, []),
+            payrolls: safeJSONParse(p.payrolls, []),
+            leaveRecords: safeJSONParse(p.leaveRecords, [])
+          })); 
+        } },
+        { name: 'job_applications', ref: (data: any) => { globalJobApplications = data; } },
+        { name: 'attendance', ref: (data: any) => { globalAttendance = data; } },
+        { name: 'payroll_approvals', ref: (data: any) => { globalPayrollApprovals = data; } },
+        { name: 'salary_adjustments', ref: (data: any) => { globalSalaryAdjustments = data; } },
+        { name: 'personnel_tasks', ref: (data: any) => { globalPersonnelTasks = data; } },
+        { name: 'documents', ref: (data: any) => {
+          globalDocuments = data.map((d: any) => ({
+            ...d,
+            tags: safeJSONParse(d.tags, [])
+          }));
+        } },
+        { name: 'orders', ref: (data: any) => { 
+          globalOrders = data.map((d: any) => {
+            const parsedItems = safeJSONParse(d.items, []);
+            const fixedItems = parsedItems.map((i: any) => ({
+              ...i, 
+              price: Number(i.price !== undefined ? i.price : (i.unitPrice || 0))
+            }));
+            return { ...d, items: fixedItems, total: Number(d.total !== undefined ? d.total : (d.totalAmount || 0)) };
+          }); 
+        } },
+        { name: 'proposals', ref: (data: any) => { 
+          globalProposals = data.map((d: any) => {
+            const parsedItems = safeJSONParse(d.items, []);
+            const fixedItems = parsedItems.map((i: any) => ({
+              ...i, 
+              price: Number(i.price !== undefined ? i.price : (i.unitPrice || 0))
+            }));
+            return { ...d, items: fixedItems, total: Number(d.total !== undefined ? d.total : (d.totalAmount || 0)) };
+          }); 
+        } },
+        { name: 'e_invoices', ref: (data: any) => {
+          globalEInvoices = data;
+        } },
+        { name: 'service_tickets', ref: (data: any) => {
+          globalServiceTickets = data.map((d: any) => ({
             ...d,
             materialsUsed: safeJSONParse(d.materialsUsed, []),
             plumbingChecklist: safeJSONParse(d.plumbingChecklist, [])
-        }));
-      } },
-      { name: 'reminder_notes', ref: (data: any) => {
-        globalReminderNotes = data.map((d:any) => ({
+          }));
+        } },
+        { name: 'reminder_notes', ref: (data: any) => {
+          globalReminderNotes = data.map((d: any) => ({
             ...d,
             isCompleted: d.isCompleted == 1 || d.isCompleted === true
-        }));
-      } },
-      { name: 'notifications', ref: (data: any) => {
+          }));
+        } },
+        { name: 'notifications', ref: (data: any) => {
           globalNotifications = data.map((d: any) => ({
-              ...d,
-              isRead: d.isRead == 1 || d.isRead === true
+            ...d,
+            isRead: d.isRead == 1 || d.isRead === true
           }));
-      } },
-      { name: 'campaigns', ref: (data: any) => {
+        } },
+        { name: 'campaigns', ref: (data: any) => {
           globalCampaigns = data.map((d: any) => ({
-              ...d,
-              isActive: d.isActive == 1 || d.isActive === true
+            ...d,
+            isActive: d.isActive == 1 || d.isActive === true
           }));
-      } },
-      { name: 'waybills', ref: (data: any) => {
+        } },
+        { name: 'waybills', ref: (data: any) => {
           globalWaybills = data.map((d: any) => ({
             ...d,
             items: safeJSONParse(d.items, [])
           }));
-      } },
-      { name: 'purchase_requests', ref: (data: any) => { 
+        } },
+        { name: 'purchase_requests', ref: (data: any) => { 
           globalPurchaseRequests = data.map((d: any) => ({
             ...d,
             items: safeJSONParse(d.items, [])
           }));
-      } },
-      { name: 'cheque_notes', ref: (data: any) => { globalChequeNotes = data; } },
-      { name: 'suspended_carts', ref: (data: any) => { 
+        } },
+        { name: 'cheque_notes', ref: (data: any) => { globalChequeNotes = data; } },
+        { name: 'suspended_carts', ref: (data: any) => { 
           globalSuspendedCarts = data.map((d: any) => ({
-             ...d,
-             items: safeJSONParse(d.items, [])
+            ...d,
+            items: safeJSONParse(d.items, [])
           }));
-      } },
-      { name: 'personnel_kpis', ref: (data: any) => { globalPersonnelKPIs = data; } },
-      { name: 'meeting_notes', ref: (data: any) => {
+        } },
+        { name: 'personnel_kpis', ref: (data: any) => { globalPersonnelKPIs = data; } },
+        { name: 'meeting_notes', ref: (data: any) => {
           globalMeetingNotes = data;
-      } }
-    ];
-    
-    for (const t of tables) {
-      const res = await apiFetch(`/api/${t.name}`);
-      if (res.ok) {
-         const data = await res.json();
-         if (t.name === 'settings') {
-           if (data && data.length > 0) t.ref(data);
-         } else {
-           t.ref(data || []);
-         }
+        } }
+      ];
+
+      // Single batched request instead of 31 sequential HTTP requests
+      const bootstrapRes = await apiFetch('/api/bootstrap');
+      if (bootstrapRes.ok) {
+        const payload = await bootstrapRes.json();
+        for (const t of tables) {
+          const data = payload[t.name];
+          if (t.name === 'settings') {
+            if (Array.isArray(data) && data.length > 0) t.ref(data);
+          } else {
+            t.ref(Array.isArray(data) ? data : []);
+          }
+        }
+        if (Array.isArray(payload.stock_transfers)) {
+          primeApiCache('/api/stock_transfers', payload.stock_transfers);
+        }
+        if (payload.tenantInfo) {
+          cachedTenantInfo = payload.tenantInfo;
+        }
+        emit();
+        return cachedTenantInfo;
       }
+
+      // Fallback if /api/bootstrap is unavailable
+      for (const t of tables) {
+        const res = await apiFetch(`/api/${t.name}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (t.name === 'settings') {
+            if (data && data.length > 0) t.ref(data);
+          } else {
+            t.ref(data || []);
+          }
+        }
+      }
+      emit();
+      return cachedTenantInfo;
+    } catch (e) {
+      console.error("Failed to initialize store", e);
+      return null;
+    } finally {
+      activeBootstrapPromise = null;
     }
-    emit();
-  } catch (e) {
-    console.error("Failed to initialize store", e);
-  }
+  })();
+
+  return activeBootstrapPromise;
 }
 
 export const useAppStore = () => {

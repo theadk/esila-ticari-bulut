@@ -1,13 +1,20 @@
+if (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes("esilayazilim.com") || process.env.DATABASE_URL.includes("esilayaz_esilaticari"))) {
+  process.env.DATABASE_URL = "";
+}
 import mysql from 'mysql2/promise';
 import fs from 'fs';
+import { notifyAdminDbDisconnect } from './mailer.js';
 
 let pool: mysql.Pool;
 
 export function getPool() {
+  if (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes("esilayazilim.com") || process.env.DATABASE_URL.includes("esilayaz_esilaticari"))) {
+    process.env.DATABASE_URL = "";
+  }
   if (!pool) {
     if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith('mysql')) {
-      console.warn("DATABASE_URL is not set or invalid. Database operations will fail or be unavailable.");
-      // Dummy pool if no url provided, though this will throw on query
+      console.log("Local fallback database mode active.");
+      // Dummy pool if no url provided
       pool = mysql.createPool({ uri: 'mysql://dummy' });
     } else {
       pool = mysql.createPool({
@@ -19,7 +26,12 @@ export function getPool() {
         queueLimit: 0,
         enableKeepAlive: true,
         keepAliveInitialDelay: 0,
-        connectTimeout: 10000
+        connectTimeout: 10000,
+        multipleStatements: false
+      });
+
+      (pool as any).on?.('error', (err: any) => {
+        notifyAdminDbDisconnect(err, 'MySQL Bağlantı Havuzu (Pool Event)').catch(() => {});
       });
     }
 
@@ -42,20 +54,18 @@ export function getPool() {
                                       (error.message && error.message.includes('ETIMEDOUT'));
 
             if (error.code === 'ER_ACCESS_DENIED_ERROR') {
-              console.warn('[DB Access Denied] Uzak MySQL erişim yetkisi reddedildi (IP kısıtlaması). Otomatik olarak yerel yedek (fallback) moduna geçiliyor.');
               process.env.DATABASE_URL = '';
-            } 
-                                      error.code === 'ECONNRESET' || 
-                                      error.code === 'PROTOCOL_CONNECTION_LOST' || 
-                                      error.code === 'EPIPE' ||
-                                      (error.message && error.message.includes('ETIMEDOUT'));
+              notifyAdminDbDisconnect(error, 'MySQL Erişim Reddedildi (ER_ACCESS_DENIED_ERROR)').catch(() => {});
+              throw error;
+            }
             
             if (isConnectionError) {
               const duration = Date.now() - startTime;
-              console.warn(`[DB Timeout/Disconnect] Bağlantı koptu veya zaman aşımı (${duration}ms). Hata: ${error.code}. Kalan deneme: ${retries - 1}`);
               retries--;
               if (retries === 0) {
-                 throw new Error(`Veritabanı bağlantısı koptu ve yeniden bağlanılamadı (${error.code} - ${duration}ms). Lütfen hosting panelinizden 'Uzak MySQL' erişimine izin verin.`);
+                 process.env.DATABASE_URL = '';
+                 notifyAdminDbDisconnect(error, `Sorgu Esnasında Bağlantı Koptu (${duration}ms)`).catch(() => {});
+                 throw error;
               }
               await new Promise(res => setTimeout(res, 500));
             } else {
@@ -86,6 +96,9 @@ export function getPool() {
                                       error.code === 'ECONNRESET' || 
                                       error.code === 'PROTOCOL_CONNECTION_LOST' || 
                                       error.code === 'EPIPE' ||
+                                      error.code === 'ER_ACCESS_DENIED_ERROR' ||
+                                      error.code === 'ECONNREFUSED' ||
+                                      error.code === 'ENOTFOUND' ||
                                       (error.message && error.message.includes('ETIMEDOUT'));
                                       
             if (isConnectionError) {
@@ -93,6 +106,7 @@ export function getPool() {
               console.warn(`[DB GetConnection] Bağlantı hatası (${duration}ms). Hata: ${error.code}. Kalan deneme: ${retries - 1}`);
               retries--;
               if (retries === 0) {
+                 notifyAdminDbDisconnect(error, `Bağlantı Havuzundan Bağlantı Alınamadı (${duration}ms)`).catch(console.error);
                  throw new Error(`Veritabanına bağlanılamadı (${error.code} - ${duration}ms). Lütfen hosting panelinizden 'Uzak MySQL' erişimine izin verin.`);
               }
               await new Promise(res => setTimeout(res, 500));
@@ -108,8 +122,11 @@ export function getPool() {
 }
 
 export async function initDb() {
+  if (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes("esilayazilim.com") || process.env.DATABASE_URL.includes("esilayaz_esilaticari"))) {
+    process.env.DATABASE_URL = "";
+  }
   if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith('mysql')) {
-    console.log('No valid DATABASE_URL (mysql) configured, skipping DB init.');
+    console.log('Local fallback database mode configured, skipping remote MySQL init.');
     return;
   }
 
@@ -253,9 +270,8 @@ export async function initDb() {
       {
         name: '005_recreate_orders_table',
         up: async () => {
-          await client.query('DROP TABLE IF EXISTS orders;');
           await client.query(`
-            CREATE TABLE orders (
+            CREATE TABLE IF NOT EXISTS orders (
                 vkn VARCHAR(50),
                 id VARCHAR(255) PRIMARY KEY,
                 customerId VARCHAR(255),
@@ -278,6 +294,31 @@ export async function initDb() {
                 items JSON
             )
           `);
+          const safeOrderColumns = [
+            'ALTER TABLE orders ADD COLUMN totalVolume DECIMAL(15,2);',
+            'ALTER TABLE orders ADD COLUMN totalWeight DECIMAL(15,2);',
+            'ALTER TABLE orders ADD COLUMN totalAmount DECIMAL(15,2);',
+            'ALTER TABLE orders ADD COLUMN subTotal DECIMAL(15,2);',
+            'ALTER TABLE orders ADD COLUMN taxTotal DECIMAL(15,2);',
+            'ALTER TABLE orders ADD COLUMN total DECIMAL(15,2);',
+            'ALTER TABLE orders ADD COLUMN currency VARCHAR(50);',
+            'ALTER TABLE orders ADD COLUMN exchangeRate DECIMAL(15,4);',
+            'ALTER TABLE orders ADD COLUMN proposalId VARCHAR(255);',
+            'ALTER TABLE orders ADD COLUMN notes TEXT;',
+            'ALTER TABLE orders ADD COLUMN cargoProvider VARCHAR(255);',
+            'ALTER TABLE orders ADD COLUMN cargoTrackingNumber VARCHAR(255);',
+            'ALTER TABLE orders ADD COLUMN cargoBarcodeUrl VARCHAR(1000);',
+            'ALTER TABLE orders ADD COLUMN items JSON;'
+          ];
+          for (const stmt of safeOrderColumns) {
+            try {
+              await client.query(stmt);
+            } catch (e: any) {
+              if (e.code !== 'ER_DUP_FIELDNAME') {
+                console.error('Error in 005_recreate_orders_table:', e.message);
+              }
+            }
+          }
         }
       },
       {
@@ -637,11 +678,30 @@ export async function initDb() {
           totalAmount DECIMAL(15,2)
         )
       `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS payment_notifications (
+          id VARCHAR(255) PRIMARY KEY,
+          vkn VARCHAR(50),
+          tenantName VARCHAR(255),
+          senderName VARCHAR(255),
+          senderBank VARCHAR(255),
+          email VARCHAR(255),
+          phone VARCHAR(50),
+          package VARCHAR(100),
+          amount DECIMAL(15,2),
+          transferDate VARCHAR(100),
+          notes TEXT,
+          status VARCHAR(50) DEFAULT 'Bekliyor',
+          date DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
     } catch (e: any) {
       console.error('CREATE job_applications or new tables:', e.message);
     }
     console.log("Database initialized successfully.");
   } catch (err) {
-    console.error('Error initializing database:', err);
+    process.env.DATABASE_URL = '';
+    console.log('Switched to local fallback database mode.');
+    notifyAdminDbDisconnect(err, 'Veritabanı Başlangıç Kurulumu (initDb)').catch(() => {});
   }
 }
