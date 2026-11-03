@@ -55,16 +55,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [ibanAccounts, setIbanAccounts] = useState<IbanAccount[]>([
     {
       id: 'default-1',
-      bankName: 'Ziraat Bankası',
-      accountName: 'Esila Yazılım ve Bilişim Sistemleri',
-      iban: 'TR32 0001 0017 4567 8901 2350 01'
+      bankName: 'Vakıf Katılım Bankası',
+      accountName: 'ESİLA YAZILIM TEKNOLOJİLERİ LİMİTED ŞİRKETİ',
+      iban: 'TR50 0021 0000 0013 4303 2000 01'
     },
-    {
-      id: 'default-2',
-      bankName: 'Garanti BBVA',
-      accountName: 'Esila Yazılım ve Bilişim Sistemleri',
-      iban: 'TR64 0006 2000 4120 0006 2987 41'
-    }
+   
   ]);
   const [paymentForm, setPaymentForm] = useState({
     name: '',
@@ -72,7 +67,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     email: '',
     phone: '',
     senderName: '',
-    selectedBank: 'Ziraat Bankası',
+    selectedBank: 'Vakıf Katılım Bankası',
     amount: '1250',
     receiptNote: ''
   });
@@ -386,7 +381,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                 >
                   <Landmark size={16} />
-                  <span>Ödeme Yap (EFT / IBAN)</span>
+                  <span>Ödeme Bildir</span>
                 </button>
               </div>
 

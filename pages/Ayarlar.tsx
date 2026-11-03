@@ -7,6 +7,7 @@ import { UsersSettings } from '../components/UsersSettings';
 import { UserManual } from '../components/UserManual';
 import { ReceiptTemplateEditor } from '../components/ReceiptTemplateEditor';
 import { SystemStatus } from '../components/SystemStatus';
+import { sanitizeClientRichHtml } from '../lib/securityGuard';
 import toast from 'react-hot-toast';
 
 export const Ayarlar: React.FC = () => {
@@ -603,11 +604,11 @@ const uploadImageToServer = async (base64String: string): Promise<string> => {
                   <div>
                     <h5 className="text-sm font-medium text-gray-700 mb-2">Önizleme</h5>
                     <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-white overflow-y-auto max-h-[300px]"
-                      dangerouslySetInnerHTML={{ __html: (settings.email_template_customer || 'Görünüm Seçilen HTML\'e Göre Buraya Gelecek')
+                      dangerouslySetInnerHTML={{ __html: sanitizeClientRichHtml((settings.email_template_customer || 'Görünüm Seçilen HTML\'e Göre Buraya Gelecek')
                         .replace('{MUSTERI_ADI}', 'Ahmet Yılmaz')
                         .replace('{BAKIYE}', '1.250,00 TL')
                         .replace('{FIRMA_ADI}', settings.companyName || 'Örnek Firma Ltd.')
-                        .replace('{TARIH}', new Date().toLocaleDateString('tr-TR'))
+                        .replace('{TARIH}', new Date().toLocaleDateString('tr-TR')))
                       }}
                     />
                   </div>
@@ -638,12 +639,12 @@ const uploadImageToServer = async (base64String: string): Promise<string> => {
                   <div>
                     <h5 className="text-sm font-medium text-gray-700 mb-2">Önizleme</h5>
                     <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-white overflow-y-auto max-h-[300px]"
-                      dangerouslySetInnerHTML={{ __html: (settings.email_template_reconciliation || 'Görünüm Seçilen HTML\'e Göre Buraya Gelecek')
+                      dangerouslySetInnerHTML={{ __html: sanitizeClientRichHtml((settings.email_template_reconciliation || 'Görünüm Seçilen HTML\'e Göre Buraya Gelecek')
                         .replace('{MUSTERI_ADI}', 'Mehmet Demir')
                         .replace('{BAKIYE}', '5.400,00 TL')
                         .replace('{BAKIYE_TIPI}', 'Borç Bakiye')
                         .replace('{FIRMA_ADI}', settings.companyName || 'Örnek Firma Ltd.')
-                        .replace('{TARIH}', new Date().toLocaleDateString('tr-TR'))
+                        .replace('{TARIH}', new Date().toLocaleDateString('tr-TR')))
                       }}
                     />
                   </div>
@@ -675,11 +676,11 @@ const uploadImageToServer = async (base64String: string): Promise<string> => {
                     <div>
                       <h5 className="text-sm font-medium text-gray-700 mb-2">Önizleme</h5>
                       <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-white overflow-y-auto h-full max-h-[300px]"
-                        dangerouslySetInnerHTML={{ __html: (settings.email_template_personnel || 'Görünüm Seçilen HTML\'e Göre Buraya Gelecek')
+                        dangerouslySetInnerHTML={{ __html: sanitizeClientRichHtml((settings.email_template_personnel || 'Görünüm Seçilen HTML\'e Göre Buraya Gelecek')
                           .replace('{PERSONEL_ADI}', 'Ayşe Türk')
                           .replace('{AY_YIL}', 'Haziran 2026')
                           .replace('{NET_ODENEN}', '45.000,00 TL')
-                          .replace('{FIRMA_ADI}', settings.companyName || 'Örnek Firma Ltd.')
+                          .replace('{FIRMA_ADI}', settings.companyName || 'Örnek Firma Ltd.'))
                         }}
                       />
                     </div>

@@ -228,56 +228,35 @@ async function startServer() {
       const masterSettings = settingsList[0] || {};
       const bankAccounts = getFallbackTable("bank_accounts", "1111111111") || [];
 
-      const ibanList: { id: string; bankName: string; accountName: string; iban: string }[] = [];
+      const ibanList: { id: string; bankName: string; accountName: string; iban: string }[] = [
+        {
+          id: "default-1",
+          bankName: "Vakıf Katılım Bankası",
+          accountName: "ESİLA YAZILIM TEKNOLOJİLERİ LİMİTED ŞİRKETİ",
+          iban: "TR50 0021 0000 0013 4303 2000 01"
+        }
+      ];
 
-      if (masterSettings.iban) {
+      if (masterSettings.iban && !ibanList.some(x => x.iban.replace(/\s+/g, "") === String(masterSettings.iban).replace(/\s+/g, ""))) {
         ibanList.push({
           id: "master-iban",
           bankName: masterSettings.bankName || "Kurumsal Banka Hesabı",
-          accountName: masterSettings.companyName || "Esila Yazılım ve Bilişim Sistemleri",
+          accountName: masterSettings.companyName || "ESİLA YAZILIM TEKNOLOJİLERİ LİMİTED ŞİRKETİ",
           iban: masterSettings.iban
         });
       }
 
       if (Array.isArray(masterSettings.invoiceTemplate_banks)) {
         for (const b of masterSettings.invoiceTemplate_banks) {
-          if (b.iban && !ibanList.some(x => x.iban === b.iban)) {
+          if (b.iban && !ibanList.some(x => x.iban.replace(/\s+/g, "") === String(b.iban).replace(/\s+/g, ""))) {
             ibanList.push({
               id: b.id || String(Date.now()),
               bankName: b.bankName || "Banka Hesabı",
-              accountName: b.accountName || masterSettings.companyName || "Esila Yazılım",
+              accountName: b.accountName || masterSettings.companyName || "ESİLA YAZILIM TEKNOLOJİLERİ LİMİTED ŞİRKETİ",
               iban: b.iban
             });
           }
         }
-      }
-
-      for (const acc of bankAccounts) {
-        if (acc.iban && !ibanList.some(x => x.iban === acc.iban)) {
-          ibanList.push({
-            id: acc.id || String(Date.now()),
-            bankName: acc.bankName || "Banka Hesabı",
-            accountName: acc.accountName || masterSettings.companyName || "Esila Yazılım",
-            iban: acc.iban
-          });
-        }
-      }
-
-      if (ibanList.length === 0) {
-        ibanList.push(
-          {
-            id: "default-1",
-            bankName: "Ziraat Bankası",
-            accountName: "Esila Yazılım ve Bilişim Sistemleri",
-            iban: "TR32 0001 0017 4567 8901 2350 01"
-          },
-          {
-            id: "default-2",
-            bankName: "Garanti BBVA",
-            accountName: "Esila Yazılım ve Bilişim Sistemleri",
-            iban: "TR64 0006 2000 4120 0006 2987 41"
-          }
-        );
       }
 
       const hasLivePaytr = Boolean(
@@ -708,13 +687,40 @@ async function startServer() {
           description: `Havale/EFT Ödeme Onayı (${payment.referenceNo || payment.id}) - ${payment.name}`
         });
 
+        // Otomatik Lisans Aktivasyonu / Süre Uzatma (+1 Ay)
+        let extendedUntilStr = "";
+        const tenantsList = getFallbackTable("tenants") || [];
+        const matchedTenant = tenantsList.find(
+          (t: any) =>
+            (payment.vkn && payment.vkn !== "1111111111" && String(t.vkn) === String(payment.vkn)) ||
+            (payment.email && t.email && String(t.email).toLowerCase() === String(payment.email).toLowerCase())
+        );
+
+        if (matchedTenant && matchedTenant.vkn !== "1111111111") {
+          const baseDate =
+            matchedTenant.expirationDate && new Date(matchedTenant.expirationDate).getTime() > Date.now()
+              ? new Date(matchedTenant.expirationDate)
+              : new Date();
+          baseDate.setMonth(baseDate.getMonth() + 1);
+          const newExpIso = baseDate.toISOString();
+          extendedUntilStr = baseDate.toLocaleDateString("tr-TR");
+
+          updateFallbackRow("tenants", matchedTenant.vkn, matchedTenant.vkn, {
+            status: "Aktif",
+            package: "Aylık",
+            expirationDate: newExpIso
+          });
+        }
+
         if (payment.email && payment.email.includes("@")) {
+          const safeCustomerName = escapeHtml(String(payment.name || "Müşterimiz"));
           await sendMail(
             payment.email,
             `✅ Havale / EFT Ödemeniz Onaylandı (${payment.id}) - Esila Ticari`,
             `
-              <h2 style="color: #059669; font-size: 20px; font-weight: 600; margin-top: 0;">Sayın ${payment.name},</h2>
-              <p><strong>${Number(payment.amount || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</strong> tutarındaki (Ref: <strong>${payment.id}</strong>) Banka Havale / EFT ödemeniz yönetici tarafından kontrol edilerek <strong>onaylanmıştır</strong>.</p>
+              <h2 style="color: #059669; font-size: 20px; font-weight: 600; margin-top: 0;">Sayın ${safeCustomerName},</h2>
+              <p><strong>${Number(payment.amount || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</strong> tutarındaki (Ref: <strong>${escapeHtml(String(payment.id))}</strong>) Banka Havale / EFT ödemeniz yönetici tarafından kontrol edilerek <strong>onaylanmıştır</strong>.</p>
+              ${extendedUntilStr ? `<p style="background:#ecfdf5;border:1px solid #a7f3d0;padding:10px 14px;border-radius:8px;color:#065f46;"><strong>Lisans Durumu:</strong> Firmanızın Aylık Lisans paketi <strong>${extendedUntilStr}</strong> tarihine kadar uzatılmış ve aktif edilmiştir.</p>` : ""}
               <p>Bizi tercih ettiğiniz için teşekkür ederiz.</p>
             `
           );

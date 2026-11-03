@@ -24,6 +24,8 @@ import { EFatura } from './pages/EFatura';
 import { CustomerDisplay } from './pages/CustomerDisplay';
 import { Ajanda } from './pages/Ajanda';
 import { Dokumanlar } from './pages/Dokumanlar';
+import { CekSenet } from './pages/CekSenet';
+import { CRM } from './pages/CRM';
 import { SuperAdminLogin } from './src/pages/SuperAdminLogin';
 import { SuperAdminDashboard } from './src/pages/SuperAdminDashboard';
 import { PublicFormView } from './pages/PublicFormView';
@@ -201,6 +203,8 @@ const App: React.FC = () => {
       case 'teklif': return <Teklifler />;
       case 'ajanda': return <Ajanda />;
       case 'dokumanlar': return <Dokumanlar />;
+      case 'ceksenet': return <CekSenet />;
+      case 'crm': return <CRM />;
       default: return <ComingSoon title={activePage} />;
     }
   };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Power, Mail, Building, UserCheck, XCircle, RefreshCcw, Database, Upload, HardDrive, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Power, Mail, Building, UserCheck, XCircle, RefreshCcw, Database, Upload, HardDrive, Trash2, AlertTriangle, Landmark, CheckCircle2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Tenant {
   vkn: string;
@@ -17,6 +18,8 @@ interface Tenant {
   isEsilaCustomer?: boolean;
   smsLimit?: number;
   emailLimit?: number;
+  smsCount?: number;
+  emailCount?: number;
   createdAt?: string;
 }
 
@@ -27,7 +30,8 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   const [sessionLogs, setSessionLogs] = useState<any[]>([]);
   const [pendingTimeoutTenants, setPendingTimeoutTenants] = useState<Tenant[]>([]);
   const [inactiveTenants, setInactiveTenants] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'tenants' | 'logs' | 'activationLogs' | 'pendingTimeout' | 'inactiveTenants' | 'sessionLogs' | 'backup'>('tenants');
+  const [paymentNotifications, setPaymentNotifications] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'tenants' | 'payments' | 'logs' | 'activationLogs' | 'pendingTimeout' | 'inactiveTenants' | 'sessionLogs' | 'backup'>('tenants');
   const [systemStats, setSystemStats] = useState<any>(null);
   
   const [sessionLogPage, setSessionLogPage] = useState(1);
@@ -42,7 +46,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    vkn: '', name: '', email: '', package: 'Yıllık', sector: '',
+    vkn: '', name: '', email: '', package: 'Aylık', sector: '',
     modules: ['dashboard', 'cariler', 'urunler', 'hizlisatis', 'kasa'],
     expirationDate: '', smsLimit: 0, emailLimit: 0
   });
@@ -89,7 +93,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     { id: 'ajanda', name: 'Ajanda' },
     { id: 'crm', name: 'CRM & Kampanya' },
     { id: 'uretim', name: 'Üretim' },
-    { id: 'satinalma', name: 'Satın Alma' }
+    { id: 'dokumanlar', name: 'Dökümanlar' }
   ];
 
   const fetchTenants = async () => {
@@ -99,6 +103,38 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         setTenants(await res.json());
       }
     } catch(e) {}
+  };
+
+  const fetchPaymentNotifications = async () => {
+    try {
+      const res = await fetch('/api/payment/notifications');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.payments)) {
+          setPaymentNotifications(data.payments);
+        }
+      }
+    } catch (e) {}
+  };
+
+  const handleUpdatePaymentStatus = async (id: string, newStatus: 'Onaylandı' | 'Reddedildi') => {
+    try {
+      const res = await fetch(`/api/payment/notifications/${id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(`Ödeme bildirimi "${newStatus}" olarak güncellendi.`);
+        fetchPaymentNotifications();
+        fetchTenants();
+      } else {
+        toast.error(data.error || 'Durum güncellenemedi.');
+      }
+    } catch (e) {
+      toast.error('Bağlantı hatası oluştu.');
+    }
   };
 
   const fetchEmailLogs = async () => {
@@ -145,6 +181,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
 
   useEffect(() => {
     fetchTenants();
+    fetchPaymentNotifications();
     fetchEmailLogs();
     fetchActivationLogs();
     fetchSessionLogs();
@@ -152,7 +189,12 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
     fetchInactiveTenants();
     fetchSystemStats();
 
-    const interval = setInterval(fetchSystemStats, 5000);
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchSystemStats();
+        fetchPaymentNotifications();
+      }
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -383,12 +425,19 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
           </div>
         )}
 
-        <div className="flex space-x-1 mb-6 bg-white p-1 rounded-lg shadow-sm border border-gray-200 inline-flex">
+        <div className="flex flex-wrap gap-1 mb-6 bg-white p-1 rounded-lg shadow-sm border border-gray-200 inline-flex">
           <button
             onClick={() => setActiveTab('tenants')}
             className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${activeTab === 'tenants' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             Şirketler
+          </button>
+          <button
+            onClick={() => setActiveTab('payments')}
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors flex items-center gap-1.5 ${activeTab === 'payments' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            <Landmark size={15} />
+            Ödeme Bildirimleri ({paymentNotifications.filter(p => p.status === 'Kontrol Bekliyor').length})
           </button>
           <button
             onClick={() => setActiveTab('logs')}
@@ -479,7 +528,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
             <button onClick={() => {
               setIsEditing(false);
               setFormData({
-                vkn: '', name: '', email: '', package: 'Yıllık', sector: '',
+                vkn: '', name: '', email: '', package: 'Aylık', sector: '',
                 modules: ['dashboard', 'cariler', 'urunler', 'hizlisatis', 'kasa'],
                 expirationDate: '', smsLimit: 0, emailLimit: 0
               });
@@ -525,7 +574,7 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                      )}
                   </td>
                   <td className="p-4">
-                    <div className="font-medium text-emerald-700">{t.package || 'Yıllık'}</div>
+                    <div className="font-medium text-emerald-700">{t.package || 'Aylık'}</div>
                     <div className="text-gray-500 text-xs mt-1 line-clamp-2 max-w-[200px]" title={t.modules ? (typeof t.modules === 'string' ? JSON.parse(t.modules) : t.modules)?.map((m: string) => MODULES.find(x => x.id === m)?.name || m).join(', ') : 'Tümü'}>
                       {(t.modules ? (typeof t.modules === 'string' ? JSON.parse(t.modules) : t.modules) : ['all'])?.map((m: string) => MODULES.find(x => x.id === m)?.name || m).join(', ')}
                     </div>
@@ -582,6 +631,103 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
           </table>
         </div>
         </>
+        )}
+
+        {activeTab === 'payments' && (
+          <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden mb-6">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Gelen Havale / EFT Ödeme Bildirimleri</h2>
+                <p className="text-xs text-gray-500">Onaylanan ödemelerde ilgili firmanın Aylık Lisans süresi otomatik olarak +1 Ay uzatılır ve kasa gelir kaydı oluşturulur.</p>
+              </div>
+              <button
+                onClick={fetchPaymentNotifications}
+                className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm"
+              >
+                <RefreshCcw size={15} /> Yenile
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="bg-gray-100 border-b text-gray-600">
+                    <th className="p-4 font-semibold">Ref No / Tarih</th>
+                    <th className="p-4 font-semibold">Firma / VKN</th>
+                    <th className="p-4 font-semibold">İletişim</th>
+                    <th className="p-4 font-semibold">Gönderen / Banka</th>
+                    <th className="p-4 font-semibold">Tutar</th>
+                    <th className="p-4 font-semibold">Not</th>
+                    <th className="p-4 font-semibold">Durum</th>
+                    <th className="p-4 font-semibold text-right">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {paymentNotifications.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="p-4">
+                        <div className="font-mono font-bold text-gray-900">{item.id}</div>
+                        <div className="text-xs text-gray-400">{item.createdAt ? new Date(item.createdAt).toLocaleString('tr-TR') : '-'}</div>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-medium text-gray-900">{item.name}</div>
+                        <div className="text-xs font-mono text-gray-500">VKN: {item.vkn || '-'}</div>
+                      </td>
+                      <td className="p-4 text-xs text-gray-600">
+                        <div>{item.email}</div>
+                        <div>{item.phone}</div>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-medium text-gray-800">{item.senderName || '-'}</div>
+                        <div className="text-xs text-gray-500">{item.selectedBank || '-'}</div>
+                      </td>
+                      <td className="p-4 font-mono font-bold text-emerald-700">
+                        {Number(item.amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                      </td>
+                      <td className="p-4 text-xs text-gray-600 max-w-xs">{item.receiptNote || '-'}</td>
+                      <td className="p-4">
+                        <span className={`px-2.5 py-1 rounded text-xs font-semibold ${
+                          item.status === 'Onaylandı'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : item.status === 'Reddedildi'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {item.status || 'Kontrol Bekliyor'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right">
+                        {item.status === 'Kontrol Bekliyor' ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleUpdatePaymentStatus(item.id, 'Onaylandı')}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-medium flex items-center gap-1"
+                            >
+                              <CheckCircle2 size={14} /> Onayla (+1 Ay)
+                            </button>
+                            <button
+                              onClick={() => handleUpdatePaymentStatus(item.id, 'Reddedildi')}
+                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded text-xs font-medium flex items-center gap-1"
+                            >
+                              <XCircle size={14} /> Reddet
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">İşlem Tamamlandı</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {paymentNotifications.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="p-8 text-center text-gray-500">
+                        Henüz gönderilmiş bir Havale / EFT ödeme bildirimi bulunmuyor.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
 
         {activeTab === 'logs' && (
@@ -977,7 +1123,6 @@ export const SuperAdminDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                     <select value={formData.package} onChange={e=>setFormData({...formData, package: e.target.value})} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm bg-white">
                        <option value="Aylık">Aylık Paket (1 Ay)</option>
                        <option value="Yıllık">Yıllık Paket (1 Yıl)</option>
-                       <option value="Sınırsız">Sınırsız Paket</option>
                     </select>
                   </div>
                 </div>
