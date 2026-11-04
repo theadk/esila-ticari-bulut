@@ -817,6 +817,10 @@ export async function initDb() {
     } catch (e: any) {
       console.error('CREATE job_applications or new tables:', e.message);
     }
+
+    // Ensure all tenants and their records from backup.json exist in MySQL (INSERT IGNORE)
+    await syncMissingDataToMysql(client);
+
     console.log("Database initialized successfully.");
     lastDbError = null;
   } catch (err: any) {
@@ -842,9 +846,79 @@ export async function initDb() {
         if (check.success) {
           clearInterval(retryInterval);
           await resetPool(targetUrl);
+          try {
+            await syncMissingDataToMysql(getPool());
+          } catch {
+            // ignore sync errors on reconnect
+          }
           console.log('Reconnected to live MySQL (esilayaz_esilaticari) successfully.');
         }
       }, 30000);
     }
+  }
+}
+
+async function syncMissingDataToMysql(client: mysql.Pool) {
+  try {
+    const backupFile = fs.existsSync('local_db.json') ? 'local_db.json' : fs.existsSync('backup.json') ? 'backup.json' : null;
+    if (!backupFile) return;
+    const raw = fs.readFileSync(backupFile, 'utf8');
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object') return;
+
+    // 1. Ensure all tenants exist in MySQL
+    const tenants = Array.isArray(data.tenants) ? data.tenants : [];
+    for (const t of tenants) {
+      if (!t.vkn) continue;
+      try {
+        await client.query(
+          `INSERT IGNORE INTO tenants (vkn, name, email, modules, status, package, expirationDate, sector, isEsilaCustomer, smsLimit, emailLimit, smsCount, emailCount)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            String(t.vkn),
+            t.name || `Firma ${t.vkn}`,
+            t.email || '',
+            typeof t.modules === 'string' ? t.modules : JSON.stringify(t.modules || ['all']),
+            t.status || 'Aktif',
+            t.package || 'Yıllık',
+            t.expirationDate ? new Date(t.expirationDate) : null,
+            t.sector || 'Genel',
+            t.isEsilaCustomer ? 1 : 0,
+            t.smsLimit || 1000,
+            t.emailLimit || 5000,
+            t.smsCount || 0,
+            t.emailCount || 0,
+          ]
+        );
+      } catch {
+        // ignore individual row errors
+      }
+    }
+
+    // 2. Ensure all users exist in MySQL
+    const users = Array.isArray(data.users) ? data.users : [];
+    for (const u of users) {
+      if (!u.id || !u.vkn) continue;
+      try {
+        await client.query(
+          `INSERT IGNORE INTO users (id, vkn, name, username, email, passwordHash, role, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            String(u.id),
+            String(u.vkn),
+            u.name || u.username || 'Admin',
+            u.username || String(u.vkn),
+            u.email || '',
+            u.passwordHash || '',
+            u.role || 'Admin',
+            u.status || 'Aktif',
+          ]
+        );
+      } catch {
+        // ignore individual row errors
+      }
+    }
+  } catch (err) {
+    console.warn('syncMissingDataToMysql warning:', err);
   }
 }
