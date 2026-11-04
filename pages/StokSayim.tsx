@@ -17,6 +17,126 @@ interface CountedProduct {
   countedStock: number;
 }
 
+type SearchScope = 'all' | 'name' | 'code' | 'barcode' | 'other';
+
+interface VoiceMatchResult {
+  product: Product;
+  matchedFields: string[];
+  score: number;
+}
+
+const SPOKEN_NUMBERS: Record<string, string> = {
+  'sıfır': '0',
+  'bir': '1',
+  'iki': '2',
+  'üç': '3',
+  'dört': '4',
+  'beş': '5',
+  'altı': '6',
+  'yedi': '7',
+  'sekiz': '8',
+  'dokuz': '9',
+  'on': '10',
+  'yirmi': '20',
+  'otuz': '30',
+  'kırk': '40',
+  'elli': '50',
+  'altmış': '60',
+  'yetmiş': '70',
+  'seksen': '80',
+  'doksan': '90',
+  'yüz': '100'
+};
+
+const normalizeTr = (str?: string): string => {
+  if (!str) return '';
+  return str
+    .toLocaleLowerCase('tr-TR')
+    .replace(/[.,!?;:"'()[\]{}]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const normalizeAscii = (str?: string): string => {
+  return normalizeTr(str)
+    .replace(/ı/g, 'i')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c');
+};
+
+const normalizeCode = (str?: string): string => {
+  return normalizeAscii(str).replace(/[\s\-_./\\]/g, '');
+};
+
+const replaceSpokenNumbers = (text: string): string => {
+  return text
+    .split(/\s+/)
+    .map(word => SPOKEN_NUMBERS[word] ?? word)
+    .join(' ');
+};
+
+const parseVoiceCommand = (rawText: string): {
+  cleanQuery: string;
+  digitsQuery: string;
+  detectedScope: SearchScope | null;
+  detectedQuantity: number;
+} => {
+  let working = normalizeTr(rawText);
+  let detectedScope: SearchScope | null = null;
+  let detectedQuantity = 1;
+
+  // Detect spoken quantity at the end, e.g. "5 adet", "beş tane", "10 kutu", "3 koli"
+  const withDigits = replaceSpokenNumbers(working);
+  const qtyRegex = /\b(\d+)\s*(adet|tane|kutu|koli|paket|ambalaj|kg|kilo|gram|lt|litre|metre|çift|set)\s*$/i;
+  const qtyMatch = withDigits.match(qtyRegex);
+  if (qtyMatch) {
+    const parsedQty = parseInt(qtyMatch[1], 10);
+    if (!isNaN(parsedQty) && parsedQty > 0) {
+      detectedQuantity = parsedQty;
+    }
+    working = withDigits.replace(qtyRegex, '').trim();
+  }
+
+  // Detect explicit field definitions spoken by the user
+  const prefixPatterns: { pattern: RegExp; scope: SearchScope }[] = [
+    { pattern: /^(ürün\s+adı|ürünün\s+adı|ürün\s+ismi|ürün\s+tanımı|ürün\s+ismine\s+göre|ürün\s+adına\s+göre|ürün\s+adıyla|isim|adı|ad)\s+/i, scope: 'name' },
+    { pattern: /^(stok\s+kodu|stok\s+koduna\s+göre|stok\s+koduyla|stok\s+kod|ürün\s+kodu|malzeme\s+kodu|referans\s+kodu|kodu|kod)\s+/i, scope: 'code' },
+    { pattern: /^(barkod\s+numarası|barkod\s+kodu|barkoduna\s+göre|barkodu|barkod\s+no|barkod)\s+/i, scope: 'barcode' },
+    { pattern: /^(marka\s+adı|markası|marka|kategori\s+adı|kategorisi|kategori|açıklaması|açıklama|tanımı|tanım|raf\s+no|raf\s+kodu|rafı|raf|seri\s+numarası|seri\s+no)\s+/i, scope: 'other' },
+  ];
+
+  for (const item of prefixPatterns) {
+    if (item.pattern.test(working)) {
+      detectedScope = item.scope;
+      working = working.replace(item.pattern, '').trim();
+      break;
+    }
+  }
+
+  // Also strip common trailing action words like "ara", "bul", "say", "getir", "ekle"
+  working = working
+    .replace(/\s+(ara|bul|sorgula|say|sayıma\s+ekle|ekle|getir|göster)$/i, '')
+    .replace(/^(ürün|stok)\s+/i, (match) => {
+      // Only strip leading "ürün " or "stok " if there are more words after it
+      const rest = working.slice(match.length).trim();
+      return rest.length > 0 ? '' : match;
+    })
+    .trim();
+
+  const cleanQuery = working || normalizeTr(rawText);
+  const digitsQuery = replaceSpokenNumbers(cleanQuery);
+
+  return {
+    cleanQuery,
+    digitsQuery,
+    detectedScope,
+    detectedQuantity,
+  };
+};
+
 export const StokSayim: React.FC = () => {
   const store = useAppStore();
   const currentUser = store.users.find(u => u.id === localStorage.getItem('esila_user_id')) || store.users[0];
@@ -29,7 +149,10 @@ export const StokSayim: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { isListening, supported, listen, stop } = useSpeechRecognition();
   const [voiceQuery, setVoiceQuery] = useState('');
-  const [voiceResult, setVoiceResult] = useState<Product | null>(null);
+  const [voiceResults, setVoiceResults] = useState<VoiceMatchResult[]>([]);
+  const [voiceScope, setVoiceScope] = useState<SearchScope>('all');
+  const [voiceQuantity, setVoiceQuantity] = useState<number>(1);
+  const [autoAddSingleMatch, setAutoAddSingleMatch] = useState<boolean>(false);
   const [isSearchingVoice, setIsSearchingVoice] = useState(false);
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
@@ -42,82 +165,272 @@ export const StokSayim: React.FC = () => {
     };
   }, []);
 
+  const getProductTotalStock = (p: Product) => {
+    if (p.warehouseStocks && p.warehouseStocks.length > 0) {
+      return p.warehouseStocks.reduce((sum, w) => sum + (Number(w.stock) || 0), 0);
+    }
+    return Number(p.stock) || 0;
+  };
+
+  const addProductToCount = (product: Product, quantityToAdd: number = 1) => {
+    const validQty = Math.max(1, Number(quantityToAdd) || 1);
+    setCountedItems(prev => {
+      const existing = prev.find(item => item.productId === product.id);
+      if (existing) {
+        return prev.map(item =>
+          item.productId === product.id
+            ? { ...item, countedStock: item.countedStock + validQty }
+            : item
+        );
+      } else {
+        return [
+          ...prev,
+          {
+            productId: product.id,
+            code: product.code || '-',
+            barcode: product.barcode,
+            name: product.name,
+            systemStock: getProductTotalStock(product),
+            countedStock: validQty,
+          },
+        ];
+      }
+    });
+  };
+
+  const searchProductsByDefinitions = (rawText: string, explicitScope: SearchScope = voiceScope): {
+    results: VoiceMatchResult[];
+    parsed: ReturnType<typeof parseVoiceCommand>;
+  } => {
+    const parsed = parseVoiceCommand(rawText);
+    const activeScope: SearchScope = explicitScope !== 'all' ? explicitScope : (parsed.detectedScope || 'all');
+
+    const qTr = parsed.cleanQuery;
+    const qDigits = parsed.digitsQuery;
+    const qAscii = normalizeAscii(qDigits);
+    const qCode = normalizeCode(qDigits);
+    const qRawCode = normalizeCode(rawText);
+
+    if (!qTr && !qCode) {
+      return { results: [], parsed };
+    }
+
+    const queryTokens = qAscii.split(/\s+/).filter(t => t.length > 0);
+
+    const results: VoiceMatchResult[] = [];
+
+    for (const p of products) {
+      const matchedFields: string[] = [];
+      let score = 0;
+
+      const nameTr = normalizeTr(p.name);
+      const nameAscii = normalizeAscii(p.name);
+      const codeTr = normalizeTr(p.code);
+      const codeCompact = normalizeCode(p.code);
+      const barcodeCompact = normalizeCode(p.barcode);
+      const brandAscii = normalizeAscii(p.brand);
+      const categoryAscii = normalizeAscii(`${p.category || ''} ${p.subCategory || ''}`);
+      const descAscii = normalizeAscii(p.description);
+      const locationAscii = normalizeAscii(`${p.warehouse || ''} ${p.aisle || ''} ${p.shelf || ''}`);
+      const serialsVariantsAscii = normalizeAscii(
+        `${(p.variants || []).join(' ')} ${(p.serials || []).join(' ')}`
+      );
+
+      // 1. Stok Kodu Arama
+      if (activeScope === 'all' || activeScope === 'code') {
+        if (codeCompact && qCode) {
+          if (codeCompact === qCode || codeCompact === qRawCode) {
+            score += 120;
+            matchedFields.push('Stok Kodu (Tam)');
+          } else if (codeCompact.startsWith(qCode) || qCode.includes(codeCompact)) {
+            score += 90;
+            matchedFields.push('Stok Kodu');
+          } else if (codeCompact.includes(qCode) || (codeTr && codeTr.includes(qTr))) {
+            score += 75;
+            matchedFields.push('Stok Kodu');
+          }
+        }
+      }
+
+      // 2. Barkod Arama
+      if (activeScope === 'all' || activeScope === 'barcode') {
+        if (barcodeCompact && qCode) {
+          if (barcodeCompact === qCode || barcodeCompact === qRawCode) {
+            score += 120;
+            matchedFields.push('Barkod (Tam)');
+          } else if (barcodeCompact.includes(qCode) || qCode.includes(barcodeCompact)) {
+            score += 85;
+            matchedFields.push('Barkod');
+          }
+        }
+      }
+
+      // 3. Ürün Adı Arama
+      if (activeScope === 'all' || activeScope === 'name') {
+        if (nameTr || nameAscii) {
+          if (nameTr === qTr || nameAscii === qAscii) {
+            score += 110;
+            matchedFields.push('Ürün Adı (Tam)');
+          } else if (nameTr.startsWith(qTr) || nameAscii.startsWith(qAscii)) {
+            score += 85;
+            matchedFields.push('Ürün Adı');
+          } else if (nameTr.includes(qTr) || nameAscii.includes(qAscii) || nameTr.includes(qDigits)) {
+            score += 70;
+            matchedFields.push('Ürün Adı');
+          } else if (
+            queryTokens.length > 1 &&
+            queryTokens.every(token => nameAscii.includes(token))
+          ) {
+            score += 65;
+            matchedFields.push('Ürün Adı');
+          }
+        }
+      }
+
+      // 4. Marka, Kategori, Açıklama/Tanım, Raf, Varyant/Seri No Arama
+      if (activeScope === 'all' || activeScope === 'other') {
+        if (brandAscii && (brandAscii.includes(qAscii) || qAscii.includes(brandAscii))) {
+          score += 50;
+          matchedFields.push('Marka');
+        }
+        if (categoryAscii.trim() && categoryAscii.includes(qAscii)) {
+          score += 40;
+          matchedFields.push('Kategori');
+        }
+        if (descAscii && descAscii.includes(qAscii)) {
+          score += 45;
+          matchedFields.push('Tanım / Açıklama');
+        }
+        if (locationAscii.trim() && locationAscii.includes(qAscii)) {
+          score += 35;
+          matchedFields.push('Raf / Depo Konumu');
+        }
+        if (serialsVariantsAscii.trim() && serialsVariantsAscii.includes(qAscii)) {
+          score += 55;
+          matchedFields.push('Varyant / Seri No');
+        }
+      }
+
+      // 5. Çoklu kelime birleşik tanım eşleşmesi (örn. "Samsung STK 01" veya "Mavi Kablo Kod 102")
+      if (score === 0 && activeScope === 'all' && queryTokens.length > 0) {
+        const combinedSearchSpace = `${nameAscii} ${codeCompact} ${barcodeCompact} ${brandAscii} ${categoryAscii} ${descAscii} ${locationAscii} ${serialsVariantsAscii}`;
+        const matchedTokenCount = queryTokens.filter(t => combinedSearchSpace.includes(t) || combinedSearchSpace.includes(normalizeCode(t))).length;
+        if (matchedTokenCount === queryTokens.length) {
+          score += 55;
+          matchedFields.push('Çoklu Tanım Eşleşmesi');
+        } else if (queryTokens.length >= 2 && matchedTokenCount >= queryTokens.length - 1) {
+          score += 30;
+          matchedFields.push('Kısmi Tanım Eşleşmesi');
+        }
+      }
+
+      if (score > 0) {
+        results.push({
+          product: p,
+          matchedFields: Array.from(new Set(matchedFields)),
+          score,
+        });
+      }
+    }
+
+    results.sort((a, b) => b.score - a.score);
+    return { results, parsed };
+  };
+
+  const executeVoiceOrTextLookup = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    const { results, parsed } = searchProductsByDefinitions(trimmed, voiceScope);
+    setVoiceQuantity(parsed.detectedQuantity || 1);
+    setVoiceResults(results);
+
+    if (results.length > 0) {
+      const top = results[0];
+      if (autoAddSingleMatch && (results.length === 1 || top.score >= 110)) {
+        addProductToCount(top.product, parsed.detectedQuantity || 1);
+        toast.success(
+          `${top.product.name} (${top.product.code}) +${parsed.detectedQuantity || 1} adet sayıma eklendi!`
+        );
+      } else {
+        toast.success(
+          results.length === 1
+            ? `Ürün bulundu: ${top.product.name} (${top.product.code})`
+            : `${results.length} eşleşen ürün bulundu.`
+        );
+      }
+    } else {
+      toast.error(`"${trimmed}" tanımına uygun ürün bulunamadı.`);
+    }
+  };
+
   const handleScanSuccess = (decodedText: string) => {
     processBarcode(decodedText);
     toast.success(`Barkod Okundu: ${decodedText}`);
   };
 
-  
   const handleVoiceSearch = () => {
     if (isListening) {
       stop();
       setIsSearchingVoice(false);
+      if (voiceQuery.trim()) {
+        executeVoiceOrTextLookup(voiceQuery);
+      }
       return;
     }
-    
+
     setVoiceQuery('');
-    setVoiceResult(null);
+    setVoiceResults([]);
     setIsSearchingVoice(true);
-    
+
     listen((text, isFinal) => {
       setVoiceQuery(text);
       if (isFinal && text.trim().length > 0) {
         stop();
         setIsSearchingVoice(false);
-        const query = text.toLowerCase().trim();
-        // find product by name or barcode
-        const found = products.find(p => 
-          (p.name && p.name.toLowerCase().includes(query)) || 
-          (p.barcode && p.barcode.toLowerCase() === query) ||
-          (p.code && p.code.toLowerCase() === query)
-        );
-        
-        if (found) {
-           setVoiceResult(found);
-           toast.success('Ürün bulundu: ' + found.name);
-        } else {
-           toast.error('Söylediğiniz ürün bulunamadı: ' + text);
-        }
+        executeVoiceOrTextLookup(text);
       }
-    }, (err) => {
+    }, () => {
       setIsSearchingVoice(false);
     });
   };
 
+  const processBarcode = (inputQuery: string) => {
+    const trimmed = inputQuery.trim();
+    if (!trimmed) return;
 
-  const processBarcode = (barcode: string) => {
-    const product = products.find(p => p.barcode === barcode || p.code === barcode);
+    const qCode = normalizeCode(trimmed);
+    const qTr = normalizeTr(trimmed);
+
+    // First check exact barcode or stock code
+    let product = products.find(
+      p =>
+        (p.barcode && (p.barcode === trimmed || normalizeCode(p.barcode) === qCode)) ||
+        (p.code && (p.code === trimmed || normalizeCode(p.code) === qCode)) ||
+        (p.name && normalizeTr(p.name) === qTr)
+    );
+
+    // If not exact, fallback to smart definition search
     if (!product) {
-      toast.error('Bu barkoda ait ürün bulunamadı!', { id: 'barcode-error' });
-      return;
+      const { results, parsed } = searchProductsByDefinitions(trimmed, 'all');
+      if (results.length === 1) {
+        addProductToCount(results[0].product, parsed.detectedQuantity || 1);
+        toast.success(`${results[0].product.name} (${results[0].product.code}) sayıma eklendi.`);
+        return;
+      } else if (results.length > 1) {
+        setVoiceQuery(trimmed);
+        setVoiceResults(results);
+        setVoiceQuantity(parsed.detectedQuantity || 1);
+        toast.success(`${results.length} ürün eşleşti, listeden seçebilirsiniz.`);
+        return;
+      } else {
+        toast.error('Bu barkod, stok kodu veya ürün adına ait ürün bulunamadı!', { id: 'barcode-error' });
+        return;
+      }
     }
 
-    setCountedItems(prev => {
-      const existing = prev.find(item => item.productId === product.id);
-      if (existing) {
-        return prev.map(item => 
-          item.productId === product.id 
-            ? { ...item, countedStock: item.countedStock + 1 }
-            : item
-        );
-      } else {
-        const getProductTotalStock = (p: Product) => {
-          if (p.warehouseStocks && p.warehouseStocks.length > 0) {
-            return p.warehouseStocks.reduce((sum, w) => sum + (Number(w.stock) || 0), 0);
-          }
-          return Number(p.stock) || 0;
-        };
-
-        return [...prev, {
-          productId: product.id,
-          code: product.code,
-          barcode: product.barcode,
-          name: product.name,
-          systemStock: getProductTotalStock(product),
-          countedStock: 1
-        }];
-      }
-    });
+    addProductToCount(product, 1);
+    toast.success(`${product.name} (${product.code}) sayıma eklendi.`);
   };
 
   const startScanner = () => {
@@ -133,8 +446,8 @@ export const StokSayim: React.FC = () => {
         },
         false
       );
-      scannerRef.current.render(handleScanSuccess, (error) => {
-        // optionally handle errors, but it gets spammy so ignore
+      scannerRef.current.render(handleScanSuccess, () => {
+        // ignore continuous scan frame errors
       });
     }, 100);
   };
@@ -146,7 +459,7 @@ export const StokSayim: React.FC = () => {
         scannerRef.current = null;
       }).catch(e => console.error(e));
     } else {
-        setIsScanning(false);
+      setIsScanning(false);
     }
   };
 
@@ -163,6 +476,15 @@ export const StokSayim: React.FC = () => {
       if (item.productId === productId) {
          const newAmount = Math.max(0, item.countedStock + delta);
          return { ...item, countedStock: newAmount };
+      }
+      return item;
+    }));
+  };
+
+  const setExactCount = (productId: string, amount: number) => {
+    setCountedItems(prev => prev.map(item => {
+      if (item.productId === productId) {
+        return { ...item, countedStock: Math.max(0, amount) };
       }
       return item;
     }));
@@ -237,7 +559,7 @@ export const StokSayim: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Hızlı Stok Sayım</h1>
-          <p className="text-gray-600 mt-1">Kamera ile barkod okutarak veya elle stok fark raporu oluşturun.</p>
+          <p className="text-gray-600 mt-1">Sesli komutlarla (ürün adı, stok kodu, barkod, tanım), kamera ile veya elle stok sayımı yapın.</p>
         </div>
         <div className="flex gap-2">
             <button 
@@ -255,65 +577,212 @@ export const StokSayim: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
           
-          {/* Sesli Stok Sorgulama */}
-          {supported && (
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-bl-full -z-10"></div>
-              <h3 className="font-semibold text-lg mb-4 text-gray-800 flex items-center gap-2">
-                <Volume2 className="text-indigo-600" size={20} /> Sesli Stok Sorgulama
+          {/* Sesli Stok Sayım & Sorgulama */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-bl-full -z-10"></div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-lg text-gray-800 flex items-center gap-2">
+                <Volume2 className="text-indigo-600" size={20} /> Sesli Sayım & Sorgulama
               </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Mikrofona tıklayarak ürün adını veya barkodunu söyleyin.
-              </p>
-              
-              <div className="flex flex-col items-center">
+              {voiceResults.length > 0 && (
                 <button
+                  type="button"
+                  onClick={() => {
+                    setVoiceResults([]);
+                    setVoiceQuery('');
+                  }}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Temizle
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-600 mb-3">
+              Mikrofona tıklayarak <strong>ürün adı</strong>, <strong>stok kodu</strong>, <strong>barkod</strong>, <strong>marka</strong> veya <strong>açıklama/tanım</strong> söyleyin. (Örn: <em>"Stok kodu STK 001"</em>, <em>"Ürün adı Laptop 5 adet"</em>)
+            </p>
+
+            {/* Arama Kapsamı Seçimi */}
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {[
+                { id: 'all', label: 'Tüm Tanımlar' },
+                { id: 'name', label: 'Ürün Adı' },
+                { id: 'code', label: 'Stok Kodu' },
+                { id: 'barcode', label: 'Barkod' },
+                { id: 'other', label: 'Marka / Tanım' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    const nextScope = tab.id as SearchScope;
+                    setVoiceScope(nextScope);
+                    if (voiceQuery.trim()) {
+                      const { results } = searchProductsByDefinitions(voiceQuery, nextScope);
+                      setVoiceResults(results);
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors border ${
+                    voiceScope === tab.id
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Otomatik Ekleme Seçeneği */}
+            <label className="flex items-center gap-2 text-xs text-gray-600 mb-4 cursor-pointer select-none bg-indigo-50/60 p-2.5 rounded-lg border border-indigo-100">
+              <input
+                type="checkbox"
+                checked={autoAddSingleMatch}
+                onChange={(e) => setAutoAddSingleMatch(e.target.checked)}
+                className="rounded text-indigo-600 focus:ring-indigo-500"
+              />
+              <span>Tek veya tam eşleşmede <strong>otomatik sayıma ekle</strong></span>
+            </label>
+            
+            <div className="flex flex-col items-center">
+              {supported ? (
+                <button
+                  type="button"
                   onClick={handleVoiceSearch}
-                  className={`w-16 h-16 rounded-full flex items-center justify-center text-white transition-all shadow-md ${isListening ? 'bg-red-500 animate-pulse scale-110' : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-105'}`}
+                  className={`w-16 h-16 rounded-full flex items-center justify-center text-white transition-all shadow-md ${
+                    isListening
+                      ? 'bg-red-500 animate-pulse scale-110'
+                      : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-105'
+                  }`}
+                  title={isListening ? 'Dinlemeyi Durdur' : 'Sesli Aramayı Başlat'}
                 >
                   {isListening ? <MicOff size={28} /> : <Mic size={28} />}
                 </button>
-                
-                <div className="mt-4 text-center min-h-[24px]">
-                  {isListening && <span className="text-sm font-medium text-gray-500 italic">"{voiceQuery || 'Dinleniyor...'}"</span>}
-                  {!isListening && voiceQuery && !voiceResult && <span className="text-sm font-medium text-red-500">Sonuç bulunamadı: "{voiceQuery}"</span>}
-                </div>
-              </div>
-
-              {voiceResult && !isListening && (
-                <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg animate-fade-in">
-                   <div className="flex justify-between items-start mb-2">
-                     <div>
-                       <h4 className="font-bold text-gray-800">{voiceResult.name}</h4>
-                       <p className="text-xs text-gray-500">Barkod: {voiceResult.barcode || voiceResult.code || '-'}</p>
-                     </div>
-                   </div>
-                   <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-200">
-                     <div className="flex-1 bg-white p-2 rounded border border-gray-100 text-center">
-                        <div className="text-xs text-gray-500 font-medium">Sistem Stoku</div>
-                        <div className="font-bold text-indigo-700 text-lg">
-                          {voiceResult.warehouseStocks && voiceResult.warehouseStocks.length > 0 
-                             ? voiceResult.warehouseStocks.reduce((sum, w) => sum + (Number(w.stock) || 0), 0)
-                             : (Number(voiceResult.stock) || 0)
-                          }
-                        </div>
-                     </div>
-                     <button 
-                       onClick={() => {
-                          processBarcode(voiceResult.barcode || voiceResult.code);
-                          setVoiceResult(null);
-                       }}
-                       className="px-4 py-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg text-sm font-medium transition-colors"
-                     >
-                        Sayıma Ekle
-                     </button>
-                   </div>
+              ) : (
+                <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200 mb-2 text-center">
+                  Tarayıcınız ses tanımayı desteklemiyor. Aşağıdaki kutudan ürün adı veya stok kodu ile arayabilirsiniz.
                 </div>
               )}
-            </div>
-          )}
+              
+              <div className="mt-3 text-center min-h-[20px]">
+                {isListening && (
+                  <span className="text-xs font-medium text-indigo-600 italic">
+                    "{voiceQuery || 'Dinleniyor... (Ürün adı, stok kodu veya adet söyleyin)'}"
+                  </span>
+                )}
+                {!isListening && voiceQuery && voiceResults.length === 0 && (
+                  <span className="text-xs font-medium text-red-500">
+                    Sonuç bulunamadı: "{voiceQuery}"
+                  </span>
+                )}
+              </div>
 
-          
+              {/* Sesli Metin Düzenleme / Hızlı Tanım Sorgulama */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  executeVoiceOrTextLookup(voiceQuery);
+                }}
+                className="w-full mt-2 flex gap-1.5"
+              >
+                <input
+                  type="text"
+                  value={voiceQuery}
+                  onChange={(e) => setVoiceQuery(e.target.value)}
+                  placeholder='Örn: "Stok kodu STK-001" veya "Ürün adı..."'
+                  className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition-colors shrink-0"
+                >
+                  Ara
+                </button>
+              </form>
+            </div>
+
+            {voiceResults.length > 0 && !isListening && (
+              <div className="mt-4 space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+                  <span>Bulunan Ürünler ({voiceResults.length})</span>
+                  <div className="flex items-center gap-1">
+                    <span>Eklenecek Adet:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={voiceQuantity}
+                      onChange={(e) => setVoiceQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      className="w-14 px-1.5 py-0.5 text-center border border-gray-300 rounded font-bold text-indigo-700 bg-white"
+                    />
+                  </div>
+                </div>
+
+                {voiceResults.map(({ product, matchedFields }) => {
+                  const sysStock = getProductTotalStock(product);
+                  return (
+                    <div
+                      key={product.id}
+                      className="p-3 bg-gray-50 border border-gray-200 rounded-lg hover:border-indigo-200 transition-colors"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-sm text-gray-800 truncate">{product.name}</h4>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-600">
+                            <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-gray-200">
+                              Stok Kodu: <strong>{product.code || '-'}</strong>
+                            </span>
+                            {product.barcode && (
+                              <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-gray-200">
+                                Barkod: {product.barcode}
+                              </span>
+                            )}
+                            {product.brand && <span>Marka: {product.brand}</span>}
+                            {product.category && <span>Kat: {product.category}</span>}
+                            {(product.shelf || product.aisle) && (
+                              <span>Konum: {[product.aisle, product.shelf].filter(Boolean).join('/')}</span>
+                            )}
+                          </div>
+                          {product.description && (
+                            <p className="text-[11px] text-gray-500 mt-1 line-clamp-1">
+                              Tanım: {product.description}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {matchedFields.map((field) => (
+                              <span
+                                key={field}
+                                className="inline-block px-1.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-[10px] font-semibold"
+                              >
+                                {field}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-gray-200">
+                        <div className="text-xs text-gray-600">
+                          Sistem Stoku:{' '}
+                          <span className="font-bold text-indigo-700 text-sm">{sysStock}</span>{' '}
+                          {product.unit || 'Adet'}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            addProductToCount(product, voiceQuantity);
+                            toast.success(`${product.name} (+${voiceQuantity}) sayıma eklendi.`);
+                          }}
+                          className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+                        >
+                          <Plus size={14} /> Sayıma Ekle (+{voiceQuantity})
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Kamera ve Barkod */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
@@ -345,18 +814,18 @@ export const StokSayim: React.FC = () => {
 
             <div className="mt-6 pt-6 border-t border-gray-100">
               <form onSubmit={handleManualSubmit}>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Manuel Barkod/Kod Girişi</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Manuel Barkod / Stok Kodu / Ürün Adı Girişi</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={manualBarcode}
                     onChange={(e) => setManualBarcode(e.target.value)}
-                    placeholder="Barkod girin ve enter'a basın..."
-                    className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                    placeholder="Barkod, stok kodu veya ürün adı girin..."
+                    className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
                   />
                   <button
                     type="submit"
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors font-medium"
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors font-medium text-sm"
                   >
                     Ekle
                   </button>

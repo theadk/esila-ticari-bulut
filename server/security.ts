@@ -439,7 +439,13 @@ export function securityMiddleware(req: Request, res: Response, next: NextFuncti
         const rawBuffer = Buffer.from(jsonString, 'utf-8');
         const originalByteLength = rawBuffer.byteLength;
 
-        if (req.method === 'GET' && res.statusCode >= 200 && res.statusCode < 300) {
+        const existingCacheControl = String(res.getHeader('Cache-Control') || '');
+        if (
+          req.method === 'GET' &&
+          res.statusCode >= 200 &&
+          res.statusCode < 300 &&
+          !existingCacheControl.includes('no-store')
+        ) {
           const hash = crypto.createHash('sha1').update(rawBuffer).digest('hex').slice(0, 20);
           const etag = `W/"${hash}"`;
           res.setHeader('ETag', etag);

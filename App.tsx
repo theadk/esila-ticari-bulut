@@ -31,6 +31,7 @@ import { SuperAdminDashboard } from './src/pages/SuperAdminDashboard';
 import { PublicFormView } from './pages/PublicFormView';
 import { MutabakatOnayView } from './pages/MutabakatOnayView';
 import { PublicProposalView } from './pages/PublicProposalView';
+import { TanitimWebsitesi } from './pages/TanitimWebsitesi';
 import { FileText } from 'lucide-react';
 import { initializeStore } from './lib/store';
 import { InstallPrompt } from './src/components/InstallPrompt';
@@ -169,6 +170,15 @@ const App: React.FC = () => {
     return <PublicProposalView id={teklifId} tenantId={tenantId} />;
   }
 
+  if (window.location.pathname.startsWith('/tanitim') || searchParams.get('tanitim') === 'true') {
+    return (
+      <>
+        <Toaster position="top-right" />
+        <TanitimWebsitesi onBack={() => { window.location.href = '/'; }} />
+      </>
+    );
+  }
+
   if (isSuperAdminRoute) {
     if (!isSuperAdminAuthenticated) {
       return <SuperAdminLogin onLogin={() => setIsSuperAdminAuthenticated(true)} />;
@@ -205,6 +215,7 @@ const App: React.FC = () => {
       case 'dokumanlar': return <Dokumanlar />;
       case 'ceksenet': return <CekSenet />;
       case 'crm': return <CRM />;
+      case 'tanitim': return <TanitimWebsitesi onBack={() => setActivePage('dashboard')} />;
       default: return <ComingSoon title={activePage} />;
     }
   };

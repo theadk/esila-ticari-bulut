@@ -47,6 +47,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     district: '',
     address: '',
     sector: '',
+    package: 'Aylık' as 'Aylık' | 'Yıllık',
     isEsilaCustomer: false
   });
   const [isRegistering, setIsRegistering] = useState(false);
@@ -178,7 +179,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           address: registerForm.address,
           sector: registerForm.sector,
           isEsilaCustomer: registerForm.isEsilaCustomer,
-          package: 'Aylık',
+          package: registerForm.package || 'Aylık',
           modules: ['dashboard', 'cariler', 'urunler', 'depo', 'siparisler', 'kasa', 'personel', 'teklifler', 'mutabakat', 'raporlar', 'ariza']
         })
       }).then(async res => {
@@ -286,7 +287,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
   };
 
-  const isWideView = view === 'payment';
+  const isWideView = view === 'payment' || view === 'register';
 
   return (
     <div
@@ -299,7 +300,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     >
       <div
         className={`bg-white w-full ${
-          isWideView ? 'max-w-2xl' : 'max-w-full sm:max-w-md'
+          isWideView ? 'max-w-3xl' : 'max-w-full sm:max-w-md'
         } rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-200`}
       >
         <div className="p-4 md:p-6 bg-emerald-50 border-b border-emerald-100 flex flex-col items-center">
@@ -697,13 +698,46 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         )}
 
         {view === 'register' && (
-          <form onSubmit={handleRegister} className="p-4 md:p-8 space-y-6 animate-fade-in max-h-[82vh] overflow-y-auto">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-bold text-gray-800">Lisans Başvurusu</h2>
-              <p className="text-gray-500 text-sm">
-                Sistemi kullanmak için ön kayıt başvurusu yapın. Esila Yazılım onayından sonra hesabınız aktif edilecek
-                ve bilgileriniz mail adresinize iletilecektir.
-              </p>
+          <form onSubmit={handleRegister} className="p-4 md:p-6 space-y-5 animate-fade-in max-h-[84vh] overflow-y-auto">
+            {/* Üst Başlık & Geri Dönüş Barı */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Yeni Firma Kaydı & Lisans Başvurusu</h2>
+                <p className="text-gray-500 text-xs mt-0.5">
+                  Sistemi kullanmak için firma bilgilerinizi doldurarak başvurunuzu iletin. Onay sonrası giriş bilgileriniz e-posta adresinize gönderilecektir.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentForm(prev => ({
+                      ...prev,
+                      name: registerForm.name || prev.name,
+                      vkn: registerForm.vkn || prev.vkn,
+                      email: registerForm.email || prev.email,
+                      phone: registerForm.phone || prev.phone,
+                      senderName: registerForm.name || prev.senderName
+                    }));
+                    setView('payment');
+                    setError('');
+                  }}
+                  className="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Landmark size={14} />
+                  <span>Ödeme Bildir</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setView('login');
+                    setError('');
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-800 font-medium flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft size={14} /> Giriş'e Dön
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -712,100 +746,181 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             )}
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 ml-1">Firma / Kurum Adı *</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    required
-                    value={registerForm.name}
-                    onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                    placeholder="Firma Adı A.Ş."
-                  />
-                </div>
+            {/* Paket Seçimi Kartı */}
+            <div className="bg-emerald-50/40 border border-emerald-200/80 rounded-xl p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wide flex items-center gap-1.5">
+                  <CheckCircle2 size={15} className="text-emerald-600" />
+                  1. Lisans Paketi Tercihiniz
+                </h3>
+                <span className="text-[11px] text-emerald-700 font-medium">Tüm Modüller Dahil</span>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 ml-1">Vergi Numaranız (VKN) / TC No *</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    required
-                    value={registerForm.vkn}
-                    onChange={(e) => setRegisterForm({ ...registerForm, vkn: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                    placeholder="Vergi numaranız veya TC kimlik numaranız"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 ml-1">E-Posta Adresiniz *</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="email"
-                    required
-                    value={registerForm.email}
-                    onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                    placeholder="isim@firma.com"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 ml-1">Telefon *</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="tel"
-                    required
-                    value={registerForm.phone}
-                    onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                    placeholder="05XX XXX XX XX"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 ml-1">Sektörünüz</label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <select
-                    value={registerForm.sector}
-                    onChange={(e) => setRegisterForm({ ...registerForm, sector: e.target.value })}
-                    className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none bg-white"
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRegisterForm({ ...registerForm, package: 'Aylık' })}
+                  className={`p-3 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                    registerForm.package === 'Aylık'
+                      ? 'bg-white border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
+                      : 'bg-white/70 border-gray-200 hover:border-emerald-300'
+                  }`}
+                >
+                  <div>
+                    <div className="text-sm font-bold text-gray-800">Aylık Paket (1 Ay)</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Aylık yenilenen standart bulut ERP lisansı</div>
+                  </div>
+                  <div
+                    className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                      registerForm.package === 'Aylık'
+                        ? 'border-emerald-600 bg-emerald-600 text-white'
+                        : 'border-gray-300 bg-white'
+                    }`}
                   >
-                    <option value="">Sektör Seçiniz</option>
-                    <option value="Bilişim & Teknoloji">Bilişim & Teknoloji</option>
-                    <option value="Perakende & Mağazacılık">Perakende & Mağazacılık</option>
-                    <option value="Toptan Ticaret">Toptan Ticaret</option>
-                    <option value="Üretim & İmalat">Üretim & İmalat</option>
-                    <option value="Gıda & Tarım">Gıda & Tarım</option>
-                    <option value="İnşaat & Yapı">İnşaat & Yapı</option>
-                    <option value="Eğitim & Danışmanlık">Eğitim & Danışmanlık</option>
-                    <option value="Sağlık & Medikal">Sağlık & Medikal</option>
-                    <option value="Otomotiv & Lojistik">Otomotiv & Lojistik</option>
-                    <option value="Hizmet & Diğer">Hizmet & Diğer</option>
-                  </select>
-                </div>
+                    {registerForm.package === 'Aylık' && <Check size={12} />}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRegisterForm({ ...registerForm, package: 'Yıllık' })}
+                  className={`p-3 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                    registerForm.package === 'Yıllık'
+                      ? 'bg-white border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
+                      : 'bg-white/70 border-gray-200 hover:border-emerald-300'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold text-gray-800">Yıllık Paket (12 Ay)</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                        Avantajlı
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">1 yıl boyunca kesintisiz tam paket kullanım</div>
+                  </div>
+                  <div
+                    className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                      registerForm.package === 'Yıllık'
+                        ? 'border-emerald-600 bg-emerald-600 text-white'
+                        : 'border-gray-300 bg-white'
+                    }`}
+                  >
+                    {registerForm.package === 'Yıllık' && <Check size={12} />}
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Kurumsal ve İletişim Bilgileri */}
+            <div className="space-y-3">
+              <div className="text-xs font-bold text-gray-800 uppercase tracking-wide flex items-center gap-1.5">
+                <Building size={15} className="text-emerald-600" />
+                2. Firma & İletişim Bilgileri
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 ml-1">İl</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Firma / Kurum Adı *</label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      required
+                      value={registerForm.name}
+                      onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                      className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      placeholder="Örn: Esila Teknoloji A.Ş."
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Vergi Numaranız (VKN) / T.C. No *</label>
+                  <div className="relative">
+                    <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      required
+                      value={registerForm.vkn}
+                      onChange={(e) => setRegisterForm({ ...registerForm, vkn: e.target.value })}
+                      className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      placeholder="10 haneli VKN veya 11 haneli TCKN"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">E-Posta Adresiniz *</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="email"
+                      required
+                      value={registerForm.email}
+                      onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                      className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      placeholder="ornek@firma.com"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Telefon Numaranız *</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="tel"
+                      required
+                      value={registerForm.phone}
+                      onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
+                      className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      placeholder="05XX XXX XX XX"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sektör ve Lokasyon Bilgileri */}
+            <div className="space-y-3 pt-1">
+              <div className="text-xs font-bold text-gray-800 uppercase tracking-wide flex items-center gap-1.5">
+                <MapPin size={15} className="text-emerald-600" />
+                3. Sektör & Lokasyon Bilgileri
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Sektörünüz</label>
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <select
+                      value={registerForm.sector}
+                      onChange={(e) => setRegisterForm({ ...registerForm, sector: e.target.value })}
+                      className="w-full pl-9 pr-6 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white"
+                    >
+                      <option value="">Sektör Seçiniz</option>
+                      <option value="Bilişim & Teknoloji">Bilişim & Teknoloji</option>
+                      <option value="Perakende & Mağazacılık">Perakende & Mağazacılık</option>
+                      <option value="Toptan Ticaret">Toptan Ticaret</option>
+                      <option value="Üretim & İmalat">Üretim & İmalat</option>
+                      <option value="Gıda & Tarım">Gıda & Tarım</option>
+                      <option value="İnşaat & Yapı">İnşaat & Yapı</option>
+                      <option value="Eğitim & Danışmanlık">Eğitim & Danışmanlık</option>
+                      <option value="Sağlık & Medikal">Sağlık & Medikal</option>
+                      <option value="Otomotiv & Lojistik">Otomotiv & Lojistik</option>
+                      <option value="Hizmet & Diğer">Hizmet & Diğer</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">İl</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                     <select
                       value={registerForm.city}
                       onChange={(e) => setRegisterForm({ ...registerForm, city: e.target.value, district: '' })}
-                      className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none"
+                      className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white"
                     >
                       <option value="">İl Seçiniz</option>
                       {cities.map(c => (
@@ -816,15 +931,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     </select>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 ml-1">İlçe</label>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">İlçe</label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                     <select
                       value={registerForm.district}
                       onChange={(e) => setRegisterForm({ ...registerForm, district: e.target.value })}
                       disabled={!registerForm.city}
-                      className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none disabled:bg-gray-50 disabled:text-gray-400"
+                      className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white disabled:bg-gray-50 disabled:text-gray-400"
                     >
                       <option value="">İlçe Seçiniz</option>
                       {districts.map(d => (
@@ -837,71 +953,46 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 ml-1">Detaylı Adres</label>
-                <textarea
-                  value={registerForm.address}
-                  onChange={(e) => setRegisterForm({ ...registerForm, address: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                  placeholder="Açık adresiniz"
-                  rows={2}
-                />
-              </div>
-
-              <div className="pt-2">
-                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={registerForm.isEsilaCustomer}
-                    onChange={(e) => setRegisterForm({ ...registerForm, isEsilaCustomer: e.target.checked })}
-                    className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start pt-1">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Detaylı Adres</label>
+                  <textarea
+                    value={registerForm.address}
+                    onChange={(e) => setRegisterForm({ ...registerForm, address: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                    placeholder="Mahalle, cadde, sokak ve kapı no bilgileri..."
+                    rows={2}
                   />
-                  <span className="text-sm font-medium text-gray-700">Mevcut Esila Yazılım müşterisiyim</span>
-                </label>
+                </div>
+
+                <div className="sm:pt-5">
+                  <label className="flex items-center gap-2.5 p-3 border border-emerald-200 bg-emerald-50/40 rounded-xl cursor-pointer hover:bg-emerald-50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={registerForm.isEsilaCustomer}
+                      onChange={(e) => setRegisterForm({ ...registerForm, isEsilaCustomer: e.target.checked })}
+                      className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-gray-800">Mevcut Müşteriyim</div>
+                      <div className="text-[11px] text-gray-500">Esila Yazılım kullanıcısıyım</div>
+                    </div>
+                  </label>
+                </div>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isRegistering}
-              className={`w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all ${
-                isRegistering ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.02]'
-              }`}
-            >
-              <span>{isRegistering ? 'Başvuru Yapılıyor...' : 'Başvuru Yap'}</span>
-              {!isRegistering && <ArrowRight size={20} />}
-            </button>
-
-            <div className="flex items-center justify-between pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
               <button
-                type="button"
-                onClick={() => {
-                  setView('login');
-                  setError('');
-                }}
-                className="text-sm text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1.5"
+                type="submit"
+                disabled={isRegistering}
+                className={`w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  isRegistering ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
-                <ArrowLeft size={16} />
-                <span>Giriş Ekranına Dön</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPaymentForm(prev => ({
-                    ...prev,
-                    name: registerForm.name || prev.name,
-                    vkn: registerForm.vkn || prev.vkn,
-                    email: registerForm.email || prev.email,
-                    phone: registerForm.phone || prev.phone,
-                    senderName: registerForm.name || prev.senderName
-                  }));
-                  setView('payment');
-                  setError('');
-                }}
-                className="text-sm text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1.5"
-              >
-                <Landmark size={16} />
-                <span>EFT / Havale Bildirimi Yap</span>
+                <CheckCircle2 size={18} />
+                <span>{isRegistering ? 'Başvurunuz Gönderiliyor...' : 'Lisans Başvurusunu Tamamla'}</span>
+                {!isRegistering && <ArrowRight size={18} />}
               </button>
             </div>
           </form>
@@ -957,6 +1048,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     district: '',
                     address: '',
                     sector: '',
+                    package: 'Aylık',
                     isEsilaCustomer: false
                   });
                 }}

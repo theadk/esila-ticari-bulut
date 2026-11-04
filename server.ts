@@ -2205,22 +2205,25 @@ async function startServer() {
   });
 
   app.get("/api/reconciliations", async (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
     const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
-    )
-      return res.json(
-        getFallbackTable(
-          "reconciliations",
-          (req.headers["x-tenant-id"] as string) || "1111111111",
-        ),
+    ) {
+      reloadFallbackDb();
+      const allReconciliations = getFallbackTable("reconciliations");
+      const tenantRows = allReconciliations.filter(
+        (r: any) => !r.vkn || String(r.vkn) === String(vkn)
       );
+      return res.json(tenantRows);
+    }
     try {
       const pool = getPool();
       const [rows] = await pool.query(
-        "SELECT * FROM reconciliations WHERE vkn = ?",
-        [(req.headers["x-tenant-id"] as string) || "1111111111"],
+        "SELECT * FROM reconciliations WHERE vkn = ? ORDER BY date DESC",
+        [vkn],
       );
       res.json(rows);
     } catch (e) {
@@ -2228,26 +2231,100 @@ async function startServer() {
     }
   });
 
-  app.post("/api/reconciliations", async (req, res) => {
-    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
-    const mutabakat = {
-      ...req.body,
-      id: req.body.id || String(Date.now()),
-      emailSentAt: new Date().toISOString(),
-    };
-
-    console.log(
-      `[Mutabakat] İstemci tarafından mail gönderilmesi bekleniyor: ${mutabakat.customerName} - Bakiye: ${mutabakat.balance} ${mutabakat.balanceType}`,
-    );
-    console.log(`[Onay Linki] /api/reconciliations/${mutabakat.id}/approve`);
-    console.log(`[Red Linki] /api/reconciliations/${mutabakat.id}/reject`);
+  app.get("/api/reconciliations/:id/public", async (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    const { id } = req.params;
+    const vkn = (req.query.vkn as string) || (req.headers["x-tenant-id"] as string) || "";
 
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      
-      insertFallbackRow("reconciliations", { ...mutabakat, vkn });
+      reloadFallbackDb();
+      const allReconciliations = getFallbackTable("reconciliations");
+      const record =
+        allReconciliations.find(
+          (r: any) => String(r.id) === String(id) && (!vkn || String(r.vkn) === String(vkn))
+        ) ||
+        allReconciliations.find((r: any) => String(r.id) === String(id));
+
+      if (!record) {
+        return res.status(404).json({ error: "Mutabakat kaydı bulunamadı." });
+      }
+
+      const settingsList = getFallbackTable("settings");
+      const tenantSettings =
+        settingsList.find((s: any) => String(s.vkn) === String(record.vkn)) ||
+        settingsList[0] ||
+        {};
+
+      return res.json({
+        ...record,
+        companyName: tenantSettings.companyName || "Esila Ticari",
+        companyPhone: tenantSettings.phone || "",
+        companyEmail: tenantSettings.email || "",
+      });
+    }
+
+    try {
+      const pool = getPool();
+      const [rows] = (await pool.query(
+        "SELECT * FROM reconciliations WHERE id = ?",
+        [id]
+      )) as any;
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ error: "Mutabakat kaydı bulunamadı." });
+      }
+      const record = rows[0];
+      let companyName = "Esila Ticari";
+      let companyPhone = "";
+      let companyEmail = "";
+      try {
+        const [sRows] = (await pool.query(
+          "SELECT companyName, phone, email FROM settings WHERE vkn = ? LIMIT 1",
+          [record.vkn || vkn || "1111111111"]
+        )) as any;
+        if (sRows && sRows.length > 0) {
+          companyName = sRows[0].companyName || companyName;
+          companyPhone = sRows[0].phone || "";
+          companyEmail = sRows[0].email || "";
+        }
+      } catch (_e) {}
+
+      res.json({
+        ...record,
+        companyName,
+        companyPhone,
+        companyEmail,
+      });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.post("/api/reconciliations", async (req, res) => {
+    const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
+    const numericBalance = Number(req.body.balance);
+    const safeBalance = Number.isFinite(numericBalance) ? Math.abs(numericBalance) : 0;
+    const mutabakat = {
+      ...req.body,
+      vkn,
+      id: req.body.id || `MUT-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      balance: safeBalance,
+      balanceType: req.body.balanceType || (safeBalance === 0 ? "Yok" : "Borç"),
+      status: req.body.status || "Bekliyor",
+      date: req.body.date || new Date().toISOString().split("T")[0],
+      notes: req.body.notes || "",
+      emailSentAt: req.body.emailSentAt || new Date().toISOString(),
+      respondedAt: req.body.respondedAt || null,
+      responseNotes: req.body.responseNotes || null,
+    };
+
+    if (
+      !process.env.DATABASE_URL ||
+      !process.env.DATABASE_URL.startsWith("mysql")
+    ) {
+      insertFallbackRow("reconciliations", mutabakat);
       return res.json(mutabakat);
     }
 
@@ -2256,18 +2333,18 @@ async function startServer() {
       await pool.query(
         "INSERT INTO reconciliations (vkn, id, `customerId`, `customerName`, date, `balanceType`, balance, status, notes, `emailSentAt`, `respondedAt`, `responseNotes`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
-          (req.headers["x-tenant-id"] as string) || "1111111111",
+          vkn,
           mutabakat.id,
           mutabakat.customerId,
           mutabakat.customerName,
           mutabakat.date,
           mutabakat.balanceType,
           mutabakat.balance,
-          mutabakat.status || "Bekliyor",
-          mutabakat.notes || "",
-          mutabakat.emailSentAt || null,
-          mutabakat.respondedAt || null,
-          mutabakat.responseNotes || null,
+          mutabakat.status,
+          mutabakat.notes,
+          mutabakat.emailSentAt,
+          mutabakat.respondedAt,
+          mutabakat.responseNotes,
         ],
       );
       res.json(mutabakat);
@@ -2295,31 +2372,29 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      updateFallbackRow(
-        "reconciliations",
-        id,
-        (req.headers["x-tenant-id"] as string) || "1111111111",
-        req.body,
-      );
-      return res.json({ id, ...req.body });
+      reloadFallbackDb();
+      const allReconciliations = getFallbackTable("reconciliations");
+      const existing = allReconciliations.find((r: any) => String(r.id) === String(id));
+      const targetVkn = existing?.vkn || vkn;
+      updateFallbackRow("reconciliations", id, targetVkn, req.body);
+      return res.json({ id, ...existing, ...req.body });
     }
     try {
       const pool = getPool();
       await pool.query(
-        "UPDATE reconciliations SET `customerId` = ?, `customerName` = ?, date = ?, `balanceType` = ?, balance = ?, status = ?, notes = ?, `emailSentAt` = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?",
+        "UPDATE reconciliations SET `customerId` = ?, `customerName` = ?, date = ?, `balanceType` = ?, balance = ?, status = ?, notes = ?, `emailSentAt` = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ?",
         [
           customerId,
           customerName,
           date,
           balanceType,
-          balance,
+          Number(balance) || 0,
           status || "Bekliyor",
           notes || "",
           emailSentAt || null,
           respondedAt || null,
           responseNotes || null,
           id,
-          (req.headers["x-tenant-id"] as string) || "1111111111",
         ],
       );
       res.json({ id, ...req.body });
@@ -2334,18 +2409,17 @@ async function startServer() {
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      deleteFallbackRow(
-        "reconciliations",
-        req.params.id,
-        (req.headers["x-tenant-id"] as string) || "1111111111",
-      );
+      reloadFallbackDb();
+      const allReconciliations = getFallbackTable("reconciliations");
+      const existing = allReconciliations.find((r: any) => String(r.id) === String(req.params.id));
+      const targetVkn = existing?.vkn || vkn;
+      deleteFallbackRow("reconciliations", req.params.id, targetVkn);
       return res.json({ success: true });
     }
     try {
       const pool = getPool();
-      await pool.query("DELETE FROM reconciliations WHERE id = ? AND vkn = ?", [
+      await pool.query("DELETE FROM reconciliations WHERE id = ?", [
         req.params.id,
-        (req.headers["x-tenant-id"] as string) || "1111111111",
       ]);
       res.json({ success: true });
     } catch (e) {
@@ -2353,65 +2427,93 @@ async function startServer() {
     }
   });
 
-  app.get("/api/reconciliations/:id/approve", async (req, res) => {
+  const handleReconciliationDecision = async (
+    req: any,
+    res: any,
+    newStatus: "Onaylandı" | "Reddedildi"
+  ) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     const id = req.params.id;
-const notes = req.query.notes || "";
-const date = new Date().toISOString();
-const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "1111111111";
+    const notes = String(req.body?.notes ?? req.query?.notes ?? "").trim();
+    const date = new Date().toISOString();
+    const requestedVkn =
+      (req.body?.vkn as string) ||
+      (req.query?.vkn as string) ||
+      (req.headers["x-tenant-id"] as string) ||
+      "1111111111";
 
     if (
       !process.env.DATABASE_URL ||
       !process.env.DATABASE_URL.startsWith("mysql")
     ) {
-      updateFallbackRow("reconciliations", id, vkn as string, {
-        status: "Onaylandı",
+      reloadFallbackDb();
+      const allReconciliations = getFallbackTable("reconciliations");
+      const existing =
+        allReconciliations.find(
+          (r: any) => String(r.id) === String(id) && String(r.vkn) === String(requestedVkn)
+        ) ||
+        allReconciliations.find((r: any) => String(r.id) === String(id));
+
+      if (!existing) {
+        return res.status(404).json({
+          success: false,
+          error: "Mutabakat kaydı bulunamadı.",
+        });
+      }
+
+      const updated = updateFallbackRow("reconciliations", String(existing.id), String(existing.vkn), {
+        status: newStatus,
         respondedAt: date,
         responseNotes: notes,
       });
-      return res.json({ success: true, message: "Mutabakat Onaylandı" });
+
+      return res.json({
+        success: true,
+        message: `Mutabakat ${newStatus}`,
+        reconciliation: updated,
+      });
     }
 
     try {
       const pool = getPool();
-      await pool.query(
-        "UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?",
-        ["Onaylandı", date, notes, id, vkn],
-      );
-      res.json({ success: true, message: "Mutabakat Onaylandı" });
-    } catch (e) {
-      res.status(500).json({ error: String(e) });
-    }
-  });
+      const [result] = (await pool.query(
+        "UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ?",
+        [newStatus, date, notes, id]
+      )) as any;
 
-  app.get("/api/reconciliations/:id/reject", async (req, res) => {
-    const id = req.params.id;
-const notes = req.query.notes || "";
-const date = new Date().toISOString();
-const vkn = req.query.vkn || (req.headers["x-tenant-id"] as string) || "1111111111";
+      if (result && result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Mutabakat kaydı bulunamadı.",
+        });
+      }
 
-    if (
-      !process.env.DATABASE_URL ||
-      !process.env.DATABASE_URL.startsWith("mysql")
-    ) {
-      updateFallbackRow("reconciliations", id, vkn as string, {
-        status: "Reddedildi",
+      res.json({
+        success: true,
+        message: `Mutabakat ${newStatus}`,
+        id,
+        status: newStatus,
         respondedAt: date,
         responseNotes: notes,
       });
-      return res.json({ success: true, message: "Mutabakat Reddedildi" });
-    }
-
-    try {
-      const pool = getPool();
-      await pool.query(
-        "UPDATE reconciliations SET status = ?, `respondedAt` = ?, `responseNotes` = ? WHERE id = ? AND vkn = ?",
-        ["Reddedildi", date, notes, id, vkn],
-      );
-      res.json({ success: true, message: "Mutabakat Reddedildi" });
     } catch (e) {
       res.status(500).json({ error: String(e) });
     }
-  });
+  };
+
+  app.get("/api/reconciliations/:id/approve", (req, res) =>
+    handleReconciliationDecision(req, res, "Onaylandı")
+  );
+  app.post("/api/reconciliations/:id/approve", (req, res) =>
+    handleReconciliationDecision(req, res, "Onaylandı")
+  );
+
+  app.get("/api/reconciliations/:id/reject", (req, res) =>
+    handleReconciliationDecision(req, res, "Reddedildi")
+  );
+  app.post("/api/reconciliations/:id/reject", (req, res) =>
+    handleReconciliationDecision(req, res, "Reddedildi")
+  );
 
   app.get("/api/tenants", async (req, res) => {
     const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";

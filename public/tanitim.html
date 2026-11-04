@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="tr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Esila Ticari — Bulut Tabanlı Kurumsal Ön Muhasebe ve ERP Sistemi | Tüm Modüller</title>
+  <meta name="description" content="Esila Ticari Bulut ERP sistemindeki 22 modülün tamamını (Panel, Hızlı Satış POS, Cariler, Ürünler, E-Fatura, Mutabakat, Üretim, Depo, Kasa, Çek/Senet, Teknik Servis ve daha fazlası) en ince ayrıntısına kadar inceleyin." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    .text-balance {
+      text-wrap: balance;
+    }
+    .ui-window {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .ui-window-header {
+      background: #f1f5f9;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #64748b;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-emerald-600 selection:text-white">
+
+  <!-- 3-Zone Top Bar Contract -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 px-6 py-4 no-print">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-8">
+      <!-- Zone 1: Single-line Brand Wordmark -->
+      <a href="#top" class="text-xl font-extrabold tracking-tight text-emerald-800 whitespace-nowrap shrink-0">
+        Esila Ticari
+      </a>
+
+      <!-- Zone 2: 5 Single-Line Navigation Links -->
+      <nav class="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
+        <a href="#mimari" class="hover:text-slate-900 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0">Sistem Mimarisi</a>
+        <a href="#tum-moduller" class="hover:text-slate-900 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0">22 Modül Rehberi</a>
+        <a href="#mutabakat-efatura" class="hover:text-slate-900 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0">E-Fatura ve Mutabakat</a>
+        <a href="#guvenlik" class="hover:text-slate-900 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0">Güvenlik</a>
+        <a href="#paketler" class="hover:text-slate-900 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0">Lisans Paketleri</a>
+      </nav>
+
+      <!-- Zone 3: 1 Primary Action -->
+      <div class="flex items-center shrink-0">
+        <a href="/" class="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors whitespace-nowrap shrink-0">
+          Sisteme Giriş Yap
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section id="top" class="bg-white border-b border-slate-200 py-14 lg:py-20">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
+        <!-- Left Column: Proposition -->
+        <div class="lg:col-span-6 flex flex-col justify-between space-y-6">
+          <div class="space-y-5">
+            <div class="text-xs font-medium text-slate-500">
+              <span>Bulut Tabanlı Kurumsal ERP</span>
+              <span aria-hidden="true"> · </span>
+              <span>22 Entegre Modül</span>
+              <span aria-hidden="true"> · </span>
+              <span>Çoklu Firma (Multi-Tenant) Mimarisi</span>
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.12] text-balance">
+              Ticari operasyonlarınızın tamamını tek merkezden yönetin.
+            </h1>
+
+            <p class="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">
+              Esila Ticari; Hızlı Satış (POS), Cari Hesaplar, E-Fatura, Online Onaylı Mutabakat, Reçeteli Üretim, Çoklu Depo, Kasa/Banka, Çek/Senet, Teknik Servis ve CRM süreçlerini uçtan uca birleştiren yeni nesil ön muhasebe ve kurumsal kaynak planlama platformudur.
+            </p>
+          </div>
+
+          <div class="pt-2 space-y-4">
+            <div class="flex flex-wrap items-center gap-3">
+              <a href="#tum-moduller" class="px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0">
+                22 Modülü Ayrıntılı İncele
+              </a>
+              <button type="button" onclick="downloadThisHtml()" class="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer">
+                Tanıtım HTML Dosyasını İndir
+              </button>
+              <button type="button" onclick="window.print()" class="px-4 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer">
+                Katalog Olarak Yazdır (PDF)
+              </button>
+            </div>
+            <div class="text-xs text-slate-500">
+              <span>Kurulum gerektirmez</span>
+              <span aria-hidden="true"> · </span>
+              <span>Web, Tablet ve Mobil PWA uyumlu</span>
+              <span aria-hidden="true"> · </span>
+              <span>Sesli Komut ve Ctrl+K Hızlı Erişim</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Interactive Live ERP Dashboard Mockup Visual -->
+        <div class="lg:col-span-6 flex flex-col">
+          <div class="ui-window h-full flex flex-col justify-between bg-slate-900 text-slate-100 border-slate-800">
+            <div class="bg-slate-950 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between text-xs font-mono text-slate-400">
+              <span>esila-ticari.cloud / panel-ozeti</span>
+              <span>VKN: 1111111111 · Aktif Dönem: 2026</span>
+            </div>
+
+            <div class="p-5 space-y-4 flex-1 flex flex-col justify-between">
+              <!-- Top KPI Strip inside Mockup -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-slate-800/90 border border-slate-700 rounded-lg p-3">
+                  <div class="text-[11px] text-slate-400">Kasa &amp; Banka</div>
+                  <div class="text-base font-bold text-emerald-400 font-mono tabular-nums mt-1">₺1.482.950</div>
+                  <div class="text-[10px] text-slate-400 mt-0.5">4 Aktif Hesap</div>
+                </div>
+                <div class="bg-slate-800/90 border border-slate-700 rounded-lg p-3">
+                  <div class="text-[11px] text-slate-400">Toplam Alacak</div>
+                  <div class="text-base font-bold text-sky-400 font-mono tabular-nums mt-1">₺845.200</div>
+                  <div class="text-[10px] text-slate-400 mt-0.5">128 Cari Kart</div>
+                </div>
+                <div class="bg-slate-800/90 border border-slate-700 rounded-lg p-3">
+                  <div class="text-[11px] text-slate-400">Toplam Borç</div>
+                  <div class="text-base font-bold text-amber-400 font-mono tabular-nums mt-1">₺312.400</div>
+                  <div class="text-[10px] text-slate-400 mt-0.5">34 Tedarikçi</div>
+                </div>
+                <div class="bg-slate-800/90 border border-slate-700 rounded-lg p-3">
+                  <div class="text-[11px] text-slate-400">Envanter Değeri</div>
+                  <div class="text-base font-bold text-white font-mono tabular-nums mt-1">₺2.190.000</div>
+                  <div class="text-[10px] text-slate-400 mt-0.5">3 Depo · 1.840 Ürün</div>
+                </div>
+              </div>
+
+              <!-- Middle Visual Chart & Live Mutabakat Feed -->
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <div class="sm:col-span-7 bg-slate-800/60 border border-slate-700/80 rounded-lg p-3.5">
+                  <div class="flex items-center justify-between text-xs mb-3">
+                    <span class="font-semibold text-slate-200">Aylık Nakit Akışı ve Satış Grafiği</span>
+                    <span class="font-mono text-[11px] text-emerald-400 tabular-nums">+%34.2 Büyüme</span>
+                  </div>
+                  <!-- SVG Bar & Area Chart -->
+                  <svg viewBox="0 0 320 110" class="w-full h-28 overflow-visible">
+                    <line x1="0" y1="20" x2="320" y2="20" stroke="#334155" stroke-dasharray="3 3" stroke-width="1" />
+                    <line x1="0" y1="55" x2="320" y2="55" stroke="#334155" stroke-dasharray="3 3" stroke-width="1" />
+                    <line x1="0" y1="90" x2="320" y2="90" stroke="#334155" stroke-width="1" />
+                    <!-- Bars (Tahsilat & Satış) -->
+                    <rect x="12" y="52" width="16" height="38" rx="3" fill="#059669" />
+                    <rect x="32" y="64" width="16" height="26" rx="3" fill="#475569" />
+                    <rect x="64" y="40" width="16" height="50" rx="3" fill="#059669" />
+                    <rect x="84" y="58" width="16" height="32" rx="3" fill="#475569" />
+                    <rect x="116" y="34" width="16" height="56" rx="3" fill="#059669" />
+                    <rect x="136" y="48" width="16" height="42" rx="3" fill="#475569" />
+                    <rect x="168" y="24" width="16" height="66" rx="3" fill="#10b981" />
+                    <rect x="188" y="44" width="16" height="46" rx="3" fill="#475569" />
+                    <rect x="220" y="18" width="16" height="72" rx="3" fill="#10b981" />
+                    <rect x="240" y="39" width="16" height="51" rx="3" fill="#475569" />
+                    <rect x="272" y="10" width="16" height="80" rx="3" fill="#34d399" />
+                    <rect x="292" y="32" width="16" height="58" rx="3" fill="#475569" />
+                    <text x="20" y="104" fill="#94a3b8" font-size="9" font-family="monospace">Oca</text>
+                    <text x="72" y="104" fill="#94a3b8" font-size="9" font-family="monospace">Şub</text>
+                    <text x="124" y="104" fill="#94a3b8" font-size="9" font-family="monospace">Mar</text>
+                    <text x="176" y="104" fill="#94a3b8" font-size="9" font-family="monospace">Nis</text>
+                    <text x="228" y="104" fill="#94a3b8" font-size="9" font-family="monospace">May</text>
+                    <text x="280" y="104" fill="#94a3b8" font-size="9" font-family="monospace">Haz</text>
+                  </svg>
+                </div>
+
+                <div class="sm:col-span-5 bg-slate-800/60 border border-slate-700/80 rounded-lg p-3.5 flex flex-col justify-between">
+                  <div class="text-xs font-semibold text-slate-200 mb-2">Canlı Operasyon Akışı</div>
+                  <div class="space-y-2 text-[11px]">
+                    <div class="flex items-center justify-between py-1 border-b border-slate-700/70">
+                      <span class="text-slate-300 truncate">E-Fatura #GIB202600412</span>
+                      <span class="font-mono text-emerald-400 tabular-nums">Onaylandı</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1 border-b border-slate-700/70">
+                      <span class="text-slate-300 truncate">Mutabakat · Anadolu A.Ş.</span>
+                      <span class="font-mono text-emerald-400 tabular-nums">Online Onay</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1 border-b border-slate-700/70">
+                      <span class="text-slate-300 truncate">POS Satış · Kasa #01</span>
+                      <span class="font-mono text-sky-400 tabular-nums">₺4.850,00</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1">
+                      <span class="text-slate-300 truncate">Üretim Emri #UE-109</span>
+                      <span class="font-mono text-amber-400 tabular-nums">Tamamlandı</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom Bar inside Mockup -->
+              <div class="bg-slate-950/80 border border-slate-800 rounded-lg px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
+                <span>Komut Paleti: <strong class="text-slate-200 font-mono">Ctrl + K</strong></span>
+                <span>Sesli Asistan: <strong class="text-slate-200">Türkçe Sesli Navigasyon</strong></span>
+                <span>Veri Güvenliği: <strong class="text-emerald-400">SQLi &amp; XSS Sanitizer Aktif</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full-Width 4-Column Quantitative Proof Row Below Hero Split -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-12 pt-10 border-t border-slate-200">
+        <div>
+          <div class="text-3xl font-extrabold text-slate-900 font-mono tabular-nums">22 Modül</div>
+          <div class="text-sm font-semibold text-slate-800 mt-1">Tam Entegre ERP Ekosistemi</div>
+          <p class="text-xs text-slate-500 mt-1">Satış, satın alma, üretim, depo, finans, İK ve teknik servis tek veritabanında konuşur.</p>
+        </div>
+        <div>
+          <div class="text-3xl font-extrabold text-emerald-700 font-mono tabular-nums">Tek Tıkla</div>
+          <div class="text-sm font-semibold text-slate-800 mt-1">Online Mutabakat ve Teklif Onayı</div>
+          <p class="text-xs text-slate-500 mt-1">Müşterileriniz şifreye ihtiyaç duymadan özel bağlantıdan mutabakat ve teklif onaylar.</p>
+        </div>
+        <div>
+          <div class="text-3xl font-extrabold text-slate-900 font-mono tabular-nums">%65 Daha Az</div>
+          <div class="text-sm font-semibold text-slate-800 mt-1">Ağ Trafiği ve Sunucu Yükü</div>
+          <p class="text-xs text-slate-500 mt-1">Gzip sıkıştırma, ETag önbellekleme, birleştirilmiş bootstrap API ve akıllı sekme yoklama.</p>
+        </div>
+        <div>
+          <div class="text-3xl font-extrabold text-slate-900 font-mono tabular-nums">7/24 Bulut</div>
+          <div class="text-sm font-semibold text-slate-800 mt-1">VKN Bazlı İzole Multi-Tenant Yapı</div>
+          <p class="text-xs text-slate-500 mt-1">Her firmanın verisi kendi Vergi Kimlik Numarası (VKN) altında izole ve yedekli saklanır.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Module Filter & Complete 22-Module Visual Encyclopedia -->
+  <section id="tum-moduller" class="py-16 lg:py-24">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
+        <div>
+          <div class="text-xs font-medium text-emerald-700 mb-2">
+            <span>Modül Rehberi</span>
+            <span aria-hidden="true"> · </span>
+            <span>01 — 22 Arası Tüm Sistem Özellikleri</span>
+          </div>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight text-balance">
+            Sistemdeki tüm özellikler, modül modül en ince ayrıntısına kadar.
+          </h2>
+        </div>
+
+        <!-- Functional Category Filter Controls -->
+        <div class="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-200/70 rounded-xl no-print" role="tablist" aria-label="Modül Kategorileri">
+          <button type="button" onclick="filterModules('all')" data-filter="all" class="mod-filter-btn px-3.5 py-2 text-xs font-semibold rounded-lg bg-white text-slate-900 shadow-xs transition-colors whitespace-nowrap shrink-0 cursor-pointer">
+            Tümü (22 Modül)
+          </button>
+          <button type="button" onclick="filterModules('satis')" data-filter="satis" class="mod-filter-btn px-3.5 py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 cursor-pointer">
+            Satış &amp; POS (5)
+          </button>
+          <button type="button" onclick="filterModules('finans')" data-filter="finans" class="mod-filter-btn px-3.5 py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 cursor-pointer">
+            Finans &amp; E-Belge (5)
+          </button>
+          <button type="button" onclick="filterModules('stok')" data-filter="stok" class="mod-filter-btn px-3.5 py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 cursor-pointer">
+            Stok, Depo &amp; Üretim (5)
+          </button>
+          <button type="button" onclick="filterModules('kurumsal')" data-filter="kurumsal" class="mod-filter-btn px-3.5 py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 cursor-pointer">
+            İK, Servis &amp; Yönetim (7)
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Input for Modules -->
+      <div class="mb-10 no-print">
+        <input
+          id="moduleSearchInput"
+          type="search"
+          oninput="searchModules(this.value)"
+          placeholder="Modül veya özellik ara (Örn: Mutabakat PDF, Barkod, E-Fatura, Reçete, Çek Ciro, Hatırlatıcı...)"
+          class="w-full px-4 py-3.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
+        />
+      </div>
+
+      <!-- 22 Modules Detailed Cards Grid -->
+      <div id="modulesGrid" class="space-y-12">
+
+        <!-- MODULE 01: PANEL (DASHBOARD) -->
+        <article data-category="kurumsal" class="module-card bg-white border border-slate-200 rounded-2xl p-6 lg:p-8">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            <div class="lg:col-span-6 flex flex-col justify-between space-y-5">
+              <div class="space-y-3">
+                <div class="text-xs font-mono text-emerald-700">01. YÖNETİM PANELİ (DASHBOARD) · /dashboard</div>
+                <h3 class="text-2xl font-bold text-slate-900">01. Finansal Komuta Merkezi ve Anlık Özet Paneli</h3>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                  İşletmenizin tüm finansal ve operasyonel nabzını tek ekranda sunar. Güncel kasa/banka mevcudu, toplam müşteri alacakları, tedarikçi borçları, stok envanter değeri ve vadesi yaklaşan işlemler gerçek zamanlı hesaplanır.
+                </p>
+                <ul class="space-y-2 text-sm text-slate-700 pt-2">
+                  <li><strong>Finansal Özet Kartları:</strong> Toplam Kasa/Banka, Cari Alacaklar, Cari Borçlar ve Net Bakiye durumu.</li>
+                  <li><strong>Gelir / Gider ve Satış Trendleri:</strong> Aylık ve haftalık karşılaştırmalı tahsilat/ödeme grafikleri.</li>
+                  <li><strong>Kritik Stok &amp; Vade Uyarıları:</strong> Azalan stokların ve vadesi gelen çek/senet veya ödemelerin otomatik listesi.</li>
+                  <li><strong>Hızlı Aksiyon Kısayolları:</strong> Tek tıkla Yeni Satış, Tahsilat Ekle, Cari Aç veya E-Fatura ekranına geçiş.</li>
+                </ul>
+              </div>
+              <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+                <span>Yetki Kodu: dashboard</span> · <span>Kısayol: Ctrl + H</span> · <span>Canlı Veri Senkronizasyonu</span>
+              </div>
+            </div>
+            <div class="lg:col-span-6">
+              <div class="ui-window h-full flex flex-col">
+                <div class="ui-window-header">
+                  <span>Modül Önizleme: Genel Bakış Paneli</span>
+                  <span>Canlı KPI</span>
+                </div>
+                <div class="p-4 space-y-3 bg-slate-50 flex-1">
+                  <div class="grid grid-cols-3 gap-2.5">
+                    <div class="bg-white p-3 rounded-lg border border-slate-200">
+                      <div class="text-[11px] text-slate-500">Bugünkü Satış</div>
+                      <div class="text-sm font-bold text-slate-900 font-mono tabular-nums mt-0.5">₺68.420,00</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-slate-200">
+                      <div class="text-[11px] text-slate-500">Bekleyen Mutabakat</div>
+                      <div class="text-sm font-bold text-amber-700 font-mono tabular-nums mt-0.5">14 Cari</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-slate-200">
+                      <div class="text-[11px] text-slate-500">Kritik Stok</div>
+                      <div class="text-sm font-bold text-rose-700 font-mono tabular-nums mt-0.5">7 Ürün</div>
+                    </div>
+                  </div>
+                  <div class="bg-white p-3 rounded-lg border border-slate-200">
+                    <div class="text-xs font-semibold text-slate-800 mb-2">Son Finansal Hareketler</div>
+                    <table class="w-full text-xs">
+                      <tbody class="divide-y divide-slate-100 font-mono tabular-nums">
+                        <tr><td class="py-1.5 text-slate-700 font-sans">Özkan Metal A.Ş. · Tahsilat</td><td class="py-1.5 text-right text-emerald-700">+₺24.500,00</td></tr>
+                        <tr><td class="py-1.5 text-slate-700 font-sans">Merkez Kasa · Perakende POS</td><td class="py-1.5 text-right text-emerald-700">+₺3.890,00</td></tr>
+                        <tr><td class="py-1.5 text-slate-700 font-sans">Akdeniz Lojistik · Tedarik Ödemesi</td><td class="py-1.5 text-right text-rose-700">-₺12.000,00</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- MODULE 02: HIZLI SATIŞ (POS) & MÜŞTERİ EKRANI -->
+        <article data-category="satis" class="module-card bg-white border border-slate-200 rounded-2xl p-6 lg:p-8">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            <div class="lg:col-span-6 flex flex-col justify-between space-y-5">
+              <div class="space-y-3">
+                <div class="text-xs font-mono text-emerald-700">02. PERAKENDE POS &amp; İKİNCİ EKRAN · /hizlisatis &amp; /musteri-ekrani</div>
+                <h3 class="text-2xl font-bold text-slate-900">02. Hızlı Satış (POS) ve Çift Ekran Müşteri Gösterimi</h3>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                  Market, mağaza ve toptan satış noktaları için saniyeler içinde barkodlu satış yapmayı sağlayan dokunmatik uyumlu POS ekranı. İkinci monitör desteğiyle müşteriye anlık sepet ve para üstü bilgisini yansıtır.
+                </p>
+                <ul class="space-y-2 text-sm text-slate-700 pt-2">
+                  <li><strong>Barkod &amp; Dokunmatik Sepet:</strong> Barkod okuyucu ile anında ürün ekleme, miktar/iskonto değiştirme ve kategori butonları.</li>
+                  <li><strong>Esnek Ödeme Seçenekleri:</strong> Nakit, Kredi Kartı, Havale, Veresiye (Cari Hesaba Borç Kaydı) ve Parçalı Ödeme.</li>
+                  <li><strong>Canlı Müşteri Ekranı (/musteri-ekrani):</strong> Kasadaki ikinci ekranda okutulan ürünleri, ara toplamı ve genel toplamı müşteriye canlı gösterir.</li>
+                  <li><strong>Beklemeye Alma &amp; Fiş Yazdırma:</strong> Müşteri sepetini beklemeye alma (Askıya Al) ve termal bilgi fişi yazdırma.</li>
+                </ul>
+              </div>
+              <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+                <span>Barkod Okuyucu Uyumlu</span> · <span>Çift Ekran Senkronizasyonu</span> · <span>Otomatik Kasa &amp; Stok Entegrasyonu</span>
+              </div>
+            </div>
+            <div class="lg:col-span-6">
+              <div class="ui-window h-full flex flex-col">
+                <div class="ui-window-header">
+                  <span>Modül Önizleme: POS Kasa &amp; Müşteri Ekranı</span>
+                  <span>Barkod Aktif</span>
+                </div>
+                <div class="p-4 bg-slate-50 flex-1 flex flex-col justify-between space-y-3">
+                  <div class="grid grid-cols-12 gap-3">
+                    <div class="col-span-7 bg-white border border-slate-200 rounded-lg p-3 space-y-2">
+                      <div class="text-[11px] font-mono text-slate-400">BARKOD: 8690123456789</div>
+                      <div class="text-xs font-semibold text-slate-800 border-b border-slate-100 pb-1.5">Aktif Sepet (3 Kalem)</div>
+                      <div class="space-y-1.5 text-xs font-mono tabular-nums">
+                        <div class="flex justify-between"><span class="font-sans">2x Endüstriyel Sensör</span><span>₺2.400,00</span></div>
+                        <div class="flex justify-between"><span class="font-sans">1x Güç Adaptörü 24V</span><span>₺850,00</span></div>
+                        <div class="flex justify-between"><span class="font-sans">5x Montaj Kablosu</span><span>₺600,00</span></div>
+                      </div>
+                    </div>
+                    <div class="col-span-5 bg-slate-900 text-white rounded-lg p-3 flex flex-col justify-between">
+                      <div>
+                        <div class="text-[10px] text-emerald-400 font-mono">MÜŞTERİ EKRANI</div>
+                        <div class="text-xs text-slate-300 mt-1">Ödenecek Toplam</div>
+                        <div class="text-xl font-extrabold font-mono tabular-nums text-white mt-0.5">₺3.850,00</div>
+                      </div>
+                      <div class="grid grid-cols-2 gap-1.5 pt-2">
+                        <span class="bg-emerald-600 text-center py-1.5 rounded text-[11px] font-semibold">Nakit</span>
+                        <span class="bg-sky-600 text-center py-1.5 rounded text-[11px] font-semibold">Kart</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-[11px] text-slate-500 bg-white border border-slate-200 rounded-lg px-3 py-2">
+                    Satış tamamlandığında stoktan otomatik düşer, seçilen kasaya tahsilat işlenir veya cari hesaba borç kaydedilir.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- MODULE 03: CARİLER (MÜŞTERİ & TEDARİKÇİ YÖNETİMİ) -->
+        <article data-category="finans" class="module-card bg-white border border-slate-200 rounded-2xl p-6 lg:p-8">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            <div class="lg:col-span-6 flex flex-col justify-between space-y-5">
+              <div class="space-y-3">
+                <div class="text-xs font-mono text-emerald-700">03. CARİ HESAPLAR · /cariler</div>
+                <h3 class="text-2xl font-bold text-slate-900">03. Müşteri ve Tedarikçi Cari Hesap Yönetimi</h3>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                  Tüm alıcı ve satıcılarınızın borç, alacak ve net bakiye durumlarını kuruşu kuruşuna takip edin. Tek tıkla detaylı cari hesap ekstresi alın, PDF olarak indirin veya doğrudan müşterinizin e-posta adresine gönderin.
+                </p>
+                <ul class="space-y-2 text-sm text-slate-700 pt-2">
+                  <li><strong>Tahsilat &amp; Ödeme Girişi:</strong> Nakit, banka havalesi veya kredi kartı ile cari tahsilat ve tedarikçi ödemesi kaydetme.</li>
+                  <li><strong>PDF Cari Hesap Ekstresi:</strong> Tarih aralıklı tüm borç/alacak hareketlerini içeren kurumsal A4 PDF ekstre üretimi.</li>
+                  <li><strong>Otomatik E-Posta &amp; SMS Bildirimi:</strong> Cari ekstresini tek tıkla müşterinin e-postasına veya SMS/WhatsApp hattına gönderme.</li>
+                  <li><strong>Risk Limiti &amp; VKN Kontrolü:</strong> Vergi dairesi, VKN/TCKN, iletişim, açık adres ve özel iskonto oranı tanımlama.</li>
+                </ul>
+              </div>
+              <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+                <span>A4 PDF Ekstre</span> · <span>Otomatik E-Posta Gönderimi</span> · <span>Borç / Alacak Yaşlandırma</span>
+              </div>
+            </div>
+            <div class="lg:col-span-6">
+              <div class="ui-window h-full flex flex-col">
+                <div class="ui-window-header">
+                  <span>Modül Önizleme: Cari Kartlar &amp; Ekstre</span>
+                  <span>PDF / Mail</span>
+                </div>
+                <div class="p-4 bg-slate-50 flex-1 space-y-3">
+                  <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                    <table class="w-full text-xs text-left">
+                      <thead class="bg-slate-100 text-slate-600">
+                        <tr><th class="p-2.5">Cari Ünvanı</th><th class="p-2.5">VKN</th><th class="p-2.5 text-right">Güncel Bakiye</th></tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100 font-mono tabular-nums">
+                        <tr>
+                          <td class="p-2.5 font-sans font-semibold text-slate-800">Anadolu Endüstri A.Ş.</td>
+                          <td class="p-2.5 text-slate-500">1234567890</td>
+                          <td class="p-2.5 text-right font-semibold text-emerald-700">₺142.500,00 (Borç)</td>
+                        </tr>
+                        <tr>
+                          <td class="p-2.5 font-sans font-semibold text-slate-800">Marmara Tedarik Ltd.</td>
+                          <td class="p-2.5 text-slate-500">9876543210</td>
+                          <td class="p-2.5 text-right font-semibold text-rose-700">₺48.200,00 (Alacak)</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="flex flex-wrap gap-2 text-xs">
+                    <span class="px-3 py-1.5 bg-emerald-700 text-white rounded-md font-medium">Tahsilat Al</span>
+                    <span class="px-3 py-1.5 bg-slate-800 text-white rounded-md font-medium">PDF Ekstre İndir</span>
+                    <span class="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-md font-medium">E-Posta ile Ekstre Gönder</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- MODULE 04: MUTABAKAT (ONLINE ONAYLI BA/BS & CARİ MUTABAKAT) -->
+        <article id="mutabakat-efatura" data-category="finans" class="module-card bg-white border-2 border-emerald-600/30 rounded-2xl p-6 lg:p-8">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            <div class="lg:col-span-6 flex flex-col justify-between space-y-5">
+              <div class="space-y-3">
+                <div class="text-xs font-mono text-emerald-700">04. ONLINE CARİ MUTABAKAT SİSTEMİ · /mutabakat &amp; /mutabakat-onay/:id</div>
+                <h3 class="text-2xl font-bold text-slate-900">04. Online Onaylı Mutabakat, Geçmiş Tablosu, Toplu PDF ve Hatırlatıcı</h3>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                  Müşteri ve tedarikçilerinizle VUK 329 kapsamında bakiye mutabakatlarınızı dijitalleştirin. Gönderilen e-posta/SMS içindeki özel bağlantı sayesinde karşı taraf sisteme giriş yapmadan mutabakatı onaylar veya reddeder; sonuç ekranınıza anında yansır.
+                </p>
+                <ul class="space-y-2 text-sm text-slate-700 pt-2">
+                  <li><strong>Tekli ve Toplu Mutabakat Gönderimi:</strong> Tüm carilere veya seçili cariye otomatik bakiye hesaplamalı mutabakat mektubu gönderimi.</li>
+                  <li><strong>Canlı Online Onay / Red (/mutabakat-onay):</strong> Müşteri onayladığında veya reddettiğinde (notuyla birlikte) sekme yenilenmeden dahi anlık senkronize olur.</li>
+                  <li><strong>Mutabakat Geçmişi Tablosu:</strong> Gönderilmiş tüm mutabakatların durumu (<em>Bekliyor, Onaylandı, Reddedildi</em>), yanıt tarihi ve cari açıklama notları.</li>
+                  <li><strong>Tek Tıkla 'Hatırlatıcı Gönder' &amp; 'Tekrar Gönder':</strong> Bekleyen mutabakatlar için ilgili cariye tek tıkla otomatik hatırlatma e-postası gönderme.</li>
+                  <li><strong>Seçili Mutabakatları Toplu PDF İndirme &amp; Yazdırma:</strong> Çoklu seçim kutularıyla seçilen mutabakatları tek seferde çok sayfalı resmi A4 PDF olarak indirme ve yazdırma.</li>
+                </ul>
+              </div>
+              <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+                <span>Online Onay Linki</span> · <span>Hatırlatıcı Gönder</span> · <span>Tekrar Gönder</span> · <span>Toplu A4 PDF İndir</span>
+              </div>
+            </div>
+            <div class="lg:col-span-6">
+              <div class="ui-window h-full flex flex-col">
+                <div class="ui-window-header">
+                  <span>Modül Önizleme: Mutabakat Geçmişi &amp; Toplu PDF</span>
+                  <span>Canlı Senkronizasyon</span>
+                </div>
+                <div class="p-4 bg-slate-50 flex-1 space-y-3">
+                  <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-2.5 rounded-lg border border-slate-200 text-xs">
+                    <span class="font-semibold text-slate-800">2 kayıt seçili</span>
+                    <div class="flex items-center gap-1.5">
+                      <span class="px-2.5 py-1 bg-indigo-600 text-white rounded font-semibold">PDF İndir (2)</span>
+                      <span class="px-2.5 py-1 bg-white border border-slate-300 text-slate-700 rounded font-semibold">Toplu Yazdır (2)</span>
+                    </div>
+                  </div>
+                  <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                    <table class="w-full text-[11px] text-left">
+                      <thead class="bg-slate-100 text-slate-600">
+                        <tr>
+                          <th class="p-2">Seç</th>
+                          <th class="p-2">Cari Adı</th>
+                          <th class="p-2">Bakiye</th>
+                          <th class="p-2">Durum</th>
+                          <th class="p-2 text-right">Aksiyon</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100 font-mono tabular-nums">
+                        <tr class="bg-indigo-50/40">
+                          <td class="p-2">☑</td>
+                          <td class="p-2 font-sans font-semibold text-slate-800">Delta Mühendislik</td>
+                          <td class="p-2">₺84.000 Borç</td>
+                          <td class="p-2 font-sans text-amber-700 font-semibold">Bekliyor</td>
+                          <td class="p-2 text-right font-sans">
+                            <span class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 rounded">Hatırlatıcı Gönder</span>
+                          </td>
+                        </tr>
+                        <tr class="bg-indigo-50/40">
+                          <td class="p-2">☑</td>
+                          <td class="p-2 font-sans font-semibold text-slate-800">Kuzey Kimya A.Ş.</td>
+                          <td class="p-2">₺19.500 Borç</td>
+                          <td class="p-2 font-sans text-emerald-700 font-semibold">Onaylandı</td>
+                          <td class="p-2 text-right font-sans">
+                            <span class="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded">Tekrar Gönder</span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="bg-emerald-950 text-emerald-100 p-3 rounded-lg text-xs">
+                    <strong>Online Mutabakat Onay Ekranı:</strong> Müşteriye giden e-postadaki bağlantı tıklandığında firma bilgileri, bakiye ve <em>"Mutabıkız (Onayla)"</em> / <em>"Mutabık Değiliz (Reddet)"</em> butonları açılır.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- MODULE 05: E-FATURA & E-ARŞİV -->
+        <article data-category="finans" class="module-card bg-white border border-slate-200 rounded-2xl p-6 lg:p-8">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            <div class="lg:col-span-6 flex flex-col justify-between space-y-5">
+              <div class="space-y-3">
+                <div class="text-xs font-mono text-emerald-700">05. E-FATURA &amp; E-ARŞİV ENTEGRASYONU · /efatura</div>
+                <h3 class="text-2xl font-bold text-slate-900">05. Çift Yönlü E-Fatura ve E-Arşiv Yönetim Merkezi</h3>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                  Gelen ve giden elektronik faturalarınızı tek ekrandan yönetin. Gelen E-Faturalardaki cari kartları ve stok kalemlerini tek tıkla içeri aktarın; satışlarınızı resmi UBL-TR formatında E-Fatura veya E-Arşiv olarak kesin.
+                </p>
+                <ul class="space-y-2 text-sm text-slate-700 pt-2">
+                  <li><strong>Gelen E-Fatura Kutusu:</strong> Entegratörden gelen alış faturalarını listeleme, önizleme ve tek tıkla stok/cari sistemine işleme.</li>
+                  <li><strong>Giden E-Fatura / E-Arşiv Gönderimi:</strong> Satış kayıtlarından otomatik mükellef sorgulama (VKN ile E-Fatura / E-Arşiv ayrımı).</li>
+                  <li><strong>Resmi Fatura Tasarımı &amp; XML/PDF:</strong> GİB standartlarında fatura görüntüleme, yazdırma ve PDF indirme.</li>
+                </ul>
+              </div>
+              <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+                <span>UBL-TR 1.2 Standartları</span> · <span>Otomatik Cari &amp; Stok Eşleştirme</span> · <span>GİB Mükellef Sorgu</span>
+              </div>
+            </div>
+            <div class="lg:col-span-6">
+              <div class="ui-window h-full flex flex-col">
+                <div class="ui-window-header">
+                  <span>Modül Önizleme: E-Fatura Gelen / Giden Kutusu</span>
+                  <span>GİB UBL-TR</span>
+                </div>
+                <div class="p-4 bg-slate-50 flex-1 space-y-2.5 text-xs">
+                  <div class="bg-white border border-slate-200 rounded-lg p-3 flex items-center justify-between">
+                    <div>
+                      <div class="font-mono font-bold text-slate-900">GIB2026000001842 · Ticari Fatura</div>
+                      <div class="text-slate-500">Gönderici: Yıldız Elektronik San. Tic. A.Ş.</div>
+                    </div>
+                    <div class="text-right font-mono tabular-nums">
+                      <div class="font-bold text-slate-900">₺54.280,00</div>
+                      <span class="text-[11px] text-emerald-700">Stoklara Aktarıldı</span>
+                    </div>
+                  </div>
+                  <div class="bg-white border border-slate-200 rounded-lg p-3 flex items-center justify-between">
+                    <div>
+                      <div class="font-mono font-bold text-slate-900">EAR2026000000914 · E-Arşiv Fatura</div>
+                      <div class="text-slate-500">Alıcı: Боğaziçi Yapı Market Ltd. Şti.</div>
+                    </div>
+                    <div class="text-right font-mono tabular-nums">
+                      <div class="font-bold text-slate-900">₺18.900,00</div>
+                      <span class="text-[11px] text-sky-700">GİB Onaylı</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- MODULE 06: ÜRÜNLER (STOK & HİZMET KATALOĞU) -->
+        <article data-category="stok" class="module-card bg-white border border-slate-200 rounded-2xl p-6 lg:p-8">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            <div class="lg:col-span-6 flex flex-col justify-between space-y-5">
+              <div class="space-y-3">
+                <div class="text-xs font-mono text-emerald-700">06. ÜRÜN &amp; STOK YÖNETİMİ · /urunler</div>
+                <h3 class="text-2xl font-bold text-slate-900">06. Ürün Kataloğu, Barkod Etiket Basımı ve Fiyat Yönetimi</h3>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                  Binlerce ürün kartını stok kodu, barkod, kategori, alış/satış fiyatı, KDV oranı ve kritik stok seviyesiyle yönetin. Barkodsuz ürünler için otomatik barkod üretin ve raf/ürün etiketi yazdırın.
+                </p>
+                <ul class="space-y-2 text-sm text-slate-700 pt-2">
+                  <li><strong>Barkod &amp; Raf Etiketi Basımı:</strong> Ürünler için EAN-13 / Code128 barkod oluşturma ve termal etiket yazıcıdan basma.</li>
+                  <li><strong>Kritik Stok Kontrolü:</strong> Belirlenen minimum stok seviyesinin altına düşen ürünler için otomatik uyarı.</li>
+                  <li><strong>Toplu Fiyat Güncelleme &amp; Excel:</strong> Kategori bazlı veya toplu ürün listesini Excel ile içe/dışa aktarma.</li>
+                </ul>
+              </div>
+              <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+                <span>Barkod Etiket Üretici</span> · <span>Kritik Stok Alarmı</span> · <span>KDV Dahil/Hariç Hesaplama</span>
+              </div>
+            </div>
+            <div class="lg:col-span-6">
+              <div class="ui-window h-full flex flex-col">
+                <div class="ui-window-header">
+                  <span>Modül Önizleme: Ürün Kartları &amp; Barkod Etiketi</span>
+                  <span>1.840 Kalem</span>
+                </div>
+                <div class="p-4 bg-slate-50 flex-1 flex flex-col justify-between space-y-3">
+                  <div class="bg-white border border-slate-200 rounded-lg p-3 flex items-center justify-between text-xs">
+                    <div>
+                      <div class="font-semibold text-slate-900">Endüstriyel Otomasyon Rölesi 24V</div>
+                      <div class="text-slate-500 font-mono">SKU: END-2044 · Barkod: 8694421009123</div>
+                    </div>
+                    <div class="text-right font-mono tabular-nums">
+                      <div class="font-bold text-emerald-700">₺1.200,00 + KDV</div>
+                      <div class="text-slate-500">Stok: 145 Adet</div>
+                    </div>
+                  </div>
+                  <div class="bg-white border border-dashed border-slate-300 rounded-lg p-3 flex items-center justify-between">
+                    <div class="text-xs">
+                      <div class="font-bold text-slate-900">RAF / ÜRÜN BARKOD ETİKETİ</div>
+                      <div class="font-mono text-slate-600 text-[11px]">|||| |||| || ||||| |||| |||</div>
+                    </div>
+                    <div class="font-mono font-extrabold text-base text-slate-900 tabular-nums">₺1.440,00</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- MODULE 07 & 08: SATIŞLAR VE SİPARİŞLER -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <article data-category="satis" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-5">
+            <div class="space-y-3">
+              <div class="text-xs font-mono text-emerald-700">07. KURUMSAL SATIŞLAR · /satislar</div>
+              <h3 class="text-xl font-bold text-slate-900">07. Satış Faturaları ve Sevkiyat Takibi</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Vadeli, peşin veya parçalı ödemeli kurumsal satışlarınızı oluşturun. Satış kaydedildiği anda ilgili müşterinin cari hesabına borç yazılır ve ürünler seçilen depodan düşülür.
+              </p>
+              <ul class="space-y-1.5 text-sm text-slate-700">
+                <li><strong>Kalem Bazlı İskonto &amp; KDV:</strong> Satır bazında iskonto, KDV oranı ve genel toplam hesaplama.</li>
+                <li><strong>Fatura &amp; İrsaliye Yazdırma:</strong> Satış belgesini tek tıkla A4 fatura/irsaliye formatında yazdırma.</li>
+                <li><strong>E-Fatura Dönüşümü:</strong> Kayıtlı satışı doğrudan E-Fatura / E-Arşiv kuyruğuna gönderme.</li>
+              </ul>
+            </div>
+            <div class="ui-window bg-slate-50 p-3 text-xs font-mono tabular-nums">
+              <div class="flex justify-between py-1 border-b border-slate-200"><span>SAT-2026-0891 · Özkan Metal</span><span class="text-emerald-700 font-bold">₺46.800,00</span></div>
+              <div class="flex justify-between py-1"><span>SAT-2026-0892 · Tekno Sistem</span><span class="text-emerald-700 font-bold">₺12.450,00</span></div>
+            </div>
+          </article>
+
+          <article data-category="satis" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-5">
+            <div class="space-y-3">
+              <div class="text-xs font-mono text-emerald-700">08. MÜŞTERİ SİPARİŞLERİ · /siparisler</div>
+              <h3 class="text-xl font-bold text-slate-900">08. Sipariş Yönetimi ve Satışa Dönüştürme</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Sahadan veya telefondan alınan müşteri siparişlerini kayıt altına alın. Hazırlık, paketleme ve sevkiyat aşamalarını takip edin; onaylanan siparişi tek tıkla satış faturasına dönüştürün.
+              </p>
+              <ul class="space-y-1.5 text-sm text-slate-700">
+                <li><strong>Sipariş Durum Akışı:</strong> <em>Bekliyor → Hazırlanıyor → Kargoda → Teslim Edildi / Faturalandı</em>.</li>
+                <li><strong>Stok Rezervasyon Kontrolü:</strong> Sipariş kalemlerinin depodaki mevcudiyetini anlık doğrulama.</li>
+                <li><strong>Sipariş Formu Basımı:</strong> Depo toplama listesi ve müşteri sipariş teyit formu çıktısı.</li>
+              </ul>
+            </div>
+            <div class="ui-window bg-slate-50 p-3 text-xs font-mono tabular-nums">
+              <div class="flex justify-between py-1 border-b border-slate-200"><span>SIP-1042 · Hazırlanıyor</span><span class="text-amber-700">8 Kalem · ₺31.200</span></div>
+              <div class="flex justify-between py-1"><span>SIP-1041 · Faturalandı</span><span class="text-emerald-700">4 Kalem · ₺15.900</span></div>
+            </div>
+          </article>
+        </div>
+
+        <!-- MODULE 09 & 10: SATIN ALMA VE ÜRETİM (REÇETE / BOM) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <article data-category="stok" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-5">
+            <div class="space-y-3">
+              <div class="text-xs font-mono text-emerald-700">09. SATIN ALMA &amp; TEDARİK · /satinalma</div>
+              <h3 class="text-xl font-bold text-slate-900">09. Satın Alma Fişleri ve Mal Kabul</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Tedarikçilerden yapılan hammadde ve ticari mal alımlarını kaydedin. Alış faturası işlendiğinde ürün stokları otomatik artar, alış maliyetleri güncellenir ve tedarikçi cari hesabı alacaklandırılır.
+              </p>
+              <ul class="space-y-1.5 text-sm text-slate-700">
+                <li><strong>Otomatik Stok Girişi:</strong> Alınan miktarların doğrudan ilgili depoya giriş yapılması.</li>
+                <li><strong>Maliyet Güncelleme:</strong> Son alış fiyatı ve ağırlıklı ortalama maliyet takibi.</li>
+                <li><strong>Tedarikçi Bakiye Entegrasyonu:</strong> Vadeli veya peşin alımların cari ekstreye anında yansıması.</li>
+              </ul>
+            </div>
+            <div class="ui-window bg-slate-50 p-3 text-xs font-mono tabular-nums">
+              <div class="flex justify-between py-1 border-b border-slate-200"><span>ALM-409 · Marmara Tedarik</span><span class="text-slate-900">+250 Adet Stok Girişi</span></div>
+              <div class="flex justify-between py-1"><span>ALM-408 · Avrasya Çelik</span><span class="text-slate-900">+1.200 Kg Hammadde</span></div>
+            </div>
+          </article>
+
+          <article data-category="stok" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-5">
+            <div class="space-y-3">
+              <div class="text-xs font-mono text-emerald-700">10. ÜRETİM &amp; REÇETE (BOM) · /uretim</div>
+              <h3 class="text-xl font-bold text-slate-900">10. Reçeteli Üretim, Hammadde Sarfiyatı ve Maliyet</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Üretici firmalar için ürün reçeteleri (Bill of Materials) tanımlayın. Üretim emri tamamlandığında reçetedeki hammaddeler stoktan otomatik düşer, üretilen mamul stoğa eklenir ve birim üretim maliyeti hesaplanır.
+              </p>
+              <ul class="space-y-1.5 text-sm text-slate-700">
+                <li><strong>Ürün Reçetesi (BOM):</strong> 1 birim mamul için gereken hammadde miktarları ve fire oranları.</li>
+                <li><strong>Otomatik Stok Dönüşümü:</strong> Hammaddeden düşüm ve bitmiş ürüne otomatik giriş.</li>
+                <li><strong>Üretim Emri Takibi:</strong> Planlanan, üretimde olan ve tamamlanan iş emirlerinin izlenmesi.</li>
+              </ul>
+            </div>
+            <div class="ui-window bg-slate-50 p-3 text-xs font-mono tabular-nums">
+              <div class="flex justify-between py-1 border-b border-slate-200"><span>UE-2026-19 · Elektrik Panosu</span><span class="text-emerald-700">50 Adet Üretildi</span></div>
+              <div class="flex justify-between py-1"><span>Birim Reçete Maliyeti</span><span class="text-slate-800">₺3.420,00 / Adet</span></div>
+            </div>
+          </article>
+        </div>
+
+        <!-- MODULE 11 & 12: DEPO VE STOK SAYIM -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <article data-category="stok" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-5">
+            <div class="space-y-3">
+              <div class="text-xs font-mono text-emerald-700">11. ÇOKLU DEPO &amp; TRANSFER · /depo</div>
+              <h3 class="text-xl font-bold text-slate-900">11. Çoklu Depo, Şube ve Depolar Arası Transfer</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Merkez depo, şube depoları veya araç depolarını ayrı ayrı tanımlayın. Depolar arası stok transfer fişleri ile hangi ürünün hangi depoda kaç adet bulunduğunu anlık izleyin.
+              </p>
+              <ul class="space-y-1.5 text-sm text-slate-700">
+                <li><strong>Depo Bazlı Envanter:</strong> Her deponun toplam ürün adedi ve parasal stok büyüklüğü.</li>
+                <li><strong>Hızlı Transfer Fişi:</strong> Çıkış deposu ve giriş deposu seçerek tek tıkla stok sevkiyatı.</li>
+              </ul>
+            </div>
+            <div class="ui-window bg-slate-50 p-3 text-xs font-mono tabular-nums">
+              <div class="flex justify-between py-1 border-b border-slate-200"><span>Merkez Depo (İstanbul)</span><span>1.420 Kalem · ₺1.650.000</span></div>
+              <div class="flex justify-between py-1"><span>Şube Depo (Ankara)</span><span>420 Kalem · ₺540.000</span></div>
+            </div>
+          </article>
+
+          <article data-category="stok" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-5">
+            <div class="space-y-3">
+              <div class="text-xs font-mono text-emerald-700">12. BARKODLU STOK SAYIM · /sayim</div>
+              <h3 class="text-xl font-bold text-slate-900">12. Fiziksel Stok Sayım ve Fark Eşitleme</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Depo sayımlarınızı barkod okuyucu veya mobil cihazınızla hızla gerçekleştirin. Sistemdeki mevcut stok ile sayılan fiziksel stok arasındaki farkları (Sayım Fazlası / Sayım Eksiği) raporlayın ve tek tıkla stokları eşitleyin.
+              </p>
+              <ul class="space-y-1.5 text-sm text-slate-700">
+                <li><strong>Canlı Sayım Fark Tablosu:</strong> Sistem stoğu, sayılan miktar ve net fark analizi.</li>
+                <li><strong>Tek Tıkla Stok Eşitleme:</strong> Onaylanan sayım listesini envantere otomatik uygulama.</li>
+              </ul>
+            </div>
+            <div class="ui-window bg-slate-50 p-3 text-xs font-mono tabular-nums">
+              <div class="flex justify-between py-1 border-b border-slate-200"><span>Sayım #2026-Q2 · 412 Ürün</span><span class="text-emerald-700">Doğruluk: %99.4</span></div>
+              <div class="flex justify-between py-1"><span>Stok Eşitleme Durumu</span><span class="text-slate-700">Tamamlandı</span></div>
+            </div>
+          </article>
+        </div>
+
+        <!-- MODULE 13 & 14: KASA/BANKA VE ÇEK/SENET -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <article data-category="finans" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-5">
+            <div class="space-y-3">
+              <div class="text-xs font-mono text-emerald-700">13. KASA &amp; BANKA YÖNETİMİ · /kasa</div>
+              <h3 class="text-xl font-bold text-slate-900">13. Kasa, Banka Hesapları ve Gelir/Gider Takibi</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Nakit kasalarınızı, banka mevduat hesaplarınızı ve POS hesaplarınızı tek ekranda yönetin. Kira, fatura, vergi, yemek gibi genel giderlerinizi kategorize edin ve kasalar arası virman yapın.
+              </p>
+              <ul class="space-y-1.5 text-sm text-slate-700">
+                <li><strong>Günlük Kasa Raporu:</strong> Gün başı devir, gün içi toplam giriş/çıkış ve gün sonu net bakiye.</li>
+                <li><strong>Gelir / Gider Kategorileri:</strong> İşletme giderlerinin kalem bazlı detaylı analizi.</li>
+              </ul>
+            </div>
+            <div class="ui-window bg-slate-50 p-3 text-xs font-mono tabular-nums">
+              <div class="flex justify-between py-1 border-b border-slate-200"><span>Merkez TL Kasa</span><span class="text-emerald-700 font-bold">₺184.500,00</span></div>
+              <div class="flex justify-between py-1"><span>Vakıf Katılım Ticari Hesap</span><span class="text-emerald-700 font-bold">₺1.298.450,00</span></div>
+            </div>
+          </article>
+
+          <article data-category="finans" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-5">
+            <div class="space-y-3">
+              <div class="text-xs font-mono text-emerald-700">14. ÇEK &amp; SENET PORTFÖYÜ · /ceksenet</div>
+              <h3 class="text-xl font-bold text-slate-900">14. Çek ve Senet Portföyü, Ciro ve Vade Takibi</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Müşterilerden alınan çek/senetleri ve tedarikçilere verilen kendi evraklarınızı vade takvimiyle izleyin. Portföydeki çeki tedarikçiye ciro edin veya bankaya tahsile/teminata gönderin.
+              </p>
+              <ul class="space-y-1.5 text-sm text-slate-700">
+                <li><strong>Evrak Statü Yönetimi:</strong> <em>Portföyde, Ciro Edildi, Bankada Tahsilde, Tahsil Edildi, Karşılıksız</em>.</li>
+                <li><strong>Vade Uyarı Sistemi:</strong> Vadesi yaklaşan çek ve senetlerin otomatik hatırlatılması.</li>
+              </ul>
+            </div>
+            <div class="ui-window bg-slate-50 p-3 text-xs font-mono tabular-nums">
+              <div class="flex justify-between py-1 border-b border-slate-200"><span>Çek #784120 · Vade: 15.11.2026</span><span class="text-sky-700">Portföyde · ₺95.000</span></div>
+              <div class="flex justify-between py-1"><span>Çek #651904 · Vade: 30.11.2026</span><span class="text-amber-700">Ciro Edildi · ₺42.000</span></div>
+            </div>
+          </article>
+        </div>
+
+        <!-- MODULE 15 & 16: TEKLİFLER VE ARIZA / TEKNİK SERVİS FORMLARI -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <article data-category="satis" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-5">
+            <div class="space-y-3">
+              <div class="text-xs font-mono text-emerald-700">15. ONLINE ONAYLI TEKLİFLER · /teklif &amp; /teklif-onay/:id</div>
+              <h3 class="text-xl font-bold text-slate-900">15. Fiyat Teklifi (Proforma) ve Online Müşteri Onayı</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Müşterilerinize kurumsal logolu PDF fiyat teklifleri hazırlayın ve özel online onay bağlantısıyla gönderin. Müşteri teklifi online onayladığında tek tıkla siparişe veya satış faturasına dönüştürün.
+              </p>
+              <ul class="space-y-1.5 text-sm text-slate-700">
+                <li><strong>Online Teklif Onay Sayfası:</strong> Müşterinin web üzerinden teklifi inceleyip onaylayabilmesi.</li>
+                <li><strong>Geçerlilik Süresi &amp; Şartlar:</strong> Teslimat süresi, ödeme koşulları ve döviz kuru bilgisi.</li>
+              </ul>
+            </div>
+            <div class="ui-window bg-slate-50 p-3 text-xs font-mono tabular-nums">
+              <div class="flex justify-between py-1 border-b border-slate-200"><span>TKL-2026-312 · Fabrika Otomasyon</span><span class="text-emerald-700">Müşteri Onayladı · ₺164.000</span></div>
+              <div class="flex justify-between py-1"><span>TKL-2026-315 · Kamera Sistemi</span><span class="text-amber-700">Yanıt Bekliyor · ₺38.500</span></div>
+            </div>
+          </article>
+
+          <article data-category="kurumsal" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-5">
+            <div class="space-y-3">
+              <div class="text-xs font-mono text-emerald-700">16. TEKNİK SERVİS &amp; ARIZA TAKİP · /ariza</div>
+              <h3 class="text-xl font-bold text-slate-900">16. Arıza Kabul Formları ve Online Servis Sorgulama</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Teknik servis hizmeti veren işletmeler için cihaz kabul, seri numarası, aksesuar, arıza tespiti, kullanılan yedek parça ve servis ücreti takibi. Müşteriye özel online servis takip linki ve barkodlu servis fişi üretir.
+              </p>
+              <ul class="space-y-1.5 text-sm text-slate-700">
+                <li><strong>Servis Durum Adımları:</strong> <em>Kabul Edildi → İnceleniyor → Parça Bekliyor → Hazır → Teslim Edildi</em>.</li>
+                <li><strong>Otomatik Müşteri Bilgilendirme:</strong> Durum değiştiğinde e-posta ve SMS ile bilgilendirme.</li>
+              </ul>
+            </div>
+            <div class="ui-window bg-slate-50 p-3 text-xs font-mono tabular-nums">
+              <div class="flex justify-between py-1 border-b border-slate-200"><span>SRV-8094 · Endüstriyel El Terminali</span><span class="text-emerald-700">Onarıldı / Teslime Hazır</span></div>
+              <div class="flex justify-between py-1"><span>Public Form Linki</span><span class="text-slate-600">?public_form=SRV-8094</span></div>
+            </div>
+          </article>
+        </div>
+
+        <!-- MODULE 17, 18, 19: PERSONEL, CRM, RAPORLAR -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <article data-category="kurumsal" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-4">
+            <div class="space-y-2.5">
+              <div class="text-xs font-mono text-emerald-700">17. İNSAN KAYNAKLARI · /personel</div>
+              <h3 class="text-lg font-bold text-slate-900">17. Personel, Maaş, Avans ve Yetki Yönetimi</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Çalışanların maaş tahakkukları, avans ödemeleri, prim/kesinti kayıtları ve yıllık izin takibi. Her kullanıcıya modül bazında (Görüntüleme, Ekleme, Düzenleme, Silme) ayrıntılı yetki ataması.
+              </p>
+            </div>
+            <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+              <span>Maaş &amp; Avans Hesabı</span> · <span>Rol Bazlı RBAC Yetki</span>
+            </div>
+          </article>
+
+          <article data-category="satis" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-4">
+            <div class="space-y-2.5">
+              <div class="text-xs font-mono text-emerald-700">18. CRM &amp; KAMPANYA · /crm</div>
+              <h3 class="text-lg font-bold text-slate-900">18. Müşteri İlişkileri (CRM) ve Toplu SMS/Mail</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Potansiyel müşteri (Lead) takibi, görüşme geçmişi, satış fırsatları ve müşteri segmentasyonu. Seçili müşteri gruplarına toplu kampanya E-Postası ve kurumsal başlıklı SMS gönderimi.
+              </p>
+            </div>
+            <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+              <span>Lead Havuzu</span> · <span>Toplu SMS &amp; E-Posta</span>
+            </div>
+          </article>
+
+          <article data-category="kurumsal" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-4">
+            <div class="space-y-2.5">
+              <div class="text-xs font-mono text-emerald-700">19. ANALİTİK RAPORLAR · /raporlar</div>
+              <h3 class="text-lg font-bold text-slate-900">19. Finansal Raporlar ve Kar/Zarar Analizi</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Tarih aralıklı Satış Karlılık Raporu, KDV Özeti, Cari Bakiye Yaşlandırma, En Çok Satan Ürünler, Depo Envanter Raporu ve Kasa/Banka Nakit Akışı tabloları (PDF ve Excel çıktılı).
+              </p>
+            </div>
+            <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+              <span>Net Kar/Zarar</span> · <span>KDV Raporu</span> · <span>Excel / PDF</span>
+            </div>
+          </article>
+        </div>
+
+        <!-- MODULE 20, 21, 22: AJANDA, DÖKÜMANLAR, AYARLAR & SÜPER ADMİN -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <article data-category="kurumsal" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-4">
+            <div class="space-y-2.5">
+              <div class="text-xs font-mono text-emerald-700">20. AJANDA &amp; NOTLAR · /ajanda</div>
+              <h3 class="text-lg font-bold text-slate-900">20. Kurumsal Ajanda, Görevler ve Sesli Notlar</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Ödeme günleri, müşteri ziyaretleri ve şirket içi görevleri takvim üzerinde planlayın. Mikrofon desteğiyle konuşarak (Speech-to-Text) hızlıca not ve hatırlatıcı oluşturun.
+              </p>
+            </div>
+            <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+              <span>Takvim Görünümü</span> · <span>Sesle Yazdırma Desteği</span>
+            </div>
+          </article>
+
+          <article data-category="kurumsal" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-4">
+            <div class="space-y-2.5">
+              <div class="text-xs font-mono text-emerald-700">21. DİJİTAL ARŞİV · /dokumanlar</div>
+              <h3 class="text-lg font-bold text-slate-900">21. Kurumsal Döküman ve Sözleşme Arşivi</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Müşteri sözleşmeleri, vergi levhaları, imza sirküleri, banka dekontları ve kalite belgelerini kategorilere ayrılmış güvenli dijital klasörlerde saklayın ve anında görüntüleyin.
+              </p>
+            </div>
+            <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+              <span>Güvenli Bulut Klasörleme</span> · <span>Hızlı Önizleme</span>
+            </div>
+          </article>
+
+          <article data-category="kurumsal" class="module-card bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between space-y-4">
+            <div class="space-y-2.5">
+              <div class="text-xs font-mono text-emerald-700">22. AYARLAR &amp; SÜPER ADMİN · /ayarlar</div>
+              <h3 class="text-lg font-bold text-slate-900">22. Sistem Ayarları, Yedekleme ve Lisans Yönetimi</h3>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                Firma bilgileri, banka IBAN tanımları, E-Posta (SMTP) ve SMS entegrasyonları, e-posta şablon editörü, tek tıkla JSON veritabanı yedek alma/geri yükleme ve Süper Admin çoklu firma yönetimi.
+              </p>
+            </div>
+            <div class="text-xs text-slate-500 pt-3 border-t border-slate-100">
+              <span>Tam Yedekleme</span> · <span>Multi-Tenant Süper Admin</span>
+            </div>
+          </article>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture & Security Deep-Dive Section -->
+  <section id="mimari" class="bg-slate-900 text-slate-100 py-16 lg:py-20">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="max-w-3xl mb-12">
+        <div class="text-xs font-mono text-emerald-400 mb-2">PERFORMANS VE GÜVENLİK MİMARİSİ</div>
+        <h2 id="guvenlik" class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white text-balance">
+          Düşük trafik tüketimi ve çok katmanlı veri güvenliği standart olarak yerleşiktir.
+        </h2>
+        <p class="text-sm sm:text-base text-slate-300 mt-3 leading-relaxed">
+          Esila Ticari, yoğun veri trafiğine sahip işletmelerde dahi minimum bant genişliği harcayacak ve dış saldırılara karşı tam koruma sağlayacak şekilde tasarlanmıştır.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 space-y-3">
+          <div class="text-xs font-mono text-emerald-400">01. TRAFİK OPTİMİZASYONU</div>
+          <h3 class="text-lg font-bold text-white">Gzip, ETag ve Bootstrap API</h3>
+          <p class="text-sm text-slate-300 leading-relaxed">
+            Açılışta 10+ ayrı istek yerine tek bir <code>/api/bootstrap</code> uç noktasıyla tüm temel veriler tek pakette yüklenir. <code>ETag (304 Not Modified)</code> ve <code>Gzip</code> sıkıştırma ile arka plan ağ trafiği %65 oranında düşürülmüştür.
+          </p>
+        </div>
+
+        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 space-y-3">
+          <div class="text-xs font-mono text-emerald-400">02. SİBER GÜVENLİK KATMANI</div>
+          <h3 class="text-lg font-bold text-white">SQL Injection &amp; XSS Sanitizer</h3>
+          <p class="text-sm text-slate-300 leading-relaxed">
+            Tüm form gönderimleri, URL parametreleri, başlıklar ve API uç noktaları hem istemci (<code>securityGuard.ts</code>) hem sunucu (<code>server/security.ts</code>) tarafında <strong>Input Validation</strong> ve <strong>XSS/SQLi Sanitizer</strong> filtresinden geçer.
+          </p>
+        </div>
+
+        <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 space-y-3">
+          <div class="text-xs font-mono text-emerald-400">03. VERİ KORUMA &amp; MİGRASYON</div>
+          <h3 class="text-lg font-bold text-white">Veri Kaybı Olmadan Yedek Yükleme</h3>
+          <p class="text-sm text-slate-300 leading-relaxed">
+            Eski tarihli bir veritabanı yedeği sisteme yüklendiğinde mevcut kayıtlar korunur; yeni eklenen tablolar (<code>payment_notifications</code>, <code>reconciliations</code>, <code>proposals</code> vb.) otomatik şema tamamlama ile hatasız oluşturulur.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Licensing & Registration Section -->
+  <section id="paketler" class="py-16 lg:py-20 bg-white border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="max-w-2xl mb-10">
+        <div class="text-xs font-medium text-emerald-700 mb-2">LİSANS PAKETLERİ VE KAYIT</div>
+        <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">
+          Aylık veya Yıllık Paket ile tüm modüllere sınırsız erişin.
+        </h2>
+        <p class="text-sm text-slate-600 mt-2">
+          Modül başına ek ücret ödemeden 22 modülün tamamını hemen kullanmaya başlayabilirsiniz.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="border border-slate-200 rounded-2xl p-8 flex flex-col justify-between bg-slate-50/50">
+          <div class="space-y-4">
+            <div class="text-xs font-mono text-slate-500">STANDART LİSANS · 1 AY</div>
+            <h3 class="text-2xl font-bold text-slate-900">Aylık Paket (1 Ay)</h3>
+            <p class="text-sm text-slate-600">
+              Aylık periyotlarla yenilenen, 22 modülün tamamını ve bulut yedekleme altyapısını içeren tam kapsamlı kurumsal paket.
+            </p>
+            <ul class="space-y-2 text-sm text-slate-700 pt-2">
+              <li>✓ 22 Modülün Tamamı Aktif (POS, E-Fatura, Mutabakat, Üretim, Depo)</li>
+              <li>✓ Çoklu Kullanıcı ve Rol Bazlı Yetkilendirme</li>
+              <li>✓ Online Mutabakat ve Teklif Onay Bağlantıları</li>
+              <li>✓ 7/24 Bulut Erişimi ve Otomatik Güvenlik Katmanı</li>
+            </ul>
+          </div>
+          <div class="pt-6 mt-6 border-t border-slate-200 flex items-center justify-between">
+            <span class="text-xs text-slate-500">Anında Aktivasyon</span>
+            <a href="/" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition-colors">
+              Aylık Paket Başvurusu Yap
+            </a>
+          </div>
+        </div>
+
+        <div class="border-2 border-emerald-600 rounded-2xl p-8 flex flex-col justify-between bg-white">
+          <div class="space-y-4">
+            <div class="text-xs font-mono text-emerald-700">KURUMSAL AVANTAJLI LİSANS · 12 AY</div>
+            <h3 class="text-2xl font-bold text-slate-900">Yıllık Paket (12 Ay)</h3>
+            <p class="text-sm text-slate-600">
+              1 yıl boyunca sabit fiyat garantisiyle kesintisiz kullanım, öncelikli teknik destek ve kurumsal eğitim desteği.
+            </p>
+            <ul class="space-y-2 text-sm text-slate-700 pt-2">
+              <li>✓ 22 Modülün Tamamı + Sınırsız Belge ve Cari Kaydı</li>
+              <li>✓ Toplu PDF Mutabakat İndirme &amp; Otomatik Hatırlatıcı E-Postalar</li>
+              <li>✓ Banka Havale / EFT ile Hızlı Ödeme Bildirimi</li>
+              <li>✓ Öncelikli Müşteri Desteği ve Veri Aktarım Desteği</li>
+            </ul>
+          </div>
+          <div class="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs font-semibold text-emerald-700">12 Ay Tam Kullanım</span>
+            <a href="/" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg transition-colors">
+              Yıllık Paket Başvurusu Yap
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quiet Footer -->
+  <footer class="bg-white py-10 px-6 text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        <strong class="text-slate-900 font-bold">Esila Ticari</strong> · "Ticaretin Bulut Hali" · &copy; 2022–2026 Esila Yazılım Teknolojileri Ltd. Şti.
+      </div>
+      <div class="flex items-center gap-6">
+        <a href="#tum-moduller" class="hover:text-slate-900">Tüm Modüller</a>
+        <a href="#mimari" class="hover:text-slate-900">Güvenlik &amp; Mimari</a>
+        <a href="/" class="hover:text-slate-900 font-semibold text-emerald-700">Sisteme Giriş</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function filterModules(category) {
+      var cards = document.querySelectorAll('.module-card');
+      var buttons = document.querySelectorAll('.mod-filter-btn');
+
+      buttons.forEach(function(btn) {
+        if (btn.getAttribute('data-filter') === category) {
+          btn.className = 'mod-filter-btn px-3.5 py-2 text-xs font-semibold rounded-lg bg-white text-slate-900 shadow-xs transition-colors whitespace-nowrap shrink-0 cursor-pointer';
+        } else {
+          btn.className = 'mod-filter-btn px-3.5 py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 cursor-pointer';
+        }
+      });
+
+      cards.forEach(function(card) {
+        if (category === 'all' || card.getAttribute('data-category') === category) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function searchModules(query) {
+      var normalized = (query || '').toLowerCase().trim();
+      var cards = document.querySelectorAll('.module-card');
+      cards.forEach(function(card) {
+        var text = (card.textContent || '').toLowerCase();
+        if (!normalized || text.indexOf(normalized) !== -1) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function downloadThisHtml() {
+      var htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      var blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'Esila_Ticari_ERP_Tanitim_Websitesi.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

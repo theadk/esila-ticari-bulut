@@ -144,9 +144,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, ten
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-emerald-800">
-        <a href="https://www.esilaticari.com" target="_blank" rel="noopener noreferrer" className="w-full flex items-center space-x-3 px-4 py-2 text-emerald-200 hover:text-white transition-colors">
-          <Globe size={20} />
+      <div className="p-4 border-t border-emerald-800 space-y-1.5">
+        <button
+          type="button"
+          onClick={() => setActivePage('tanitim')}
+          className="w-full flex items-center space-x-3 px-4 py-2 text-emerald-100 bg-emerald-800/70 hover:bg-emerald-700 rounded-lg transition-colors text-xs font-semibold cursor-pointer"
+        >
+          <Globe size={18} />
+          <span>Tanıtım Web Sitesi (HTML)</span>
+        </button>
+        <a href="https://www.esilaticari.com" target="_blank" rel="noopener noreferrer" className="w-full flex items-center space-x-3 px-4 py-1.5 text-emerald-200 hover:text-white transition-colors text-xs">
+          <Globe size={16} />
           <span>www.esilaticari.com</span>
         </a>
       </div>
