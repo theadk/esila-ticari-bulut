@@ -40,6 +40,11 @@ async function runBackup() {
             }
         }
 
+        if (!tenants || tenants.length < 5) {
+            console.warn('[Backup] Firma sayısı beklenenden az olduğu için mevcut yedeklerin üzerine yazılması engellendi.');
+            return;
+        }
+
         for (const tenant of tenants) {
             const vkn = tenant.vkn;
             if (!vkn) continue;

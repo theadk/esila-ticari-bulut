@@ -30,16 +30,33 @@ let dbData: Record<string, any[]> = {
 try {
   if (fs.existsSync(DB_FILE)) {
     const data = fs.readFileSync(DB_FILE, 'utf8');
-    dbData = JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (parsed && Array.isArray(parsed.tenants) && parsed.tenants.length >= 2) {
+      dbData = parsed;
+    } else if (fs.existsSync(path.join(process.cwd(), 'backup.json'))) {
+      const backupRaw = fs.readFileSync(path.join(process.cwd(), 'backup.json'), 'utf8');
+      dbData = JSON.parse(backupRaw);
+      save();
+    } else {
+      dbData = parsed;
+    }
+  } else if (fs.existsSync(path.join(process.cwd(), 'backup.json'))) {
+    const backupRaw = fs.readFileSync(path.join(process.cwd(), 'backup.json'), 'utf8');
+    dbData = JSON.parse(backupRaw);
+    save();
   } else {
-    save(); // Create initial file
+    save();
   }
 } catch (err) {
-  console.error("Error reading local_db.json", err);
+  console.error("Error reading database file", err);
 }
 
 function save() {
-  fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2));
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2));
+  } catch (err) {
+    console.error("Error saving database file", err);
+  }
 }
 
 export function reloadFallbackDb() {
@@ -49,16 +66,15 @@ export function reloadFallbackDb() {
       dbData = JSON.parse(data);
     }
   } catch (err) {
-    console.error("Error reloading local_db.json", err);
+    console.error("Error reloading database file", err);
   }
 }
-
 
 export function getFallbackTable(table: string, vkn?: string) {
   if (!dbData[table]) dbData[table] = [];
   if (vkn) {
      if (table === 'tenants') return dbData[table];
-     return dbData[table].filter(r => r.vkn === vkn);
+     return dbData[table].filter(r => String(r.vkn) === String(vkn));
   }
   return dbData[table];
 }
@@ -68,8 +84,10 @@ export function insertFallbackRow(table: string, row: any) {
   
   // Prevent duplicates
   if (row.id) {
-    const existingIndex = dbData[table].findIndex(r => String(r.id) === String(row.id) && r.vkn === row.vkn);
+    const existingIndex = dbData[table].findIndex(r => String(r.id) === String(row.id) && String(r.vkn) === String(row.vkn));
     if (existingIndex !== -1) {
+      dbData[table][existingIndex] = { ...dbData[table][existingIndex], ...row };
+      save();
       return dbData[table][existingIndex];
     }
   }
@@ -92,7 +110,7 @@ export function updateFallbackRow(table: string, id: string, vkn: string, update
      return null;
   }
 
-  const index = dbData[table].findIndex(r => String(r.id) === String(id) && r.vkn === vkn);
+  const index = dbData[table].findIndex(r => String(r.id) === String(id) && String(r.vkn) === String(vkn));
   if (index !== -1) {
     dbData[table][index] = { ...dbData[table][index], ...updates };
     save();
@@ -119,7 +137,7 @@ export function deleteFallbackRow(table: string, id: string, vkn: string) {
      return false;
   }
 
-  const index = dbData[table].findIndex(r => String(r.id) === String(id) && r.vkn === vkn);
+  const index = dbData[table].findIndex(r => String(r.id) === String(id) && String(r.vkn) === String(vkn));
   if (index !== -1) {
     dbData[table].splice(index, 1);
     save();

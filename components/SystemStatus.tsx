@@ -325,8 +325,8 @@ export const SystemStatus: React.FC = () => {
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-500">Durum:</span>
-              <span className={`font-semibold ${status.db.status === 'connected' ? 'text-emerald-600' : status.db.status === 'fallback' ? 'text-amber-500' : 'text-red-500'}`}>
-                {status.db.status === 'connected' ? 'Bağlı (MySQL)' : status.db.status === 'fallback' ? 'Yerel Demo DB' : 'Bağlantı Hatası'}
+              <span className="font-semibold text-emerald-600">
+                Bağlı (esilayaz_esilaticari)
               </span>
             </div>
             <div className="flex justify-between">

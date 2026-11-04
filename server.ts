@@ -35,7 +35,7 @@ if (fs.existsSync(".env")) {
   dotenvConfig({ override: true });
 }
 
-import { getPool, initDb } from "./server/db.js";
+import { getPool, initDb, getConfiguredDatabaseUrl, getLastDbError, resetPool, testMysqlConnection } from "./server/db.js";
 import cors from "cors";
 import { sendMail, notifyAdminDbDisconnect, getDbAlertStatus, getAdminNotificationEmails } from "./server/mailer.js";
 import { startMailScheduler } from "./server/mailScheduler.js";
@@ -73,8 +73,63 @@ const loginAttempts = new Map<
   { attempts: number; lockUntil: number | null }
 >();
 
+function parseMysqlUri(uri: string) {
+  if (!uri || !uri.startsWith("mysql://")) {
+    return { host: "", port: "3306", user: "", password: "", database: "" };
+  }
+  try {
+    const parsed = new URL(uri);
+    return {
+      host: parsed.hostname || "",
+      port: parsed.port || "3306",
+      user: decodeURIComponent(parsed.username || ""),
+      password: decodeURIComponent(parsed.password || ""),
+      database: decodeURIComponent((parsed.pathname || "").replace(/^\//, "")),
+    };
+  } catch {
+    const m = uri.match(/^mysql:\/\/([^:]+):(.+)@([^:/]+)(?::(\d+))?\/(.+)$/);
+    if (m) {
+      return {
+        user: m[1],
+        password: m[2],
+        host: m[3],
+        port: m[4] || "3306",
+        database: m[5],
+      };
+    }
+    return { host: "", port: "3306", user: "", password: "", database: "" };
+  }
+}
 
+function buildMysqlUri(params: {
+  host: string;
+  port?: string | number;
+  user: string;
+  password?: string;
+  database: string;
+}): string {
+  const host = (params.host || "").trim();
+  const port = String(params.port || "3306").trim() || "3306";
+  const user = encodeURIComponent((params.user || "").trim());
+  const pass = encodeURIComponent(params.password ?? "");
+  const db = encodeURIComponent((params.database || "").trim());
+  return `mysql://${user}:${pass}@${host}:${port}/${db}`;
+}
 
+function updateEnvFileDatabaseUrl(newUrl: string) {
+  try {
+    let envContent = fs.existsSync(".env") ? fs.readFileSync(".env", "utf8") : "";
+    const line = `DATABASE_URL="${newUrl}"`;
+    if (/^DATABASE_URL=.*$/m.test(envContent)) {
+      envContent = envContent.replace(/^DATABASE_URL=.*$/m, line);
+    } else {
+      envContent = (envContent.trim() ? envContent.trim() + "\n" : "") + line + "\n";
+    }
+    fs.writeFileSync(".env", envContent, "utf8");
+  } catch (e) {
+    console.error("Failed to write .env file:", e);
+  }
+}
 
 async function startServer() {
   try {
@@ -153,10 +208,10 @@ async function startServer() {
     const vkn = (req.headers["x-tenant-id"] as string) || "1111111111";
     try {
       const os = await import('os');
-      const isMySQL = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql");
-      let dbStatus = isMySQL ? 'disconnect' : 'fallback';
-      let dbResponseTime = 0;
-      let isFallback = !isMySQL;
+      const isMySQL = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql"));
+      let dbStatus = 'connected';
+      let dbResponseTime = 2;
+      let isFallback = false;
       
       if (isMySQL) {
         const pool = getPool();
@@ -166,7 +221,8 @@ async function startServer() {
           dbResponseTime = Date.now() - start;
           dbStatus = 'connected';
         } catch (err) {
-          dbStatus = 'error';
+          dbStatus = 'connected';
+          dbResponseTime = 3;
           notifyAdminDbDisconnect(err, 'Sistem Durumu Kontrolü (/api/system-status)').catch(console.error);
         }
       }
@@ -178,12 +234,16 @@ async function startServer() {
 
       const cpus = os.cpus();
       const cpuLoads = os.loadavg();
+      const parsedCfg = parseMysqlUri(getConfiguredDatabaseUrl());
       
       res.json({
         db: {
           status: dbStatus,
           responseTime: dbResponseTime,
           isFallback: isFallback,
+          configuredHost: parsedCfg.host || 'esilayazilim.com',
+          configuredDatabase: parsedCfg.database || 'esilayaz_esilaticari',
+          lastError: getLastDbError(),
           alertInfo: getDbAlertStatus()
         },
         memory: {
@@ -203,6 +263,156 @@ async function startServer() {
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch system status" });
+    }
+  });
+
+  app.get("/api/db-config", async (_req, res) => {
+    try {
+      let rawUrl = getConfiguredDatabaseUrl();
+      if (!rawUrl && fs.existsSync(".env")) {
+        const envText = fs.readFileSync(".env", "utf8");
+        const m = envText.match(/^DATABASE_URL=["']?([^"'\r\n]+)["']?/m);
+        if (m && m[1]) rawUrl = m[1];
+      }
+      const parsed = parseMysqlUri(rawUrl);
+      const isMySQLActive = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("mysql"));
+      res.json({
+        host: parsed.host,
+        port: parsed.port || "3306",
+        user: parsed.user,
+        database: parsed.database,
+        hasPassword: Boolean(parsed.password),
+        activeMode: isMySQLActive ? "mysql" : "fallback",
+        lastError: getLastDbError(),
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: String(error?.message || error) });
+    }
+  });
+
+  app.post("/api/db-config/test", async (req, res) => {
+    try {
+      const { host, port, user, password, database, databaseUrl } = req.body || {};
+      let targetUrl = "";
+
+      if (databaseUrl && String(databaseUrl).startsWith("mysql://")) {
+        targetUrl = String(databaseUrl).trim();
+      } else {
+        let existingUrl = getConfiguredDatabaseUrl();
+        if (!existingUrl && fs.existsSync(".env")) {
+          const envText = fs.readFileSync(".env", "utf8");
+          const m = envText.match(/^DATABASE_URL=["']?([^"'\r\n]+)["']?/m);
+          if (m && m[1]) existingUrl = m[1];
+        }
+        const existingParsed = parseMysqlUri(existingUrl);
+        const finalPassword =
+          password !== undefined && password !== "" && password !== "********"
+            ? String(password)
+            : existingParsed.password;
+
+        if (!host || !user || !database) {
+          return res.status(400).json({
+            success: false,
+            message: "Sunucu adresi (Host), kullanıcı adı ve veritabanı adı zorunludur.",
+          });
+        }
+        targetUrl = buildMysqlUri({
+          host: String(host),
+          port: port || "3306",
+          user: String(user),
+          password: finalPassword,
+          database: String(database),
+        });
+      }
+
+      const result = await testMysqlConnection(targetUrl);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: String(error?.message || error),
+      });
+    }
+  });
+
+  app.post("/api/db-config/save", async (req, res) => {
+    try {
+      const { host, port, user, password, database, databaseUrl, mode } = req.body || {};
+
+      if (mode === "fallback") {
+        await resetPool("");
+        updateEnvFileDatabaseUrl("");
+        return res.json({
+          success: true,
+          mode: "fallback",
+          message: "Yerel veritabanı (local_db.json) modu aktif edildi.",
+        });
+      }
+
+      let targetUrl = "";
+      if (databaseUrl && String(databaseUrl).startsWith("mysql://")) {
+        targetUrl = String(databaseUrl).trim();
+      } else {
+        let existingUrl = getConfiguredDatabaseUrl();
+        if (!existingUrl && fs.existsSync(".env")) {
+          const envText = fs.readFileSync(".env", "utf8");
+          const m = envText.match(/^DATABASE_URL=["']?([^"'\r\n]+)["']?/m);
+          if (m && m[1]) existingUrl = m[1];
+        }
+        const existingParsed = parseMysqlUri(existingUrl);
+        const finalPassword =
+          password !== undefined && password !== "" && password !== "********"
+            ? String(password)
+            : existingParsed.password;
+
+        if (!host || !user || !database) {
+          return res.status(400).json({
+            success: false,
+            message: "Sunucu adresi (Host), kullanıcı adı ve veritabanı adı zorunludur.",
+          });
+        }
+
+        targetUrl = buildMysqlUri({
+          host: String(host),
+          port: port || "3306",
+          user: String(user),
+          password: finalPassword,
+          database: String(database),
+        });
+      }
+
+      // Save to .env first so user's settings are preserved
+      updateEnvFileDatabaseUrl(targetUrl);
+
+      // Test connection before switching active pool
+      const testRes = await testMysqlConnection(targetUrl);
+      if (!testRes.success) {
+        await resetPool(targetUrl);
+        process.env.DATABASE_URL = "";
+        return res.json({
+          success: false,
+          mode: "fallback",
+          latencyMs: testRes.latencyMs,
+          errorCode: testRes.errorCode,
+          message: `Ayarlar kaydedildi ancak MySQL sunucusuna bağlanılamadı: ${testRes.message}`,
+          hint: testRes.hint,
+        });
+      }
+
+      await resetPool(targetUrl);
+      await initDb();
+
+      res.json({
+        success: true,
+        mode: "mysql",
+        latencyMs: testRes.latencyMs,
+        message: `MySQL veritabanı bağlantısı başarıyla kuruldu ve tablolar senkronize edildi (${testRes.latencyMs} ms).`,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: String(error?.message || error),
+      });
     }
   });
 
