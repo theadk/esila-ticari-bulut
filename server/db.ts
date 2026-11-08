@@ -2,15 +2,71 @@ import mysql from 'mysql2/promise';
 import fs from 'fs';
 import { notifyAdminDbDisconnect } from './mailer.js';
 
+const DEFAULT_MYSQL_URI = 'mysql://esilayaz_esilaticari:Korkmaz66**@185.81.155.36:3306/esilayaz_esilaticari';
+
+if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('esilayazilim.com')) {
+  process.env.DATABASE_URL = DEFAULT_MYSQL_URI;
+}
+
 let pool: mysql.Pool | null = null;
-let configuredDatabaseUrl: string = process.env.DATABASE_URL || '';
+let isDummyPool = false;
+let configuredDatabaseUrl: string = process.env.DATABASE_URL || DEFAULT_MYSQL_URI;
 let lastDbError: { code?: string; message: string; timestamp: string; hint?: string } | null = null;
+let reconnectTimer: ReturnType<typeof setInterval> | null = null;
+
+export function parseMysqlConnectionOptions(rawUri?: string): {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+} {
+  const fallback = {
+    host: '185.81.155.36',
+    port: 3306,
+    user: 'esilayaz_esilaticari',
+    password: 'Korkmaz66**',
+    database: 'esilayaz_esilaticari',
+  };
+  const target = (rawUri || configuredDatabaseUrl || DEFAULT_MYSQL_URI).trim();
+  if (!target || !target.startsWith('mysql')) return fallback;
+  try {
+    const withoutProto = target.replace(/^mysql2?:\/\//i, '');
+    const atIndex = withoutProto.lastIndexOf('@');
+    if (atIndex === -1) return fallback;
+    const authPart = withoutProto.slice(0, atIndex);
+    const hostAndDb = withoutProto.slice(atIndex + 1);
+
+    const colonIndex = authPart.indexOf(':');
+    const user = colonIndex !== -1 ? decodeURIComponent(authPart.slice(0, colonIndex)) : decodeURIComponent(authPart);
+    const password = colonIndex !== -1 ? decodeURIComponent(authPart.slice(colonIndex + 1)) : '';
+
+    const slashIndex = hostAndDb.indexOf('/');
+    const hostPortPart = slashIndex !== -1 ? hostAndDb.slice(0, slashIndex) : hostAndDb;
+    const dbAndQuery = slashIndex !== -1 ? hostAndDb.slice(slashIndex + 1) : '';
+    const database = dbAndQuery.split('?')[0] || fallback.database;
+
+    const hostColonIndex = hostPortPart.indexOf(':');
+    const host = (hostColonIndex !== -1 ? hostPortPart.slice(0, hostColonIndex) : hostPortPart) || fallback.host;
+    const port = hostColonIndex !== -1 ? parseInt(hostPortPart.slice(hostColonIndex + 1), 10) || 3306 : 3306;
+
+    return {
+      host: host === 'esilayazilim.com' || host === 'www.esilayazilim.com' ? '185.81.155.36' : host,
+      port,
+      user: user || fallback.user,
+      password: password || fallback.password,
+      database: database || fallback.database,
+    };
+  } catch {
+    return fallback;
+  }
+}
 
 export function getConfiguredDatabaseUrl(): string {
   if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql')) {
     configuredDatabaseUrl = process.env.DATABASE_URL;
   }
-  return configuredDatabaseUrl;
+  return configuredDatabaseUrl || DEFAULT_MYSQL_URI;
 }
 
 export function getLastDbError() {
@@ -21,28 +77,29 @@ function buildErrorHint(err: any): string {
   const code = err?.code || '';
   const msg = String(err?.message || '');
   if (code === 'ER_ACCESS_DENIED_ERROR' || msg.includes('Access denied')) {
-    return 'Kullanıcı adı veya şifre hatalı ya da cPanel > Uzak MySQL (Remote MySQL) bölümünde bu sunucunun IP adresine (% veya sunucu IP) izin verilmemiş.';
+    return 'Kullanıcı adı veya şifre hatalı ya da cPanel > Uzak MySQL (Remote MySQL) bölümünde % (tüm IP adresleri) veya sunucu IP adresine izin verilmemiş.';
   }
   if (code === 'ETIMEDOUT' || msg.includes('ETIMEDOUT')) {
-    return 'MySQL sunucusu (Port 3306) yanıt vermedi (Zaman aşımı). Hosting panelinizde (cPanel/Plesk) "Uzak MySQL (Remote MySQL)" erişiminin açık olduğundan ve 3306 portunun dış bağlantıya izin verdiğinden emin olun.';
+    return 'MySQL sunucusu (185.81.155.36:3306) yanıt vermedi (Zaman aşımı). Hosting panelinizde (cPanel/Plesk) "Uzak MySQL (Remote MySQL)" erişiminin açık olduğundan ve 3306 portunun dış bağlantıya izin verdiğinden emin olun.';
   }
   if (code === 'ECONNREFUSED') {
-    return 'Hedef sunucu 3306 portundan bağlantıyı reddetti. Sunucu adresini (Host) ve port numarasını kontrol edin.';
+    return 'Hedef sunucu (185.81.155.36:3306) bağlantıyı reddetti. Sunucu adresini (Host) ve port numarasını kontrol edin.';
   }
   if (code === 'ENOTFOUND') {
     return 'Sunucu adresi (Host/Domain) bulunamadı. Lütfen sunucu adresini kontrol edin.';
   }
   if (code === 'ER_BAD_DB_ERROR') {
-    return 'Belirtilen veritabanı adı sunucuda bulunamadı. Veritabanı adını kontrol edin.';
+    return 'Belirtilen veritabanı adı (esilayaz_esilaticari) sunucuda bulunamadı.';
   }
-  return 'Veritabanı bağlantı bilgilerini ve uzak MySQL erişim izinlerini kontrol edin.';
+  return 'Veritabanı bağlantı bilgilerini (185.81.155.36:3306) ve uzak MySQL erişim izinlerini kontrol edin.';
 }
 
 export async function resetPool(newDatabaseUrl?: string) {
-  if (typeof newDatabaseUrl === 'string') {
+  if (typeof newDatabaseUrl === 'string' && newDatabaseUrl.trim()) {
     configuredDatabaseUrl = newDatabaseUrl.trim();
     process.env.DATABASE_URL = configuredDatabaseUrl;
-  } else if (configuredDatabaseUrl) {
+  } else {
+    configuredDatabaseUrl = configuredDatabaseUrl || DEFAULT_MYSQL_URI;
     process.env.DATABASE_URL = configuredDatabaseUrl;
   }
 
@@ -53,11 +110,12 @@ export async function resetPool(newDatabaseUrl?: string) {
       // ignore pool close errors
     }
     pool = null;
+    isDummyPool = false;
   }
   lastDbError = null;
 }
 
-export async function testMysqlConnection(targetUrl: string): Promise<{
+export async function testMysqlConnection(targetUrl?: string): Promise<{
   success: boolean;
   latencyMs: number;
   message: string;
@@ -66,9 +124,14 @@ export async function testMysqlConnection(targetUrl: string): Promise<{
 }> {
   const start = Date.now();
   let tempConn: mysql.Connection | null = null;
+  const opts = parseMysqlConnectionOptions(targetUrl || configuredDatabaseUrl || DEFAULT_MYSQL_URI);
   try {
     tempConn = await mysql.createConnection({
-      uri: targetUrl,
+      host: opts.host,
+      port: opts.port,
+      user: opts.user,
+      password: opts.password,
+      database: opts.database,
       connectTimeout: 7000,
     });
     await tempConn.query('SELECT 1');
@@ -77,7 +140,7 @@ export async function testMysqlConnection(targetUrl: string): Promise<{
     return {
       success: true,
       latencyMs,
-      message: `MySQL veritabanına başarıyla bağlanıldı (${latencyMs} ms).`,
+      message: `MySQL veritabanına (${opts.host}:${opts.port}/${opts.database}) başarıyla bağlanıldı (${latencyMs} ms).`,
     };
   } catch (err: any) {
     if (tempConn) {
@@ -99,18 +162,48 @@ export async function testMysqlConnection(targetUrl: string): Promise<{
   }
 }
 
+export function ensureAutoReconnect() {
+  if (reconnectTimer) return;
+  const targetUrl = configuredDatabaseUrl || DEFAULT_MYSQL_URI;
+  reconnectTimer = setInterval(async () => {
+    if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql') && !isDummyPool && !lastDbError) {
+      return;
+    }
+    const check = await testMysqlConnection(targetUrl);
+    if (check.success) {
+      await resetPool(targetUrl);
+      try {
+        await syncMissingDataToMysql(getPool());
+      } catch {
+        // ignore sync errors
+      }
+      console.log('Connected to live MySQL (185.81.155.36:3306 / esilayaz_esilaticari) successfully.');
+    }
+  }, 5000);
+}
+
 export function getPool() {
   if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql')) {
     configuredDatabaseUrl = process.env.DATABASE_URL;
   }
+  const hasMysqlEnv = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql'));
+  if (pool && isDummyPool && hasMysqlEnv) {
+    pool = null;
+    isDummyPool = false;
+  }
   if (!pool) {
-    if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.startsWith('mysql')) {
-      console.log("Local fallback database mode active.");
-      // Dummy pool if no url provided
+    if (!hasMysqlEnv) {
+      isDummyPool = true;
       pool = mysql.createPool({ uri: 'mysql://dummy' });
     } else {
+      isDummyPool = false;
+      const opts = parseMysqlConnectionOptions(process.env.DATABASE_URL);
       pool = mysql.createPool({
-        uri: process.env.DATABASE_URL,
+        host: opts.host,
+        port: opts.port,
+        user: opts.user,
+        password: opts.password,
+        database: opts.database,
         waitForConnections: true,
         connectionLimit: 10,
         maxIdle: 10, 
@@ -136,7 +229,7 @@ export function getPool() {
       // --- ETIMEDOUT & Reconnect Interceptor ---
       const originalQuery = pool.query.bind(pool);
       (pool as any).query = async function(...args: any[]) {
-        let retries = 2;
+        let retries = 3;
         while (retries > 0) {
           const startTime = Date.now();
           try {
@@ -161,6 +254,7 @@ export function getPool() {
                 hint: buildErrorHint(error),
               };
               process.env.DATABASE_URL = '';
+              ensureAutoReconnect();
               notifyAdminDbDisconnect(error, 'MySQL Erişim Reddedildi (ER_ACCESS_DENIED_ERROR)').catch(() => {});
               throw error;
             }
@@ -175,7 +269,10 @@ export function getPool() {
                    timestamp: new Date().toISOString(),
                    hint: buildErrorHint(error),
                  };
-                 process.env.DATABASE_URL = '';
+                 if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+                   process.env.DATABASE_URL = '';
+                   ensureAutoReconnect();
+                 }
                  notifyAdminDbDisconnect(error, `Sorgu Esnasında Bağlantı Koptu (${duration}ms)`).catch(() => {});
                  throw error;
               }
@@ -821,7 +918,7 @@ export async function initDb() {
     // Ensure all tenants and their records from backup.json exist in MySQL (INSERT IGNORE)
     await syncMissingDataToMysql(client);
 
-    console.log("Database initialized successfully.");
+    console.log("Database initialized successfully (185.81.155.36:3306 / esilayaz_esilaticari).");
     lastDbError = null;
   } catch (err: any) {
     lastDbError = {
@@ -831,30 +928,9 @@ export async function initDb() {
       hint: buildErrorHint(err),
     };
     process.env.DATABASE_URL = '';
-    console.log('Active mirror of esilayaz_esilaticari loaded while remote host reconnects:', err?.message || err);
+    console.log('Active mirror of esilayaz_esilaticari loaded while 185.81.155.36:3306 reconnects:', err?.message || err);
     notifyAdminDbDisconnect(err, 'Veritabanı Başlangıç Kurulumu (initDb)').catch(() => {});
-
-    // Automatically reconnect in background as soon as remote MySQL accepts connection
-    const targetUrl = configuredDatabaseUrl;
-    if (targetUrl && targetUrl.startsWith('mysql')) {
-      const retryInterval = setInterval(async () => {
-        if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql')) {
-          clearInterval(retryInterval);
-          return;
-        }
-        const check = await testMysqlConnection(targetUrl);
-        if (check.success) {
-          clearInterval(retryInterval);
-          await resetPool(targetUrl);
-          try {
-            await syncMissingDataToMysql(getPool());
-          } catch {
-            // ignore sync errors on reconnect
-          }
-          console.log('Reconnected to live MySQL (esilayaz_esilaticari) successfully.');
-        }
-      }, 30000);
-    }
+    ensureAutoReconnect();
   }
 }
 

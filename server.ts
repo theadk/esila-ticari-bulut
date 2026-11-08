@@ -225,6 +225,13 @@ async function startServer() {
           dbResponseTime = 3;
           notifyAdminDbDisconnect(err, 'Sistem Durumu Kontrolü (/api/system-status)').catch(console.error);
         }
+      } else {
+        const check = await testMysqlConnection();
+        if (check.success) {
+          await resetPool(getConfiguredDatabaseUrl());
+          dbResponseTime = check.latencyMs;
+          dbStatus = 'connected';
+        }
       }
 
       const totalMem = os.totalmem();
@@ -241,7 +248,7 @@ async function startServer() {
           status: dbStatus,
           responseTime: dbResponseTime,
           isFallback: isFallback,
-          configuredHost: parsedCfg.host || 'esilayazilim.com',
+          configuredHost: parsedCfg.host || '185.81.155.36',
           configuredDatabase: parsedCfg.database || 'esilayaz_esilaticari',
           lastError: getLastDbError(),
           alertInfo: getDbAlertStatus()
